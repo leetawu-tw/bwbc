@@ -146,7 +146,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 
     <!-- 我的課程 -->
     <div id="tab-my-courses" class="page on">
-      <div class="section-title">我的課程 <span id="my-sem-label" style="font-size:12px;color:var(--ink3);font-weight:400"></span></div>
+      <div class="section-title" style="display:flex;align-items:center;gap:12px">
+        我的課程
+        <select id="my-sem-filter" onchange="filterMyCourses()" 
+          style="font-size:12px;padding:3px 8px;border:1px solid var(--cr2);border-radius:6px;color:var(--ink);background:#fff">
+          <option value="">全部學期</option>
+        </select>
+        <span id="my-sem-label" style="font-size:12px;color:var(--ink3);font-weight:400"></span>
+      </div>
       <div id="my-courses-grid" class="course-grid">
         <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
       </div>
@@ -428,8 +435,16 @@ async function loadMyCourses() {
   }
   const ids = ot.map(o => o.offering_id);
   const { data: cs } = await sb.from('v_course_schedule')
-    .select('*').in('offering_id', ids).order('semester_num').order('day');
+    .select('*').in('offering_id', ids).order('semester_label',{ascending:false}).order('day');
   MY_COURSES = cs || [];
+
+  // 建立學期下拉選單
+  const sems = [...new Set(MY_COURSES.map(c=>c.semester_label))].sort().reverse();
+  const sel = document.getElementById('my-sem-filter');
+  if (sel) {
+    sel.innerHTML = '<option value="">全部學期</option>'
+      + sems.map(s=>`<option value="${s}">${s}</option>`).join('');
+  }
 
   // 載入大綱完成狀態
   const { data: syls } = await sb.from('syllabi')
@@ -446,14 +461,28 @@ async function loadMyCourses() {
     if ((s.bibliography?.required?.length||0)+(s.bibliography?.optional?.length||0)>0) score++;
     sylMap[s.offering_id] = score;
   });
+  MY_COURSES._sylMap = sylMap;
 
+  renderMyCourses(MY_COURSES, sylMap);
+}
+
+function filterMyCourses() {
+  const sel = document.getElementById('my-sem-filter');
+  const semLabel = sel?.value || '';
+  const filtered = semLabel
+    ? MY_COURSES.filter(c => c.semester_label === semLabel)
+    : MY_COURSES;
+  renderMyCourses(filtered, MY_COURSES._sylMap || {});
+}
+
+function renderMyCourses(courses, sylMap) {
   const grid = document.getElementById('my-courses-grid');
-  if (!MY_COURSES.length) {
-    grid.innerHTML = '<div style="color:var(--ink3);padding:20px">本學年無開課記錄</div>';
+  if (!courses.length) {
+    grid.innerHTML = '<div style="color:var(--ink3);padding:20px">此學期無開課記錄</div>';
     return;
   }
 
-  grid.innerHTML = MY_COURSES.map(c => {
+  grid.innerHTML = courses.map(c => {
     const score = sylMap[c.offering_id];
     const hasS = score !== undefined;
     const btnClass = (hasS && score >= 5) ? 'has' : 'none';
