@@ -18,7 +18,7 @@
   --r:8px;--sh:0 2px 8px rgba(0,0,0,.08);--sh2:0 8px 24px rgba(0,0,0,.12);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--cr);color:var(--ink);height:100vh;overflow:hidden;font-size:14px}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cr);color:var(--ink);min-height:100vh;font-size:14px}
 button{cursor:pointer;font-family:inherit}
 input,select,textarea{font-family:inherit;font-size:14px}
 
@@ -34,16 +34,16 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .login-btn:hover{background:var(--navy2)}
 
 /* ── LAYOUT ── */
-.app{display:none;height:100vh;flex-direction:column;overflow:hidden}
+.app{display:none;min-height:100vh;flex-direction:column}
 .app.show{display:flex}
-.topbar{position:sticky;top:0;z-index:50;background:var(--navy);padding:0 24px;height:52px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+.topbar{background:var(--navy);padding:0 24px;height:52px;display:flex;align-items:center;gap:16px;flex-shrink:0}
 .tb-logo{font-family:'Noto Serif TC',serif;font-size:14px;color:rgba(255,255,255,.8);flex:1}
 .tb-user{font-size:12px;color:rgba(255,255,255,.6)}
 .tb-logout{font-size:12px;padding:4px 12px;border:1px solid rgba(255,255,255,.25);border-radius:4px;background:transparent;color:rgba(255,255,255,.7)}
 .tb-logout:hover{background:rgba(255,255,255,.1)}
 
-.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px)}
-.sidebar{width:200px;background:#fff;border-right:1px solid var(--cr2);padding:16px 0;flex-shrink:0;overflow-y:auto;height:100%}
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:200px;background:#fff;border-right:1px solid var(--cr2);padding:16px 0;flex-shrink:0;overflow-y:auto}
 .nav-section{margin-bottom:16px}
 .nav-label{font-size:10px;font-weight:500;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;padding:0 16px;margin-bottom:4px}
 .nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;color:var(--ink2);cursor:pointer;transition:all .15s;border-left:3px solid transparent}
@@ -51,7 +51,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .nav-item.on{background:var(--navy3);color:var(--navy);border-left-color:var(--gold);font-weight:500}
 .nav-icon{font-size:16px;width:20px;text-align:center}
 
-.content{flex:1;overflow-y:auto;padding:20px 24px;height:100%}
+.content{flex:1;overflow-y:auto;padding:20px 24px}
 
 /* ── CARDS ── */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
@@ -60,7 +60,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .stat-lbl{font-size:11.5px;color:var(--ink3);margin-top:2px}
 
 /* ── PAGE HEADER ── */
-.page-hdr{display:flex;align-items:center;gap:12px;margin-bottom:16px;position:sticky;top:0;background:var(--cr);z-index:10;padding:8px 0;margin-top:-8px}
+.page-hdr{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .page-title{font-family:'Noto Serif TC',serif;font-size:18px;font-weight:600;flex:1}
 .badge{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:500}
 .badge-warn{background:#FFF3E0;color:#B05010;border:1px solid #F0C080}
