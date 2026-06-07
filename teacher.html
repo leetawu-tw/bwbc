@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>教師入口 — 福智佛教學院</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1B3A6B;--navy2:#2B5FA0;--navy3:#EEF2FA;
+  --green:#1F5C3A;--green3:#EAF4EE;
+  --gold:#C4960A;--gold3:#FFF8E1;
+  --ink:#2C2C2A;--ink2:#444;--ink3:#888;
+  --cr2:#E8E8E8;--cr3:#F7F6F3;
+  --r:10px;--sh:0 1px 4px rgba(0,0,0,.08);
+}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink);line-height:1.6}
+
+/* ── LOGIN ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,#2B5FA0 100%)}
+.login-card{background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.login-title{font-family:'Noto Serif TC',serif;font-size:22px;font-weight:600;color:var(--navy);text-align:center;margin-bottom:6px}
+.login-sub{font-size:13px;color:var(--ink3);text-align:center;margin-bottom:28px}
+.login-btn{width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .15s}
+.login-btn:hover{background:var(--navy2)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.finput{width:100%;padding:10px 12px;border:1.5px solid var(--cr2);border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border .15s}
+.finput:focus{border-color:var(--navy2)}
+.flabel{font-size:12.5px;color:var(--ink3);margin-bottom:5px;display:block}
+.feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none;text-align:center}
+.feedback.ok{background:#E8F5E9;color:#1A6A30}
+.feedback.err{background:#FEE;color:#C04030}
+
+/* ── APP ── */
+.topbar{background:var(--navy);color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50}
+.topbar-logo{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600}
+.topbar-user{margin-left:auto;font-size:12.5px;opacity:.8}
+.topbar-btn{padding:5px 12px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:transparent;color:#fff;font-size:12px;cursor:pointer;font-family:inherit}
+.main{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+.tabs{display:flex;gap:2px;background:var(--cr2);border-radius:var(--r);padding:3px;margin-bottom:20px;width:fit-content}
+.tab{padding:7px 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--ink3);font-family:inherit;transition:all .15s}
+.tab.on{background:#fff;color:var(--navy);box-shadow:var(--sh)}
+.page{display:none}.page.on{display:block}
+.section-title{font-family:'Noto Serif TC',serif;font-size:16px;font-weight:600;color:var(--navy);margin-bottom:14px}
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);box-shadow:var(--sh);padding:18px}
+
+/* ── 我的課程 ── */
+.course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.course-card{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);box-shadow:var(--sh);overflow:hidden;transition:box-shadow .15s}
+.course-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.cc-top{padding:14px 16px 10px;border-bottom:1px solid var(--cr2)}
+.cc-code{font-size:10.5px;color:var(--ink3);margin-bottom:4px}
+.cc-name{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.cc-en{font-size:11px;color:var(--ink3);font-style:italic;margin-bottom:8px}
+.cc-info{font-size:12px;color:var(--ink3);display:flex;flex-direction:column;gap:3px}
+.cc-bot{padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.cc-cred{font-size:13px;font-weight:500;color:var(--ink)}
+.btn-syl{padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:500;cursor:pointer;font-family:inherit;border:none;transition:all .15s}
+.btn-syl.has{background:var(--navy);color:#fff}
+.btn-syl.none{background:var(--navy3);color:var(--navy);border:1px solid rgba(43,95,160,.2)}
+.btn-syl:hover{opacity:.85}
+.ax-badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;margin-bottom:6px}
+
+/* ── 課程大綱編輯 (modal) ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:860px;margin:auto}
+.modal-hdr{background:var(--navy);color:#fff;padding:14px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;gap:10px}
+.modal-title{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;flex:1}
+.modal-close{background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-body{padding:20px;max-height:80vh;overflow-y:auto}
+.sy-sec{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);margin-bottom:12px}
+.sy-sec-hdr{padding:11px 16px;border-bottom:1px solid var(--cr2);display:flex;align-items:center;gap:8px;cursor:pointer}
+.sy-sec-title{font-size:13.5px;font-weight:600;color:var(--navy);flex:1}
+.sy-sec-body{padding:14px 16px}
+.frow{margin-bottom:12px}
+.sy-add{width:100%;padding:7px;border:1.5px dashed var(--cr2);border-radius:var(--r);background:transparent;color:var(--ink3);font-size:12.5px;cursor:pointer;margin-top:4px}
+.sy-add:hover{border-color:var(--navy2);color:var(--navy)}
+.sy-row-obj{display:grid;grid-template-columns:28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px}
+.sy-row-mth{display:grid;grid-template-columns:20px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px}
+.sy-row-asmnt{display:grid;grid-template-columns:1fr 80px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px}
+.sy-row-wk{display:grid;grid-template-columns:52px 1fr 130px 28px;gap:6px;align-items:center;margin-bottom:6px}
+.sy-wk-block{border:1px solid var(--cr2);border-radius:8px;padding:10px;margin-bottom:8px}
+.sy-wk-top{display:grid;grid-template-columns:52px 1fr 130px 28px;gap:6px;align-items:center;margin-bottom:6px}
+.pct-total{text-align:right;font-size:12px;padding:4px 0}
+.del-btn{width:26px;height:26px;border-radius:5px;border:1px solid var(--cr2);background:#fff;color:var(--ink3);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.del-btn:hover{background:#fee;border-color:#fcc;color:#c00}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--cr2);display:flex;justify-content:flex-end;gap:10px}
+.btn-save{padding:9px 22px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-save:hover{background:var(--navy2)}
+.btn-cancel{padding:9px 18px;background:#fff;color:var(--ink3);border:1px solid var(--cr2);border-radius:8px;font-size:13.5px;cursor:pointer;font-family:inherit}
+
+/* ── 個人資料 ── */
+.profile-grid{display:grid;grid-template-columns:200px 1fr;gap:20px}
+.avatar-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+.avatar{width:140px;height:140px;border-radius:50%;object-fit:cover;border:3px solid var(--cr2);background:var(--navy3)}
+.avatar-placeholder{width:140px;height:140px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:600;color:#fff}
+.upload-btn{padding:7px 16px;border:1.5px solid var(--cr2);border-radius:8px;font-size:12.5px;cursor:pointer;background:#fff;color:var(--ink);font-family:inherit}
+.upload-btn:hover{border-color:var(--navy2);color:var(--navy)}
+
+/* ── 所有教師課程 ── */
+.all-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.all-card{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);padding:14px;font-size:13px}
+.all-name{font-weight:600;color:var(--ink);margin-bottom:4px}
+.all-info{color:var(--ink3);font-size:12px;display:flex;flex-direction:column;gap:2px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 22px;border-radius:30px;font-size:13.5px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1}
+@media(max-width:700px){.profile-grid{grid-template-columns:1fr}.tabs{width:100%}.tab{flex:1;text-align:center}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <div class="login-title">福智佛教學院</div>
+    <div class="login-sub">教師入口 · 請輸入您的 Email 登入</div>
+    <div class="frow">
+      <label class="flabel">Email</label>
+      <input class="finput" id="t-email" type="email" placeholder="your@email.com" value="">
+    </div>
+    <button class="login-btn" id="t-login-btn" onclick="sendLink()">傳送登入連結</button>
+    <div class="feedback" id="t-feedback"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" style="display:none">
+  <div class="topbar">
+    <div class="topbar-logo">福智佛教學院 · 教師入口</div>
+    <div class="topbar-user" id="t-user-label"></div>
+    <button class="topbar-btn" onclick="signOut()">登出</button>
+  </div>
+  <div class="main">
+    <!-- 公佈欄公告 -->
+    <div id="ann-banners" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+    <div class="tabs">
+      <button class="tab on" onclick="switchTab('my-courses',this)">📚 我的課程</button>
+      <button class="tab" onclick="switchTab('my-profile',this)">👤 個人資料</button>
+      <button class="tab" onclick="switchTab('all-courses',this)">🗂 所有課程</button>
+    </div>
+
+    <!-- 我的課程 -->
+    <div id="tab-my-courses" class="page on">
+      <div class="section-title">我的課程 <span id="my-sem-label" style="font-size:12px;color:var(--ink3);font-weight:400"></span></div>
+      <div id="my-courses-grid" class="course-grid">
+        <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+      </div>
+    </div>
+
+    <!-- 個人資料 -->
+    <div id="tab-my-profile" class="page">
+      <div class="section-title">個人資料</div>
+      <div class="card">
+        <div class="profile-grid">
+          <div class="avatar-wrap">
+            <div id="profile-avatar"></div>
+            <label class="upload-btn" for="photo-input">📷 上傳照片</label>
+            <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="uploadPhoto(this)">
+            <div style="font-size:11px;color:var(--ink3);text-align:center">建議尺寸：300×300px</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div>
+              <label class="flabel">中文姓名</label>
+              <input class="finput" id="p-name" readonly style="background:var(--cr3)">
+            </div>
+            <div>
+              <label class="flabel">英文姓名</label>
+              <input class="finput" id="p-name-en" readonly style="background:var(--cr3)">
+            </div>
+            <div>
+              <label class="flabel">職稱</label>
+              <input class="finput" id="p-title" readonly style="background:var(--cr3)">
+            </div>
+            <div>
+              <label class="flabel">所屬機構</label>
+              <input class="finput" id="p-affil" readonly style="background:var(--cr3)">
+            </div>
+            <div>
+              <label class="flabel">中文簡介</label>
+              <textarea class="finput" id="p-bio" rows="5" placeholder="請輸入個人簡介，將顯示於公開課程頁面…" style="resize:vertical"></textarea>
+            </div>
+            <div>
+              <label class="flabel">師資介紹網址（選填）</label>
+              <input class="finput" id="p-url" type="url" placeholder="https://...">
+            </div>
+            <div style="text-align:right">
+              <button class="btn-save" onclick="saveProfile()">💾 儲存個人資料</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 所有課程 -->
+    <div id="tab-all-courses" class="page">
+      <div class="section-title">115 學年所有課程（唯讀）</div>
+      <div id="all-courses-grid" class="all-grid">
+        <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 課程大綱編輯 Modal -->
+<div class="modal-bg" id="syl-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="syl-modal-title">課程大綱</div>
+      <button class="modal-close" onclick="closeSylModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="sy-sec">
+        <div class="sy-sec-hdr" onclick="toggleSec('ov')"><span class="sy-sec-title">📝 課程概述</span><span id="ov-arr">▼</span></div>
+        <div class="sy-sec-body" id="ov-body">
+          <textarea class="finput" id="syl-overview" rows="5" placeholder="請輸入課程概述…" style="width:100%;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="sy-sec">
+        <div class="sy-sec-hdr" onclick="toggleSec('obj')"><span class="sy-sec-title">🎯 教學目標</span><span id="obj-arr">▼</span></div>
+        <div class="sy-sec-body" id="obj-body">
+          <div id="syl-obj-list"></div>
+          <button class="sy-add" onclick="addObj()">＋ 新增教學目標</button>
+        </div>
+      </div>
+
+      <div class="sy-sec">
+        <div class="sy-sec-hdr" onclick="toggleSec('mth')"><span class="sy-sec-title">🔧 教學方法</span><span id="mth-arr">▼</span></div>
+        <div class="sy-sec-body" id="mth-body">
+          <div id="syl-mth-list"></div>
+          <button class="sy-add" onclick="addMth()">＋ 新增教學方法</button>
+        </div>
+      </div>
+
+      <div class="sy-sec">
+        <div class="sy-sec-hdr" onclick="toggleSec('asmnt')">
+          <span class="sy-sec-title">📊 評量方式</span>
+          <span id="syl-pct-badge" style="font-size:11px;padding:2px 8px;border-radius:20px;background:#E8F5E9;color:#1B5E20;margin-right:8px">0%</span>
+          <span id="asmnt-arr">▼</span>
+        </div>
+        <div class="sy-sec-body" id="asmnt-body">
+          <div style="display:grid;grid-template-columns:1fr 80px 1fr 28px;gap:6px;margin-bottom:6px">
+            <div style="font-size:11px;color:var(--ink3)">子項目（必填）</div>
+            <div style="font-size:11px;color:var(--ink3);text-align:center">百分比</div>
+            <div style="font-size:11px;color:var(--ink3)">說明（選填）</div>
+            <div></div>
+          </div>
+          <div id="syl-asmnt-list"></div>
+          <button class="sy-add" onclick="addAsmnt()">＋ 新增評量項目</button>
+        </div>
+      </div>
+
+      <div class="sy-sec">
+        <div class="sy-sec-hdr" onclick="toggleSec('wk')"><span class="sy-sec-title">📅 教學進度</span><span id="wk-arr">▼</span></div>
+        <div class="sy-sec-body" id="wk-body">
+          <div style="display:grid;grid-template-columns:52px 1fr 130px 28px;gap:6px;margin-bottom:6px">
+            <div style="font-size:11px;color:var(--ink3)">週次</div>
+            <div style="font-size:11px;color:var(--ink3)">主題</div>
+            <div style="font-size:11px;color:var(--ink3)">授課教師</div>
+            <div style="font-size:11px;color:var(--ink3);text-align:center" title="展開填詳細內容">詳細</div>
+          </div>
+          <div id="syl-wk-list"></div>
+          <button class="sy-add" onclick="addWeek()">＋ 新增週次</button>
+        </div>
+      </div>
+
+      <div class="sy-sec">
+        <div class="sy-sec-hdr" onclick="toggleSec('bib')"><span class="sy-sec-title">📚 參考書目</span><span id="bib-arr">▼</span></div>
+        <div class="sy-sec-body" id="bib-body">
+          <div style="font-size:12px;font-weight:500;color:var(--ink3);margin-bottom:5px">必讀</div>
+          <div id="syl-bib-req"></div>
+          <button class="sy-add" onclick="addBib('req')">＋ 新增必讀</button>
+          <div style="font-size:12px;font-weight:500;color:var(--ink3);margin:12px 0 5px">參考</div>
+          <div id="syl-bib-opt"></div>
+          <button class="sy-add" onclick="addBib('opt')">＋ 新增參考</button>
+        </div>
+      </div>
+
+      <div class="sy-sec">
+        <div class="sy-sec-hdr" onclick="toggleSec('notes')"><span class="sy-sec-title">💬 備註（選填）</span><span id="notes-arr">▼</span></div>
+        <div class="sy-sec-body" id="notes-body">
+          <textarea class="finput" id="syl-notes" rows="3" placeholder="其他備註…" style="width:100%;resize:vertical"></textarea>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeSylModal()">取消</button>
+      <button class="btn-save" onclick="saveSyl()">💾 儲存大綱</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL  = 'https://pjyjpcumakxevxuxwcyx.supabase.co';
+const SB_ANON = 'sb_publishable_Hxw2qfgBO5BTkX4wG4xeTQ_tEsPG3pc';
+const sb = supabase.createClient(SB_URL, SB_ANON, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'bwbc-teacher-auth' }
+});
+
+const AX_COLOR = {底蘊:'#1B3A6B',對話:'#1F5C3A',應用:'#7A3210'};
+const AX_BG    = {底蘊:'#EEF2FA',對話:'#EAF4EE',應用:'#FAF0EB'};
+const REQ_ZH   = {req:'必修',sel:'選修',go:'二選一'};
+
+let ME = null;        // 當前教師資料
+let MY_COURSES = [];  // 我的開課記錄
+let SYL = {};         // 目前編輯的大綱資料
+let SYL_OFFERING_ID = null;
+
+/* ── AUTH ── */
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await enterApp(session.user);
+  else showLogin();
+}
+
+async function sendLink() {
+  const email = document.getElementById('t-email').value.trim();
+  const btn = document.getElementById('t-login-btn');
+  const fb  = document.getElementById('t-feedback');
+  if (!email) { showFeedback('請輸入 Email','err'); return; }
+  btn.disabled = true; btn.textContent = '傳送中…';
+  const { error } = await sb.auth.signInWithOtp({
+    email, options: { emailRedirectTo: window.location.href }
+  });
+  btn.disabled = false; btn.textContent = '傳送登入連結';
+  if (error) showFeedback('❌ ' + error.message, 'err');
+  else showFeedback('✅ 登入連結已寄出！請查收 ' + email + ' 的信件', 'ok');
+}
+
+function showFeedback(msg, type) {
+  const fb = document.getElementById('t-feedback');
+  fb.textContent = msg; fb.className = 'feedback ' + type; fb.style.display = 'block';
+}
+
+async function enterApp(user) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('t-user-label').textContent = user.email;
+
+  // 找對應教師資料
+  const { data: t } = await sb.from('teachers').select('*').eq('email', user.email).maybeSingle();
+  if (!t) {
+    document.getElementById('my-courses-grid').innerHTML =
+      '<div style="color:#c00;padding:20px">找不到對應的教師資料，請聯絡行政人員。</div>';
+    return;
+  }
+  ME = t;
+  document.getElementById('t-user-label').textContent = `${t.name_zh}　${user.email}`;
+  await Promise.all([loadMyCourses(), loadProfile(), loadAllCourses()]);
+  loadPublicAnnouncements('teacher');
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+/* ════ 公佈欄公告 ════ */
+async function loadPublicAnnouncements(role) {
+  try {
+    const now = new Date().toISOString();
+    const { data } = await sb.from('announcements')
+      .select('id,title,content,target,expires_at')
+      .or(`target.eq.${role},target.eq.all`)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order('created_at', {ascending:false})
+      .limit(5);
+    const el = document.getElementById('ann-banners');
+    if (!el || !data?.length) return;
+
+    // 查附件
+    const ids = data.map(a=>a.id);
+    const {data:atts} = await sb.from('attachments').select('*').eq('ref_type','announcement').in('ref_id',ids);
+    const attMap={};
+    (atts||[]).forEach(a=>{ if(!attMap[a.ref_id]) attMap[a.ref_id]=[]; attMap[a.ref_id].push(a); });
+
+    el.innerHTML = await Promise.all(data.map(async a=>{
+      const annAtts = attMap[a.id]||[];
+      let attHtml = '';
+      if (annAtts.length) {
+        const links = await Promise.all(annAtts.map(async att=>{
+          const {data:su} = await sb.storage.from('admin-assets').createSignedUrl(att.file_path, 3600);
+          const url = su?.signedUrl||'#';
+          return `<a href="${url}" target="_blank" style="font-size:11px;padding:2px 8px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none">📎 ${att.filename}</a>`;
+        }));
+        attHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${links.join('')}</div>`;
+      }
+      return `<div style="background:#EDE9FE;color:#4C1D95;border:1px solid #C4B5FD;border-radius:8px;padding:12px 16px;font-size:13px">
+        <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
+          <div style="display:flex;align-items:flex-start;gap:8px;flex:1">
+            <span style="flex-shrink:0">📌</span>
+            <div>
+              <div style="font-weight:600">${a.title}</div>
+              ${a.content?`<div style="font-size:12px;margin-top:3px;white-space:pre-wrap">${a.content}</div>`:''}
+              ${attHtml}
+            </div>
+          </div>
+          ${a.expires_at?`<div style="font-size:11px;opacity:.7;flex-shrink:0;margin-left:12px">至 ${new Date(a.expires_at).toLocaleDateString('zh-TW')}</div>`:''}
+        </div>
+      </div>`;
+    }));
+    el.innerHTML = el.innerHTML;
+  } catch(e) { console.warn('公佈欄載入失敗',e); }
+}
+
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+/* ── 我的課程 ── */
+async function loadMyCourses() {
+  const { data: ot } = await sb.from('offering_teachers')
+    .select('offering_id').eq('teacher_id', ME.id);
+  if (!ot?.length) {
+    document.getElementById('my-courses-grid').innerHTML =
+      '<div style="color:var(--ink3);padding:20px">本學年無開課記錄</div>';
+    return;
+  }
+  const ids = ot.map(o => o.offering_id);
+  const { data: cs } = await sb.from('v_course_schedule')
+    .select('*').in('offering_id', ids).order('semester_num').order('day');
+  MY_COURSES = cs || [];
+
+  // 載入大綱完成狀態
+  const { data: syls } = await sb.from('syllabi')
+    .select('offering_id,overview_zh,objectives,methods,assessment,weeks,bibliography')
+    .in('offering_id', ids);
+  const sylMap = {};
+  (syls||[]).forEach(s => {
+    let score = 0;
+    if (s.overview_zh?.trim()) score++;
+    if (s.objectives?.length > 0) score++;
+    if (s.methods?.length > 0) score++;
+    if (s.assessment?.length > 0) score++;
+    if ((s.weeks||[]).some(w=>w.title?.trim())) score++;
+    if ((s.bibliography?.required?.length||0)+(s.bibliography?.optional?.length||0)>0) score++;
+    sylMap[s.offering_id] = score;
+  });
+
+  const grid = document.getElementById('my-courses-grid');
+  if (!MY_COURSES.length) {
+    grid.innerHTML = '<div style="color:var(--ink3);padding:20px">本學年無開課記錄</div>';
+    return;
+  }
+
+  grid.innerHTML = MY_COURSES.map(c => {
+    const score = sylMap[c.offering_id];
+    const hasS = score !== undefined;
+    const btnClass = (hasS && score >= 5) ? 'has' : 'none';
+    const btnText = hasS && score > 0 ? `📋 編輯大綱（${score}/6）` : '📋 填寫大綱';
+    const axColor = AX_COLOR[c.axis_code] || '#1B3A6B';
+    const axBg    = AX_BG[c.axis_code]    || '#EEF2FA';
+    return `<div class="course-card">
+      <div class="cc-top" style="border-top:3px solid ${axColor}">
+        <div class="cc-code">${c.code} · ${c.semester_label}</div>
+        <div class="cc-name">${c.name_zh}</div>
+        ${c.name_en ? `<div class="cc-en">${c.name_en}</div>` : ''}
+        <span class="ax-badge" style="background:${axBg};color:${axColor}">${c.axis_name||''}</span>
+        <div class="cc-info">
+          <span>⏰ ${c.time_raw||'待確認'}</span>
+          <span>🏛 ${c.classroom_name||'待確認'}</span>
+        </div>
+      </div>
+      <div class="cc-bot">
+        <span class="cc-cred">${c.credits} 學分 <span style="font-size:11px;color:var(--ink3)">${REQ_ZH[c.req_type]||''}</span></span>
+        <button class="btn-syl ${btnClass}" onclick="openSylModal('${c.offering_id}','${c.name_zh}')">${btnText}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── 個人資料 ── */
+async function loadProfile() {
+  if (!ME) return;
+  document.getElementById('p-name').value    = ME.name_zh || '';
+  document.getElementById('p-name-en').value = ME.name_en || '';
+  document.getElementById('p-title').value   = ME.title || '';
+  document.getElementById('p-affil').value   = ME.affiliation || '';
+  document.getElementById('p-bio').value     = ME.bio_zh || '';
+  document.getElementById('p-url').value     = ME.profile_url || '';
+
+  const avatarEl = document.getElementById('profile-avatar');
+  if (ME.photo_url) {
+    avatarEl.innerHTML = `<img src="${ME.photo_url}?t=${Date.now()}" class="avatar">`;
+  } else {
+    avatarEl.innerHTML = `<div class="avatar-placeholder">${ME.name_zh?.slice(0,1)||'?'}</div>`;
+  }
+}
+
+async function uploadPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  showToast('⏳ 上傳照片中…');
+  const ext  = file.name.split('.').pop();
+  const path = `teacher-photos/${ME.id}.${ext}`;
+  const { error: upErr } = await sb.storage.from('teacher-assets').upload(path, file, { upsert: true });
+  if (upErr) { showToast('上傳失敗：' + upErr.message, true); return; }
+  const { data: { publicUrl } } = sb.storage.from('teacher-assets').getPublicUrl(path);
+  const { error } = await sb.from('teachers').update({ photo_url: publicUrl }).eq('id', ME.id);
+  if (error) { showToast('儲存失敗：' + error.message, true); return; }
+  ME.photo_url = publicUrl;
+  document.getElementById('profile-avatar').innerHTML = `<img src="${publicUrl}?t=${Date.now()}" class="avatar">`;
+  showToast('✅ 照片已更新！');
+}
+
+async function saveProfile() {
+  const { error } = await sb.from('teachers').update({
+    bio_zh:      document.getElementById('p-bio').value,
+    profile_url: document.getElementById('p-url').value,
+    show_profile: true
+  }).eq('id', ME.id);
+  if (error) showToast('儲存失敗：' + error.message, true);
+  else showToast('✅ 個人資料已儲存！');
+}
+
+/* ── 所有課程 ── */
+async function loadAllCourses() {
+  const { data } = await sb.from('v_course_schedule').select('*').eq('academic_year', 115).order('semester_num').order('axis_code').order('code');
+  const grid = document.getElementById('all-courses-grid');
+  grid.innerHTML = (data||[]).map(c => {
+    const axColor = AX_COLOR[c.axis_code] || '#1B3A6B';
+    const axBg    = AX_BG[c.axis_code]    || '#EEF2FA';
+    return `<div class="all-card" style="border-left:3px solid ${axColor}">
+      <div style="font-size:10px;color:var(--ink3);margin-bottom:2px">${c.code} · ${c.semester_label}</div>
+      <div class="all-name" style="color:${axColor}">${c.name_zh}</div>
+      <div class="all-info">
+        <span>⏰ ${c.time_raw||'待確認'}</span>
+        <span>🏛 ${c.classroom_name||'待確認'}</span>
+        <span style="margin-top:2px">${c.credits}學分 · <span style="background:${axBg};color:${axColor};padding:1px 6px;border-radius:4px;font-size:10.5px">${c.axis_name||''}</span></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── 課程大綱 Modal ── */
+async function openSylModal(offeringId, name) {
+  SYL_OFFERING_ID = offeringId;
+  document.getElementById('syl-modal-title').textContent = name + ' — 課程大綱';
+  document.getElementById('syl-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const { data } = await sb.from('syllabi').select('*').eq('offering_id', offeringId).maybeSingle();
+  SYL = data || { overview_zh:'', objectives:[], methods:[], assessment:[],
+    weeks: Array.from({length:16},(_,i)=>({week:i+1,title:'',teacher:'',content:''})),
+    bibliography:{required:[],optional:[]}, notes:'' };
+  renderSyl();
+}
+
+function closeSylModal() {
+  document.getElementById('syl-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function toggleSec(id) {
+  const body = document.getElementById(id+'-body');
+  const arr  = document.getElementById(id+'-arr');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  arr.textContent = open ? '▶' : '▼';
+}
+
+function renderSyl() {
+  document.getElementById('syl-overview').value = SYL.overview_zh || '';
+  document.getElementById('syl-notes').value    = SYL.notes || '';
+  renderObj(); renderMth(); renderAsmnt(); renderWk(); renderBib();
+}
+
+function renderObj() {
+  document.getElementById('syl-obj-list').innerHTML = (SYL.objectives||[]).map((o,i)=>`
+    <div class="sy-row-obj">
+      <div style="font-size:11px;font-weight:500;color:var(--ink3);text-align:center">${i+1}.</div>
+      <input class="finput" value="${esc(o.text||'')}" placeholder="教學目標…" oninput="SYL.objectives[${i}].text=this.value">
+      <button class="del-btn" onclick="SYL.objectives.splice(${i},1);renderObj()">✕</button>
+    </div>`).join('');
+}
+function addObj() { SYL.objectives.push({text:''}); renderObj(); }
+
+function renderMth() {
+  document.getElementById('syl-mth-list').innerHTML = (SYL.methods||[]).map((m,i)=>`
+    <div class="sy-row-mth">
+      <span style="color:var(--navy);font-size:13px">▸</span>
+      <input class="finput" value="${esc(m.text||'')}" placeholder="例：講授、案例討論…" oninput="SYL.methods[${i}].text=this.value">
+      <button class="del-btn" onclick="SYL.methods.splice(${i},1);renderMth()">✕</button>
+    </div>`).join('');
+}
+function addMth() { SYL.methods.push({text:''}); renderMth(); }
+
+function renderAsmnt() {
+  document.getElementById('syl-asmnt-list').innerHTML = (SYL.assessment||[]).map((a,i)=>`
+    <div class="sy-row-asmnt">
+      <input class="finput" value="${esc(a.name||'')}" placeholder="例：課堂參與" oninput="SYL.assessment[${i}].name=this.value">
+      <div style="position:relative">
+        <input type="number" class="finput" value="${a.pct||0}" min="0" max="100"
+          oninput="SYL.assessment[${i}].pct=+this.value;updatePct()" style="padding-right:20px;text-align:center">
+        <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--ink3)">%</span>
+      </div>
+      <input class="finput" value="${esc(a.desc||'')}" placeholder="說明（選填）" oninput="SYL.assessment[${i}].desc=this.value">
+      <button class="del-btn" onclick="SYL.assessment.splice(${i},1);renderAsmnt()">✕</button>
+    </div>`).join('');
+  updatePct();
+}
+function addAsmnt() { SYL.assessment.push({name:'',pct:0,desc:''}); renderAsmnt(); }
+function updatePct() {
+  const total = (SYL.assessment||[]).reduce((s,a)=>s+(+a.pct||0),0);
+  const el = document.getElementById('syl-pct-badge');
+  el.textContent = total + '%';
+  el.style.background = total===100 ? '#E8F5E9' : '#FFEBEE';
+  el.style.color = total===100 ? '#1B5E20' : '#B71C1C';
+}
+
+function renderWk() {
+  if (!window._wkOpen) window._wkOpen = {};
+  document.getElementById('syl-wk-list').innerHTML = (SYL.weeks||[]).map((w,i)=>{
+    const open = window._wkOpen[i];
+    return `
+    <div class="sy-wk-block">
+      <div class="sy-wk-top">
+        <div style="font-size:11.5px;font-weight:500;color:var(--navy);text-align:center">第${w.week}週</div>
+        <input class="finput" value="${esc(w.title||'')}" placeholder="本週主題" oninput="SYL.weeks[${i}].title=this.value" style="font-size:12.5px">
+        <input class="finput" value="${esc(w.teacher||'')}" placeholder="授課教師" oninput="SYL.weeks[${i}].teacher=this.value" style="font-size:12.5px">
+        <button class="wk-expand" title="${open?'收合':'展開詳細內容'}" onclick="toggleWkDetail(${i})" style="background:${open?'var(--navy)':'var(--navy3)'};color:${open?'#fff':'var(--navy)'};border:1px solid var(--navy);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:16px;line-height:1">${open?'−':'＋'}</button>
+      </div>
+      ${open ? `<div style="margin-top:8px">
+        <textarea class="finput" placeholder="本週詳細內容（每行一個項目，可用 • 開頭）" oninput="SYL.weeks[${i}].content=this.value" style="font-size:12.5px;width:100%;min-height:90px;resize:vertical;line-height:1.7">${esc(w.content||'')}</textarea>
+        <div style="text-align:right;margin-top:6px">
+          <button onclick="if(confirm('確定刪除第${w.week}週？')){SYL.weeks.splice(${i},1);delete window._wkOpen[${i}];renderWk();}" style="background:#FEE;color:var(--red);border:1px solid #FCC;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer">🗑 刪除此週</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+function toggleWkDetail(i) {
+  if (!window._wkOpen) window._wkOpen = {};
+  window._wkOpen[i] = !window._wkOpen[i];
+  renderWk();
+}
+function addWeek() {
+  const n = (SYL.weeks||[]).length + 1;
+  SYL.weeks.push({week:n,title:'',teacher:'',content:''});
+  renderWk();
+}
+
+function renderBib() {
+  ['req','opt'].forEach(type => {
+    const key = type==='req' ? 'required' : 'optional';
+    const list = SYL.bibliography?.[key] || [];
+    document.getElementById('syl-bib-'+type).innerHTML = list.map((b,i)=>`
+      <div style="display:grid;grid-template-columns:1fr 28px;gap:6px;margin-bottom:6px">
+        <input class="finput" value="${esc(b)}" placeholder="書目資料…"
+          oninput="SYL.bibliography.${key}[${i}]=this.value" style="font-size:12.5px">
+        <button class="del-btn" onclick="SYL.bibliography.${key}.splice(${i},1);renderBib()">✕</button>
+      </div>`).join('');
+  });
+}
+function addBib(type) {
+  const key = type==='req' ? 'required' : 'optional';
+  if (!SYL.bibliography) SYL.bibliography = {required:[],optional:[]};
+  SYL.bibliography[key].push('');
+  renderBib();
+}
+
+async function saveSyl() {
+  SYL.overview_zh = document.getElementById('syl-overview').value;
+  SYL.notes       = document.getElementById('syl-notes').value;
+  const payload = {
+    offering_id:  SYL_OFFERING_ID,
+    overview_zh:  SYL.overview_zh,
+    objectives:   SYL.objectives || [],
+    methods:      SYL.methods || [],
+    assessment:   SYL.assessment || [],
+    weeks:        SYL.weeks || [],
+    bibliography: SYL.bibliography || {required:[],optional:[]},
+    notes:        SYL.notes,
+    updated_at:   new Date().toISOString()
+  };
+  const { error } = await sb.from('syllabi').upsert(payload, { onConflict: 'offering_id' });
+  if (error) { showToast('儲存失敗：' + error.message, true); return; }
+  showToast('✅ 課程大綱已儲存！');
+  closeSylModal();
+  loadMyCourses();
+}
+
+/* ── UI HELPERS ── */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('tab-' + id).classList.add('on');
+}
+
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isErr ? '#B71C1C' : '#1B3A6B';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function esc(str) { return (str||'').replace(/"/g,'&quot;'); }
+
+// Auth state change
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session) enterApp(session.user);
+  else if (event === 'SIGNED_OUT') showLogin();
+});
+
+init();
+</script>
+</body>
+</html>

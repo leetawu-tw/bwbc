@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>教學意見調查 — 福智佛教學院</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1B3A6B;--navy2:#2B5FA0;--navy3:#EEF2FA;
+  --green:#1F5C3A;--green3:#EAF4EE;--gold:#C4960A;
+  --red:#C04030;--red3:#FEE;
+  --ink:#2C2C2A;--ink2:#444;--ink3:#888;
+  --cr2:#E8E8E8;--cr3:#F7F6F3;
+  --r:12px;--sh:0 1px 4px rgba(0,0,0,.08);--sh2:0 8px 24px rgba(0,0,0,.15);
+}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink);line-height:1.7;font-size:15px;padding:20px 16px 60px}
+.wrap{max-width:640px;margin:0 auto}
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:28px 26px;margin-bottom:16px}
+.logo{font-family:'Noto Serif TC',serif;font-size:20px;font-weight:600;color:var(--navy);text-align:center;margin-bottom:4px}
+.sub{font-size:13px;color:var(--ink3);text-align:center;margin-bottom:20px}
+.course-box{background:var(--navy3);border-radius:10px;padding:14px 16px;margin-bottom:20px}
+.course-name{font-family:'Noto Serif TC',serif;font-size:17px;font-weight:600;color:var(--navy);margin-bottom:4px}
+.course-meta{font-size:13px;color:var(--ink2)}
+.q{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--cr2)}
+.q:last-of-type{border-bottom:none}
+.q-text{font-size:15px;font-weight:500;margin-bottom:12px;line-height:1.6}
+.q-num{color:var(--navy);font-weight:600;margin-right:6px}
+.q-req{color:var(--red);font-size:13px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--cr2);border-radius:8px;cursor:pointer;transition:all .15s;font-size:14px}
+.opt:hover{border-color:var(--navy2);background:var(--navy3)}
+.opt.sel{border-color:var(--navy);background:var(--navy3);font-weight:500}
+.opt input{accent-color:var(--navy);width:16px;height:16px;cursor:pointer}
+textarea{width:100%;padding:12px;border:1.5px solid var(--cr2);border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;min-height:90px;outline:none}
+textarea:focus{border-color:var(--navy2)}
+.submit-btn{width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:500;cursor:pointer;transition:background .15s}
+.submit-btn:hover{background:var(--navy2)}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed}
+.state{text-align:center;padding:50px 20px}
+.state-icon{font-size:48px;margin-bottom:16px}
+.state-title{font-family:'Noto Serif TC',serif;font-size:20px;font-weight:600;margin-bottom:8px}
+.state-msg{font-size:14px;color:var(--ink3);line-height:1.8}
+.state.ok .state-title{color:var(--green)}
+.state.err .state-title{color:var(--red)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:11px 24px;border-radius:30px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;box-shadow:var(--sh2)}
+.toast.show{opacity:1}
+.toast.success{background:var(--navy);color:#fff}
+.toast.error{background:var(--red);color:#fff}
+.note{font-size:12.5px;color:var(--ink3);background:var(--cr3);border-radius:8px;padding:10px 14px;margin-bottom:20px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="content">
+    <div class="card">
+      <div class="state"><div class="state-icon">⏳</div><div class="state-msg">載入中…</div></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL  = 'https://pjyjpcumakxevxuxwcyx.supabase.co';
+const SB_ANON = 'sb_publishable_Hxw2qfgBO5BTkX4wG4xeTQ_tEsPG3pc';
+const sb = supabase.createClient(SB_URL, SB_ANON, { auth:{ persistSession:false } });
+
+let TOKEN_DATA = null;
+let SURVEY = null;
+let QUESTIONS = [];
+const ANSWERS = {};
+
+function getToken() {
+  const p = new URLSearchParams(location.search);
+  return p.get('t') || p.get('token') || '';
+}
+
+function showState(cls, icon, title, msg) {
+  document.getElementById('content').innerHTML =
+    `<div class="card"><div class="state ${cls}">
+      <div class="state-icon">${icon}</div>
+      <div class="state-title">${title}</div>
+      <div class="state-msg">${msg}</div>
+    </div></div>`;
+}
+
+async function init() {
+  const token = getToken();
+  if (!token) {
+    showState('err','🔗','連結無效','此填答連結缺少必要參數，請使用行政人員提供的完整連結。');
+    return;
+  }
+
+  try {
+    // 1. 查 token
+    const { data:tk } = await sb.from('survey_tokens')
+      .select('*').eq('token', token).maybeSingle();
+    if (!tk) {
+      showState('err','❌','連結無效','找不到對應的填答連結，請確認連結正確。');
+      return;
+    }
+    TOKEN_DATA = tk;
+
+    // 2. 查調查
+    const { data:sv } = await sb.from('surveys').select('*').eq('id', tk.survey_id).maybeSingle();
+    if (!sv) { showState('err','❌','調查不存在','此調查已被移除。'); return; }
+    SURVEY = sv;
+
+    // 3. 檢查狀態與時間
+    const now = new Date();
+    if (sv.status === 'closed' || now > new Date(sv.end_at)) {
+      showState('err','⏰','調查已截止',`本調查已於 ${new Date(sv.end_at).toLocaleString('zh-TW')} 截止，感謝您的關注。`);
+      return;
+    }
+    if (sv.status === 'draft' || now < new Date(sv.start_at)) {
+      showState('err','📅','尚未開放',`本調查將於 ${new Date(sv.start_at).toLocaleString('zh-TW')} 開放填答。`);
+      return;
+    }
+
+    // 4. 已填過？
+    if (tk.used) {
+      showState('ok','✅','您已完成填答','感謝您的寶貴意見！此調查每人每門課僅能填寫一次。');
+      return;
+    }
+
+    // 5. 課程資訊
+    const { data:course } = await sb.from('v_course_schedule')
+      .select('name_zh, code, time_raw').eq('offering_id', tk.offering_id).maybeSingle();
+    let teacherName = '';
+    if (tk.teacher_id) {
+      const { data:t } = await sb.from('teachers').select('name_zh').eq('id', tk.teacher_id).maybeSingle();
+      teacherName = t?.name_zh || '';
+    }
+
+    // 6. 題目
+    const { data:qs } = await sb.from('survey_questions')
+      .select('*').eq('active', true).order('sort_order');
+    QUESTIONS = qs || [];
+
+    renderForm(course, teacherName);
+  } catch(e) {
+    showState('err','⚠️','載入失敗', e.message);
+    console.warn('init:', e);
+  }
+}
+
+function renderForm(course, teacherName) {
+  const qHtml = QUESTIONS.map((q,idx) => {
+    if (q.type === 'single') {
+      const opts = (q.options||[]).map(o=>`
+        <label class="opt" onclick="selOpt('${q.id}','${o.replace(/'/g,'')}',this)">
+          <input type="radio" name="q-${q.id}" value="${o}">
+          <span>${o}</span>
+        </label>`).join('');
+      return `<div class="q">
+        <div class="q-text"><span class="q-num">${idx+1}.</span>${q.question_text}${q.required?' <span class="q-req">*</span>':''}</div>
+        <div class="opts" id="opts-${q.id}">${opts}</div>
+      </div>`;
+    } else {
+      return `<div class="q">
+        <div class="q-text"><span class="q-num">${idx+1}.</span>${q.question_text}${q.required?' <span class="q-req">*</span>':'<span style="font-size:12px;color:var(--ink3)">（可不填）</span>'}</div>
+        <textarea placeholder="請輸入您的意見…" oninput="ANSWERS['${q.id}']=this.value"></textarea>
+      </div>`;
+    }
+  }).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="logo">福智佛教學院 佛法應用研究所</div>
+      <div class="sub">${SURVEY.title}</div>
+      <div class="course-box">
+        <div class="course-name">${course?.name_zh || '課程'}</div>
+        <div class="course-meta">${course?.code||''}${teacherName?'　授課教師：'+teacherName:''}${course?.time_raw?'　'+course.time_raw:''}</div>
+      </div>
+      <div class="note">💡 您的填答將以<strong>匿名方式</strong>彙整供教師與系所參考，請安心據實填寫。每門課僅能填寫一次。</div>
+      ${qHtml}
+      <button class="submit-btn" id="submit-btn" onclick="submitSurvey()">送出填答</button>
+    </div>`;
+}
+
+function selOpt(qid, val, el) {
+  ANSWERS[qid] = val;
+  const box = document.getElementById('opts-'+qid);
+  box.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  el.querySelector('input').checked = true;
+}
+
+async function submitSurvey() {
+  // 驗證必填
+  for (const q of QUESTIONS) {
+    if (q.required && !ANSWERS[q.id]) {
+      showToast(`請完成第 ${QUESTIONS.indexOf(q)+1} 題`, 'error');
+      return;
+    }
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '送出中…';
+
+  try {
+    // 再次確認未填過（防重複）
+    const { data:tk } = await sb.from('survey_tokens')
+      .select('used').eq('id', TOKEN_DATA.id).maybeSingle();
+    if (tk?.used) {
+      showState('ok','✅','您已完成填答','感謝您的寶貴意見！');
+      return;
+    }
+
+    // 組填答資料
+    const rows = QUESTIONS
+      .filter(q => ANSWERS[q.id] != null && ANSWERS[q.id] !== '')
+      .map(q => ({
+        survey_id: SURVEY.id,
+        offering_id: TOKEN_DATA.offering_id,
+        teacher_id: TOKEN_DATA.teacher_id,
+        enrollment_id: TOKEN_DATA.enrollment_id,
+        question_id: q.id,
+        answer: String(ANSWERS[q.id])
+      }));
+
+    const { error:e1 } = await sb.from('survey_responses').insert(rows);
+    if (e1) { btn.disabled=false; btn.textContent='送出填答'; showToast('送出失敗：'+e1.message,'error'); return; }
+
+    // 標記已填
+    await sb.from('survey_tokens')
+      .update({ used:true, used_at:new Date().toISOString() })
+      .eq('id', TOKEN_DATA.id);
+
+    showState('ok','🙏','填答完成','感謝您的寶貴意見！您的回饋將幫助提升教學品質。');
+  } catch(e) {
+    btn.disabled=false; btn.textContent='送出填答';
+    showToast('送出失敗：'+e.message,'error');
+  }
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast '+type+' show';
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+init();
+</script>
+</body>
+</html>

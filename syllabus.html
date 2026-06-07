@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>課程大綱 — 福智佛教學院</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:#F7F6F3;color:#2C2C2A;line-height:1.7;text-align:left}
+.topbar{background:#1B3A6B;color:#fff;padding:12px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+.topbar a{color:rgba(255,255,255,.75);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:4px}
+.topbar a:hover{color:#fff}
+.topbar-title{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600}
+.wrap{max-width:820px;margin:0 auto;padding:24px 20px 60px}
+.course-header{background:#fff;border-radius:12px;border:1px solid #E8E8E8;padding:24px;margin-bottom:20px}
+.course-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.meta-item{font-size:12.5px;color:#888}
+.meta-val{color:#2C2C2A;font-weight:500}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid}
+.badge-ax{background:#EEF2FA;color:#1B3A6B;border-color:#B5D4F4}
+.badge-cr{background:#f5f5f5;color:#555;border-color:#ddd}
+.badge-dig{background:#EEF2FA;color:#1B3A6B;border-color:#B5D4F4}
+.badge-aud{background:#EAF4EE;color:#1F5C3A;border-color:#C0DD97}
+.section{background:#fff;border-radius:12px;border:1px solid #E8E8E8;margin-bottom:14px;overflow:hidden}
+.sec-hdr{padding:13px 20px;border-bottom:1px solid #F0F0F0;display:flex;align-items:center;gap:8px}
+.sec-icon{font-size:15px}
+.sec-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600;color:#1B3A6B}
+.sec-body{padding:16px 20px}
+.overview-text{font-size:14px;line-height:1.9;color:#444;white-space:pre-wrap}
+.obj-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.obj-list li{display:flex;gap:10px;font-size:13.5px;color:#444}
+.obj-num{width:22px;height:22px;border-radius:50%;background:#EEF2FA;color:#1B3A6B;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.mth-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.mth-list li{display:flex;gap:8px;font-size:13.5px;color:#444;padding-left:4px}
+.mth-list li::before{content:"▸";color:#1B3A6B;flex-shrink:0}
+.asmnt-table{width:100%;border-collapse:collapse;font-size:13px}
+.asmnt-table th{background:#F5F5F3;padding:8px 12px;text-align:left;font-weight:500;color:#888;font-size:11.5px;border-bottom:1px solid #E8E8E8}
+.asmnt-table td{padding:10px 12px;border-bottom:1px solid #F5F5F3;color:#444}
+.asmnt-table tr:last-child td{border-bottom:none}
+.asmnt-total{text-align:right;padding:8px 12px;font-size:12px;color:#888;border-top:1px solid #E8E8E8}
+.pct-bar{display:inline-block;height:6px;border-radius:3px;background:#1B3A6B;vertical-align:middle;margin-right:6px}
+.week-table{width:100%;border-collapse:collapse;font-size:13px}
+.week-table th{background:#F5F5F3;padding:8px 12px;text-align:left;font-weight:500;color:#888;font-size:11.5px;border-bottom:1px solid #E8E8E8}
+.week-table td{padding:9px 12px;border-bottom:1px solid #F5F5F3;vertical-align:top;color:#444}
+.week-table tr:last-child td{border-bottom:none}
+.week-num{width:48px;color:#1B3A6B;font-weight:500;font-size:12px}
+.bib-section{margin-bottom:14px}
+.bib-label{font-size:11.5px;font-weight:500;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.bib-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.bib-list li{font-size:13px;color:#444;padding-left:14px;position:relative}
+.bib-list li::before{content:"·";position:absolute;left:0;color:#1B3A6B;font-size:16px;line-height:1.2}
+.notes-text{font-size:13.5px;color:#444;line-height:1.8;white-space:pre-wrap}
+.loading{text-align:left;padding:60px;color:#888;font-size:14px}
+.error-box{background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:20px;text-align:left;color:#B91C1C;font-size:14px}
+.progress-bar{height:4px;background:#EEF2FA;border-radius:2px;overflow:hidden;margin-top:10px}
+.progress-fill{height:100%;background:#1B3A6B;border-radius:2px;transition:width .3s}
+.empty-syl{text-align:left;padding:40px;color:#aaa;font-size:14px}
+@media(max-width:600px){
+  .course-meta{grid-template-columns:1fr}
+  .wrap{padding:16px 14px 40px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="115CoursesManagement_LIVE_v4.html">← 返回課程總覽</a>
+  <div style="flex:1"></div>
+  <div class="topbar-title">福智佛教學院 · 課程大綱</div>
+</div>
+
+<div class="wrap">
+  <div id="main" class="loading">⏳ 載入中…</div>
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://pjyjpcumakxevxuxwcyx.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_Hxw2qfgBO5BTkX4wG4xeTQ_tEsPG3pc';
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: { persistSession: false }
+});
+
+const REQ_LABEL = {req:'必修', sel:'選修', go:'二選一'};
+
+async function init() {
+  const params = new URLSearchParams(location.search);
+  const offeringId = params.get('id');
+  const code = params.get('code');
+
+  if (!offeringId && !code) {
+    showError('缺少課程參數，請由課程總覽頁面進入。');
+    return;
+  }
+
+  // 取得課程資訊
+  let query = client.from('v_course_schedule').select('*');
+  if (offeringId) query = query.eq('offering_id', offeringId);
+  else query = query.eq('code', code);
+  const { data: courses, error: ce } = await query.limit(1);
+
+  if (ce || !courses?.length) { showError('找不到課程資料。'); return; }
+  const c = courses[0];
+
+  document.title = `${c.name_zh} — 課程大綱`;
+
+  // 取得大綱
+  const { data: syl } = await client.from('syllabi')
+    .select('*').eq('offering_id', c.offering_id).maybeSingle();
+
+  renderPage(c, syl);
+}
+
+function renderPage(c, syl) {
+  const el = document.getElementById('main');
+
+  // 計算完成度
+  let score = 0;
+  if (syl) {
+    if (syl.overview_zh?.trim()) score++;
+    if (syl.objectives?.length > 0) score++;
+    if (syl.methods?.length > 0) score++;
+    if (syl.assessment?.length > 0) score++;
+    if ((syl.weeks||[]).some(w=>w.title?.trim())) score++;
+    if ((syl.bibliography?.required?.length||0)+(syl.bibliography?.optional?.length||0) > 0) score++;
+  }
+  const pct = Math.round(score / 6 * 100);
+
+  const axBg = {底蘊:'#EEF2FA',對話:'#EAF4EE',應用:'#FAF0EB'}[c.axis_code] || '#EEF2FA';
+  const axCl = {底蘊:'#1B3A6B',對話:'#1F5C3A',應用:'#7A3210'}[c.axis_code] || '#1B3A6B';
+
+  let html = `
+    <div class="course-header" style="border-top:4px solid ${axCl}">
+      <div style="font-size:11px;color:#999;margin-bottom:4px">${c.code} · ${c.semester_label}</div>
+      <div style="font-family:'Noto Serif TC',serif;font-size:22px;font-weight:600;color:#1B3A6B;margin-bottom:4px">${c.name_zh}</div>
+      ${c.name_en ? `<div style="font-size:13px;color:#aaa;font-style:italic;margin-bottom:8px">${c.name_en}</div>` : ''}
+      <div class="badges">
+        <span class="badge badge-ax" style="background:${axBg};color:${axCl};border-color:${axCl}40">${c.axis_name||''}</span>
+        <span class="badge badge-cr">${c.credits} 學分</span>
+        <span class="badge badge-cr">${REQ_LABEL[c.req_type]||c.req_type}</span>
+        ${c.is_digital ? '<span class="badge badge-dig">📱 數位課程</span>' : ''}
+        ${c.is_audit   ? '<span class="badge badge-aud">🎓 隨班附讀</span>' : ''}
+      </div>
+      <div class="course-meta">
+        <div class="meta-item">上課時間 <span class="meta-val">${c.time_raw||'待確認'}</span></div>
+        <div class="meta-item">教室 <span class="meta-val">${c.classroom_name||'待確認'}</span></div>
+      </div>
+      <div class="progress-bar" title="大綱完成度 ${pct}%">
+        <div class="progress-fill" style="width:${pct}%"></div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#aaa;margin-top:4px">大綱完成度 ${pct}%（${score}/6 必填區段）</div>
+    </div>`;
+
+  if (!syl || score === 0) {
+    html += `<div class="empty-syl">📋 本課程大綱尚未填寫</div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  // 概述
+  if (syl.overview_zh?.trim()) {
+    html += section('📝','課程概述',`<p class="overview-text">${esc(syl.overview_zh)}</p>`);
+  }
+
+  // 教學目標
+  if (syl.objectives?.length) {
+    const items = syl.objectives.map((o,i)=>`
+      <li><span class="obj-num">${i+1}</span><span>${esc(o.text||'')}</span></li>`).join('');
+    html += section('🎯','教學目標',`<ul class="obj-list">${items}</ul>`);
+  }
+
+  // 教學方法
+  if (syl.methods?.length) {
+    const items = syl.methods.map(m=>`<li>${esc(m.text||'')}</li>`).join('');
+    html += section('🔧','教學方法',`<ul class="mth-list">${items}</ul>`);
+  }
+
+  // 評量方式
+  if (syl.assessment?.length) {
+    const total = syl.assessment.reduce((s,a)=>s+(+a.pct||0),0);
+    const rows = syl.assessment.map(a=>`
+      <tr>
+        <td>${esc(a.name||'')}</td>
+        <td><div class="pct-bar" style="width:${a.pct||0}px"></div>${a.pct||0}%</td>
+        <td style="color:#888">${esc(a.desc||'')}</td>
+      </tr>`).join('');
+    html += section('📊','評量方式',`
+      <table class="asmnt-table">
+        <thead><tr><th>項目</th><th>百分比</th><th>說明</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="asmnt-total" style="text-align:right">合計 ${total}%</div>`);
+  }
+
+  // 教學進度
+  const filledWeeks = (syl.weeks||[]).filter(w=>w.title?.trim());
+  if (filledWeeks.length) {
+    const rows = filledWeeks.map(w=>`
+      <tr>
+        <td class="week-num">第 ${w.week} 週</td>
+        <td>${esc(w.title||'')}</td>
+        <td style="color:#888">${esc(w.teacher||'')}</td>
+        <td style="color:#888;font-size:12.5px">${esc(w.content||'')}</td>
+      </tr>`).join('');
+    html += section('📅','教學進度',`
+      <table class="week-table">
+        <thead><tr><th>週次</th><th>主題</th><th>授課教師</th><th>內容說明</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`);
+  }
+
+  // 參考書目
+  const bib = syl.bibliography || {};
+  const hasReq = bib.required?.length > 0;
+  const hasOpt = bib.optional?.length > 0;
+  if (hasReq || hasOpt) {
+    let bibHtml = '';
+    if (hasReq) bibHtml += `
+      <div class="bib-section">
+        <div class="bib-label">必讀</div>
+        <ul class="bib-list">${bib.required.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
+      </div>`;
+    if (hasOpt) bibHtml += `
+      <div class="bib-section">
+        <div class="bib-label">參考</div>
+        <ul class="bib-list">${bib.optional.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
+      </div>`;
+    html += section('📚','參考書目', bibHtml);
+  }
+
+  // 備註
+  if (syl.notes?.trim()) {
+    html += section('💬','備註',`<p class="notes-text">${esc(syl.notes)}</p>`);
+  }
+
+  el.innerHTML = html;
+}
+
+function section(icon, title, body) {
+  return `<div class="section">
+    <div class="sec-hdr">
+      <span class="sec-icon">${icon}</span>
+      <span class="sec-title">${title}</span>
+    </div>
+    <div class="sec-body">${body}</div>
+  </div>`;
+}
+
+function esc(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function showError(msg) {
+  document.getElementById('main').innerHTML = `<div class="error-box">❌ ${msg}</div>`;
+}
+
+init();
+</script>
+</body>
+</html>
