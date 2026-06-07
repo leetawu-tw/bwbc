@@ -390,7 +390,7 @@ async function sendLink() {
   btn.disabled=true; btn.textContent='傳送中…';
   try {
     const { error } = await sb.auth.signInWithOtp({
-      email, options:{ emailRedirectTo: window.location.href }
+      email, options:{ emailRedirectTo: window.location.origin + window.location.pathname }
     });
     btn.disabled=false; btn.textContent='傳送登入連結';
     if (error) showFeedback('❌ '+error.message,'err');
