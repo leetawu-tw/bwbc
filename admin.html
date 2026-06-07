@@ -1661,10 +1661,6 @@ async function sendMagicLink() {
 async function logout() { await sb.auth.signOut(); location.reload(); }
 
 async function checkAuth() {
-  // 清除 URL hash（移除登入後的 token 或錯誤訊息）
-  if (window.location.hash) {
-    history.replaceState(null, '', window.location.pathname);
-  }
   const { data:{ session } } = await sb.auth.getSession();
   if (session) {
     window.ADMIN_EMAIL = session.user.email;
