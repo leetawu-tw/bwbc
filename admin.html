@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BWBC Admin v3.1 2026-06-08 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -1705,9 +1706,9 @@ async function loadAdminName(userId) {
     } else {
       window.ADMIN_NAME = window.ADMIN_EMAIL || '';
     }
-    window.ADMIN_ROLE  = u?.role || 'staff';
+    window.ADMIN_ROLE  = u?.role || 'admin';
     window.ADMIN_PERMS = u?.permissions || {};
-    // staff 套用權限限制
+    // staff 才套用權限限制，admin 永遠顯示全部
     if (window.ADMIN_ROLE === 'staff') applyStaffPermissions();
   } catch(e) { window.ADMIN_NAME = window.ADMIN_EMAIL || ''; }
 }
