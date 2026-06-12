@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v4.0 2026-06-08 restored -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -275,7 +274,6 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" onclick="showPage('announcements',this)"><span class="nav-icon">📢</span>公佈欄 <span class="badge badge-warn" id="ann-badge" style="margin-left:auto;display:none">0</span></div>
         <div class="nav-item" onclick="showPage('todos',this)"><span class="nav-icon">✅</span>待辦事務 <span class="badge badge-warn" id="todo-badge" style="margin-left:auto;display:none">0</span></div>
         <div class="nav-item" onclick="showPage('semesters',this)"><span class="nav-icon">📆</span>學期管理</div>
-        <div class="nav-item" onclick="showPage('users',this)"><span class="nav-icon">👥</span>帳號管理</div>
         <div class="nav-item" onclick="showPage('audit',this)"><span class="nav-icon">📋</span>操作記錄</div>
       </div>
     </nav>
@@ -644,15 +642,6 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </div>
           <div id="personal-todos" style="display:flex;flex-direction:column;gap:8px"></div>
         </div>
-      </div>
-
-      <!-- ▌帳號管理 ▌ -->
-      <div id="page-users" style="display:none">
-        <div class="page-hdr">
-          <div class="page-title">👥 帳號管理</div>
-          <div style="font-size:12px;color:var(--ink3);margin-left:auto">僅 admin 可設定各帳號權限</div>
-        </div>
-        <div id="users-list" style="display:flex;flex-direction:column;gap:12px"></div>
       </div>
 
       <!-- ▌操作記錄 ▌ -->
@@ -1661,7 +1650,6 @@ async function sendMagicLink() {
 async function logout() { await sb.auth.signOut(); location.reload(); }
 
 async function checkAuth() {
-  if (window.location.hash) history.replaceState(null, '', window.location.pathname);
   const { data:{ session } } = await sb.auth.getSession();
   if (session) {
     window.ADMIN_EMAIL = session.user.email;
@@ -1695,109 +1683,14 @@ sb.auth.onAuthStateChange((event, session) => {
 async function loadAdminName(userId) {
   window.ADMIN_USER_ID = userId;
   try {
-    const { data:u } = await sb.from('users')
-      .select('role,display_name,permissions,teacher_id')
-      .eq('id', userId).maybeSingle();
-    if (u?.display_name) {
-      window.ADMIN_NAME = u.display_name;
-    } else if (u?.teacher_id) {
+    // 從 users 表取得 teacher_id，再從 teachers 取得姓名
+    const { data:u } = await sb.from('users').select('teacher_id').eq('id', userId).maybeSingle();
+    if (u?.teacher_id) {
       const { data:t } = await sb.from('teachers').select('name_zh').eq('id', u.teacher_id).maybeSingle();
-      window.ADMIN_NAME = t?.name_zh || window.ADMIN_EMAIL || '';
-    } else {
-      window.ADMIN_NAME = window.ADMIN_EMAIL || '';
+      if (t?.name_zh) { window.ADMIN_NAME = t.name_zh; return; }
     }
-    window.ADMIN_ROLE  = u?.role || 'admin';
-    window.ADMIN_PERMS = u?.permissions || {};
-    if (window.ADMIN_ROLE === 'staff') applyStaffPermissions();
+    window.ADMIN_NAME = window.ADMIN_EMAIL || '';
   } catch(e) { window.ADMIN_NAME = window.ADMIN_EMAIL || ''; }
-}
-
-function applyStaffPermissions() {
-  const perms = window.ADMIN_PERMS || {};
-  const pagePermMap = {
-    offerings:'offerings', courses:'courses',
-    teachers:'teachers', thesis:'thesis',
-    students:'students', semesters:'semesters',
-    survey:'survey', audit:'audit',
-    announcements:'announcements', todos:'todos',
-    meetings:'meetings',
-  };
-  document.querySelectorAll('.nav-item[onclick*="showPage"]').forEach(el=>{
-    const match = el.getAttribute('onclick').match(/showPage\('(\w+)'/);
-    if (!match) return;
-    const page = match[1];
-    if (page==='dashboard') return;
-    if (page==='users') { el.style.display='none'; return; }
-    const permKey = pagePermMap[page];
-    if (permKey && !perms[permKey]) el.style.display='none';
-  });
-}
-
-/* ════ 帳號管理 USERS ADMIN ════ */
-const PERM_LABELS = {
-  announcements:'📢 公佈欄', todos:'✅ 待辦事務', meetings:'📅 會議管理',
-  courses:'📚 課程管理', offerings:'📋 開課記錄', teachers:'👨‍🏫 教師管理',
-  thesis:'📝 畢業論文', students:'🎓 學生資料', semesters:'📆 學期管理',
-  survey:'📊 意見調查', audit:'🔍 操作記錄',
-};
-const ROLE_LABEL = {admin:'系統管理員', staff:'行政同仁', teacher:'教師', student:'學生'};
-const ROLE_COLOR = {admin:'var(--navy)', staff:'#1A6A30', teacher:'#7B3F00', student:'#B05010'};
-let USERS_ALL = [];
-
-async function loadUsersAdmin() {
-  const el = document.getElementById('users-list');
-  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--ink3)">載入中…</div>';
-  const {data} = await sb.from('users')
-    .select('id,email,role,display_name,department,permissions')
-    .order('role').order('display_name');
-  USERS_ALL = data||[];
-  renderUsersAdmin();
-}
-
-function renderUsersAdmin() {
-  const el = document.getElementById('users-list');
-  if (!USERS_ALL.length) { el.innerHTML='<div style="padding:40px;text-align:center;color:var(--ink3)">無帳號資料</div>'; return; }
-  el.innerHTML = USERS_ALL.map(u=>{
-    const rc = ROLE_COLOR[u.role]||'#888';
-    const rl = ROLE_LABEL[u.role]||u.role;
-    const perms = u.permissions||{};
-    const isAdmin = u.role==='admin';
-    const permHtml = isAdmin
-      ? '<div style="font-size:12px;color:var(--ink3);padding:8px 0">admin 擁有全部權限</div>'
-      : Object.entries(PERM_LABELS).map(([key,label])=>`
-          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;margin:3px 6px 3px 0;padding:3px 10px;border-radius:20px;border:1px solid ${perms[key]?'var(--navy)':'var(--cr2)'};background:${perms[key]?'var(--navy3)':'#fff'};color:${perms[key]?'var(--navy)':'var(--ink3)'}">
-            <input type="checkbox" ${perms[key]?'checked':''}
-              onchange="togglePerm('${u.id}','${key}',this.checked)"
-              style="accent-color:var(--navy)">
-            ${label}
-          </label>`).join('');
-    return `<div style="background:#fff;border-radius:10px;border:1px solid var(--cr2);padding:16px 20px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:11px;padding:2px 8px;border-radius:12px;background:${rc}18;color:${rc};font-weight:500">${rl}</span>
-        <div style="font-weight:600;font-size:14px">${u.display_name||'—'}</div>
-        <div style="font-size:12px;color:var(--ink3)">${u.department||''}</div>
-        <div style="font-size:12px;color:var(--ink3);margin-left:auto">${u.email}</div>
-        ${!isAdmin?`<button class="btn btn-sm" onclick="saveAllPerms('${u.id}')" style="font-size:11px;padding:2px 10px;background:var(--navy);color:#fff">💾 儲存</button>`:''}
-      </div>
-      <div style="display:flex;flex-wrap:wrap">${permHtml}</div>
-    </div>`;
-  }).join('');
-}
-
-function togglePerm(userId, key, value) {
-  const u = USERS_ALL.find(x=>x.id===userId);
-  if (!u) return;
-  if (!u.permissions) u.permissions={};
-  u.permissions[key] = value;
-  renderUsersAdmin();
-}
-
-async function saveAllPerms(userId) {
-  const u = USERS_ALL.find(x=>x.id===userId);
-  if (!u) return;
-  const {error} = await sb.from('users').update({permissions:u.permissions}).eq('id',userId);
-  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
-  showToast(`✅ ${u.display_name||u.email} 的權限已更新`);
 }
 
 async function writeAuditLog(category, action, tableName, recordId, targetName, detail) {
@@ -5610,7 +5503,6 @@ function showPage(page, btn) {
   if (page==='semesters') loadSemesterPage();
   if (page==='conflicts') runConflictCheck(false);
   if (page==='audit') loadAuditLog();
-  if (page==='users') loadUsersAdmin();
   if (page==='announcements') loadAnnouncements();
   if (page==='todos') loadTodos();
   if (page==='survey') loadSurveyAdmin();

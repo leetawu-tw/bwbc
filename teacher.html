@@ -109,7 +109,13 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 /* ── TOAST ── */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 22px;border-radius:30px;font-size:13.5px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
 .toast.show{opacity:1}
-@media(max-width:700px){.profile-grid{grid-template-columns:1fr}.tabs{width:100%}.tab{flex:1;text-align:center}}
+/* ── 左側導覽 ── */
+.side-item{padding:10px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;color:var(--ink2);border-left:3px solid transparent;transition:all .15s}
+.side-item:hover{background:var(--cr3);color:var(--navy)}
+.side-item.active{background:var(--navy3);border-left-color:var(--navy);color:var(--navy);font-weight:600}
+.t-section{display:none}
+.t-section.on{display:block}
+@media(max-width:700px){.profile-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -125,6 +131,22 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
     </div>
     <button class="login-btn" id="t-login-btn" onclick="sendLink()">傳送登入連結</button>
     <div class="feedback" id="t-feedback"></div>
+
+    <!-- 密碼登入 -->
+    <div style="display:flex;align-items:center;gap:8px;margin:20px 0 16px">
+      <div style="flex:1;height:1px;background:#E0E0E0"></div>
+      <span style="font-size:12px;color:#aaa">或使用密碼登入（測試用）</span>
+      <div style="flex:1;height:1px;background:#E0E0E0"></div>
+    </div>
+    <div class="frow" style="position:relative">
+      <input class="finput" id="t-password" type="password" placeholder="密碼"
+        style="padding-right:40px" onkeydown="if(event.key==='Enter')signInPassword()">
+      <button onclick="const p=document.getElementById('t-password');p.type=p.type==='password'?'text':'password'"
+        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:#888;font-size:16px">👁</button>
+    </div>
+    <button class="login-btn" id="t-pw-btn" onclick="signInPassword()"
+      style="background:#6B7280;margin-top:4px">密碼登入</button>
+    <div class="feedback" id="t-pw-feedback"></div>
   </div>
 </div>
 
@@ -135,83 +157,165 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
     <div class="topbar-user" id="t-user-label"></div>
     <button class="topbar-btn" onclick="signOut()">登出</button>
   </div>
-  <div class="main">
-    <!-- 公佈欄公告 -->
-    <div id="ann-banners" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
-    <div class="tabs">
-      <button class="tab on" onclick="switchTab('my-courses',this)">📚 我的課程</button>
-      <button class="tab" onclick="switchTab('my-profile',this)">👤 個人資料</button>
-      <button class="tab" onclick="switchTab('all-courses',this)">🗂 所有課程</button>
+  <div style="display:flex;min-height:calc(100vh - 52px)">
+    <!-- 左側導覽 -->
+    <div style="width:140px;flex-shrink:0;background:#fff;border-right:1px solid #E8E8E8;padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto">
+      <div style="font-size:11px;font-weight:600;color:#888;padding:0 16px 8px;letter-spacing:.05em">功能選單</div>
+      <div class="side-item" id="nav-ann"         onclick="showSection('ann')">📢 公佈欄</div>
+      <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')">📚 我的課程</div>
+      <div class="side-item" id="nav-profile"     onclick="showSection('profile')">👤 個人資料</div>
+      <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')">🗂 所有課程</div>
+      <div class="side-item" id="nav-survey"      onclick="showSection('survey')">📊 教學意見</div>
+      <div class="side-item" id="nav-grades"      onclick="showSection('grades')">📊 成績登錄</div>
     </div>
+    <!-- 右側主內容 -->
+    <div class="main" style="flex:1;overflow-y:auto">
 
-    <!-- 我的課程 -->
-    <div id="tab-my-courses" class="page on">
-      <div class="section-title" style="display:flex;align-items:center;gap:12px">
-        我的課程
-        <select id="my-sem-filter" onchange="filterMyCourses()" 
-          style="font-size:12px;padding:3px 8px;border:1px solid var(--cr2);border-radius:6px;color:var(--ink);background:#fff">
-          <option value="">全部學期</option>
-        </select>
-        <span id="my-sem-label" style="font-size:12px;color:var(--ink3);font-weight:400"></span>
+      <!-- ── 公佈欄 section ── -->
+      <div id="sec-ann" class="t-section">
+        <div class="section-title">📢 公佈欄</div>
+        <div id="ann-banners" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="ann-empty" style="display:none;color:var(--ink3);font-size:13px;padding:20px 0">目前無公告</div>
       </div>
-      <div id="my-courses-grid" class="course-grid">
-        <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
-      </div>
-    </div>
 
-    <!-- 個人資料 -->
-    <div id="tab-my-profile" class="page">
-      <div class="section-title">個人資料</div>
-      <div class="card">
-        <div class="profile-grid">
-          <div class="avatar-wrap">
-            <div id="profile-avatar"></div>
-            <label class="upload-btn" for="photo-input">📷 上傳照片</label>
-            <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="uploadPhoto(this)">
-            <div style="font-size:11px;color:var(--ink3);text-align:center">建議尺寸：300×300px</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:12px">
-            <div>
-              <label class="flabel">中文姓名</label>
-              <input class="finput" id="p-name" readonly style="background:var(--cr3)">
+      <!-- ── 我的課程 section ── -->
+      <div id="sec-my-courses" class="t-section">
+        <div class="section-title" style="display:flex;align-items:center;gap:12px">
+          我的課程
+          <select id="my-sem-filter" onchange="filterMyCourses()"
+            style="font-size:12px;padding:3px 8px;border:1px solid var(--cr2);border-radius:6px;color:var(--ink);background:#fff">
+            <option value="">全部學期</option>
+          </select>
+          <span id="my-sem-label" style="font-size:12px;color:var(--ink3);font-weight:400"></span>
+        </div>
+        <div id="my-courses-grid" class="course-grid">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+      </div>
+
+      <!-- ── 個人資料 section ── -->
+      <div id="sec-profile" class="t-section">
+        <div class="section-title">個人資料</div>
+        <div class="card">
+          <div class="profile-grid">
+            <div class="avatar-wrap">
+              <div id="profile-avatar"></div>
+              <label class="upload-btn" for="photo-input">📷 上傳照片</label>
+              <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="uploadPhoto(this)">
+              <div style="font-size:11px;color:var(--ink3);text-align:center">建議尺寸：300×300px</div>
             </div>
-            <div>
-              <label class="flabel">英文姓名</label>
-              <input class="finput" id="p-name-en" readonly style="background:var(--cr3)">
-            </div>
-            <div>
-              <label class="flabel">職稱</label>
-              <input class="finput" id="p-title" readonly style="background:var(--cr3)">
-            </div>
-            <div>
-              <label class="flabel">所屬機構</label>
-              <input class="finput" id="p-affil" readonly style="background:var(--cr3)">
-            </div>
-            <div>
-              <label class="flabel">中文簡介</label>
-              <textarea class="finput" id="p-bio" rows="5" placeholder="請輸入個人簡介，將顯示於公開課程頁面…" style="resize:vertical"></textarea>
-            </div>
-            <div>
-              <label class="flabel">師資介紹網址（選填）</label>
-              <input class="finput" id="p-url" type="url" placeholder="https://...">
-            </div>
-            <div style="text-align:right">
-              <button class="btn-save" onclick="saveProfile()">💾 儲存個人資料</button>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div>
+                <label class="flabel">中文姓名</label>
+                <input class="finput" id="p-name" readonly style="background:var(--cr3)">
+              </div>
+              <div>
+                <label class="flabel">英文姓名</label>
+                <input class="finput" id="p-name-en" readonly style="background:var(--cr3)">
+              </div>
+              <div>
+                <label class="flabel">職稱</label>
+                <input class="finput" id="p-title" readonly style="background:var(--cr3)">
+              </div>
+              <div>
+                <label class="flabel">所屬機構</label>
+                <input class="finput" id="p-affil" readonly style="background:var(--cr3)">
+              </div>
+              <div>
+                <label class="flabel">中文簡介</label>
+                <textarea class="finput" id="p-bio" rows="5" placeholder="請輸入個人簡介，將顯示於公開課程頁面…" style="resize:vertical"></textarea>
+              </div>
+              <div>
+                <label class="flabel">師資介紹網址（選填）</label>
+                <input class="finput" id="p-url" type="url" placeholder="https://...">
+              </div>
+              <div style="text-align:right">
+                <button class="btn-save" onclick="saveProfile()">💾 儲存個人資料</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 所有課程 -->
-    <div id="tab-all-courses" class="page">
-      <div class="section-title">115 學年所有課程（唯讀）</div>
-      <div id="all-courses-grid" class="all-grid">
-        <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+      <!-- ── 所有課程 section ── -->
+      <div id="sec-all-courses" class="t-section">
+        <div class="section-title">所有課程（唯讀）</div>
+        <div id="all-courses-grid" class="all-grid">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
+
+      <!-- ── 教學意見 section ── -->
+      <div id="sec-survey" class="t-section">
+        <div class="section-title">📊 教學意見調查</div>
+        <div id="survey-list">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+      </div>
+
+      <!-- ── 成績登錄 section ── -->
+      <div id="sec-grades" class="t-section">
+        <div class="section-title">📝 成績登錄</div>
+
+        <!-- 課程卡片列表 -->
+        <div id="grade-course-list">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+
+        <!-- 成績表格區（選課程後顯示） -->
+        <div id="grade-sheet-area" style="display:none">
+          <!-- 麵包屑 -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+            <button onclick="backToGradeCourseList()"
+              style="border:none;background:none;color:var(--navy);cursor:pointer;font-size:13px;padding:0">
+              ← 返回課程列表
+            </button>
+            <span style="color:var(--ink3)">／</span>
+            <span id="grade-breadcrumb" style="font-size:13px;font-weight:600;color:var(--ink)"></span>
+            <span id="grade-period-info" style="font-size:12px;color:var(--ink3);margin-left:8px"></span>
+          </div>
+
+          <!-- 成績表格 -->
+          <div class="table-wrap">
+            <table class="data-table" id="grade-sheet-table">
+              <thead>
+                <tr>
+                  <th style="width:40px">序號</th>
+                  <th onclick="sortTable('grade-sheet-table',1)">學號 ↕</th>
+                  <th onclick="sortTable('grade-sheet-table',2)">姓名 ↕</th>
+                  <th style="width:120px">成績（0-100）</th>
+                  <th style="width:80px">等第</th>
+                  <th style="width:100px">備註</th>
+                </tr>
+              </thead>
+              <tbody id="grade-sheet-tbody">
+                <tr><td colspan="6" style="text-align:center;padding:16px;color:var(--ink3)">載入中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 底部操作列 -->
+          <div style="display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap">
+            <div style="font-size:12px;color:var(--ink3)" id="grade-save-hint"></div>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button class="btn-secondary" onclick="exportGradeSheet()">📥 匯出 CSV</button>
+              <button class="btn-secondary" onclick="openGradeImportModal()">📤 匯入成績</button>
+              <button id="grade-submit-btn" class="btn-save" onclick="submitGrades()"
+                style="background:var(--green,#1A6A30)">
+                ✅ 確認送出
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="grade-sheet-empty" style="color:var(--ink3);font-size:13px;padding:20px;display:none">
+          目前沒有可登錄的成績，請確認行政已啟動本學期成績登錄期程。
+        </div>
+      </div>
+
+    </div><!-- end main right content -->
+  </div><!-- end flex container -->
+</div><!-- end app-screen -->
 
 <!-- 課程大綱編輯 Modal -->
 <div class="modal-bg" id="syl-modal">
@@ -343,6 +447,19 @@ async function sendLink() {
   else showFeedback('✅ 登入連結已寄出！請查收 ' + email + ' 的信件', 'ok');
 }
 
+async function signInPassword() {
+  const email    = document.getElementById('t-email').value.trim();
+  const password = document.getElementById('t-password').value;
+  const btn      = document.getElementById('t-pw-btn');
+  const fb       = document.getElementById('t-pw-feedback');
+  if (!email)    { fb.textContent='請先輸入 Email'; fb.className='feedback err'; fb.style.display='block'; return; }
+  if (!password) { fb.textContent='請輸入密碼';     fb.className='feedback err'; fb.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = '登入中…';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = '密碼登入';
+  if (error) { fb.textContent='❌ ' + (error.message==='Invalid login credentials'?'Email 或密碼錯誤':error.message); fb.className='feedback err'; fb.style.display='block'; }
+}
+
 function showFeedback(msg, type) {
   const fb = document.getElementById('t-feedback');
   fb.textContent = msg; fb.className = 'feedback ' + type; fb.style.display = 'block';
@@ -364,6 +481,8 @@ async function enterApp(user) {
   document.getElementById('t-user-label').textContent = `${t.name_zh}　${user.email}`;
   await Promise.all([loadMyCourses(), loadProfile(), loadAllCourses()]);
   loadPublicAnnouncements('teacher');
+  loadGradesSection();
+  showSection('ann');
 }
 
 async function signOut() {
@@ -382,7 +501,8 @@ async function loadPublicAnnouncements(role) {
       .order('created_at', {ascending:false})
       .limit(5);
     const el = document.getElementById('ann-banners');
-    if (!el || !data?.length) return;
+    if (!el) return;
+    if (!data?.length) { const emp=document.getElementById('ann-empty'); if(emp) emp.style.display='block'; return; }
 
     // 查附件
     const ids = data.map(a=>a.id);
@@ -720,11 +840,539 @@ async function saveSyl() {
 }
 
 /* ── UI HELPERS ── */
+/* ════ 成績登錄 ════ */
+let _gradeAssignments = [];   // 此老師負責評分的課程
+let _gradePeriod      = null; // 目前學科 grade_period
+let _gradeScale       = null; // 等第換算表
+let _gradeEntries     = {};   // key: student_id → entry 資料
+let _currentOffering  = null; // 目前選中的 offering
+let _gradeSubmitted   = false;
+let _gradeLocked      = false;
+
+async function loadGradesSection() {
+  const listEl = document.getElementById('grade-course-list');
+  listEl.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
+  document.getElementById('grade-sheet-area').style.display  = 'none';
+  document.getElementById('grade-sheet-empty').style.display = 'none';
+
+  // 取得此老師負責的 grade_assignments（有啟動的 grade_period）
+  const { data: assignments } = await sb
+    .from('grade_assignments')
+    .select(`id, offering_id, teacher_id,
+             grade_period:grade_periods(id, semester_id, is_active, open_at, close_at, grade_scale,
+               semesters(label)),
+             offering:course_offerings(id, courses(code, name_zh))`)
+    .eq('teacher_id', ME.id);
+
+  // 只顯示 is_active=true 且在期限內的
+  const now = new Date();
+  _gradeAssignments = (assignments||[]).filter(a => {
+    const gp = a.grade_period;
+    if (!gp?.is_active) return false;
+    if (gp.open_at  && new Date(gp.open_at)  > now) return false;
+    if (gp.close_at && new Date(gp.close_at) < now) return false;
+    return true;
+  });
+
+  if (!_gradeAssignments.length) {
+    document.getElementById('grade-sheet-empty').style.display = 'block';
+    listEl.innerHTML = '';
+    return;
+  }
+
+  // 取得每門課已登錄人數（score 不為 null 才算）
+  const offeringIds = _gradeAssignments.map(a => a.offering_id);
+  const { data: entryCounts } = await sb
+    .from('grade_entries')
+    .select('offering_id, status, score')
+    .eq('teacher_id', ME.id)
+    .eq('grade_type', 'academic')
+    .in('offering_id', offeringIds)
+    .not('score', 'is', null);
+
+  const countMap = {}; // offeringId → {total, submitted}
+  (entryCounts||[]).forEach(e => {
+    if (!countMap[e.offering_id]) countMap[e.offering_id] = {total:0, submitted:false};
+    countMap[e.offering_id].total++;
+    if (e.status === 'submitted' || e.status === 'confirmed') countMap[e.offering_id].submitted = true;
+  });
+
+  // 渲染課程卡片
+  listEl.innerHTML = _gradeAssignments.map(a => {
+    const sem    = a.grade_period?.semesters?.label || '';
+    const code   = a.offering?.courses?.code || '';
+    const name   = a.offering?.courses?.name_zh || '';
+    const ct     = countMap[a.offering_id] || {total:0, submitted:false};
+    const closeAt = a.grade_period?.close_at;
+    const closeStr = closeAt ? `截止：${new Date(closeAt).toLocaleString('zh-TW', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}` : '無截止時間';
+    const statusBadge = ct.submitted
+      ? '<span style="background:#E6F4EA;color:#1A6A30;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500">已送出</span>'
+      : ct.total > 0
+        ? '<span style="background:#FFF8E1;color:#F57F17;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500">登錄中</span>'
+        : '<span style="background:#F5F5F5;color:#888;padding:2px 8px;border-radius:12px;font-size:11px">未開始</span>';
+
+    return `<div onclick="selectGradeCourse('${a.offering_id}')"
+      style="border:1px solid var(--cr2);border-radius:10px;padding:16px 20px;margin-bottom:10px;cursor:pointer;
+             display:flex;align-items:center;justify-content:space-between;gap:12px;
+             transition:box-shadow .15s;background:#fff"
+      onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,.1)'"
+      onmouseout="this.style.boxShadow=''">
+      <div>
+        <div style="font-weight:600;font-size:14px;color:var(--ink)">${sem}　${code}　${name}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-top:4px">${closeStr}　${ct.total > 0 ? `已登錄 ${ct.total} 人` : '尚未登錄'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        ${statusBadge}
+        <span style="color:var(--ink3);font-size:18px">›</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectGradeCourse(offeringId) {
+  // 找到對應的 assignment 並設定下拉值後載入
+  _currentOffering = offeringId;
+  document.getElementById('grade-course-list').style.display = 'none';
+  document.getElementById('grade-sheet-area').style.display  = '';
+  loadGradeSheet(offeringId);
+}
+
+function backToGradeCourseList() {
+  document.getElementById('grade-course-list').style.display = '';
+  document.getElementById('grade-sheet-area').style.display  = 'none';
+  _currentOffering = null;
+  loadGradesSection(); // 重新載入（更新已登錄人數）
+}
+
+async function loadGradeSheet(offeringId) {
+  const empty = document.getElementById('grade-sheet-empty');
+  const tbody = document.getElementById('grade-sheet-tbody');
+  const info  = document.getElementById('grade-period-info');
+
+  if (!offeringId) return;
+
+  const assignment = _gradeAssignments.find(a => a.offering_id === offeringId);
+  if (!assignment) return;
+
+  _gradePeriod     = assignment.grade_period;
+  _gradeScale      = _gradePeriod.grade_scale || [];
+  _currentOffering = offeringId;
+
+  // 更新麵包屑
+  const sem  = assignment.grade_period?.semesters?.label || '';
+  const code = assignment.offering?.courses?.code || '';
+  const name = assignment.offering?.courses?.name_zh || '';
+  document.getElementById('grade-breadcrumb').textContent = `${sem} ${code} ${name}`;
+
+  // 顯示期限資訊
+  const closeAt = _gradePeriod.close_at ? new Date(_gradePeriod.close_at) : null;
+  info.textContent = closeAt ? `截止：${closeAt.toLocaleString('zh-TW')}` : '無截止時間';
+
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--ink3)">載入中…</td></tr>';
+  empty.style.display = 'none';
+
+  // 取得修課學生：confirmed + withdrawn（停修），排除 dropped/rejected/pending
+  const { data: enrollments, error: enrError } = await sb
+    .from('enrollments')
+    .select('id, status, student_id')
+    .eq('offering_id', offeringId)
+    .in('status', ['confirmed', 'withdrawn'])
+    .order('student_id');
+
+  if (enrError) { console.error('enrollments error:', enrError); }
+
+  // 單獨查學生資料（避免 RLS join 問題）
+  const stuIds = (enrollments||[]).map(e => e.student_id);
+  let studentMap = {};
+  if (stuIds.length) {
+    const { data: students } = await sb.from('students')
+      .select('id, student_code, name_zh, status')
+      .in('id', stuIds);
+    (students||[]).forEach(s => { studentMap[s.id] = s; });
+  }
+
+  // 取得已有的成績記錄
+  const { data: existingEntries } = await sb
+    .from('grade_entries')
+    .select('*')
+    .eq('offering_id', offeringId)
+    .eq('teacher_id', ME.id)
+    .eq('grade_type', 'academic');
+
+  _gradeEntries = {};
+  (existingEntries||[]).forEach(e => { _gradeEntries[e.student_id] = e; });
+
+  // 判斷是否已送出、已確認或鎖定
+  const anyEntry = existingEntries?.[0];
+  _gradeSubmitted = anyEntry?.status === 'submitted' || anyEntry?.status === 'confirmed';
+  _gradeLocked    = anyEntry?.is_locked || false;
+  const isConfirmed = anyEntry?.status === 'confirmed';
+
+  const isLocked  = _gradeSubmitted || _gradeLocked;
+  const submitBtn = document.getElementById('grade-submit-btn');
+  const saveHint  = document.getElementById('grade-save-hint');
+
+  if (isConfirmed) {
+    submitBtn.style.background = '#1565C0';
+    submitBtn.disabled = true;
+    submitBtn.textContent = '✅ 已確認（行政已複核）';
+    saveHint.textContent = '';
+  } else if (isLocked) {
+    submitBtn.style.background = '#9E9E9E';
+    submitBtn.disabled = true;
+    submitBtn.textContent = '🔒 已送出（如需修改請聯絡行政解鎖）';
+    saveHint.textContent = '';
+  } else {
+    submitBtn.style.background = '#1A6A30';
+    submitBtn.disabled = false;
+    submitBtn.textContent = '✅ 確認送出';
+    saveHint.textContent = '送出前可隨時修改，送出後需行政解鎖才能修改。';
+  }
+
+  if (!enrollments?.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--ink3)">此課程無修課學生</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = enrollments.map((e, idx) => {
+    const s         = studentMap[e.student_id] || {};
+    const isWithdrawn = e.status === 'withdrawn';
+    const isSuspended = s?.status === 'leave';
+    const entry     = _gradeEntries[e.student_id] || {};
+    const score     = entry.score ?? '';
+    const gradeLabel = entry.grade_label || (score !== '' ? calcGradeLabel(Number(score)) : '');
+    const notes     = isWithdrawn ? '停修' : isSuspended ? '休學' : (entry.notes || '');
+    const disabled  = isLocked || isWithdrawn || isSuspended;
+    const rowStyle  = (isWithdrawn || isSuspended) ? 'background:#F5F5F5;color:#999' : '';
+
+    return `<tr style="${rowStyle}">
+      <td style="text-align:center">${idx+1}</td>
+      <td>${s?.student_code||'—'}</td>
+      <td>${s?.name_zh||'—'}</td>
+      <td>
+        ${disabled ? `<span style="color:var(--ink3)">${isWithdrawn||isSuspended ? '—' : score}</span>`
+          : `<input type="number" min="0" max="100" step="1" value="${score}"
+              style="width:80px;padding:3px 6px;border:1px solid var(--cr2);border-radius:4px;font-size:13px"
+              data-sid="${e.student_id}"
+              onchange="onScoreChange(this)"
+              onblur="if(this.value!==''&&(this.value<0||this.value>100)){this.value=Math.min(100,Math.max(0,Math.round(this.value)));onScoreChange(this)}">`}
+      </td>
+      <td id="grade-label-${e.student_id}" style="font-size:13px;font-weight:500">${gradeLabel}</td>
+      <td style="font-size:12px;color:var(--ink3)">${notes}</td>
+    </tr>`;
+  }).join('');
+}
+
+function calcGradeLabel(score) {
+  if (!_gradeScale?.length || score === '') return '';
+  for (const row of _gradeScale) {
+    if (score >= row.min && score <= row.max) return row.label;
+  }
+  return '';
+}
+
+async function onScoreChange(input) {
+  const sid   = input.dataset.sid;
+  const score = input.value === '' ? null : Number(input.value);
+  const label = score !== null ? calcGradeLabel(score) : '';
+
+  // 即時更新等第顯示
+  const labelEl = document.getElementById('grade-label-' + sid);
+  if (labelEl) labelEl.textContent = label;
+
+  // 找對應 enrollment 的 status
+  const enrRow = document.querySelector(`input[data-sid="${sid}"]`)?.closest('tr');
+  const isWithdrawn = enrRow?.style?.background === 'rgb(245, 245, 245)'; // 停修/休學列已灰掉不可輸入
+
+  const payload = {
+    grade_period_id: _gradePeriod.id,
+    grade_type:      'academic',
+    offering_id:     _currentOffering,
+    teacher_id:      ME.id,
+    student_id:      sid,
+    score,
+    grade_label:     label,
+    status:          'draft',
+    is_withdrawn:    false,
+    is_suspended:    false,
+  };
+
+  const { error } = await sb.from('grade_entries')
+    .upsert(payload, { onConflict: 'grade_period_id,offering_id,teacher_id,student_id' });
+
+  if (error) showToast('儲存失敗：' + error.message, 'error');
+}
+
+async function submitGrades() {
+  // 驗證：所有非停修/休學學生必須有有效成績
+  const errors = [];
+  document.querySelectorAll('#grade-sheet-tbody tr').forEach((tr, idx) => {
+    const inp = tr.querySelector('input[data-sid]');
+    if (!inp) return; // 停修/休學無 input，跳過
+    const val = inp.value.trim();
+    const num = Number(val);
+    if (val === '' || isNaN(num) || num < 0 || num > 100 || !Number.isInteger(num)) {
+      const name = tr.cells[2]?.textContent.trim() || `第${idx+1}筆`;
+      if (val === '') errors.push(`${name}：成績空白`);
+      else errors.push(`${name}：成績「${val}」不符合（需為 0~100 的整數）`);
+    }
+  });
+
+  if (errors.length) {
+    showToast(`❌ 有 ${errors.length} 筆成績未填寫或格式錯誤，請修正後再送出`, 'error');
+    // 在表格上方顯示錯誤明細
+    let errDiv = document.getElementById('grade-validate-errors');
+    if (!errDiv) {
+      errDiv = document.createElement('div');
+      errDiv.id = 'grade-validate-errors';
+      errDiv.style.cssText = 'background:#FFF3CD;border:1px solid #FFC107;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#856404';
+      document.getElementById('grade-sheet-table').before(errDiv);
+    }
+    errDiv.innerHTML = `<strong>⚠️ 請修正以下項目後再送出：</strong><ul style="margin:6px 0 0 16px;padding:0">${errors.map(e=>`<li>${e}</li>`).join('')}</ul>`;
+    return;
+  }
+
+  // 清除錯誤提示
+  const errDiv = document.getElementById('grade-validate-errors');
+  if (errDiv) errDiv.remove();
+
+  if (!confirm('確認送出後將鎖定，如需修改請聯絡行政解鎖。確定送出？')) return;
+
+  const submitBtn = document.getElementById('grade-submit-btn');
+  const saveHint  = document.getElementById('grade-save-hint');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '送出中…';
+
+  const { error } = await sb.from('grade_entries')
+    .update({ status: 'submitted', submitted_at: new Date().toISOString() })
+    .eq('offering_id', _currentOffering)
+    .eq('teacher_id', ME.id)
+    .eq('grade_type', 'academic');
+
+  if (error) {
+    showToast('送出失敗：' + error.message, 'error');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '✅ 確認送出';
+    return;
+  }
+
+  // 立即鎖定 UI，不等重新載入
+  _gradeSubmitted = true;
+  submitBtn.style.background = '#9E9E9E';
+  submitBtn.textContent = '🔒 已送出（如需修改請聯絡行政解鎖）';
+  saveHint.textContent = '';
+
+  // 立即停用所有成績輸入欄
+  document.querySelectorAll('#grade-sheet-tbody input[data-sid]').forEach(inp => {
+    inp.disabled = true;
+    inp.style.background = '#F5F5F5';
+    inp.style.color = '#999';
+  });
+
+  showToast('✅ 成績已送出');
+}
+
+async function exportGradeSheet(isTemplate=false) {
+  const assignment = _gradeAssignments.find(a => a.offering_id === _currentOffering);
+  const semLabel   = assignment?.grade_period?.semesters?.label || '';
+  const courseCode = assignment?.offering?.courses?.code || '';
+  const courseName = assignment?.offering?.courses?.name_zh || '';
+
+  // 取得必選修和學分數
+  let reqType = '', credits = '';
+  const { data: offeringData } = await sb.from('course_offerings')
+    .select('courses(req_type, credits)')
+    .eq('id', _currentOffering).maybeSingle();
+  if (offeringData?.courses) {
+    reqType = offeringData.courses.req_type === 'required' ? '必修' : '選修';
+    credits = offeringData.courses.credits || '';
+  }
+
+  // 收集學生資料
+  const dataRows = [];
+  let totalStudents = 0;
+  document.querySelectorAll('#grade-sheet-tbody tr').forEach((tr, idx) => {
+    const tds = tr.querySelectorAll('td');
+    if (tds.length < 6) return;
+    totalStudents++;
+    const scoreRaw = tds[3].querySelector('input')?.value ?? tds[3].textContent.trim();
+    const score    = isTemplate ? '' : (scoreRaw === '—' ? '' : scoreRaw);
+    const grade    = isTemplate ? '' : tds[4].textContent.trim();
+    const notes    = tds[5].textContent.trim();
+    dataRows.push([idx+1, tds[1].textContent.trim(), tds[2].textContent.trim(), score, grade, notes, '', '']);
+  });
+
+  const q = (v) => `"${String(v).replace(/"/g,'""')}"`;
+  const row = (arr) => arr.map(q).join(',');
+
+  const lines = [
+    row(['福智學校財團法人福智佛教學院','','','','','','','']),
+    row(['佛法應用研究所','','','','','','','']),
+    row([`${semLabel}學期成績`,'','','','','','','']),
+    row([`課程代號：${courseCode}`,'','','','','','','']),
+    row([`課程名稱：${courseName}`,'','','','','','','']),
+    row([`必選修：${reqType}`,'','',`學分數：${credits}`,'','','','']),
+    row([`授課教師：${ME.name_zh}`,'','',`修課學生數：${totalStudents}`,'','','','']),
+    row(['','','','','','','','']),
+    row(['序號','學號','姓名','成績','等第','備註','','']),
+    ...dataRows.map(r => row(r)),
+    row(['','','','','','','','']),
+    row([`修課學生數：${totalStudents}`,'','','','','','','']),
+    row(['註：滿70分為及格','','','','','','','']),
+    row(['','','','','','','','']),
+    row(['','','','','','','','']),
+    row(['授課教師簽名：','','','','','','','']),
+  ];
+
+  const csv = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const prefix = isTemplate ? '(範本)' : '';
+  a.download = `${prefix}${semLabel}_${courseCode}${courseName}_${ME.name_zh}_學期成績.csv`;
+  a.click();
+}
+
+// ── 成績匯入 Modal ──
+let _importRows = []; // 解析後的預覽資料
+
+function openGradeImportModal() {
+  if (!_currentOffering) { showToast('請先選擇課程', 'error'); return; }
+  if (_gradeSubmitted) { showToast('成績已送出，如需修改請聯絡行政解鎖', 'error'); return; }
+  document.getElementById('grade-import-preview').style.display = 'none';
+  document.getElementById('grade-import-confirm-btn').style.display = 'none';
+  document.getElementById('grade-import-file').value = '';
+  document.getElementById('grade-import-modal').style.display = 'flex';
+}
+
+function closeGradeImportModal() {
+  document.getElementById('grade-import-modal').style.display = 'none';
+  _importRows = [];
+}
+
+function downloadGradeTemplate() {
+  exportGradeSheet(true);
+}
+
+async function handleGradeImportFile(file) {
+  if (!file) return;
+  const text = await file.text();
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // 找 header 列（含「學號」）
+  const headerIdx = lines.findIndex(l => l.includes('學號'));
+  if (headerIdx < 0) {
+    showToast('找不到表頭列（需含「學號」欄位）', 'error'); return;
+  }
+
+  const parseCSVLine = line => {
+    const result = []; let cur = ''; let inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
+  const headers  = parseCSVLine(lines[headerIdx]);
+  const scoreCol = headers.findIndex(h => h.includes('成績'));
+  const idCol    = headers.findIndex(h => h.includes('學號'));
+  const notesCol = headers.findIndex(h => h.includes('備註'));
+
+  if (scoreCol < 0 || idCol < 0) {
+    showToast('找不到學號或成績欄位', 'error'); return;
+  }
+
+  // 建立目前畫面上的學號 → input 對照（只含可輸入的，停修/休學略過）
+  const codeToInput = {};
+  document.querySelectorAll('#grade-sheet-tbody tr').forEach(tr => {
+    const inp  = tr.querySelector('input[data-sid]');
+    const code = tr.cells[1]?.textContent.trim();
+    if (inp && code && !inp.disabled) codeToInput[code] = inp;
+  });
+  // 建立停修/休學學號集合（用於略過提示）
+  const skipCodes = new Set();
+  document.querySelectorAll('#grade-sheet-tbody tr').forEach(tr => {
+    const inp  = tr.querySelector('input[data-sid]');
+    const code = tr.cells[1]?.textContent.trim();
+    if (!inp && code) skipCodes.add(code); // 停修/休學沒有 input
+    if (inp?.disabled && code) skipCodes.add(code);
+  });
+
+  _importRows = [];
+  lines.slice(headerIdx + 1).forEach(line => {
+    const cols        = parseCSVLine(line);
+    const studentCode = cols[idCol]?.replace(/"/g,'').trim();
+    const score       = cols[scoreCol]?.replace(/"/g,'').trim();
+    const notes       = notesCol >= 0 ? cols[notesCol]?.replace(/"/g,'').trim() : '';
+    if (!studentCode) return;
+
+    const inp     = codeToInput[studentCode];
+    const matched = !!inp;
+    const isSkip  = !matched || score === '' || inp?.disabled;
+    _importRows.push({ studentCode, score, notes, matched, isSkip, input: inp });
+  });
+
+  // 預覽表格
+  const matched  = _importRows.filter(r => r.matched && !r.isSkip).length;
+  const skipped  = _importRows.filter(r => r.isSkip).length;
+  document.getElementById('grade-import-summary').innerHTML =
+    `共 <b>${_importRows.length}</b> 筆　✅ 可匯入 <b style="color:var(--green,#1A6A30)">${matched}</b> 筆　⬜ 略過 <b style="color:#888">${skipped}</b> 筆`;
+
+  document.getElementById('grade-import-thead').innerHTML =
+    '<tr>' + ['學號','成績','備註','狀態'].map(h =>
+      `<th style="padding:6px 10px;text-align:left;font-weight:500">${h}</th>`).join('') + '</tr>';
+
+  document.getElementById('grade-import-tbody').innerHTML =
+    _importRows.map(r => `<tr style="border-top:1px solid #F0F0F0">
+      <td style="padding:5px 10px">${r.studentCode}</td>
+      <td style="padding:5px 10px">${r.score||'—'}</td>
+      <td style="padding:5px 10px;color:#888">${r.notes||''}</td>
+      <td style="padding:5px 10px">${
+        r.isSkipWithdrawn ? '<span style="color:#888">略過（停修）</span>' :
+        !r.matched        ? '<span style="color:#c00">找不到學號</span>' :
+        r.isSkip          ? '<span style="color:#888">略過</span>' :
+                            '<span style="color:#1A6A30">✅ 匯入</span>'
+      }</td>
+    </tr>`).join('');
+
+  document.getElementById('grade-import-preview').style.display = 'block';
+  document.getElementById('grade-import-confirm-btn').style.display = matched > 0 ? '' : 'none';
+}
+
+async function confirmGradeImport() {
+  let count = 0;
+  for (const row of _importRows) {
+    if (!row.matched || row.isSkip || !row.input) continue;
+    row.input.value = row.score;
+    await onScoreChange(row.input);
+    count++;
+  }
+  showToast(`已匯入 ${count} 筆成績`);
+  closeGradeImportModal();
+}
+
+function showSection(id) {
+  document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
+  const sec = document.getElementById('sec-' + id);
+  const nav = document.getElementById('nav-' + id);
+  if (sec) sec.classList.add('on');
+  if (nav) nav.classList.add('active');
+  // 切換到成績登錄時重置並重新載入
+  if (id === 'grades') {
+    _gradeAssignments = [];
+    document.getElementById('grade-sheet-area').style.display = 'none';
+    document.getElementById('grade-course-list').style.display = '';
+    loadGradesSection();
+  }
+}
+// 相容舊呼叫
 function switchTab(id, btn) {
-  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
-  btn.classList.add('on');
-  document.getElementById('tab-' + id).classList.add('on');
+  const map = {'my-courses':'my-courses','my-profile':'profile','all-courses':'all-courses'};
+  showSection(map[id] || id);
 }
 
 function showToast(msg, isErr) {
@@ -745,5 +1393,60 @@ sb.auth.onAuthStateChange((event, session) => {
 
 init();
 </script>
+
+  <!-- ▌成績匯入 Modal ▌-->
+  <div id="grade-import-modal"
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;align-items:center;justify-content:center"
+    onclick="if(event.target===this)closeGradeImportModal()">
+    <div style="background:#fff;border-radius:12px;width:min(560px,95vw);max-height:90vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #E8E8E8">
+        <div style="font-weight:600;font-size:15px">📤 匯入成績</div>
+        <button onclick="closeGradeImportModal()"
+          style="border:none;background:none;font-size:20px;cursor:pointer;color:#888;line-height:1">✕</button>
+      </div>
+      <div style="padding:20px">
+        <!-- 下載範本 -->
+        <div style="margin-bottom:14px">
+          <button onclick="downloadGradeTemplate()"
+            style="padding:6px 14px;border:1px solid var(--navy,#1B3A6B);border-radius:6px;background:#fff;color:var(--navy,#1B3A6B);font-size:13px;cursor:pointer">
+            ⬇ 下載成績範本
+          </button>
+          <span style="font-size:12px;color:#888;margin-left:8px">請依範本格式填寫後再匯入</span>
+        </div>
+        <!-- 拖曳區 -->
+        <div id="grade-import-dropzone"
+          style="border:2px dashed #C5C5C5;border-radius:10px;padding:40px;text-align:center;cursor:pointer;transition:border-color .2s"
+          onclick="document.getElementById('grade-import-file').click()"
+          ondragover="event.preventDefault();this.style.borderColor='#1B3A6B'"
+          ondragleave="this.style.borderColor='#C5C5C5'"
+          ondrop="event.preventDefault();this.style.borderColor='#C5C5C5';handleGradeImportFile(event.dataTransfer.files[0])">
+          <div style="font-size:36px;margin-bottom:8px">📂</div>
+          <div style="font-size:14px;color:#333">點擊或拖曳 CSV 檔案至此</div>
+          <div style="font-size:12px;color:#888;margin-top:4px">僅支援 .csv 格式，UTF-8 或 Big5 編碼</div>
+        </div>
+        <input type="file" id="grade-import-file" accept=".csv" style="display:none"
+          onchange="handleGradeImportFile(this.files[0])">
+        <!-- 預覽區 -->
+        <div id="grade-import-preview" style="display:none;margin-top:16px">
+          <div id="grade-import-summary" style="font-size:13px;margin-bottom:8px;color:#333"></div>
+          <div style="overflow:auto;max-height:280px;border:1px solid #E8E8E8;border-radius:8px">
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+              <thead id="grade-import-thead"
+                style="position:sticky;top:0;background:#1B3A6B;color:#fff"></thead>
+              <tbody id="grade-import-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div style="padding:12px 20px;border-top:1px solid #E8E8E8;display:flex;justify-content:flex-end;gap:8px">
+        <button onclick="closeGradeImportModal()"
+          style="padding:7px 18px;border:1px solid #C5C5C5;border-radius:6px;background:#fff;font-size:13px;cursor:pointer">取消</button>
+        <button id="grade-import-confirm-btn" onclick="confirmGradeImport()"
+          style="display:none;padding:7px 18px;border:none;border-radius:6px;background:#1B3A6B;color:#fff;font-size:13px;cursor:pointer">
+          ✅ 確認匯入
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

@@ -38,14 +38,14 @@ input{font-family:inherit}
 .feedback.err{background:var(--red3);color:var(--red)}
 
 /* ── TOPBAR ── */
-.topbar{background:var(--navy);color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;position:fixed;top:0;left:0;right:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.topbar{background:var(--navy);color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .topbar-logo{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600}
 .topbar-user{margin-left:auto;font-size:12.5px;opacity:.8}
 .topbar-btn{padding:5px 12px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:transparent;color:#fff;font-size:12px}
 .topbar-btn:hover{background:rgba(255,255,255,.1)}
 
 /* ── MAIN ── */
-.main{max-width:1100px;margin:52px auto 0;padding:24px 20px 60px}
+.main{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
 
 /* ── TABS ── */
 .tabs{display:flex;gap:2px;background:var(--cr2);border-radius:var(--r);padding:3px;margin-bottom:20px;width:fit-content}
@@ -133,6 +133,16 @@ input{font-family:inherit}
 .toast.success{background:var(--navy);color:#fff}
 .toast.error{background:var(--red);color:#fff}
 
+/* ── SIDE NAV ── */
+.side-nav{width:140px;flex-shrink:0;background:#fff;border-right:1px solid var(--cr2);padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+.side-nav-label{font-size:11px;font-weight:600;color:#888;padding:0 16px 8px;letter-spacing:.05em}
+.side-item{padding:10px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;color:var(--ink2);border-left:3px solid transparent;transition:all .15s}
+.side-item:hover{background:var(--cr3);color:var(--navy)}
+.side-item.active{background:var(--navy3);border-left-color:var(--navy);color:var(--navy);font-weight:600}
+.t-section{display:none}.t-section.on{display:block}
+.btn-enroll.drop{background:#FFEBEE;color:#C62828;border:1px solid #EF9A9A}
+.btn-enroll.drop:hover{background:#FFCDD2}
+
 @media(max-width:600px){.main{padding:16px 12px 60px}.tabs{width:100%}.tab{flex:1;text-align:center}.course-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -169,15 +179,33 @@ input{font-family:inherit}
     <button class="topbar-btn" onclick="signOut()">登出</button>
   </div>
 
-  <div class="main">
+  <div style="display:flex;min-height:calc(100vh - 52px)">
+    <!-- 左側導覽 -->
+    <div class="side-nav">
+      <div class="side-nav-label">功能選單</div>
+      <div class="side-item" id="nav-ann"    onclick="showSection('ann')">📢 公佈欄</div>
+      <div class="side-item" id="nav-select" onclick="showSection('select')">📚 選課</div>
+      <div class="side-item" id="nav-thesis" onclick="showSection('thesis')">📝 畢業論文</div>
+      <div class="side-item" id="nav-survey" onclick="showSection('survey')">📋 意見調查</div>
+    </div>
 
-    <!-- 狀態提示（休學/選課期間外）-->
-    <div id="status-banner" style="display:none"></div>
+    <!-- 右側主內容 -->
+    <div class="main" style="flex:1;max-width:none">
+      <div id="status-banner" style="display:none"></div>
 
-    <!-- 公佈欄公告（在選課橫幅之後）-->
-    <div id="ann-banners" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px"></div>
+      <!-- ── 公佈欄 ── -->
+      <div id="sec-ann" class="t-section">
+        <div class="section-title">📢 公佈欄</div>
+        <div id="ann-banners" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="ann-empty" style="display:none;color:var(--ink3);font-size:13px;padding:20px 0">目前無公告</div>
+      </div>
 
-    <!-- 畢業進度 -->
+      <!-- ── 選課 ── -->
+      <div id="sec-select" class="t-section on">
+        <!-- 公佈欄快訊（在選課頁顯示）-->
+        <div id="ann-banners-select" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+
+        <!-- 畢業進度 -->
     <div class="grad-wrap" id="grad-wrap" style="display:none">
       <div style="display:flex;align-items:flex-start;gap:16px">
         <!-- 左：學分進度 -->
@@ -235,12 +263,12 @@ input{font-family:inherit}
       </div>
     </div>
 
-    <!-- Tabs -->
+        <!-- Tabs -->
     <div class="tabs">
       <button class="tab on" onclick="switchTab('select',this)">📚 選課</button>
       <button class="tab" onclick="switchTab('enrolled',this)" id="tab-enrolled-btn">✅ 本學期已選課程</button>
       <button class="tab" onclick="switchTab('history',this)">📖 歷年已選課程</button>
-      <button class="tab" onclick="switchTab('thesis',this)">📝 畢業論文</button>
+      
     </div>
 
     <!-- ── 選課頁面 ── -->
@@ -301,16 +329,26 @@ input{font-family:inherit}
       </div>
     </div>
 
-    <!-- ── 畢業論文 ── -->
-    <div id="tab-thesis" class="page">
-      <div class="section-title">畢業論文進度</div>
-      <div id="thesis-wrap">
-        <div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>
-      </div>
-    </div>
+    <!-- ── 畢業論文（移至左側導覽 sec-thesis）── -->
 
-  </div>
-</div>
+
+
+      </div><!-- end sec-select -->
+
+      <!-- ── 畢業論文 ── -->
+      <div id="sec-thesis" class="t-section">
+        <div class="section-title">📝 畢業論文進度</div>
+        <div id="thesis-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── 意見調查 ── -->
+      <div id="sec-survey" class="t-section">
+        <div class="section-title">📋 教學意見調查</div>
+        <div id="survey-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+    </div><!-- end main -->
+  </div><!-- end flex -->
 
 <!-- 大綱 Modal -->
 <div id="syl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
@@ -374,7 +412,12 @@ let SETTING = null;      // enrollment_settings
 let MY_ENROLLMENTS = {}; // { offering_id: enrollment_record }
 let CURRENT_SEM_ID = null;
 let CURRENT_SEM_LABEL = '';
-let CAN_ENROLL = false;  // 是否在選課期間內且非休學
+let CAN_ENROLL  = false;
+let CAN_DROP    = false;
+let ACTIVE_SEM_ID    = null;
+let ACTIVE_SEM_LABEL = '';
+let AVAILABLE_COURSES = [];
+let AVAILABLE_VIEW    = 'card';
 
 /* ════ AUTH ════ */
 async function init() {
@@ -390,7 +433,7 @@ async function sendLink() {
   btn.disabled=true; btn.textContent='傳送中…';
   try {
     const { error } = await sb.auth.signInWithOtp({
-      email, options:{ emailRedirectTo: window.location.origin + window.location.pathname }
+      email, options:{ emailRedirectTo: window.location.href }
     });
     btn.disabled=false; btn.textContent='傳送登入連結';
     if (error) showFeedback('❌ '+error.message,'err');
@@ -461,9 +504,15 @@ async function enterApp(user) {
   CURRENT_SEM_ID    = sem.id;
   CURRENT_SEM_LABEL = sem.label;
 
-  // 更新本學期頁籤名稱
-  document.getElementById('tab-enrolled-btn').textContent = `✅ ${sem.label} 已選課程`;
-  document.getElementById('enrolled-tab-title').textContent = `${sem.label} 已選課程`;
+  // 找本學期（is_current=true）
+  const { data:activeSem } = await sb.from('semesters')
+    .select('id, label').eq('is_current', true).maybeSingle();
+  ACTIVE_SEM_ID    = activeSem?.id    || CURRENT_SEM_ID;
+  ACTIVE_SEM_LABEL = activeSem?.label || CURRENT_SEM_LABEL;
+
+  // 更新子頁籤名稱
+  document.getElementById('tab-enrolled-btn').textContent = `✅ ${ACTIVE_SEM_LABEL} 已選課程`;
+  document.getElementById('enrolled-tab-title').textContent = `${ACTIVE_SEM_LABEL} 已選課程`;
 
   const setting = targetSetting;
   SETTING = setting;
@@ -476,6 +525,7 @@ async function enterApp(user) {
     : false;
 
   CAN_ENROLL = !isLeave && inPeriod;
+  CAN_DROP   = !isLeave && setting && now <= new Date(setting.close_at);
 
   // 顯示狀態 banner
   if (isLeave) {
@@ -488,11 +538,14 @@ async function enterApp(user) {
   } else if (now > new Date(setting.close_at)) {
     const closeDate = new Date(setting.close_at).toLocaleDateString('zh-TW');
     showBanner('warn',`⏰ 加退選截止（${closeDate}）已過，如需停修請聯絡行政辦公室。`);
+  } else {
+    // 選課進行中不顯示綠色 banner（避免每頁都看到），改為更新 sem-period 顯示
+    document.getElementById('sem-period').textContent = `${CURRENT_SEM_LABEL}`;
   }
-  // 選課進行中：不再顯示綠色橫幅，改由公佈欄公告取代
 
   await Promise.all([loadMyEnrollments(), loadAvailableCourses()]);
   loadPublicAnnouncements('student');
+  showSection('ann');
 }
 
 async function signOut() { await sb.auth.signOut(); location.reload(); }
@@ -503,45 +556,69 @@ async function loadPublicAnnouncements(role) {
     const now = new Date().toISOString();
     const { data } = await sb.from('announcements')
       .select('id,title,content,target,expires_at')
-      .or(`target.eq.${role},target.eq.all`)
+      .in('target', [role, 'all'])
       .or(`expires_at.is.null,expires_at.gt.${now}`)
       .order('created_at', {ascending:false})
-      .limit(5);
+      .limit(10);
     const el = document.getElementById('ann-banners');
-    if (!el || !data?.length) return;
+    if (!el) return;
+    if (!data?.length) {
+      const emp = document.getElementById('ann-empty');
+      if (emp) emp.style.display = 'block';
+      return;
+    }
 
-    // 查附件
+    // 查附件，用 signed URL
     const ids = data.map(a=>a.id);
     const {data:atts} = await sb.from('attachments').select('*').eq('ref_type','announcement').in('ref_id',ids);
     const attMap={};
     (atts||[]).forEach(a=>{ if(!attMap[a.ref_id]) attMap[a.ref_id]=[]; attMap[a.ref_id].push(a); });
 
-    el.innerHTML = (await Promise.all(data.map(async a=>{
-      const annAtts = attMap[a.id]||[];
-      let attHtml = '';
-      if (annAtts.length) {
-        const links = await Promise.all(annAtts.map(async att=>{
-          const {data:su} = await sb.storage.from('admin-assets').createSignedUrl(att.file_path, 3600);
-          const url = su?.signedUrl||'#';
-          return `<a href="${url}" target="_blank" style="font-size:11px;padding:2px 8px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none">📎 ${att.filename}</a>`;
-        }));
-        attHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${links.join('')}</div>`;
+    // 預先取得所有 signed URL
+    const signedMap = {};
+    for (const annId of ids) {
+      for (const att of (attMap[annId]||[])) {
+        const {data:su} = await sb.storage.from('admin-assets').createSignedUrl(att.file_path, 3600);
+        signedMap[att.id] = su?.signedUrl || '#';
       }
-      return `<div style="background:#EDE9FE;color:#4C1D95;border:1px solid #C4B5FD;border-radius:8px;padding:12px 16px;font-size:13px">
-        <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
-          <div style="display:flex;align-items:flex-start;gap:8px;flex:1">
-            <span style="flex-shrink:0">📌</span>
-            <div>
-              <div style="font-weight:600">${a.title}</div>
-              ${a.content?`<div style="font-size:12px;margin-top:3px;white-space:pre-wrap">${a.content}</div>`:''}
-              ${attHtml}
-            </div>
-          </div>
-          ${a.expires_at?`<div style="font-size:11px;opacity:.7;flex-shrink:0;margin-left:12px">至 ${new Date(a.expires_at).toLocaleDateString('zh-TW')}</div>`:''}
+    }
+
+    el.innerHTML = data.map((a, idx) => {
+      const annAtts = attMap[a.id]||[];
+      const attHtml = annAtts.length
+        ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+            ${annAtts.map(att=>`<a href="${signedMap[att.id]}" target="_blank"
+              style="font-size:11px;padding:3px 10px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+              📎 ${att.filename}</a>`).join('')}
+           </div>` : '';
+      const hasBody = a.content || annAtts.length;
+      const expStr = a.expires_at ? `至 ${new Date(a.expires_at).toLocaleDateString('zh-TW')}` : '';
+
+      return `<div style="background:#EDE9FE;border:1px solid #C4B5FD;border-radius:10px;overflow:hidden">
+        <!-- 標題列（點擊收合/展開）-->
+        <div onclick="toggleAnn(${idx})" style="display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:${hasBody?'pointer':'default'};user-select:none">
+          <span style="flex-shrink:0;font-size:16px">📌</span>
+          <div style="flex:1;font-size:13px;font-weight:600;color:#4C1D95">${a.title}</div>
+          ${expStr ? `<span style="font-size:11px;color:#7C3AED;opacity:.7;flex-shrink:0">${expStr}</span>` : ''}
+          ${hasBody ? `<span id="ann-arrow-${idx}" style="font-size:12px;color:#7C3AED;flex-shrink:0;transition:transform .2s">▼</span>` : ''}
         </div>
+        <!-- 展開內容（預設隱藏）-->
+        ${hasBody ? `<div id="ann-body-${idx}" style="display:none;padding:0 16px 14px 16px;border-top:1px solid #C4B5FD">
+          ${a.content ? `<div style="font-size:13px;color:#3B0764;line-height:1.8;white-space:pre-wrap;margin-top:10px">${a.content}</div>` : ''}
+          ${attHtml}
+        </div>` : ''}
       </div>`;
-    }))).join('');
+    }).join('');
   } catch(e) { console.warn('公佈欄載入失敗',e); }
+}
+
+function toggleAnn(idx) {
+  const body  = document.getElementById('ann-body-' + idx);
+  const arrow = document.getElementById('ann-arrow-' + idx);
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display  = isOpen ? 'none' : '';
+  if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
 /* ════ GRADUATION PROGRESS ════ */
@@ -900,6 +977,7 @@ function hideGaugeTip() {
 
 /* ════ LOAD DATA ════ */
 async function loadMyEnrollments() {
+  // MY_ENROLLMENTS: 選課學期（CURRENT_SEM_ID = 115-1）→ 給選課頁的按鈕用
   const { data } = await sb.from('enrollments')
     .select('*')
     .eq('student_id', ME.id)
@@ -908,7 +986,21 @@ async function loadMyEnrollments() {
   MY_ENROLLMENTS = {};
   (data||[]).forEach(e => { MY_ENROLLMENTS[e.offering_id] = e; });
   updateCreditBar();
-  renderEnrolled(data||[]);
+
+  // 已選課程頁顯示本學期（ACTIVE_SEM_ID = 114-2）的選課
+  const activeSemForEnrolled = ACTIVE_SEM_ID || CURRENT_SEM_ID;
+  if (activeSemForEnrolled === CURRENT_SEM_ID) {
+    // 同一學期，直接用 data
+    renderEnrolled(data||[]);
+  } else {
+    const { data:activeData } = await sb.from('enrollments')
+      .select('*')
+      .eq('student_id', ME.id)
+      .eq('semester_id', activeSemForEnrolled)
+      .in('status',['confirmed','pending','waitlist','withdrawn']);
+    renderEnrolled(activeData||[]);
+  }
+
   // 畢業進度非同步載入，不阻塞主流程
   loadGraduationProgress().catch(e => console.warn('grad:', e));
 }
@@ -1128,7 +1220,7 @@ async function enrollCourse(offeringId, credits) {
 }
 
 async function dropCourse(offeringId) {
-  if (!CAN_ENROLL) { showToast('目前非加退選期間','error'); return; }
+  if (!CAN_DROP) { showToast('目前非加退選期間','error'); return; }
   if (!confirm('確定要退選這門課嗎？')) return;
 
   const { error } = await sb.from('enrollments').update({
@@ -1340,7 +1432,7 @@ async function loadHistory() {
   const { data:allEnr } = await sb.from('enrollments')
     .select('offering_id, semester_id, status, final_grade, director_note')
     .eq('student_id', ME.id)
-    .neq('semester_id', CURRENT_SEM_ID)
+    .not('semester_id', 'in', `(${[ACTIVE_SEM_ID, CURRENT_SEM_ID].filter(Boolean).join(',')})`)
     .in('status', ['confirmed','withdrawn'])
     .order('enrolled_at');
 
@@ -1412,7 +1504,7 @@ function renderHistory() {
   };
 
   let html = '';
-  for (const term of Object.keys(byTerm).sort()) {
+  for (const term of Object.keys(byTerm).sort().reverse()) {
     const items = [...byTerm[term]].sort((a,b)=>{
       const va=getVal(a,s.field), vb=getVal(b,s.field);
       return (typeof va==='number' ? (va-vb) : va.localeCompare(vb,'zh')) * s.dir;
@@ -1472,13 +1564,25 @@ function showBanner(type, msg) {
   el.style.display = 'flex';
 }
 
+function showSection(id) {
+  document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
+  const sec = document.getElementById('sec-' + id);
+  const nav = document.getElementById('nav-' + id);
+  if (sec) sec.classList.add('on');
+  if (nav) nav.classList.add('active');
+  if (id === 'thesis') loadThesisView();
+  if (id === 'survey') loadStudentSurveys();
+}
+
 function switchTab(id, btn) {
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  btn.classList.add('on');
-  document.getElementById('tab-'+id).classList.add('on');
+  if (btn) btn.classList.add('on');
+  const el = document.getElementById('tab-'+id);
+  if (el) el.classList.add('on');
   if (id === 'history') loadHistory();
-  if (id === 'thesis') loadThesisView();
+  if (id === 'thesis') { showSection('thesis'); return; }
 }
 
 /* ════ 批次A：論文進度唯讀顯示 ════ */
@@ -1739,6 +1843,65 @@ async function printAdvisorForm() {
     showToast('列印失敗：'+e.message,'error');
     console.warn('printAdvisorForm:', e);
   }
+}
+
+
+/* ════ 意見調查 ════ */
+async function loadStudentSurveys() {
+  const wrap = document.getElementById('survey-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px">載入中…</div>';
+  const now = new Date().toISOString();
+  const {data:openSurveys} = await sb.from('surveys')
+    .select('id,title,start_at,end_at,round,semesters(label)')
+    .eq('status','open').order('created_at',{ascending:false});
+  const {data:upcomingSurveys} = await sb.from('surveys')
+    .select('id,title,start_at,end_at,round,semesters(label)')
+    .eq('status','draft').gt('start_at', now).order('start_at');
+  const {data:tokens} = await sb.from('survey_tokens')
+    .select('id,token,used,survey_id,offering_id,v_course_schedule(name_zh,code)')
+    .eq('student_id', ME.id);
+  const tokenMap = {};
+  (tokens||[]).forEach(t=>{ if(!tokenMap[t.survey_id]) tokenMap[t.survey_id]=[]; tokenMap[t.survey_id].push(t); });
+  const baseUrl = location.origin + location.pathname.replace(/student\.html$/, 'survey.html');
+  let html = '';
+  if (openSurveys?.length) {
+    html += '<div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:12px">📋 開放中的調查</div>';
+    openSurveys.forEach(sv=>{
+      const myTokens = tokenMap[sv.id]||[];
+      const endStr = sv.end_at ? new Date(sv.end_at).toLocaleDateString('zh-TW') : '';
+      html += `<div style="background:#fff;border-radius:10px;border:1px solid var(--cr2);padding:16px 20px;margin-bottom:12px">
+        <div style="font-weight:600;margin-bottom:6px">${sv.title}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:10px">${sv.semesters?.label||''} ${sv.round==='final'?'期末':'期中'} · 截止：${endStr}</div>`;
+      if (!myTokens.length) {
+        html += '<div style="font-size:13px;color:var(--ink3)">此調查無您的填答連結，請聯絡行政辦公室。</div>';
+      } else {
+        myTokens.forEach(tk=>{
+          const course = tk.v_course_schedule;
+          html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--cr2)">
+            <span style="flex:1;font-size:13px">${course?.name_zh||'課程'} <span style="color:var(--ink3);font-size:11px">${course?.code||''}</span></span>
+            ${tk.used
+              ? '<span style="font-size:12px;color:#1A6A30;padding:3px 10px;border-radius:20px;background:#E8F5E9">✅ 已完成</span>'
+              : `<a href="${baseUrl}?t=${tk.token}" target="_blank" style="font-size:12px;padding:4px 14px;border-radius:20px;background:var(--navy);color:#fff;text-decoration:none">填寫意見</a>`}
+          </div>`;
+        });
+      }
+      html += '</div>';
+    });
+  }
+  if (upcomingSurveys?.length) {
+    html += '<div style="font-size:13px;font-weight:600;color:var(--ink3);margin:16px 0 12px">📅 即將開放</div>';
+    upcomingSurveys.forEach(sv=>{
+      const startStr = sv.start_at ? new Date(sv.start_at).toLocaleDateString('zh-TW') : '';
+      html += `<div style="background:var(--cr3);border-radius:10px;border:1px solid var(--cr2);padding:14px 18px;margin-bottom:8px;opacity:.8">
+        <div style="font-weight:600;margin-bottom:4px">${sv.title}</div>
+        <div style="font-size:12px;color:var(--ink3)">${sv.semesters?.label||''} ${sv.round==='final'?'期末':'期中'} · 預計開放：${startStr}</div>
+      </div>`;
+    });
+  }
+  if (!openSurveys?.length && !upcomingSurveys?.length)
+    html = '<div style="text-align:center;padding:40px;color:var(--ink3)">目前沒有進行中的意見調查</div>';
+  wrap.innerHTML = html;
 }
 
 function showToast(msg, type='success') {
