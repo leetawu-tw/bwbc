@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v2.1 2026-06-17 -->
+<!-- BWBC Teacher v2.2 2026-06-17 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -107,6 +107,26 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .all-name{font-weight:600;color:var(--ink);margin-bottom:4px}
 .all-info{color:var(--ink3);font-size:12px;display:flex;flex-direction:column;gap:2px}
 
+.view-toggle{display:inline-flex;gap:2px;background:var(--cr2);border-radius:6px;padding:3px;margin-left:auto}
+.view-toggle button{border:none;padding:5px 12px;font-size:12px;cursor:pointer;border-radius:4px;transition:all .15s;background:transparent;color:var(--ink3);font-weight:500}
+.view-toggle button.on{background:var(--navy);color:#fff}
+
+.tbl-wrap{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow:auto}
+.tbl-wrap table{width:100%;border-collapse:collapse;font-size:13px;min-width:760px}
+.tbl-wrap thead tr{background:var(--navy);color:#fff}
+.tbl-wrap th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500}
+.tbl-wrap th.sortable{cursor:pointer;user-select:none;transition:background .15s}
+.tbl-wrap th.sortable:hover{background:#2a4a7a}
+.tbl-wrap tbody tr{border-bottom:1px solid var(--cr2)}
+.tbl-wrap tbody tr:hover{background:#FAFAFA}
+.tbl-wrap td{padding:9px 14px;color:var(--ink2)}
+.sort-icon{font-size:11px;opacity:.5;margin-left:3px}
+
+.req-badge{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:4px;font-weight:500}
+.req-req{background:#FCE4EC;color:#C2185B}
+.req-sel{background:#E3F2FD;color:#1565C0}
+.req-go{background:#FFF3E0;color:#B05010}
+
 /* ── TOAST ── */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 22px;border-radius:30px;font-size:13.5px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
 .toast.show{opacity:1}
@@ -188,16 +208,34 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 
       <!-- ── 我的課程 section ── -->
       <div id="sec-my-courses" class="t-section">
-        <div class="section-title" style="display:flex;align-items:center;gap:12px">
+        <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           我的課程
           <select id="my-sem-filter" onchange="filterMyCourses()"
             style="font-size:12px;padding:3px 8px;border:1px solid var(--cr2);border-radius:6px;color:var(--ink);background:#fff">
             <option value="">全部學期</option>
           </select>
           <span id="my-sem-label" style="font-size:12px;color:var(--ink3);font-weight:400"></span>
+          <div class="view-toggle">
+            <button id="my-view-card-btn" class="on" onclick="setMyView('card')">⊞ 資訊卡</button>
+            <button id="my-view-table-btn" onclick="setMyView('table')">☰ 資訊列</button>
+          </div>
         </div>
         <div id="my-courses-grid" class="course-grid">
           <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+        <div id="my-courses-table-wrap" class="tbl-wrap" style="display:none">
+          <table><thead><tr>
+            <th class="sortable" onclick="sortMyCourses('semester_label')">學期 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortMyCourses('code')">代碼 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortMyCourses('name_zh')">課程名稱 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortMyCourses('credits')" style="text-align:center">學分 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortMyCourses('req_type')" style="text-align:center">必/選 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortMyCourses('axis_name')">主軸 <span class="sort-icon">⇅</span></th>
+            <th>授課教師</th>
+            <th class="sortable" onclick="sortMyCourses('time_raw')">時間 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortMyCourses('classroom_name')">教室 <span class="sort-icon">⇅</span></th>
+            <th style="text-align:center">大綱</th>
+          </tr></thead><tbody id="my-courses-tbody"></tbody></table>
         </div>
       </div>
 
@@ -247,9 +285,33 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 
       <!-- ── 所有課程 section ── -->
       <div id="sec-all-courses" class="t-section">
-        <div class="section-title">所有課程（唯讀）</div>
-        <div id="all-courses-grid" class="all-grid">
+        <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          所有課程（唯讀）
+          <select id="all-sem-filter" onchange="filterAllCourses()"
+            style="font-size:12px;padding:3px 8px;border:1px solid var(--cr2);border-radius:6px;color:var(--ink);background:#fff">
+            <option value="">載入中…</option>
+          </select>
+          <span id="all-sem-stats" style="font-size:12px;color:var(--ink3);font-weight:400"></span>
+          <div class="view-toggle">
+            <button id="all-view-card-btn" onclick="setAllView('card')">⊞ 資訊卡</button>
+            <button id="all-view-table-btn" class="on" onclick="setAllView('table')">☰ 資訊列</button>
+          </div>
+        </div>
+        <div id="all-courses-grid" class="all-grid" style="display:none">
           <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+        <div id="all-courses-table-wrap" class="tbl-wrap">
+          <table><thead><tr>
+            <th class="sortable" onclick="sortAllCourses('semester_label')">學期 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortAllCourses('code')">代碼 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortAllCourses('name_zh')">課程名稱 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortAllCourses('credits')" style="text-align:center">學分 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortAllCourses('req_type')" style="text-align:center">必/選 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortAllCourses('axis_name')">主軸 <span class="sort-icon">⇅</span></th>
+            <th>授課教師</th>
+            <th class="sortable" onclick="sortAllCourses('time_raw')">時間 <span class="sort-icon">⇅</span></th>
+            <th class="sortable" onclick="sortAllCourses('classroom_name')">教室 <span class="sort-icon">⇅</span></th>
+          </tr></thead><tbody id="all-courses-tbody"></tbody></table>
         </div>
       </div>
 
@@ -581,6 +643,7 @@ function showLogin() {
 }
 
 /* ── 我的課程 ── */
+/* ── 我的課程 ── */
 async function loadMyCourses() {
   const { data: ot } = await sb.from('offering_teachers')
     .select('offering_id').eq('teacher_id', ME.id);
@@ -590,19 +653,36 @@ async function loadMyCourses() {
     return;
   }
   const ids = ot.map(o => o.offering_id);
-  const { data: cs } = await sb.from('v_course_schedule')
-    .select('*').in('offering_id', ids).order('semester_label',{ascending:false}).order('day');
-  MY_COURSES = cs || [];
 
-  // 建立學期下拉選單
+  const [csRes, otTeachersRes] = await Promise.all([
+    sb.from('v_course_schedule').select('*').in('offering_id', ids)
+      .order('semester_label',{ascending:false}).order('day'),
+    sb.from('v_offering_teachers').select('offering_id, name_zh, teacher_id, is_primary')
+      .in('offering_id', ids).order('is_primary', { ascending:false })
+  ]);
+
+  const teacherMap = {};
+  (otTeachersRes.data || []).forEach(t => {
+    if (!teacherMap[t.offering_id]) teacherMap[t.offering_id] = [];
+    teacherMap[t.offering_id].push({ name: t.name_zh, isSelf: t.teacher_id === ME.id });
+  });
+
+  MY_COURSES = (csRes.data || []).map(c => ({
+    ...c,
+    teachers_str: (teacherMap[c.offering_id] || []).map(t =>
+      t.isSelf ? '<strong style="color:var(--navy)">' + t.name + '</strong>' : t.name
+    ).join('、') || '—'
+  }));
+
   const sems = [...new Set(MY_COURSES.map(c=>c.semester_label))].sort().reverse();
   const sel = document.getElementById('my-sem-filter');
   if (sel) {
-    sel.innerHTML = '<option value="">全部學期</option>'
-      + sems.map(s=>`<option value="${s}">${s}</option>`).join('');
+    sel.innerHTML = '<option value="">全部學期</option>' + sems.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
+    const cur = MY_COURSES.find(c => c.is_current);
+    if (cur) sel.value = cur.semester_label;
+    else if (sems.length > 0) sel.value = sems[0];
   }
 
-  // 載入大綱完成狀態
   const { data: syls } = await sb.from('syllabi')
     .select('offering_id,overview_zh,objectives,methods,assessment,weeks,bibliography')
     .in('offering_id', ids);
@@ -618,50 +698,94 @@ async function loadMyCourses() {
     sylMap[s.offering_id] = score;
   });
   MY_COURSES._sylMap = sylMap;
-
-  renderMyCourses(MY_COURSES, sylMap);
+  filterMyCourses();
 }
 
 function filterMyCourses() {
   const sel = document.getElementById('my-sem-filter');
   const semLabel = sel?.value || '';
-  const filtered = semLabel
-    ? MY_COURSES.filter(c => c.semester_label === semLabel)
-    : MY_COURSES;
-  renderMyCourses(filtered, MY_COURSES._sylMap || {});
+  const filtered = semLabel ? MY_COURSES.filter(c => c.semester_label === semLabel) : MY_COURSES;
+  MY_COURSES._filtered = filtered;
+
+  const lbl = document.getElementById('my-sem-label');
+  if (lbl) {
+    if (filtered.length === 0) lbl.textContent = '(無課程)';
+    else {
+      const credits = filtered.reduce((sum,c)=>sum+(c.credits||0), 0);
+      lbl.textContent = '共 ' + filtered.length + ' 門 · ' + credits + ' 學分';
+    }
+  }
+  renderMyCourseCards(filtered, MY_COURSES._sylMap || {});
+  renderMyCourseTable(filtered, MY_COURSES._sylMap || {});
 }
 
-function renderMyCourses(courses, sylMap) {
+function renderMyCourseCards(courses, sylMap) {
   const grid = document.getElementById('my-courses-grid');
-  if (!courses.length) {
-    grid.innerHTML = '<div style="color:var(--ink3);padding:20px">此學期無開課記錄</div>';
-    return;
-  }
-
+  if (!courses.length) { grid.innerHTML = '<div style="color:var(--ink3);padding:20px">此學期無開課記錄</div>'; return; }
+  const teacherList = {};
   grid.innerHTML = courses.map(c => {
-    const score = sylMap[c.offering_id];
-    const hasS = score !== undefined;
+    const score = sylMap[c.offering_id]; const hasS = score !== undefined;
     const btnClass = (hasS && score >= 5) ? 'has' : 'none';
-    const btnText = hasS && score > 0 ? `📋 編輯大綱（${score}/6）` : '📋 填寫大綱';
+    const btnText = hasS && score > 0 ? '📋 編輯大綱（'+score+'/6）' : '📋 填寫大綱';
     const axColor = AX_COLOR[c.axis_code] || '#1B3A6B';
-    const axBg    = AX_BG[c.axis_code]    || '#EEF2FA';
-    return `<div class="course-card">
-      <div class="cc-top" style="border-top:3px solid ${axColor}">
-        <div class="cc-code">${c.code} · ${c.semester_label}</div>
-        <div class="cc-name">${c.name_zh}</div>
-        ${c.name_en ? `<div class="cc-en">${c.name_en}</div>` : ''}
-        <span class="ax-badge" style="background:${axBg};color:${axColor}">${c.axis_name||''}</span>
-        <div class="cc-info">
-          <span>⏰ ${c.time_raw||'待確認'}</span>
-          <span>🏛 ${c.classroom_name||'待確認'}</span>
-        </div>
-      </div>
-      <div class="cc-bot">
-        <span class="cc-cred">${c.credits} 學分 <span style="font-size:11px;color:var(--ink3)">${REQ_ZH[c.req_type]||''}</span></span>
-        <button class="btn-syl ${btnClass}" onclick="openSylModal('${c.offering_id}','${c.name_zh}')">${btnText}</button>
-      </div>
-    </div>`;
+    const axBg = AX_BG[c.axis_code] || '#EEF2FA';
+    const allT = (c.teachers_str || '').replace(/<[^>]+>/g,'').split('、').filter(t=>t && t!=='—');
+    const coTeachers = allT.length > 1 ? '<div style="font-size:11px;color:var(--ink3);margin-top:3px">👥 '+c.teachers_str+'</div>' : '';
+    return '<div class="course-card"><div class="cc-top" style="border-top:3px solid '+axColor+'">' +
+      '<div class="cc-code">'+c.code+' · '+c.semester_label+'</div>' +
+      '<div class="cc-name">'+c.name_zh+'</div>' +
+      (c.name_en ? '<div class="cc-en">'+c.name_en+'</div>' : '') +
+      '<span class="ax-badge" style="background:'+axBg+';color:'+axColor+'">'+( c.axis_name||'')+'</span>' +
+      coTeachers +
+      '<div class="cc-info"><span>⏰ '+(c.time_raw||'待確認')+'</span><span>🏛 '+(c.classroom_name||'待確認')+'</span></div>' +
+      '</div><div class="cc-bot">' +
+      '<span class="cc-cred">'+c.credits+' 學分 <span style="font-size:11px;color:var(--ink3)">'+(REQ_ZH[c.req_type]||'')+'</span></span>' +
+      '<button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')">'+btnText+'</button>' +
+      '</div></div>';
   }).join('');
+}
+
+function renderMyCourseTable(courses, sylMap) {
+  const tbody = document.getElementById('my-courses-tbody'); if (!tbody) return;
+  if (!courses.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--ink3)">此學期無開課記錄</td></tr>'; return; }
+  tbody.innerHTML = courses.map(c => {
+    const score = sylMap[c.offering_id]; const hasS = score !== undefined;
+    const btnClass = (hasS && score >= 5) ? 'has' : 'none';
+    const btnText = hasS && score > 0 ? score+'/6' : '填寫';
+    const axColor = AX_COLOR[c.axis_code] || '#1B3A6B';
+    return '<tr>' +
+      '<td>'+(c.semester_label||'—')+'</td>' +
+      '<td style="font-family:monospace">'+(c.code||'—')+'</td>' +
+      '<td><strong style="color:'+axColor+'">'+c.name_zh+'</strong>'+(c.name_en?'<div style="font-size:11px;color:var(--ink3)">'+c.name_en+'</div>':'')+'</td>' +
+      '<td style="text-align:center">'+(c.credits||0)+'</td>' +
+      '<td style="text-align:center"><span class="req-badge req-'+(c.req_type||'sel')+'">'+(REQ_ZH[c.req_type]||'?')+'</span></td>' +
+      '<td><span style="color:'+axColor+';font-weight:500">'+(c.axis_name||'—')+'</span></td>' +
+      '<td style="font-size:12px">'+(c.teachers_str||'—')+'</td>' +
+      '<td style="font-size:12px">'+(c.time_raw||'待確認')+'</td>' +
+      '<td style="font-size:12px">'+(c.classroom_name||'待確認')+'</td>' +
+      '<td style="text-align:center"><button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="padding:3px 10px;font-size:11.5px">'+btnText+'</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function setMyView(mode) {
+  document.getElementById('my-courses-grid').style.display = (mode==='card') ? '' : 'none';
+  document.getElementById('my-courses-table-wrap').style.display = (mode==='table') ? '' : 'none';
+  document.getElementById('my-view-card-btn').classList.toggle('on', mode==='card');
+  document.getElementById('my-view-table-btn').classList.toggle('on', mode==='table');
+}
+
+let _mySort = { field:null, dir:1 };
+function sortMyCourses(field) {
+  if (_mySort.field === field) _mySort.dir *= -1;
+  else { _mySort.field = field; _mySort.dir = 1; }
+  const list = [...(MY_COURSES._filtered || MY_COURSES)];
+  list.sort((a,b)=>{
+    let va=a[field], vb=b[field];
+    if (typeof va==='number' && typeof vb==='number') return (va-vb)*_mySort.dir;
+    return (va||'').toString().localeCompare((vb||'').toString(),'zh')*_mySort.dir;
+  });
+  renderMyCourseTable(list, MY_COURSES._sylMap || {});
 }
 
 /* ── 個人資料 ── */
@@ -682,50 +806,118 @@ async function loadProfile() {
   }
 }
 
-async function uploadPhoto(input) {
-  const file = input.files[0];
-  if (!file) return;
-  showToast('⏳ 上傳照片中…');
-  const ext  = file.name.split('.').pop();
-  const path = `teacher-photos/${ME.id}.${ext}`;
-  const { error: upErr } = await sb.storage.from('teacher-assets').upload(path, file, { upsert: true });
-  if (upErr) { showToast('上傳失敗：' + upErr.message, true); return; }
-  const { data: { publicUrl } } = sb.storage.from('teacher-assets').getPublicUrl(path);
-  const { error } = await sb.from('teachers').update({ photo_url: publicUrl }).eq('id', ME.id);
-  if (error) { showToast('儲存失敗：' + error.message, true); return; }
-  ME.photo_url = publicUrl;
-  document.getElementById('profile-avatar').innerHTML = `<img src="${publicUrl}?t=${Date.now()}" class="avatar">`;
-  showToast('✅ 照片已更新！');
-}
-
-async function saveProfile() {
-  const { error } = await sb.from('teachers').update({
-    bio_zh:      document.getElementById('p-bio').value,
-    profile_url: document.getElementById('p-url').value,
-    show_profile: true
-  }).eq('id', ME.id);
-  if (error) showToast('儲存失敗：' + error.message, true);
-  else showToast('✅ 個人資料已儲存！');
-}
-
 /* ── 所有課程 ── */
+let ALL_COURSES = [];
+
 async function loadAllCourses() {
-  const { data } = await sb.from('v_course_schedule').select('*').eq('academic_year', 115).order('semester_num').order('axis_code').order('code');
+  const [coursesRes, teachersRes] = await Promise.all([
+    sb.from('v_course_schedule').select('*')
+      .order('academic_year', { ascending:false }).order('semester_num', { ascending:false })
+      .order('axis_code').order('code'),
+    sb.from('v_offering_teachers').select('offering_id, name_zh, teacher_type, is_primary')
+      .order('is_primary', { ascending:false })
+  ]);
+  if (coursesRes.error) {
+    document.getElementById('all-courses-grid').innerHTML = '<div style="color:var(--red);padding:20px">載入失敗</div>';
+    return;
+  }
+  const teacherMap = {};
+  (teachersRes.data || []).forEach(t => {
+    if (!teacherMap[t.offering_id]) teacherMap[t.offering_id] = [];
+    teacherMap[t.offering_id].push(t.name_zh);
+  });
+  ALL_COURSES = (coursesRes.data || []).map(c => ({
+    ...c, teachers_str: (teacherMap[c.offering_id] || []).join('、') || '—'
+  }));
+
+  const sems = [];
+  ALL_COURSES.forEach(c => { if (c.semester_label && !sems.includes(c.semester_label)) sems.push(c.semester_label); });
+  let defaultSem = '';
+  const cur = ALL_COURSES.find(c => c.is_current);
+  if (cur) defaultSem = cur.semester_label;
+  else if (sems.length) defaultSem = sems[0];
+
+  const sel = document.getElementById('all-sem-filter');
+  sel.innerHTML = '<option value="">全部學期</option>' + sems.map(s => '<option value="'+s+'">'+s+'</option>').join('');
+  sel.value = defaultSem;
+  filterAllCourses();
+  setAllView('table');
+}
+
+function filterAllCourses() {
+  const sel = document.getElementById('all-sem-filter');
+  const semLabel = sel?.value || '';
+  const list = semLabel ? ALL_COURSES.filter(c => c.semester_label === semLabel) : ALL_COURSES;
+  ALL_COURSES._filtered = list;
+
+  const stats = document.getElementById('all-sem-stats');
+  if (stats) {
+    const required = list.filter(c => c.req_type === 'req').length;
+    const elective = list.filter(c => c.req_type === 'sel' || c.req_type === 'go').length;
+    const goCount = list.filter(c => c.req_type === 'go').length;
+    const goNote = goCount > 0 ? '（含二選一 '+goCount+' 門）' : '';
+    stats.textContent = '共 '+list.length+' 門　·　必修 '+required+' 門　·　選修 '+elective+' 門'+goNote;
+  }
+  renderAllCoursesCards(list);
+  renderAllCoursesTable(list);
+}
+
+function renderAllCoursesCards(list) {
   const grid = document.getElementById('all-courses-grid');
-  grid.innerHTML = (data||[]).map(c => {
+  if (!list.length) { grid.innerHTML = '<div style="color:var(--ink3);padding:20px">此學期無課程資料</div>'; return; }
+  grid.innerHTML = list.map(c => {
     const axColor = AX_COLOR[c.axis_code] || '#1B3A6B';
-    const axBg    = AX_BG[c.axis_code]    || '#EEF2FA';
-    return `<div class="all-card" style="border-left:3px solid ${axColor}">
-      <div style="font-size:10px;color:var(--ink3);margin-bottom:2px">${c.code} · ${c.semester_label}</div>
-      <div class="all-name" style="color:${axColor}">${c.name_zh}</div>
-      <div class="all-info">
-        <span>⏰ ${c.time_raw||'待確認'}</span>
-        <span>🏛 ${c.classroom_name||'待確認'}</span>
-        <span style="margin-top:2px">${c.credits}學分 · <span style="background:${axBg};color:${axColor};padding:1px 6px;border-radius:4px;font-size:10.5px">${c.axis_name||''}</span></span>
-      </div>
-    </div>`;
+    const axBg = AX_BG[c.axis_code] || '#EEF2FA';
+    return '<div class="all-card" style="border-left:3px solid '+axColor+'">' +
+      '<div style="font-size:10px;color:var(--ink3);margin-bottom:2px">'+c.code+' · '+c.semester_label+'</div>' +
+      '<div class="all-name" style="color:'+axColor+'">'+c.name_zh+'</div>' +
+      '<div class="all-info">' +
+        '<span>⏰ '+(c.time_raw||'待確認')+'</span>' +
+        '<span>🏛 '+(c.classroom_name||'待確認')+'</span>' +
+        '<span style="margin-top:2px">'+c.credits+'學分 · <span style="background:'+axBg+';color:'+axColor+';padding:1px 6px;border-radius:4px;font-size:10.5px">'+(c.axis_name||'')+'</span></span>' +
+      '</div></div>';
   }).join('');
 }
+
+function renderAllCoursesTable(list) {
+  const tbody = document.getElementById('all-courses-tbody'); if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--ink3)">此學期無課程資料</td></tr>'; return; }
+  tbody.innerHTML = list.map(c => {
+    const axColor = AX_COLOR[c.axis_code] || '#1B3A6B';
+    return '<tr>' +
+      '<td>'+(c.semester_label||'—')+'</td>' +
+      '<td style="font-family:monospace">'+(c.code||'—')+'</td>' +
+      '<td><strong style="color:'+axColor+'">'+c.name_zh+'</strong>'+(c.name_en?'<div style="font-size:11px;color:var(--ink3)">'+c.name_en+'</div>':'')+'</td>' +
+      '<td style="text-align:center">'+(c.credits||0)+'</td>' +
+      '<td style="text-align:center"><span class="req-badge req-'+(c.req_type||'sel')+'">'+(REQ_ZH[c.req_type]||'?')+'</span></td>' +
+      '<td><span style="color:'+axColor+';font-weight:500">'+(c.axis_name||'—')+'</span></td>' +
+      '<td style="font-size:12px">'+(c.teachers_str||'—')+'</td>' +
+      '<td style="font-size:12px">'+(c.time_raw||'待確認')+'</td>' +
+      '<td style="font-size:12px">'+(c.classroom_name||'待確認')+'</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function setAllView(mode) {
+  document.getElementById('all-courses-grid').style.display = (mode==='card') ? '' : 'none';
+  document.getElementById('all-courses-table-wrap').style.display = (mode==='table') ? '' : 'none';
+  document.getElementById('all-view-card-btn').classList.toggle('on', mode==='card');
+  document.getElementById('all-view-table-btn').classList.toggle('on', mode==='table');
+}
+
+let _allSort = { field:null, dir:1 };
+function sortAllCourses(field) {
+  if (_allSort.field === field) _allSort.dir *= -1;
+  else { _allSort.field = field; _allSort.dir = 1; }
+  const list = [...(ALL_COURSES._filtered || ALL_COURSES)];
+  list.sort((a,b)=>{
+    let va=a[field], vb=b[field];
+    if (typeof va==='number' && typeof vb==='number') return (va-vb)*_allSort.dir;
+    return (va||'').toString().localeCompare((vb||'').toString(),'zh')*_allSort.dir;
+  });
+  renderAllCoursesTable(list);
+}
+
 
 /* ── 課程大綱 Modal ── */
 async function openSylModal(offeringId, name) {
