@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v4.4 2026-06-17 -->
+<!-- BWBC Admin v4.5 2026-06-17 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -6298,20 +6298,16 @@ async function printCourseAttendance() {
   const av    = document.getElementById('att-av').value.trim();
   const isDigital = document.getElementById('att-digital').checked;
 
-  // 儲存幹部到 localStorage（下次自動帶入）
-  try {
-    localStorage.setItem('att_staff_' + offeringId, JSON.stringify({ angel, ta, av }));
-  } catch(e) {}
+  // 儲存幹部到 localStorage
+  try { localStorage.setItem('att_staff_' + offeringId, JSON.stringify({ angel, ta, av })); } catch(e) {}
 
   const teacherArr = TEACHERS_MAP[offeringId] || [];
   const REQ_LABEL = { req:'必修', sel:'選修', go:'選修(2選1)' };
   const reqLabel = REQ_LABEL[o.req_type] || o.req_type || '';
   const ROLE_LABEL = { '主講':'主授教授', '共同授課':'協同教授', '週次講師':'週次講師', '來賓':'特邀來賓' };
-
-  // 學期中文（如「114學年度下學期」）
   const semText = o.academic_year + '學年度' + (o.semester_num === 1 ? '上' : '下') + '學期';
 
-  // 選課學生（含停修）
+  // 選課學生
   const { data: enrs, error: enrErr } = await sb.from('enrollments')
     .select('student_id, status').eq('offering_id', offeringId);
   let students = [];
@@ -6326,34 +6322,34 @@ async function printCourseAttendance() {
   }
   const activeCount = students.filter(s => s.enr_status === 'confirmed' || s.enr_status === 'pending').length;
 
-  const wk = 5;
-  const attendBox = isDigital ? '□實體 連線(□同步 □非同步)' : '□實體 □連線';
+  var wk = 5;
+  var attendBox = isDigital ? '□實體 連線(□同步 □非同步)' : '□實體 □連線';
 
   // 教授出席列
-  const teacherRows = teacherArr.map(t => {
-    const rl = ROLE_LABEL[t.role] || t.role || '協同教授';
+  var teacherRows = teacherArr.map(function(t) {
+    var rl = ROLE_LABEL[t.role] || t.role || '協同教授';
     return '<tr>' +
       '<td style="padding:6px 10px;border:1px solid #999;font-size:13px;font-weight:500">' + t.name_zh + '</td>' +
       '<td style="padding:6px 10px;border:1px solid #999;font-size:12px;color:#555">' + rl + '</td>' +
-      Array(wk).fill('<td style="padding:6px 6px;border:1px solid #999;font-size:10.5px;text-align:center;min-width:90px">' + attendBox + '</td>').join('') +
+      Array(wk).fill('<td style="padding:6px 6px;border:1px solid #999;font-size:10.5px;text-align:center">' + attendBox + '</td>').join('') +
     '</tr>';
   }).join('');
 
-  // 學生列
-  const stuRows = students.length ? students.map(s => {
-    const isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'withdrawn';
-    const sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'withdrawn' ? '退學' : '選課';
-    const bg = isDropped ? 'background:#f5f5f5;color:#999' : '';
-    const cells = isDropped
-      ? Array(wk).fill('<td style="padding:5px;border:1px solid #999;text-align:center;font-size:11px;color:#999">停修</td>').join('')
-      : Array(wk).fill('<td style="padding:5px;border:1px solid #999">&nbsp;</td>').join('');
+  // 學生列（與教師共用同一 table，colspan=2 對齊教師的姓名+角色兩欄）
+  var stuRows = students.length ? students.map(function(s) {
+    var isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'withdrawn';
+    var sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'withdrawn' ? '退學' : '';
+    var bg = isDropped ? 'background:#f5f5f5;color:#999' : '';
+    var cells = isDropped
+      ? Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999;text-align:center;font-size:11px;color:#999">停修</td>').join('')
+      : Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999">&nbsp;</td>').join('');
     return '<tr style="' + bg + '">' +
       '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + (s.student_code||'') + (s.name_zh||'') + '</td>' +
       '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + sl + '</td>' +
       cells + '</tr>';
   }).join('') : '<tr><td colspan="' + (2+wk) + '" style="padding:15px;text-align:center;border:1px solid #999;color:#999">尚無選課學生' + (enrErr ? '（RLS 可能未設定）' : '') + '</td></tr>';
 
-  // 列印 HTML（不二犯規則）
+  // 列印 HTML — 教師和學生在同一個 table（不二犯規則）
   var h = '<html><head><meta charset="UTF-8"><title>各科點名單</title>';
   h += '<sty' + 'le>';
   h += '@page{size:A4 landscape;margin:12mm}';
@@ -6371,7 +6367,7 @@ async function printCourseAttendance() {
   h +=   '<td>' + (angel ? '小天使: ' + angel : '') + '</td></tr>';
   h += '<tr><td><strong>課程名稱</strong></td><td>' + o.name_zh + '</td>';
   h +=   '<td>' + (av ? '視聽: ' + av : '') + '</td></tr>';
-  h += '<tr><td><strong>教師</strong></td><td>' + teacherArr.map(t=>t.name_zh).join('、') + '</td>';
+  h += '<tr><td><strong>教師</strong></td><td>' + teacherArr.map(function(t){return t.name_zh}).join('、') + '</td>';
   h +=   '<td>' + (ta ? 'TA: ' + ta : '') + '</td></tr>';
   h += '<tr><td><strong>必選修</strong></td><td>' + reqLabel + '</td>';
   h +=   '<td>上課地點: ' + (o.classroom_name || '待確認') + '</td></tr>';
@@ -6380,16 +6376,28 @@ async function printCourseAttendance() {
   h += '<tr><td><strong>選課總人數</strong></td><td>' + activeCount + '</td><td></td></tr>';
   h += '</table>';
 
-  // 教授出席記錄
-  h += '<table style="margin-bottom:0">';
-  h += '<tr><td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">教授姓名＼上課日期</td>';
-  h += Array(wk).fill('<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0;text-align:center;font-size:12px;min-width:90px">＿/＿</td>').join('');
-  h += '</tr>' + teacherRows + '</table>';
+  // ★ 教授 + 學生合併成同一個 table（欄位對齊）
+  h += '<table>';
 
-  // 學生名單
-  h += '<table><tr><td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">學生姓名</td>';
-  h += Array(wk).fill('<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0">&nbsp;</td>').join('');
-  h += '</tr>' + stuRows + '</table>';
+  // 教授區段標題
+  h += '<tr>';
+  h += '<td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">教授姓名＼上課日期</td>';
+  for (var i=0; i<wk; i++) h += '<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0;text-align:center;font-size:12px">＿/＿</td>';
+  h += '</tr>';
+
+  // 教授列
+  h += teacherRows;
+
+  // 學生區段標題（同一 table 繼續）
+  h += '<tr>';
+  h += '<td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">學生姓名</td>';
+  for (var i=0; i<wk; i++) h += '<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0">&nbsp;</td>';
+  h += '</tr>';
+
+  // 學生列
+  h += stuRows;
+
+  h += '</table>';
 
   h += '<div style="text-align:right;font-size:10px;color:#999;margin-top:4px">' + year + '年' + month + '月 點名單</div>';
   h += '</bo' + 'dy></ht' + 'ml>';
@@ -6401,6 +6409,7 @@ async function printCourseAttendance() {
   closeModal('att-modal');
   showToast('✅ 已開啟點名單列印');
 }
+
 
 
 /* ─── 班級名條列印（空白名條：學號＋姓名＋4 欄空白）─── */

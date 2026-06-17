@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v2.1 2026-06-17 -->
+<!-- BWBC Student v2.2 2026-06-17 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -971,12 +971,24 @@ function renderThesisGauge(stages, currentStage) {
 
   svg.innerHTML = html;
 
-  // 文字標籤
+  // 文字標籤（依 UM：stage = 已完成階段數，顯示「進行中的下一階段」）
   const labelEl = document.getElementById('thesis-stage-label');
   if (labelEl) {
-    if (currentStage === 0) labelEl.textContent = '尚未申請';
-    else if (currentStage >= n) labelEl.textContent = '✅ 完成論文';
-    else labelEl.textContent = stages[currentStage-1] + '（進行中）';
+    const symbols = ['①','②','③','④'];
+    if (currentStage === 0) labelEl.textContent = symbols[0] + ' ' + stages[0];
+    else if (currentStage >= n) labelEl.textContent = '✅ 已完成';
+    else labelEl.textContent = symbols[currentStage] + ' ' + stages[currentStage] + '（進行中）';
+  }
+
+  // 同步更新畢業論文頁面的儀表（如果存在）
+  const svg2 = document.getElementById('thesis-gauge-svg-2');
+  if (svg2) svg2.innerHTML = html;
+  const label2 = document.getElementById('thesis-stage-label-2');
+  if (label2) {
+    const symbols = ['①','②','③','④'];
+    if (currentStage === 0) label2.textContent = symbols[0] + ' ' + stages[0];
+    else if (currentStage >= n) label2.textContent = '✅ 已完成';
+    else label2.textContent = symbols[currentStage] + ' ' + stages[currentStage] + '（進行中）';
   }
 }
 
@@ -1636,7 +1648,14 @@ async function loadThesisView() {
     }).join('<div style="flex:0 0 16px;height:2px;background:#E0E0E0;margin-top:14px"></div>');
 
     let html = `<div style="background:#FAFBFD;border:1px solid var(--cr2);border-radius:12px;padding:20px;margin-bottom:18px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">${stageBar}</div></div>`;
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px;display:flex;align-items:center;justify-content:space-between;gap:6px">${stageBar}</div>
+        <div style="flex-shrink:0;text-align:center;min-width:160px">
+          <svg width="150" height="100" viewBox="0 0 150 100" id="thesis-gauge-svg-2"></svg>
+          <div style="font-size:10px;color:var(--ink3);line-height:1.5" id="thesis-stage-label-2">載入中…</div>
+        </div>
+      </div>
+    </div>`;
 
     // 已申請的指導教授
     if (prog) {
@@ -1700,6 +1719,9 @@ async function loadThesisView() {
     }
 
     wrap.innerHTML = html;
+
+    // 重新渲染 gauge（讓第二個 SVG 也畫出來）
+    loadThesisGauge();
   } catch(e) {
     wrap.innerHTML = `<div style="color:var(--red);padding:20px;font-size:13px">論文進度載入失敗：${e.message}</div>`;
     console.warn('loadThesisView:', e);
