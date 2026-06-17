@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v4.3 2026-06-17 -->
+<!-- BWBC Admin v4.4 2026-06-17 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -1030,6 +1030,10 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="frow"><label class="flabel">視聽</label>
           <input class="finput" id="att-av" placeholder="姓名"></div>
       </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:4px 0">
+        <input type="checkbox" id="att-digital" style="width:15px;height:15px">
+        <span>📱 數位課程（出席欄改為「□實體 連線(□同步 □非同步)」）</span>
+      </label>
     </div>
     <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="closeModal('att-modal')">取消</button>
@@ -6245,10 +6249,11 @@ async function openAttendanceSheet(offeringId) {
 
   document.getElementById('att-offering-id').value = offeringId;
 
-  // 取得教師清單（從 TEACHERS_MAP）
+  // 教師清單
   const teacherArr = TEACHERS_MAP[offeringId] || [];
   const teachers = teacherArr.map(t => t.name_zh).join('、') || '—';
 
+  // 課程資訊（含學期）
   document.getElementById('att-course-info').innerHTML =
     `<strong>${o.code}</strong>　${o.name_zh}<br>` +
     `學期：${o.semester_label}　　上課時間：${o.time_raw || '待確認'}<br>` +
@@ -6259,10 +6264,24 @@ async function openAttendanceSheet(offeringId) {
   document.getElementById('att-year').value = now.getFullYear();
   document.getElementById('att-month').value = now.getMonth() + 1;
 
-  // 清空幹部欄位
-  document.getElementById('att-angel').value = '';
-  document.getElementById('att-ta').value = '';
-  document.getElementById('att-av').value = '';
+  // 查 courses 表的 is_digital
+  try {
+    const { data: cData } = await sb.from('courses').select('is_digital').eq('id', o.course_id).single();
+    document.getElementById('att-digital').checked = cData?.is_digital || false;
+  } catch(e) { document.getElementById('att-digital').checked = false; }
+
+  // 從 localStorage 讀取幹部（記住上次輸入）
+  const staffKey = 'att_staff_' + offeringId;
+  try {
+    const saved = JSON.parse(localStorage.getItem(staffKey) || '{}');
+    document.getElementById('att-angel').value = saved.angel || '';
+    document.getElementById('att-ta').value = saved.ta || '';
+    document.getElementById('att-av').value = saved.av || '';
+  } catch(e) {
+    document.getElementById('att-angel').value = '';
+    document.getElementById('att-ta').value = '';
+    document.getElementById('att-av').value = '';
+  }
 
   openModal('att-modal');
 }
@@ -6277,16 +6296,26 @@ async function printCourseAttendance() {
   const angel = document.getElementById('att-angel').value.trim();
   const ta    = document.getElementById('att-ta').value.trim();
   const av    = document.getElementById('att-av').value.trim();
+  const isDigital = document.getElementById('att-digital').checked;
+
+  // 儲存幹部到 localStorage（下次自動帶入）
+  try {
+    localStorage.setItem('att_staff_' + offeringId, JSON.stringify({ angel, ta, av }));
+  } catch(e) {}
 
   const teacherArr = TEACHERS_MAP[offeringId] || [];
   const REQ_LABEL = { req:'必修', sel:'選修', go:'選修(2選1)' };
   const reqLabel = REQ_LABEL[o.req_type] || o.req_type || '';
   const ROLE_LABEL = { '主講':'主授教授', '共同授課':'協同教授', '週次講師':'週次講師', '來賓':'特邀來賓' };
 
-  // 從 enrollments 取得選課學生（含停修）
-  const { data: enrs } = await sb.from('enrollments')
+  // 學期中文（如「114學年度下學期」）
+  const semText = o.academic_year + '學年度' + (o.semester_num === 1 ? '上' : '下') + '學期';
+
+  // 選課學生（含停修）
+  const { data: enrs, error: enrErr } = await sb.from('enrollments')
     .select('student_id, status').eq('offering_id', offeringId);
   let students = [];
+  if (enrErr) console.warn('enrollments error:', enrErr.message);
   if (enrs?.length) {
     const stuIds = [...new Set(enrs.map(e => e.student_id))];
     const { data: stuList } = await sb.from('students')
@@ -6298,75 +6327,94 @@ async function printCourseAttendance() {
   const activeCount = students.filter(s => s.enr_status === 'confirmed' || s.enr_status === 'pending').length;
 
   const wk = 5;
-  const attendBox = o.is_digital ? '□實體 連線(□同步 □非同步)' : '□實體 □連線';
+  const attendBox = isDigital ? '□實體 連線(□同步 □非同步)' : '□實體 □連線';
 
   // 教授出席列
   const teacherRows = teacherArr.map(t => {
-    const roleLabel = ROLE_LABEL[t.role] || t.role || '協同教授';
+    const rl = ROLE_LABEL[t.role] || t.role || '協同教授';
     return '<tr>' +
       '<td style="padding:6px 10px;border:1px solid #999;font-size:13px;font-weight:500">' + t.name_zh + '</td>' +
-      '<td style="padding:6px 10px;border:1px solid #999;font-size:12px;color:#555">' + roleLabel + '</td>' +
+      '<td style="padding:6px 10px;border:1px solid #999;font-size:12px;color:#555">' + rl + '</td>' +
       Array(wk).fill('<td style="padding:6px 6px;border:1px solid #999;font-size:10.5px;text-align:center;min-width:90px">' + attendBox + '</td>').join('') +
     '</tr>';
   }).join('');
 
   // 學生列
-  const stuRows = students.map(s => {
+  const stuRows = students.length ? students.map(s => {
     const isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'withdrawn';
-    const statusLabel = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'withdrawn' ? '退學' : '選課';
+    const sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'withdrawn' ? '退學' : '選課';
     const bg = isDropped ? 'background:#f5f5f5;color:#999' : '';
     const cells = isDropped
       ? Array(wk).fill('<td style="padding:5px;border:1px solid #999;text-align:center;font-size:11px;color:#999">停修</td>').join('')
       : Array(wk).fill('<td style="padding:5px;border:1px solid #999">&nbsp;</td>').join('');
     return '<tr style="' + bg + '">' +
       '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + (s.student_code||'') + (s.name_zh||'') + '</td>' +
-      '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + statusLabel + '</td>' +
+      '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + sl + '</td>' +
       cells + '</tr>';
-  }).join('');
+  }).join('') : '<tr><td colspan="' + (2+wk) + '" style="padding:15px;text-align:center;border:1px solid #999;color:#999">尚無選課學生' + (enrErr ? '（RLS 可能未設定）' : '') + '</td></tr>';
 
-  // 組合列印 HTML（不二犯規則）
-  const h = '<html><head><meta charset="UTF-8"><title>各科點名單</title>' +
-    '<sty' + 'le>' +
-    '@page{size:A4 landscape;margin:12mm}' +
-    'body{font-family:"標楷體","DFKai-SB","Noto Serif TC",serif;margin:0;padding:0;color:#222;font-size:13px}' +
-    'table{border-collapse:collapse;width:100%}' +
-    '.hdr td{padding:4px 10px;font-size:13px;vertical-align:top}' +
-    '</sty' + 'le></he' + 'ad><bo' + 'dy>' +
-    '<table class="hdr" style="margin-bottom:4px">' +
-      '<tr><td style="width:80px"><strong>課程編號</strong></td><td style="width:260px">' + o.code + '</td>' +
-        '<td>' + (angel ? '小天使: ' + angel : '') + '</td></tr>' +
-      '<tr><td><strong>課程名稱</strong></td><td>' + o.name_zh + '</td>' +
-        '<td>' + (av ? '視聽: ' + av : '') + '</td></tr>' +
-      '<tr><td><strong>教師</strong></td><td>' + teacherArr.map(t=>t.name_zh).join('、') + '</td>' +
-        '<td>' + (ta ? 'TA: ' + ta : '') + '</td></tr>' +
-      '<tr><td><strong>必選修</strong></td><td>' + reqLabel + '</td>' +
-        '<td>上課地點: ' + (o.classroom_name || '待確認') + '</td></tr>' +
-      '<tr><td><strong>學分數</strong></td><td>' + o.credits + '</td>' +
-        '<td>上課時間: ' + (o.time_raw || '待確認') + '</td></tr>' +
-      '<tr><td><strong>選課總人數</strong></td><td>' + activeCount + '</td><td></td></tr>' +
-    '</table>' +
-    '<table style="margin-bottom:0">' +
-      '<tr><td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0;font-size:13px">教授姓名＼上課日期</td>' +
-        Array(wk).fill('<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0;text-align:center;font-size:12px;min-width:90px">＿/＿</td>').join('') +
-      '</tr>' + teacherRows +
-    '</table>' +
-    '<table><tr><td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0;font-size:13px">學生姓名</td>' +
-        Array(wk).fill('<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0">&nbsp;</td>').join('') +
-      '</tr>' + stuRows +
-    '</table>' +
-    '<div style="text-align:right;font-size:10px;color:#999;margin-top:4px">' + year + '年' + month + '月 點名單</div>' +
-    '</bo' + 'dy></ht' + 'ml>';
+  // 列印 HTML（不二犯規則）
+  var h = '<html><head><meta charset="UTF-8"><title>各科點名單</title>';
+  h += '<sty' + 'le>';
+  h += '@page{size:A4 landscape;margin:12mm}';
+  h += 'body{font-family:"標楷體","DFKai-SB","Noto Serif TC",serif;margin:0;padding:0;color:#222;font-size:13px}';
+  h += 'table{border-collapse:collapse;width:100%}';
+  h += '.hdr td{padding:4px 10px;font-size:13px;vertical-align:top}';
+  h += '</sty' + 'le></he' + 'ad><bo' + 'dy>';
 
-  const win = window.open('', '_blank');
+  // 學期標題
+  h += '<div style="text-align:center;font-size:15px;font-weight:bold;margin-bottom:8px">' + semText + '</div>';
+
+  // 課程資訊表頭
+  h += '<table class="hdr" style="margin-bottom:4px">';
+  h += '<tr><td style="width:80px"><strong>課程編號</strong></td><td style="width:260px">' + o.code + '</td>';
+  h +=   '<td>' + (angel ? '小天使: ' + angel : '') + '</td></tr>';
+  h += '<tr><td><strong>課程名稱</strong></td><td>' + o.name_zh + '</td>';
+  h +=   '<td>' + (av ? '視聽: ' + av : '') + '</td></tr>';
+  h += '<tr><td><strong>教師</strong></td><td>' + teacherArr.map(t=>t.name_zh).join('、') + '</td>';
+  h +=   '<td>' + (ta ? 'TA: ' + ta : '') + '</td></tr>';
+  h += '<tr><td><strong>必選修</strong></td><td>' + reqLabel + '</td>';
+  h +=   '<td>上課地點: ' + (o.classroom_name || '待確認') + '</td></tr>';
+  h += '<tr><td><strong>學分數</strong></td><td>' + o.credits + '</td>';
+  h +=   '<td>上課時間: ' + (o.time_raw || '待確認') + '</td></tr>';
+  h += '<tr><td><strong>選課總人數</strong></td><td>' + activeCount + '</td><td></td></tr>';
+  h += '</table>';
+
+  // 教授出席記錄
+  h += '<table style="margin-bottom:0">';
+  h += '<tr><td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">教授姓名＼上課日期</td>';
+  h += Array(wk).fill('<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0;text-align:center;font-size:12px;min-width:90px">＿/＿</td>').join('');
+  h += '</tr>' + teacherRows + '</table>';
+
+  // 學生名單
+  h += '<table><tr><td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">學生姓名</td>';
+  h += Array(wk).fill('<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0">&nbsp;</td>').join('');
+  h += '</tr>' + stuRows + '</table>';
+
+  h += '<div style="text-align:right;font-size:10px;color:#999;margin-top:4px">' + year + '年' + month + '月 點名單</div>';
+  h += '</bo' + 'dy></ht' + 'ml>';
+
+  var win = window.open('', '_blank');
   win.document.write(h);
   win.document.close();
-  setTimeout(() => win.print(), 500);
+  setTimeout(function(){ win.print(); }, 500);
   closeModal('att-modal');
   showToast('✅ 已開啟點名單列印');
 }
 
+
 /* ─── 班級名條列印（空白名條：學號＋姓名＋4 欄空白）─── */
-function printBlankRoster() {
+async function printBlankRoster() {
+  // 動態載入 SheetJS
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
   const cohortFilter = document.getElementById('stu-cohort-filter')?.value || '';
   const statusFilter = document.getElementById('stu-status-filter')?.value || '';
   let list = STUDENTS_ALL.filter(s => {
@@ -6378,43 +6426,33 @@ function printBlankRoster() {
   if (!list.length) { showToast('目前篩選條件下沒有學生', 'error'); return; }
 
   const cohortLabel = cohortFilter ? cohortFilter + ' 級' : '全部年級';
-  const dateStr = new Date().toLocaleDateString('zh-TW');
-  const blankCols = 4;
+  const dateStr = new Date().toLocaleDateString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit'});
 
-  const stuRows = list.map((s, i) =>
-    '<tr>' +
-      '<td style="padding:8px 10px;border:1px solid #999;text-align:center;font-size:13px">' + (i+1) + '</td>' +
-      '<td style="padding:8px 10px;border:1px solid #999;font-family:monospace;font-size:13px">' + (s.student_code||'') + '</td>' +
-      '<td style="padding:8px 10px;border:1px solid #999;font-size:13px;font-weight:500">' + (s.name_zh||'') + '</td>' +
-      Array(blankCols).fill('<td style="padding:8px 10px;border:1px solid #999;min-width:100px">&nbsp;</td>').join('') +
-    '</tr>'
-  ).join('');
+  const headers = ['序號', '學號', '姓名', '', '', '', ''];
+  const rows = list.map((s, i) => [i+1, s.student_code||'', s.name_zh||'', '', '', '', '']);
 
-  const h = '<html><head><meta charset="UTF-8"><title>班級名條</title>' +
-    '<sty' + 'le>@page{size:A4 portrait;margin:15mm}body{font-family:"標楷體","DFKai-SB","Noto Serif TC",serif;margin:0;padding:0;color:#222}table{border-collapse:collapse;width:100%}</sty' + 'le>' +
-    '</he' + 'ad><bo' + 'dy>' +
-    '<div style="text-align:center;margin-bottom:14px">' +
-      '<div style="font-size:16px;font-weight:bold;margin-bottom:4px">福智學校財團法人福智佛教學院</div>' +
-      '<div style="font-size:15px;font-weight:bold">' + cohortLabel + ' 班級名條</div>' +
-    '</div>' +
-    '<table>' +
-      '<tr style="background:#f0f0f0">' +
-        '<th style="padding:8px 10px;border:1px solid #999;width:50px">序號</th>' +
-        '<th style="padding:8px 10px;border:1px solid #999;width:90px">學號</th>' +
-        '<th style="padding:8px 10px;border:1px solid #999;width:80px">姓名</th>' +
-        Array(blankCols).fill('<th style="padding:8px 10px;border:1px solid #999">&nbsp;</th>').join('') +
-      '</tr>' +
-      stuRows +
-    '</table>' +
-    '<div style="text-align:right;font-size:10px;color:#999;margin-top:8px">列印日期：' + dateStr + '　共 ' + list.length + ' 人</div>' +
-    '</bo' + 'dy></ht' + 'ml>';
+  const wsData = [
+    ['福智佛教學院 佛法應用研究所 ' + cohortLabel + ' 班級名條'],
+    ['列印日期：' + dateStr + '　　人數：' + list.length + ' 人'],
+    [],
+    headers,
+    ...rows
+  ];
 
-  const win = window.open('', '_blank');
-  win.document.write(h);
-  win.document.close();
-  setTimeout(() => win.print(), 500);
-  showToast('✅ 已開啟班級名條列印');
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{wch:5},{wch:10},{wch:8},{wch:14},{wch:14},{wch:14},{wch:14}];
+  ws['!merges'] = [
+    {s:{r:0,c:0}, e:{r:0,c:6}},
+    {s:{r:1,c:0}, e:{r:1,c:6}},
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '班級名條');
+  const fileName = '班級名條_' + cohortLabel + '_' + dateStr.replace(/\//g,'-') + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+  showToast('✅ 已匯出「' + fileName + '」');
 }
+
 
 
 /* ─── 新增/編輯學生 Modal ─── */
