@@ -1,6 +1,6 @@
 <!DOCTYPE html>
+<!-- BWBC Admin v4.0 2026-06-17 -->
 <html lang="zh-TW">
-<head>
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>福智佛教學院 課程管理後台</title>
@@ -50,7 +50,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .nav-item.on{background:var(--navy3);color:var(--navy);border-left-color:var(--gold);font-weight:500}
 .nav-icon{font-size:16px;width:20px;text-align:center}
 
-.content{flex:1;overflow-y:auto;padding:20px 24px}
+.content{flex:1;overflow-y:auto;padding:20px 24px;min-width:0}
 
 /* ── CARDS ── */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
@@ -145,6 +145,29 @@ th.sortable:hover{background:var(--navy2)}
 .sort-icon{font-size:11px;opacity:.5;margin-left:3px}
 th.sort-asc .sort-icon{opacity:1;color:var(--gold2)}
 th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
+.stu-th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff}
+.usr-th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff}
+.usr-th:hover{background:var(--navy2)}
+
+/* 4 級權限 radio group */
+.perm-row{display:grid;grid-template-columns:1.3fr 2fr;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--cr2)}
+.perm-row:last-child{border-bottom:none}
+.perm-row .perm-label{font-size:13px;color:var(--ink)}
+.perm-row .perm-levels{display:flex;gap:2px;background:#fff;border-radius:6px;padding:2px;border:1px solid var(--cr2)}
+.perm-row .perm-levels label{flex:1;text-align:center;padding:4px 8px;font-size:12px;cursor:pointer;border-radius:4px;transition:all .15s;color:var(--ink3);font-weight:500}
+.perm-row .perm-levels label.lv-none.on{background:#E0E0E0;color:#555}
+.perm-row .perm-levels label.lv-read.on{background:#E3F2FD;color:#1565C0}
+.perm-row .perm-levels label.lv-write.on{background:#E8F5E9;color:#1A6A30}
+.perm-row .perm-levels label.lv-admin.on{background:#FFF3E0;color:#B05010}
+.perm-row .perm-levels label:hover{background:rgba(0,0,0,.04)}
+.perm-row .perm-levels label.on:hover{background:none}
+.stu-th:hover{background:var(--navy2)}
+.stu-avatar{width:36px;height:36px;border-radius:50%;background:var(--cr3);object-fit:cover;display:block;text-align:center;line-height:36px;font-size:11px;color:var(--ink3);font-weight:500}
+.stu-status-badge{display:inline-block;font-size:11px;padding:2px 10px;border-radius:12px;font-weight:500}
+.stu-status-active{background:#E8F5E9;color:#1A6A30}
+.stu-status-leave{background:#FFF3E0;color:#B05010}
+.stu-status-graduated{background:#E3F2FD;color:#1565C0}
+.stu-status-withdrawn{background:#FCE4EC;color:#C2185B}
 
 /* Toast */
 .toast{position:fixed;bottom:24px;right:24px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:200;display:none;align-items:center;gap:8px;box-shadow:var(--sh2);animation:slideIn .3s ease}
@@ -259,6 +282,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" onclick="showPage('courses',this)"><span class="nav-icon">📚</span>課程管理</div>
         <div class="nav-item" onclick="showPage('teachers',this)"><span class="nav-icon">👤</span>教師管理</div>
         <div class="nav-item" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
+        <div class="nav-item" onclick="showPage('students',this)"><span class="nav-icon">🧑‍🎓</span>學生資料</div>
+        <div class="nav-item" onclick="showPage('users',this)"><span class="nav-icon">👥</span>帳號管理</div>
       </div>
       <div class="nav-section">
         <div class="nav-label">教學評量</div>
@@ -477,6 +502,83 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         </div>
       </div>
 
+      <!-- ▌學生資料管理 ▌-->
+      <div id="page-students" style="display:none;flex-direction:column;gap:12px">
+        <div class="page-hdr">
+          <div class="page-title">🧑‍🎓 學生資料</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
+            <input id="stu-search" type="text" placeholder="🔍 搜尋學號/姓名/email"
+              style="padding:7px 12px;border:1px solid var(--cr2);border-radius:6px;font-size:13px;width:240px"
+              oninput="renderStudents()">
+            <select id="stu-cohort-filter" onchange="renderStudents()"
+              style="padding:7px 10px;border:1px solid var(--cr2);border-radius:6px;font-size:13px;background:#fff">
+              <option value="">全部年級</option>
+            </select>
+            <select id="stu-status-filter" onchange="renderStudents()"
+              style="padding:7px 10px;border:1px solid var(--cr2);border-radius:6px;font-size:13px;background:#fff">
+              <option value="">全部狀態</option>
+              <option value="active">在學</option>
+              <option value="leave">休學</option>
+              <option value="graduated">已畢業</option>
+              <option value="withdrawn">退學</option>
+            </select>
+            <button class="btn" onclick="openStudentImport()">📥 批次匯入</button>
+            <button class="btn btn-pri" onclick="openStudentModal()">➕ 新增學生</button>
+          </div>
+        </div>
+        <div id="stu-stats" style="font-size:12px;color:var(--ink3);padding:0 4px"></div>
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow-x:auto;width:100%;max-width:100%">
+          <table style="border-collapse:collapse;min-width:1500px;width:max-content">
+            <thead>
+              <tr style="background:var(--navy);color:#fff">
+                <th class="stu-th" style="width:60px">📷</th>
+                <th class="stu-th" onclick="stuSort('student_code')">學號 <span class="sort-icon" id="stu-sort-student_code">⇅</span></th>
+                <th class="stu-th" onclick="stuSort('name_zh')">姓名 <span class="sort-icon" id="stu-sort-name_zh">⇅</span></th>
+                <th class="stu-th" onclick="stuSort('gender')" style="text-align:center">性別 <span class="sort-icon" id="stu-sort-gender">⇅</span></th>
+                <th class="stu-th" onclick="stuSort('cohort')" style="text-align:center">年級 <span class="sort-icon" id="stu-sort-cohort">⇅</span></th>
+                <th class="stu-th" onclick="stuSort('status')" style="text-align:center">狀態 <span class="sort-icon" id="stu-sort-status">⇅</span></th>
+                <th class="stu-th" onclick="stuSort('school_email')">學校 email <span class="sort-icon" id="stu-sort-school_email">⇅</span></th>
+                <th class="stu-th" onclick="stuSort('phone')">電話 <span class="sort-icon" id="stu-sort-phone">⇅</span></th>
+                <th class="stu-th" onclick="stuSort('emergency_name')">緊急聯絡人 <span class="sort-icon" id="stu-sort-emergency_name">⇅</span></th>
+                <th class="stu-th" onclick="stuSort('emergency_phone')">緊急電話 <span class="sort-icon" id="stu-sort-emergency_phone">⇅</span></th>
+                <th class="stu-th" onclick="stuSort('_advisor_name')">班導師 <span class="sort-icon" id="stu-sort-_advisor_name">⇅</span></th>
+                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
+              </tr>
+            </thead>
+            <tbody id="stu-tbody">
+              <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--ink3)">載入中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ▌帳號管理 ▌-->
+      <div id="page-users" style="display:none;flex-direction:column;gap:12px">
+        <div class="page-hdr">
+          <div class="page-title">👥 帳號管理</div>
+          <span style="font-size:12px;color:var(--ink3);margin-left:12px">(只有 admin 能進入此頁)</span>
+        </div>
+        <div id="usr-stats" style="font-size:12px;color:var(--ink3);padding:0 4px"></div>
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow-x:auto">
+          <table style="border-collapse:collapse;min-width:1000px;width:max-content">
+            <thead>
+              <tr style="background:var(--navy);color:#fff">
+                <th class="usr-th" onclick="usrSort('email')">Email <span class="sort-icon" id="usr-sort-email">⇅</span></th>
+                <th class="usr-th" onclick="usrSort('_display_name')">顯示名稱 <span class="sort-icon" id="usr-sort-_display_name">⇅</span></th>
+                <th class="usr-th" onclick="usrSort('role')" style="text-align:center">角色 <span class="sort-icon" id="usr-sort-role">⇅</span></th>
+                <th class="usr-th" onclick="usrSort('_irole_str')">院內職務 <span class="sort-icon" id="usr-sort-_irole_str">⇅</span></th>
+                <th class="usr-th">權限 ({模組數})</th>
+                <th class="usr-th" onclick="usrSort('created_at')" style="text-align:center">建立 <span class="sort-icon" id="usr-sort-created_at">⇅</span></th>
+                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
+              </tr>
+            </thead>
+            <tbody id="usr-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--ink3)">載入中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- ▌教師課表 ▌-->
       <!-- ▌學期總表 ▌-->
       <div id="page-semester-schedule" style="display:none">
@@ -597,7 +699,9 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div id="page-announcements" style="display:none">
         <div class="page-hdr">
           <div class="page-title">📢 公佈欄</div>
-          <div style="margin-left:auto;display:flex;gap:6px">
+          <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="collapseAllAnn()" title="把所有展開的公告收合"
+              style="padding:6px 12px;font-size:12.5px">⊟ 全部收合</button>
             <select class="fselect" id="ann-filter-target" onchange="filterAnnouncements()" style="width:120px">
               <option value="">全部對象</option>
               <option value="admin">行政</option>
@@ -689,6 +793,289 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 </div><!-- end .app -->
 
 <!-- ══ MODAL: 論文匯出 ══ -->
+<!-- ══ Modal: 新增/編輯學生 ══ -->
+<div class="modal-bg" id="stu-modal">
+  <div class="modal" style="max-width:780px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="stu-modal-title">新增學生</div>
+      <button class="modal-close" onclick="closeModal('stu-modal')">✕</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:78vh;overflow-y:auto">
+      <input type="hidden" id="stu-id">
+
+      <!-- 大頭照 -->
+      <div style="display:flex;gap:14px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--cr2)">
+        <div id="stu-photo-preview" class="stu-avatar" style="width:80px;height:80px;line-height:80px;font-size:18px">📷</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <input type="file" id="stu-photo-input" accept="image/*" style="font-size:12px" onchange="onStudentPhotoSelect(event)">
+          <div style="font-size:11px;color:var(--ink3)">建議使用方形相片,大小 &lt; 2MB</div>
+        </div>
+      </div>
+
+      <!-- 基本資料 -->
+      <div style="font-size:12px;font-weight:600;color:var(--navy)">📋 基本資料</div>
+      <div class="frow-3">
+        <div class="frow"><label class="flabel">學號 <span style="color:var(--red)">*</span></label>
+          <input class="finput" id="stu-code" maxlength="8" placeholder="如 11521001" oninput="onStudentCodeInput(this)"></div>
+        <div class="frow"><label class="flabel">中文姓名 <span style="color:var(--red)">*</span></label>
+          <input class="finput" id="stu-name-zh"></div>
+        <div class="frow"><label class="flabel">英文姓名</label>
+          <input class="finput" id="stu-name-en"></div>
+      </div>
+      <div class="frow-3">
+        <div class="frow"><label class="flabel">學籍狀態</label>
+          <select class="finput" id="stu-status">
+            <option value="active">在學</option>
+            <option value="leave">休學</option>
+            <option value="graduated">已畢業</option>
+            <option value="withdrawn">退學</option>
+          </select>
+        </div>
+        <div class="frow"><label class="flabel">性別</label>
+          <select class="finput" id="stu-gender">
+            <option value="">—</option>
+            <option value="M">男</option>
+            <option value="F">女</option>
+            <option value="O">其他</option>
+          </select>
+        </div>
+        <div class="frow"><label class="flabel">出生日期</label>
+          <input class="finput" id="stu-birth" type="date"></div>
+      </div>
+      <div class="frow-3">
+        <div class="frow"><label class="flabel">國籍</label>
+          <input class="finput" id="stu-nationality" placeholder="TW" value="TW"></div>
+        <div class="frow"><label class="flabel">身分證/居留證</label>
+          <input class="finput" id="stu-id-num"></div>
+        <div class="frow"><label class="flabel">入學日期</label>
+          <input class="finput" id="stu-enrolled" type="date"></div>
+      </div>
+
+      <!-- 聯絡資料 -->
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-top:6px">📧 聯絡資料</div>
+      <div class="frow-2">
+        <div class="frow"><label class="flabel">學校 email（登入用）</label>
+          <input class="finput" id="stu-school-email" type="email" placeholder="自動產生"></div>
+        <div class="frow"><label class="flabel">個人 email <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--ink3)">(校友追蹤用)</span></label>
+          <input class="finput" id="stu-personal-email" type="email"></div>
+      </div>
+      <div class="frow">
+        <label class="flabel">電話</label>
+        <input class="finput" id="stu-phone" placeholder="0912-345-678">
+      </div>
+      <div class="frow-2">
+        <div class="frow"><label class="flabel">通訊地址</label>
+          <textarea class="finput" id="stu-address" rows="2"></textarea></div>
+        <div class="frow"><label class="flabel">戶籍地址</label>
+          <textarea class="finput" id="stu-address-hr" rows="2"></textarea></div>
+      </div>
+
+      <!-- 緊急聯絡 -->
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-top:6px">🆘 緊急聯絡人</div>
+      <div class="frow-3">
+        <div class="frow"><label class="flabel">姓名 <span style="color:var(--red)">*</span></label>
+          <input class="finput" id="stu-emerg-name"></div>
+        <div class="frow"><label class="flabel">關係 <span style="color:var(--red)">*</span></label>
+          <select class="finput" id="stu-emerg-rel">
+            <option value="">—</option>
+            <option value="父親">父親</option>
+            <option value="母親">母親</option>
+            <option value="配偶">配偶</option>
+            <option value="兄弟姊妹">兄弟姊妹</option>
+            <option value="子女">子女</option>
+            <option value="其他親屬">其他親屬</option>
+            <option value="朋友">朋友</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="frow"><label class="flabel">電話 <span style="color:var(--red)">*</span></label>
+          <input class="finput" id="stu-emerg-phone" placeholder="0912-345-678"></div>
+      </div>
+
+      <!-- 學業 -->
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-top:6px">🎓 學業資料</div>
+      <div class="frow-2">
+        <div class="frow"><label class="flabel">學歷</label>
+          <input class="finput" id="stu-prev-edu" placeholder="如:大學畢業"></div>
+        <div class="frow"><label class="flabel">畢業學校</label>
+          <input class="finput" id="stu-prev-school"></div>
+      </div>
+      <div class="frow-2">
+        <div class="frow"><label class="flabel">預計畢業</label>
+          <input class="finput" id="stu-expected-grad" type="date"></div>
+        <div class="frow"><label class="flabel">實際畢業日</label>
+          <input class="finput" id="stu-actual-grad" type="date"></div>
+      </div>
+
+      <!-- 佛應所特有 -->
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-top:6px">🪷 佛應所專屬</div>
+      <div class="frow-2">
+        <div class="frow"><label class="flabel">廣論班級</label>
+          <input class="finput" id="stu-guang-lun" placeholder="如:2024 春季 A 班"></div>
+        <div class="frow"><label class="flabel">住宿需求</label>
+          <select class="finput" id="stu-housing">
+            <option value="">—</option>
+            <option value="self_home">自宅</option>
+            <option value="eco_village">生態村租屋</option>
+            <option value="off_campus">校外租屋</option>
+            <option value="commute">通勤</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 備註 -->
+      <div class="frow">
+        <label class="flabel">備註</label>
+        <textarea class="finput" id="stu-notes" rows="2"></textarea>
+      </div>
+
+      <!-- 帳號建立提示 -->
+      <div id="stu-account-hint" style="background:var(--gold3);border-radius:6px;padding:10px 14px;font-size:12px;color:#7A5C00;display:none">
+        💡 儲存後系統將自動產生學校 email <code id="stu-account-email"></code><br>
+        並建立 Supabase Auth 帳號（預設密碼:<code id="stu-account-pwd"></code>）
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('stu-modal')">取消</button>
+      <button class="btn btn-pri" onclick="saveStudent()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal: 學生批次匯入 ══ -->
+<div class="modal-bg" id="stu-import-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-hdr">
+      <div class="modal-title">📥 批次匯入學生</div>
+      <button class="modal-close" onclick="closeModal('stu-import-modal')">✕</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="background:var(--gold3);padding:10px 14px;border-radius:6px;font-size:13px;color:#7A5C00">
+        📋 <strong>步驟:</strong>1) 下載 Excel 範本 → 2) 填好內容 → 3) 上傳 → 4) 確認後匯入
+      </div>
+
+      <!-- 步驟 1: 下載範本 -->
+      <div class="frow">
+        <label class="flabel">步驟 1:下載範本</label>
+        <button class="btn" onclick="downloadStudentTemplate()" style="width:fit-content">📥 下載 Excel 範本（含說明）</button>
+      </div>
+
+      <!-- 步驟 2: 上傳檔案 -->
+      <div class="frow">
+        <label class="flabel">步驟 2:選擇填好的檔案</label>
+        <input type="file" id="stu-import-file" accept=".xlsx,.xls,.csv" onchange="onStudentImportFile(event)" style="font-size:13px">
+      </div>
+
+      <!-- 預覽區 -->
+      <div id="stu-import-preview" style="display:none;border:1px solid var(--cr2);border-radius:6px;padding:10px;background:var(--cr3)">
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:8px" id="stu-import-stats"></div>
+        <div style="max-height:300px;overflow:auto">
+          <table id="stu-import-table" style="width:100%;font-size:11.5px;border-collapse:collapse">
+            <thead><tr style="background:var(--navy);color:#fff">
+              <th style="padding:5px 8px;text-align:left">#</th>
+              <th style="padding:5px 8px;text-align:left">學號</th>
+              <th style="padding:5px 8px;text-align:left">姓名</th>
+              <th style="padding:5px 8px;text-align:left">個人 email</th>
+              <th style="padding:5px 8px;text-align:left">緊急聯絡</th>
+              <th style="padding:5px 8px;text-align:center">狀態</th>
+            </tr></thead>
+            <tbody id="stu-import-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('stu-import-modal')">取消</button>
+      <button id="stu-import-btn" class="btn btn-pri" onclick="executeStudentImport()" disabled style="opacity:.5">確認匯入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal: 編輯帳號權限 ══ -->
+<div class="modal-bg" id="usr-modal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-hdr">
+      <div class="modal-title">編輯帳號權限</div>
+      <button class="modal-close" onclick="closeModal('usr-modal')">✕</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:78vh;overflow-y:auto">
+      <input type="hidden" id="usr-id">
+
+      <!-- 基本資訊（唯讀）-->
+      <div style="padding:10px 14px;background:var(--cr3);border-radius:6px;display:flex;gap:24px;font-size:12.5px">
+        <div><strong>Email：</strong><span id="usr-mod-email" style="font-family:monospace"></span></div>
+        <div><strong>關聯姓名：</strong><span id="usr-mod-name"></span></div>
+      </div>
+
+      <div class="frow-2">
+        <div class="frow"><label class="flabel">顯示名稱</label>
+          <input class="finput" id="usr-mod-display" placeholder="留空使用關聯姓名"></div>
+        <div class="frow"><label class="flabel">角色</label>
+          <select class="finput" id="usr-mod-role" onchange="toggleUsrPermVisibility()">
+            <option value="admin">admin（系統管理者）</option>
+            <option value="staff">staff（行政人員）</option>
+            <option value="teacher">teacher（教師）</option>
+            <option value="student">student（學生）</option>
+            <option value="viewer">viewer（唯讀）</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 院內職務（多選）-->
+      <div class="frow">
+        <label class="flabel">院內職務（可複選）</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding:8px 0;font-size:13px">
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="usr-irole" value="advisor_113">113級導師</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="usr-irole" value="advisor_114">114級導師</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="usr-irole" value="advisor_115">115級導師</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="usr-irole" value="director">所長</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="usr-irole" value="dean">教育長</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="usr-irole" value="vice_principal">副校長</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="usr-irole" value="principal">校長</label>
+        </div>
+      </div>
+
+      <!-- 4 級權限矩陣（僅 staff 角色適用）-->
+      <div id="usr-perm-section" class="frow">
+        <label class="flabel">
+          staff 模組權限
+          <span style="font-size:11px;color:var(--ink3);font-weight:400">（僅 staff 角色適用;admin 永遠擁有全部權限）</span>
+        </label>
+        <!-- 第 1 列:角色預設範本 -->
+        <div style="display:flex;gap:6px;align-items:center;padding:6px 4px;flex-wrap:wrap">
+          <span style="font-size:11.5px;color:var(--ink3);font-weight:500">📌 套用預設範本:</span>
+          <button onclick="applyPresetTemplate('admin')" title="admin 預設:全部模組「全」權限"
+            style="padding:4px 12px;font-size:11.5px;border:1px solid #C2185B;background:#FCE4EC;color:#C2185B;border-radius:5px;cursor:pointer;font-weight:500">👤 admin 預設</button>
+          <button onclick="applyPresetTemplate('teacher_staff')" title="老師兼行政:全部可讀 + 公佈欄/待辦/會議可寫"
+            style="padding:4px 12px;font-size:11.5px;border:1px solid #1A6A30;background:#E8F5E9;color:#1A6A30;border-radius:5px;cursor:pointer;font-weight:500">🎓 老師兼行政</button>
+          <button onclick="applyPresetTemplate('viewer')" title="主管唯讀:全部模組「讀」"
+            style="padding:4px 12px;font-size:11.5px;border:1px solid #6A1B9A;background:#F3E5F5;color:#6A1B9A;border-radius:5px;cursor:pointer;font-weight:500">👁 主管唯讀</button>
+          <button onclick="applyPresetTemplate('staff_empty')" title="從零開始:全部「無」,逐項手動勾選"
+            style="padding:4px 12px;font-size:11.5px;border:1px solid #1565C0;background:#E3F2FD;color:#1565C0;border-radius:5px;cursor:pointer;font-weight:500">🧑‍💼 從零開始</button>
+        </div>
+        <!-- 第 2 列:等級說明 + 全部設為 -->
+        <div style="font-size:11.5px;color:var(--ink3);padding:6px 4px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;border-top:1px dashed var(--cr2);margin-top:4px;padding-top:10px">
+          <span><strong style="color:#999">無</strong> 看不到</span>
+          <span><strong style="color:#1565C0">讀</strong> 可看不可改</span>
+          <span><strong style="color:#1A6A30">寫</strong> 可看可寫不可刪</span>
+          <span><strong style="color:#B05010">全</strong> 可看可寫可刪</span>
+          <span style="margin-left:auto;font-size:11px">全部設為:</span>
+          <button onclick="setAllUsrPerm('none')" style="padding:3px 8px;font-size:11px;border:1px solid var(--cr2);background:#fff;border-radius:4px;cursor:pointer">無</button>
+          <button onclick="setAllUsrPerm('read')" style="padding:3px 8px;font-size:11px;border:1px solid var(--cr2);background:#fff;border-radius:4px;cursor:pointer">讀</button>
+          <button onclick="setAllUsrPerm('write')" style="padding:3px 8px;font-size:11px;border:1px solid var(--cr2);background:#fff;border-radius:4px;cursor:pointer">寫</button>
+          <button onclick="setAllUsrPerm('admin')" style="padding:3px 8px;font-size:11px;border:1px solid var(--cr2);background:#fff;border-radius:4px;cursor:pointer">全</button>
+        </div>
+        <div id="usr-perm-grid" style="padding:8px 10px;background:var(--cr3);border-radius:6px"></div>
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('usr-modal')">取消</button>
+      <button class="btn btn-pri" onclick="saveUser()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="thesis-export-modal">
   <div class="modal" style="max-width:480px">
     <div class="modal-hdr">
@@ -1630,7 +2017,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
 });
 
 /* ════ GLOBAL STATE ════ */
-let OFFERINGS = [], TEACHERS = [], CLASSROOMS = [], TEACHERS_MAP = {}, SYLLABUS_MAP = {};
+let OFFERINGS = [], TEACHERS = [], CLASSROOMS = [], TEACHERS_MAP = {}, SYLLABUS_MAP = {}, SYLLABUS_DETAIL = {};
 let COURSES_ALL = [];  // 課程主檔
 let currentOfferingTeachers = [];
 
@@ -1858,7 +2245,7 @@ function renderOfferings(list, otMap) {
           <span class="oc-cred">${o.credits} 學分</span>
           <div class="oc-actions">
             <button class="btn btn-edit btn-sm" onclick="editOffering('${o.offering_id}')">✏️ 編輯</button>
-            <button class="btn btn-sm" id="syl-btn-${o.offering_id}" style="${getSylBtnStyle(o.offering_id)}" onclick="openSyllabus('${o.offering_id}','${o.name_zh}','${o.code}')">📋 大綱</button>
+            <button class="btn btn-sm" id="syl-btn-${o.offering_id}" style="${getSylBtnStyle(o.offering_id)}" title="${getSylTooltip(o.offering_id)}" onclick="openSyllabus('${o.offering_id}','${o.name_zh}','${o.code}')">${getSylBtnText(o.offering_id)}</button>
             <button class="btn btn-sm" onclick="deleteOffering('${o.offering_id}','${o.name_zh.replace(/'/g,"\\'")}')" style="color:#D9534F;border-color:#D9534F" title="取消開課">🗑 取消</button>
           </div>
         </div>
@@ -1894,7 +2281,7 @@ function renderOfferings(list, otMap) {
         <td style="white-space:nowrap">
           <div style="display:flex;gap:4px">
             <button class="btn btn-edit btn-sm" onclick="editOffering('${o.offering_id}')">✏️ 編輯</button>
-            <button class="btn btn-sm" id="syl-btn-${o.offering_id}" style="${getSylBtnStyle(o.offering_id)}" onclick="openSyllabus('${o.offering_id}','${o.name_zh}','${o.code}')">📋 大綱</button>
+            <button class="btn btn-sm" id="syl-btn-${o.offering_id}" style="${getSylBtnStyle(o.offering_id)}" title="${getSylTooltip(o.offering_id)}" onclick="openSyllabus('${o.offering_id}','${o.name_zh}','${o.code}')">${getSylBtnText(o.offering_id)}</button>
             <button class="btn btn-sm" onclick="deleteOffering('${o.offering_id}','${o.name_zh.replace(/'/g,"\\'")}')" style="color:#D9534F;border-color:#D9534F" title="取消開課">🗑 取消</button>
           </div>
         </td>
@@ -3543,6 +3930,12 @@ async function renderAnnouncements(list, now) {
   }).join('');
 }
 
+/* 全部收合 */
+function collapseAllAnn() {
+  document.querySelectorAll('#ann-list [id^="ann-body-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('#ann-list .ann-chevron').forEach(el => el.textContent = '▼');
+}
+
 function openAnnModal(id) {
   ANN_FILES = [];
   document.getElementById('ann-id').value = '';
@@ -4245,22 +4638,48 @@ function getSylBtnStyle(offeringId) {
   if (score>=2) return 'background:#85B7EB;color:#042C53;border:1px solid #85B7EB';
   return 'background:#E6F1FB;color:#378ADD;border:1px solid #B5D4F4';
 }
+
+/* 按鈕文字（含完成度分數）*/
+function getSylBtnText(offeringId) {
+  const score = SYLLABUS_MAP[offeringId];
+  if (score === undefined || score === 0) return '📋 大綱';
+  return `📋 大綱 ${score}/6`;
+}
+
+/* 按鈕 tooltip（顯示每個區段狀態）*/
+function getSylTooltip(offeringId) {
+  const det = SYLLABUS_DETAIL[offeringId];
+  if (!det) return '尚未填寫';
+  return '已填:\n' +
+    `${det.overview ? '✅' : '⬜'} 課程概述\n` +
+    `${det.objectives ? '✅' : '⬜'} 教學目標\n` +
+    `${det.methods ? '✅' : '⬜'} 教學方法\n` +
+    `${det.assessment ? '✅' : '⬜'} 評量方式\n` +
+    `${det.weeks ? '✅' : '⬜'} 週次規劃\n` +
+    `${det.bibliography ? '✅' : '⬜'} 參考書目`;
+}
+
 async function loadAdminSyllabi() {
   const ids=OFFERINGS.map(o=>o.offering_id).filter(Boolean);
   if (!ids.length) return;
   const { data }=await sb.from('syllabi').select('offering_id,overview_zh,objectives,methods,assessment,weeks,bibliography').in('offering_id',ids);
   (data||[]).forEach(s=>{
     let score=0;
-    if (s.overview_zh?.trim()) score++;
-    if (s.objectives?.length>0) score++;
-    if (s.methods?.length>0) score++;
-    if (s.assessment?.length>0) score++;
-    if ((s.weeks||[]).some(w=>w.title?.trim())) score++;
-    if ((s.bibliography?.required?.length||0)+(s.bibliography?.optional?.length||0)>0) score++;
+    const det={};
+    if (s.overview_zh?.trim())     { score++; det.overview=true; }
+    if (s.objectives?.length>0)    { score++; det.objectives=true; }
+    if (s.methods?.length>0)       { score++; det.methods=true; }
+    if (s.assessment?.length>0)    { score++; det.assessment=true; }
+    if ((s.weeks||[]).some(w=>w.title?.trim())) { score++; det.weeks=true; }
+    if ((s.bibliography?.required?.length||0)+(s.bibliography?.optional?.length||0)>0) { score++; det.bibliography=true; }
     SYLLABUS_MAP[s.offering_id]=score;
+    SYLLABUS_DETAIL[s.offering_id]=det;
   });
   document.querySelectorAll('[id^="syl-btn-"]').forEach(btn=>{
-    const oid=btn.id.replace('syl-btn-',''); btn.setAttribute('style',getSylBtnStyle(oid));
+    const oid=btn.id.replace('syl-btn-','');
+    btn.setAttribute('style', getSylBtnStyle(oid));
+    btn.setAttribute('title', getSylTooltip(oid));
+    btn.innerHTML = getSylBtnText(oid);
   });
 }
 
@@ -5495,7 +5914,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 function showPage(page, btn) {
   document.querySelectorAll('[id^="page-"]').forEach(el=>el.style.display='none');
   const pageEl=document.getElementById('page-'+page);
-  if (pageEl) pageEl.style.display = (page==='semesters') ? 'flex' : '';
+  if (pageEl) pageEl.style.display = (page==='semesters'||page==='students'||page==='users') ? 'flex' : '';
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('on'));
   if (btn) btn.classList.add('on');
   if (page==='offerings') loadOfferings();
@@ -5512,6 +5931,781 @@ function showPage(page, btn) {
     if (page==='semester-schedule') { setTimeout(renderSemesterSchedule, 0); }
   }
   if (page==='thesis') loadThesisAdmin();
+  if (page==='students') loadStudents();
+  if (page==='users') loadUsers();
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 🧑‍🎓 學生資料管理
+ * ════════════════════════════════════════════════════════════════════ */
+
+let STUDENTS_ALL = [];
+let _stuSort = { field:'student_code', dir:1 };
+let _stuPhotoFile = null;  // 暫存待上傳的大頭照
+let _stuImportData = null; // 暫存匯入解析結果
+
+const STU_STATUS_LABEL = { active:'在學', leave:'休學', graduated:'已畢業', withdrawn:'退學' };
+const STU_HOUSING_LABEL = {
+  self_home:'自宅', eco_village:'生態村租屋', off_campus:'校外租屋',
+  commute:'通勤', other:'其他'
+};
+
+async function loadStudents() {
+  const tbody = document.getElementById('stu-tbody');
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--ink3)">載入中…</td></tr>';
+  try {
+    const [{ data:students }, { data:advisors }, { data:teachers }] = await Promise.all([
+      sb.from('students').select('*').order('student_code'),
+      sb.from('v_student_advisors').select('student_id, current_advisor_teacher_id, advisor_source'),
+      sb.from('teachers').select('id, name_zh')
+    ]);
+
+    const teacherMap = Object.fromEntries((teachers||[]).map(t=>[t.id, t.name_zh]));
+    const advisorMap = Object.fromEntries((advisors||[]).map(a=>[a.student_id, a]));
+
+    STUDENTS_ALL = (students||[]).map(s => {
+      const ad = advisorMap[s.id];
+      return {
+        ...s,
+        _advisor_name: ad?.current_advisor_teacher_id ? teacherMap[ad.current_advisor_teacher_id] : null,
+        _advisor_source: ad?.advisor_source || null
+      };
+    });
+
+    // 更新年級篩選下拉
+    const cohorts = [...new Set(STUDENTS_ALL.map(s=>s.cohort).filter(Boolean))].sort((a,b)=>b-a);
+    const sel = document.getElementById('stu-cohort-filter');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">全部年級</option>' +
+      cohorts.map(c=>`<option value="${c}">${c} 級</option>`).join('');
+    sel.value = cur;
+
+    renderStudents();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--red)">載入失敗:${e.message}</td></tr>`;
+    console.warn('loadStudents:', e);
+  }
+}
+
+function renderStudents() {
+  const search = (document.getElementById('stu-search')?.value || '').toLowerCase().trim();
+  const cohortFilter = document.getElementById('stu-cohort-filter')?.value || '';
+  const statusFilter = document.getElementById('stu-status-filter')?.value || '';
+
+  let list = STUDENTS_ALL.filter(s => {
+    if (cohortFilter && String(s.cohort) !== cohortFilter) return false;
+    if (statusFilter && s.status !== statusFilter) return false;
+    if (search) {
+      const txt = ((s.student_code||'') + ' ' + (s.name_zh||'') + ' ' + (s.name_en||'') + ' ' + (s.school_email||'') + ' ' + (s.personal_email||'')).toLowerCase();
+      if (!txt.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // 排序
+  list.sort((a,b) => {
+    let va = a[_stuSort.field], vb = b[_stuSort.field];
+    if (va == null) va = '';
+    if (vb == null) vb = '';
+    return va.toString().localeCompare(vb.toString(), 'zh') * _stuSort.dir;
+  });
+
+  // 統計
+  const counts = {};
+  STUDENTS_ALL.forEach(s => {
+    const k = `${s.cohort||'?'}級`;
+    counts[k] = (counts[k]||0) + 1;
+  });
+  const statTxt = Object.entries(counts).sort().map(([k,v])=>`${k} ${v}人`).join('　·　');
+  document.getElementById('stu-stats').textContent = `共 ${STUDENTS_ALL.length} 人　·　${statTxt}　·　顯示 ${list.length} 人`;
+
+  // 更新排序圖示
+  ['student_code','name_zh','gender','cohort','status','school_email','phone','emergency_name','emergency_phone','_advisor_name'].forEach(f => {
+    const el = document.getElementById('stu-sort-'+f);
+    if (el) el.textContent = (_stuSort.field===f) ? (_stuSort.dir===1?'↑':'↓') : '⇅';
+  });
+
+  const tbody = document.getElementById('stu-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--ink3)">無符合條件的學生</td></tr>';
+    return;
+  }
+
+  const GENDER_LABEL = { M:'男', F:'女', O:'其他' };
+
+  tbody.innerHTML = list.map(s => {
+    const status = STU_STATUS_LABEL[s.status] || s.status || '?';
+    const statusClass = 'stu-status-' + (s.status||'active');
+    const photo = s.photo_url
+      ? `<img class="stu-avatar" src="${s.photo_url}" alt="">`
+      : `<div class="stu-avatar">${(s.name_zh||'?').charAt(0)}</div>`;
+    const advisorBadge = s._advisor_name
+      ? `${s._advisor_name} <span style="font-size:10px;color:var(--ink3)">(${s._advisor_source==='thesis'?'指導':'屆導'})</span>`
+      : '<span style="color:var(--ink3);font-size:11px">—</span>';
+    const emergencyName = s.emergency_name
+      ? `${s.emergency_name}${s.emergency_relation?`<span style="font-size:10px;color:var(--ink3)"> (${s.emergency_relation})</span>`:''}`
+      : '<span style="color:var(--ink3);font-size:11px">—</span>';
+
+    return `<tr style="border-bottom:1px solid var(--cr2)">
+      <td style="padding:8px 14px">${photo}</td>
+      <td style="padding:10px 14px;font-family:monospace;font-size:13px"><strong>${s.student_code||'?'}</strong></td>
+      <td style="padding:10px 14px;font-size:13px"><strong>${s.name_zh||'?'}</strong>
+        ${s.name_en?`<div style="font-size:11px;color:var(--ink3)">${s.name_en}</div>`:''}</td>
+      <td style="padding:10px 14px;text-align:center;font-size:13px">${GENDER_LABEL[s.gender]||'—'}</td>
+      <td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:500">${s.cohort||'—'}</td>
+      <td style="padding:10px 14px;text-align:center">
+        <span class="stu-status-badge ${statusClass}">${status}</span></td>
+      <td style="padding:10px 14px;font-size:12px;font-family:monospace;color:var(--ink2)">${s.school_email||'—'}</td>
+      <td style="padding:10px 14px;font-size:12px">${s.phone||'—'}</td>
+      <td style="padding:10px 14px;font-size:12px">${emergencyName}</td>
+      <td style="padding:10px 14px;font-size:12px">${s.emergency_phone||'<span style="color:var(--ink3)">—</span>'}</td>
+      <td style="padding:10px 14px;font-size:12px">${advisorBadge}</td>
+      <td style="padding:10px 14px;text-align:center">
+        <button onclick="openStudentModal('${s.id}')" style="padding:4px 10px;border-radius:5px;font-size:12px;background:var(--navy);color:#fff;border:none;cursor:pointer">✏️ 編輯</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function stuSort(field) {
+  if (_stuSort.field===field) _stuSort.dir *= -1;
+  else { _stuSort.field = field; _stuSort.dir = 1; }
+  renderStudents();
+}
+
+/* ─── 新增/編輯學生 Modal ─── */
+
+function openStudentModal(id) {
+  _stuPhotoFile = null;
+  // 清空欄位
+  ['stu-id','stu-code','stu-name-zh','stu-name-en','stu-school-email','stu-personal-email',
+   'stu-phone','stu-address','stu-address-hr','stu-emerg-name','stu-emerg-phone',
+   'stu-prev-edu','stu-prev-school','stu-id-num','stu-guang-lun','stu-notes',
+   'stu-birth','stu-enrolled','stu-expected-grad','stu-actual-grad'].forEach(k => {
+    const el = document.getElementById(k); if (el) el.value = '';
+  });
+  document.getElementById('stu-nationality').value = 'TW';
+  document.getElementById('stu-status').value = 'active';
+  document.getElementById('stu-gender').value = '';
+  document.getElementById('stu-emerg-rel').value = '';
+  document.getElementById('stu-housing').value = '';
+  document.getElementById('stu-photo-preview').innerHTML = '📷';
+  document.getElementById('stu-photo-preview').style.background = 'var(--cr3)';
+  document.getElementById('stu-photo-input').value = '';
+
+  if (id) {
+    const s = STUDENTS_ALL.find(x=>x.id===id);
+    if (!s) { showToast('找不到學生','error'); return; }
+    document.getElementById('stu-modal-title').textContent = '編輯學生:' + s.name_zh;
+    document.getElementById('stu-id').value = s.id;
+    document.getElementById('stu-code').value = s.student_code || '';
+    document.getElementById('stu-name-zh').value = s.name_zh || '';
+    document.getElementById('stu-name-en').value = s.name_en || '';
+    document.getElementById('stu-status').value = s.status || 'active';
+    document.getElementById('stu-gender').value = s.gender || '';
+    document.getElementById('stu-birth').value = s.birth_date || '';
+    document.getElementById('stu-nationality').value = s.nationality || 'TW';
+    document.getElementById('stu-id-num').value = s.id_number || '';
+    document.getElementById('stu-school-email').value = s.school_email || '';
+    document.getElementById('stu-personal-email').value = s.personal_email || '';
+    document.getElementById('stu-phone').value = s.phone || '';
+    document.getElementById('stu-address').value = s.address || '';
+    document.getElementById('stu-address-hr').value = s.address_hr || '';
+    document.getElementById('stu-emerg-name').value = s.emergency_name || '';
+    document.getElementById('stu-emerg-rel').value = s.emergency_relation || '';
+    document.getElementById('stu-emerg-phone').value = s.emergency_phone || '';
+    document.getElementById('stu-enrolled').value = s.enrolled_date || '';
+    document.getElementById('stu-expected-grad').value = s.expected_graduate || '';
+    document.getElementById('stu-actual-grad').value = s.actual_graduate || '';
+    document.getElementById('stu-prev-edu').value = s.prev_education || '';
+    document.getElementById('stu-prev-school').value = s.prev_school || '';
+    document.getElementById('stu-guang-lun').value = s.guang_lun_class || '';
+    document.getElementById('stu-housing').value = s.housing || '';
+    document.getElementById('stu-notes').value = s.notes || '';
+    if (s.photo_url) {
+      document.getElementById('stu-photo-preview').innerHTML = `<img src="${s.photo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    }
+    document.getElementById('stu-account-hint').style.display = 'none';
+  } else {
+    document.getElementById('stu-modal-title').textContent = '➕ 新增學生';
+    document.getElementById('stu-account-hint').style.display = 'block';
+  }
+  openModal('stu-modal');
+}
+
+function onStudentCodeInput(input) {
+  // 自動產生學校 email
+  const code = input.value.trim();
+  if (/^\d{8}$/.test(code)) {
+    const emailEl = document.getElementById('stu-school-email');
+    if (!emailEl.value) emailEl.value = code + '@bwbc.edu.tw';
+    // 顯示帳號提示
+    const hint = document.getElementById('stu-account-hint');
+    if (hint.style.display !== 'none') {
+      document.getElementById('stu-account-email').textContent = code + '@bwbc.edu.tw';
+      document.getElementById('stu-account-pwd').textContent = 'Bwbc@' + code.slice(-4);
+    }
+  }
+}
+
+function onStudentPhotoSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('檔案太大（請小於 2MB）','error');
+    e.target.value = '';
+    return;
+  }
+  _stuPhotoFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('stu-photo-preview').innerHTML =
+      `<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveStudent() {
+  const id = document.getElementById('stu-id').value;
+  const code = document.getElementById('stu-code').value.trim();
+  const name_zh = document.getElementById('stu-name-zh').value.trim();
+  if (!code || !/^\d{8}$/.test(code)) { showToast('請輸入 8 碼學號','error'); return; }
+  if (!name_zh) { showToast('請輸入中文姓名','error'); return; }
+
+  // 必填檢查
+  const personal_email = document.getElementById('stu-personal-email').value.trim();
+  const emerg_name = document.getElementById('stu-emerg-name').value.trim();
+  const emerg_rel = document.getElementById('stu-emerg-rel').value;
+  const emerg_phone = document.getElementById('stu-emerg-phone').value.trim();
+  if (!personal_email) { showToast('請填寫個人 email','error'); return; }
+  if (!emerg_name || !emerg_rel || !emerg_phone) { showToast('請完整填寫緊急聯絡人資訊','error'); return; }
+
+  const payload = {
+    student_code:   code,
+    name_zh,
+    name_en:        document.getElementById('stu-name-en').value.trim() || null,
+    status:         document.getElementById('stu-status').value,
+    gender:         document.getElementById('stu-gender').value || null,
+    birth_date:     document.getElementById('stu-birth').value || null,
+    nationality:    document.getElementById('stu-nationality').value.trim() || null,
+    id_number:      document.getElementById('stu-id-num').value.trim() || null,
+    school_email:   document.getElementById('stu-school-email').value.trim() || (code + '@bwbc.edu.tw'),
+    personal_email: personal_email,
+    phone:          document.getElementById('stu-phone').value.trim() || null,
+    address:        document.getElementById('stu-address').value.trim() || null,
+    address_hr:     document.getElementById('stu-address-hr').value.trim() || null,
+    emergency_name: emerg_name,
+    emergency_relation: emerg_rel,
+    emergency_phone: emerg_phone,
+    enrolled_date:  document.getElementById('stu-enrolled').value || null,
+    expected_graduate: document.getElementById('stu-expected-grad').value || null,
+    actual_graduate: document.getElementById('stu-actual-grad').value || null,
+    prev_education: document.getElementById('stu-prev-edu').value.trim() || null,
+    prev_school:    document.getElementById('stu-prev-school').value.trim() || null,
+    guang_lun_class: document.getElementById('stu-guang-lun').value.trim() || null,
+    housing:        document.getElementById('stu-housing').value || null,
+    notes:          document.getElementById('stu-notes').value.trim() || null,
+  };
+
+  try {
+    let savedId = id;
+    if (id) {
+      const { error } = await sb.from('students').update(payload).eq('id', id);
+      if (error) throw error;
+    } else {
+      const { data, error } = await sb.from('students').insert(payload).select('id').maybeSingle();
+      if (error) throw error;
+      savedId = data?.id;
+    }
+
+    // 上傳大頭照
+    if (_stuPhotoFile && savedId) {
+      const ext = _stuPhotoFile.name.split('.').pop().toLowerCase();
+      const path = `${code}.${ext}`;
+      const { error:upErr } = await sb.storage.from('student-photos').upload(path, _stuPhotoFile, { upsert:true });
+      if (upErr) console.warn('photo upload:', upErr);
+      else {
+        const { data:urlData } = sb.storage.from('student-photos').getPublicUrl(path);
+        await sb.from('students').update({ photo_url: urlData?.publicUrl }).eq('id', savedId);
+      }
+    }
+
+    showToast(id ? '✅ 已更新' : '✅ 已新增');
+    writeAuditLog('學生資料', id?'編輯學生':'新增學生', 'students', savedId,
+      `${code} ${name_zh}`, `${STU_STATUS_LABEL[payload.status]||''}`);
+
+    closeModal('stu-modal');
+    loadStudents();
+  } catch(e) {
+    showToast('儲存失敗:' + e.message, 'error');
+    console.warn('saveStudent:', e);
+  }
+}
+
+/* ─── 批次匯入 ─── */
+
+function openStudentImport() {
+  _stuImportData = null;
+  document.getElementById('stu-import-file').value = '';
+  document.getElementById('stu-import-preview').style.display = 'none';
+  document.getElementById('stu-import-btn').disabled = true;
+  document.getElementById('stu-import-btn').style.opacity = '.5';
+  openModal('stu-import-modal');
+}
+
+async function downloadStudentTemplate() {
+  // 動態載入 SheetJS（如果還沒）
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const headers = [
+    '學號','中文姓名','英文姓名','性別(M/F/O)','出生日期(YYYY-MM-DD)',
+    '個人 email','電話','通訊地址','緊急聯絡人姓名','關係','緊急電話',
+    '入學日期(YYYY-MM-DD)','學歷','畢業學校','廣論班級',
+    '住宿(self_home/eco_village/off_campus/commute/other)','備註'
+  ];
+  const example = [
+    '11521001','王小明','Wang Hsiao-Ming','M','1998-05-10',
+    'ming@gmail.com','0912-345-678','台中市北屯區...','王大明','父親','0922-111-222',
+    '2026-09-01','大學畢業','東海大學','2024 春季 A 班','eco_village','—'
+  ];
+  const note = ['※ 學號 8 碼數字','※ 學校 email 自動產生 = 學號@bwbc.edu.tw','※ 性別、住宿選填,其他空白可填','','請從第 3 列開始填寫'];
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, example, [], note]);
+  ws['!cols'] = headers.map(() => ({ wch: 18 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '學生名單');
+  XLSX.writeFile(wb, `學生匯入範本_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+async function onStudentImportFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type:'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+      parseStudentImport(rows);
+    } catch(err) {
+      showToast('解析失敗:' + err.message, 'error');
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function parseStudentImport(rows) {
+  // 找標題列（含「學號」）
+  let headerIdx = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].some(c => c && String(c).includes('學號'))) { headerIdx = i; break; }
+  }
+  if (headerIdx < 0) { showToast('找不到「學號」欄位,請使用範本','error'); return; }
+
+  const dataRows = rows.slice(headerIdx + 1).filter(r => r[0] && String(r[0]).trim());
+
+  const items = dataRows.map((r, idx) => {
+    const code = String(r[0] || '').trim();
+    const name = String(r[1] || '').trim();
+    const personalEmail = String(r[5] || '').trim();
+    const emergName = String(r[8] || '').trim();
+    const emergRel = String(r[9] || '').trim();
+    const emergPhone = String(r[10] || '').trim();
+
+    const errors = [];
+    if (!/^\d{8}$/.test(code)) errors.push('學號格式錯誤');
+    if (!name) errors.push('缺中文姓名');
+    if (!personalEmail) errors.push('缺個人 email');
+    if (!emergName) errors.push('缺緊急聯絡人');
+    if (!emergPhone) errors.push('缺緊急電話');
+
+    return {
+      idx: idx + 1,
+      student_code: code,
+      name_zh: name,
+      name_en: String(r[2] || '').trim() || null,
+      gender: ['M','F','O'].includes(String(r[3]||'').trim()) ? String(r[3]).trim() : null,
+      birth_date: String(r[4]||'').trim() || null,
+      school_email: /^\d{8}$/.test(code) ? code + '@bwbc.edu.tw' : null,
+      personal_email: personalEmail,
+      phone: String(r[6] || '').trim() || null,
+      address: String(r[7] || '').trim() || null,
+      emergency_name: emergName,
+      emergency_relation: emergRel,
+      emergency_phone: emergPhone,
+      enrolled_date: String(r[11]||'').trim() || null,
+      prev_education: String(r[12] || '').trim() || null,
+      prev_school: String(r[13] || '').trim() || null,
+      guang_lun_class: String(r[14] || '').trim() || null,
+      housing: ['self_home','eco_village','off_campus','commute','other'].includes(String(r[15]||'').trim()) ? String(r[15]).trim() : null,
+      notes: String(r[16] || '').trim() || null,
+      status: 'active',
+      _errors: errors
+    };
+  });
+
+  _stuImportData = items;
+  renderImportPreview();
+}
+
+function renderImportPreview() {
+  const items = _stuImportData || [];
+  const validCount = items.filter(i => i._errors.length === 0).length;
+  const errCount = items.length - validCount;
+
+  document.getElementById('stu-import-stats').innerHTML =
+    `共 ${items.length} 筆　·　<span style="color:#1A6A30">✅ ${validCount} 筆可匯入</span>　·　<span style="color:var(--red)">⚠️ ${errCount} 筆有誤</span>`;
+
+  document.getElementById('stu-import-tbody').innerHTML = items.map(item => {
+    const ok = item._errors.length === 0;
+    const statusHtml = ok
+      ? '<span style="color:#1A6A30">✓</span>'
+      : `<span style="color:var(--red)" title="${item._errors.join(', ')}">⚠ ${item._errors.length}</span>`;
+    return `<tr style="border-bottom:1px solid var(--cr2);background:${ok?'#fff':'#FFF5F5'}">
+      <td style="padding:5px 8px;color:var(--ink3)">${item.idx}</td>
+      <td style="padding:5px 8px;font-family:monospace">${item.student_code}</td>
+      <td style="padding:5px 8px">${item.name_zh}</td>
+      <td style="padding:5px 8px;color:var(--ink2)">${item.personal_email}</td>
+      <td style="padding:5px 8px">${item.emergency_name||'—'} / ${item.emergency_phone||'—'}</td>
+      <td style="padding:5px 8px;text-align:center">${statusHtml}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('stu-import-preview').style.display = 'block';
+  const btn = document.getElementById('stu-import-btn');
+  btn.disabled = validCount === 0;
+  btn.style.opacity = validCount === 0 ? '.5' : '1';
+  btn.textContent = `確認匯入 ${validCount} 筆`;
+}
+
+async function executeStudentImport() {
+  if (!_stuImportData) return;
+  const valid = _stuImportData.filter(i => i._errors.length === 0);
+  if (!valid.length) return;
+  if (!confirm(`確定匯入 ${valid.length} 位學生?\n\n系統會自動建立學校 email 帳號（預設密碼: Bwbc@學號後4碼）`)) return;
+
+  const payloads = valid.map(({ idx, _errors, ...rest }) => rest);
+  try {
+    const { error } = await sb.from('students').insert(payloads);
+    if (error) throw error;
+    showToast(`✅ 已匯入 ${payloads.length} 位學生`);
+    writeAuditLog('學生資料','批次匯入','students', null, '', `共 ${payloads.length} 筆`);
+    closeModal('stu-import-modal');
+    loadStudents();
+    // 提醒下一步
+    setTimeout(() => {
+      alert(`✅ 已匯入 ${payloads.length} 位學生。\n\n💡 下一步:\n請到 Supabase Authentication 為這些學生建立登入帳號\n（用學校 email + 預設密碼 Bwbc@學號後4碼）\n\n或日後使用「批次建立帳號」功能。`);
+    }, 500);
+  } catch(e) {
+    showToast('匯入失敗:' + e.message, 'error');
+    console.warn('importStudents:', e);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 👥 帳號管理（4 級權限 + 預設範本）
+ * ════════════════════════════════════════════════════════════════════ */
+
+let _allUsers = [];
+let _usrSort = { field:'email', dir:1 };
+
+const PERM_KEYS = ['announcements','todos','meetings','courses','open_courses',
+                   'teachers','thesis','students','semesters','surveys','logs'];
+
+const PERM_LABELS = {
+  announcements: '📢 公佈欄',
+  todos:         '✅ 待辦事務',
+  meetings:      '🤝 會議管理',
+  courses:       '📚 課程管理',
+  open_courses:  '📋 開課記錄',
+  teachers:      '👤 教師管理',
+  thesis:        '📝 畢業論文',
+  students:      '🧑‍🎓 學生資料',
+  semesters:     '📆 學期管理',
+  surveys:       '📊 意見調查',
+  logs:          '📜 操作記錄',
+};
+
+const PERM_LEVELS = ['none','read','write','admin'];
+const PERM_LEVEL_LABEL = { none:'無', read:'讀', write:'寫', admin:'全' };
+
+const IROLE_LABELS = {
+  advisor_113:'113級導師', advisor_114:'114級導師', advisor_115:'115級導師',
+  director:'所長', dean:'教育長', vice_principal:'副校長', principal:'校長',
+};
+
+const ROLE_BADGE = {
+  admin:   { label:'admin',   bg:'#FCE4EC', color:'#C2185B' },
+  staff:   { label:'staff',   bg:'#E3F2FD', color:'#1565C0' },
+  teacher: { label:'teacher', bg:'#E8F5E9', color:'#1A6A30' },
+  student: { label:'student', bg:'#FFF3E0', color:'#B05010' },
+  viewer:  { label:'viewer',  bg:'#F3E5F5', color:'#6A1B9A' },
+};
+
+// 把 boolean 舊資料轉成新格式（向下相容）
+function normalizePerm(v) {
+  if (v === true) return 'admin';
+  if (v === false || v == null) return 'none';
+  if (PERM_LEVELS.includes(v)) return v;
+  return 'none';
+}
+
+const PERM_PRESETS = {
+  admin: Object.fromEntries(PERM_KEYS.map(k => [k, 'admin'])),
+  teacher_staff: {
+    announcements:'write', todos:'write', meetings:'write',
+    courses:'read', open_courses:'read', teachers:'read',
+    thesis:'read', students:'read', semesters:'read',
+    surveys:'read', logs:'none'
+  },
+  viewer: Object.fromEntries(PERM_KEYS.map(k => [k, 'read'])),
+  staff_empty: Object.fromEntries(PERM_KEYS.map(k => [k, 'none'])),
+};
+const PRESET_NAMES = {
+  admin:'admin 預設（全部全權）',
+  teacher_staff:'老師兼行政（讀+部分寫）',
+  viewer:'主管唯讀（全部讀）',
+  staff_empty:'從零開始（全部無）',
+};
+
+async function loadUsers() {
+  const tbody = document.getElementById('usr-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--ink3)">載入中…</td></tr>';
+
+  try {
+    const { data: users, error } = await sb.from('users').select('*').order('created_at', { ascending:true });
+    if (error) throw error;
+
+    // 取得 student/teacher 姓名作為 fallback
+    const studIds = users.filter(u=>u.student_id).map(u=>u.student_id);
+    const teacherIds = users.filter(u=>u.teacher_id).map(u=>u.teacher_id);
+    const [stuRes, teaRes] = await Promise.all([
+      studIds.length ? sb.from('students').select('id,name_zh').in('id', studIds) : { data:[] },
+      teacherIds.length ? sb.from('teachers').select('id,name_zh').in('id', teacherIds) : { data:[] }
+    ]);
+    const stuMap = Object.fromEntries((stuRes.data||[]).map(s=>[s.id, s.name_zh]));
+    const teaMap = Object.fromEntries((teaRes.data||[]).map(t=>[t.id, t.name_zh]));
+
+    _allUsers = users.map(u => ({
+      ...u,
+      _display_name: u.display_name || stuMap[u.student_id] || teaMap[u.teacher_id] || '(未命名)',
+      _irole_str: Object.keys(u.institute_roles||{}).filter(k=>u.institute_roles[k]).map(k=>IROLE_LABELS[k]||k).join('、'),
+    }));
+
+    renderUsers();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--red)">載入失敗:${e.message}</td></tr>`;
+  }
+}
+
+function renderUsers() {
+  const list = [..._allUsers].sort((a,b)=>{
+    let va = a[_usrSort.field], vb = b[_usrSort.field];
+    if (va == null) va = '';
+    if (vb == null) vb = '';
+    return va.toString().localeCompare(vb.toString(), 'zh') * _usrSort.dir;
+  });
+
+  // 更新排序圖示
+  ['email','_display_name','role','_irole_str','created_at'].forEach(f => {
+    const el = document.getElementById('usr-sort-'+f);
+    if (el) el.textContent = (_usrSort.field===f) ? (_usrSort.dir===1?'↑':'↓') : '⇅';
+  });
+
+  // 統計
+  const roleCount = {};
+  _allUsers.forEach(u => { roleCount[u.role||'?'] = (roleCount[u.role||'?']||0)+1; });
+  const statTxt = Object.entries(roleCount).map(([k,v])=>`${k} ${v}`).join('　·　');
+  document.getElementById('usr-stats').textContent = `共 ${_allUsers.length} 個帳號　·　${statTxt}`;
+
+  const tbody = document.getElementById('usr-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--ink3)">尚無帳號</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(u => {
+    const badge = ROLE_BADGE[u.role] || { label:u.role||'?', bg:'#eee', color:'#666' };
+    let permStr = '';
+    if (u.role==='staff') {
+      const perms = u.permissions || {};
+      const counts = { admin:0, write:0, read:0, none:0 };
+      PERM_KEYS.forEach(k => { counts[normalizePerm(perms[k])]++; });
+      const accessible = counts.admin + counts.write + counts.read;
+      if (accessible === 0) {
+        permStr = '<span style="font-size:11px;color:var(--red)">⚠️ 未設定權限</span>';
+      } else {
+        const parts = [];
+        if (counts.admin) parts.push(`<span style="color:#B05010">全 ${counts.admin}</span>`);
+        if (counts.write) parts.push(`<span style="color:#1A6A30">寫 ${counts.write}</span>`);
+        if (counts.read)  parts.push(`<span style="color:#1565C0">讀 ${counts.read}</span>`);
+        permStr = `<span style="font-size:11px;font-weight:500">${accessible}/${PERM_KEYS.length}</span>　<span style="font-size:10.5px">${parts.join(' · ')}</span>`;
+      }
+    } else if (u.role==='admin') permStr = '<span style="font-size:11px;color:var(--ink3)">全部（admin）</span>';
+    else if (u.role==='viewer') permStr = '<span style="font-size:11px;color:var(--ink3)">全部唯讀</span>';
+    else permStr = '<span style="font-size:11px;color:var(--ink3)">—</span>';
+
+    const createdStr = u.created_at ? new Date(u.created_at).toLocaleDateString('zh-TW') : '—';
+
+    return `<tr style="border-bottom:1px solid var(--cr2)">
+      <td style="padding:10px 14px;font-family:monospace;font-size:12.5px">${u.email||'?'}</td>
+      <td style="padding:10px 14px;font-size:13px;font-weight:500">${u._display_name}</td>
+      <td style="padding:10px 14px;text-align:center">
+        <span style="font-size:11px;padding:2px 10px;border-radius:12px;background:${badge.bg};color:${badge.color};font-weight:500">${badge.label}</span></td>
+      <td style="padding:10px 14px;font-size:12px">${u._irole_str || '<span style="color:var(--ink3)">—</span>'}</td>
+      <td style="padding:10px 14px">${permStr}</td>
+      <td style="padding:10px 14px;text-align:center;font-size:12px;color:var(--ink3)">${createdStr}</td>
+      <td style="padding:10px 14px;text-align:center">
+        <button onclick="openUsrModal('${u.id}')" style="padding:4px 10px;border-radius:5px;font-size:12px;background:var(--navy);color:#fff;border:none;cursor:pointer">✏️ 編輯</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function usrSort(field) {
+  if (_usrSort.field===field) _usrSort.dir *= -1;
+  else { _usrSort.field = field; _usrSort.dir = 1; }
+  renderUsers();
+}
+
+/* ─── 編輯帳號 Modal ─── */
+
+function openUsrModal(id) {
+  const u = _allUsers.find(x=>x.id===id);
+  if (!u) { showToast('找不到此帳號','error'); return; }
+
+  document.getElementById('usr-id').value = u.id;
+  document.getElementById('usr-mod-email').textContent = u.email;
+  document.getElementById('usr-mod-name').textContent = u._display_name;
+  document.getElementById('usr-mod-display').value = u.display_name || '';
+  document.getElementById('usr-mod-role').value = u.role || 'staff';
+
+  const iroles = u.institute_roles || {};
+  document.querySelectorAll('.usr-irole').forEach(cb => { cb.checked = !!iroles[cb.value]; });
+
+  renderPermGrid(u.permissions || {});
+  toggleUsrPermVisibility();
+  openModal('usr-modal');
+}
+
+/* 渲染 4 級 radio grid */
+function renderPermGrid(perms) {
+  const grid = document.getElementById('usr-perm-grid');
+  if (!grid) return;
+  grid.innerHTML = PERM_KEYS.map(key => {
+    const cur = normalizePerm(perms[key]);
+    return `<div class="perm-row" data-key="${key}">
+      <div class="perm-label">${PERM_LABELS[key]||key}</div>
+      <div class="perm-levels">
+        ${PERM_LEVELS.map(lv =>
+          `<label class="lv-${lv} ${cur===lv?'on':''}" onclick="setPermLevel('${key}','${lv}')">${PERM_LEVEL_LABEL[lv]}</label>`
+        ).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setPermLevel(key, lv) {
+  const row = document.querySelector(`.perm-row[data-key="${key}"]`);
+  if (!row) return;
+  row.querySelectorAll('.perm-levels label').forEach(l => l.classList.remove('on'));
+  const target = row.querySelector('.lv-' + lv);
+  if (target) target.classList.add('on');
+}
+
+function toggleUsrPermVisibility() {
+  const role = document.getElementById('usr-mod-role').value;
+  const sect = document.getElementById('usr-perm-section');
+  sect.style.opacity = (role==='staff') ? '1' : '0.4';
+  sect.style.pointerEvents = (role==='staff') ? 'auto' : 'none';
+}
+
+function setAllUsrPerm(level) {
+  PERM_KEYS.forEach(key => setPermLevel(key, level));
+}
+
+function applyPresetTemplate(presetKey) {
+  const preset = PERM_PRESETS[presetKey];
+  if (!preset) return;
+  if (!confirm(`套用「${PRESET_NAMES[presetKey]}」範本?\n\n會覆蓋目前所有權限設定。`)) return;
+  PERM_KEYS.forEach(key => setPermLevel(key, preset[key] || 'none'));
+  showToast(`✅ 已套用「${PRESET_NAMES[presetKey]}」`);
+}
+
+async function saveUser() {
+  const id = document.getElementById('usr-id').value;
+  const display_name = document.getElementById('usr-mod-display').value.trim() || null;
+  const role = document.getElementById('usr-mod-role').value;
+  const oldUser = _allUsers.find(u=>u.id===id);
+  const oldRole = oldUser?.role;
+
+  // 自我降級保護
+  if (oldUser && oldUser.id === window.ADMIN_USER_ID && oldRole === 'admin' && role !== 'admin') {
+    if (!confirm('⚠️ 您正在把自己從 admin 降級\n\n降級後您將無法再進入此頁面,確定繼續?')) return;
+  }
+
+  const institute_roles = {};
+  document.querySelectorAll('.usr-irole').forEach(cb => {
+    if (cb.checked) institute_roles[cb.value] = true;
+  });
+
+  const permissions = {};
+  if (role === 'staff') {
+    document.querySelectorAll('.perm-row').forEach(row => {
+      const key = row.dataset.key;
+      const onLabel = row.querySelector('.perm-levels label.on');
+      if (!onLabel) return;
+      const m = onLabel.className.match(/lv-(\w+)/);
+      const lv = m ? m[1] : 'none';
+      if (lv !== 'none') permissions[key] = lv;
+    });
+  }
+
+  try {
+    const { error } = await sb.from('users').update({
+      display_name, role, institute_roles, permissions
+    }).eq('id', id);
+    if (error) throw error;
+
+    // audit log
+    const detail = [];
+    if (oldRole !== role) detail.push(`角色:${oldRole||'?'} → ${role}`);
+    const iroleList = Object.keys(institute_roles);
+    if (iroleList.length) detail.push(`職務:${iroleList.map(k=>IROLE_LABELS[k]||k).join('、')}`);
+    if (role==='staff') {
+      const counts = { admin:0, write:0, read:0 };
+      Object.values(permissions).forEach(v=>{ if (counts[v]!==undefined) counts[v]++; });
+      const totalAccessible = counts.admin + counts.write + counts.read;
+      detail.push(`權限:${totalAccessible}/${PERM_KEYS.length} 模組（全${counts.admin}/寫${counts.write}/讀${counts.read}）`);
+    }
+    if (typeof writeAuditLog === 'function') {
+      writeAuditLog('帳號管理','編輯帳號權限','users',id, oldUser?.email||'', detail.join(' · '));
+    }
+
+    showToast('✅ 已更新');
+    closeModal('usr-modal');
+    loadUsers();
+  } catch(e) {
+    showToast('儲存失敗:' + e.message, 'error');
+    console.warn('saveUser:', e);
+  }
 }
 
 function showToast(msg, type='success') {

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BWBC Teacher v2.1 2026-06-17 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -173,7 +174,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 
       <!-- ── 公佈欄 section ── -->
       <div id="sec-ann" class="t-section">
-        <div class="section-title">📢 公佈欄</div>
+        <div class="section-title" style="display:flex;align-items:center;gap:12px">
+          📢 公佈欄
+          <button onclick="collapseAllAnn()"
+            style="margin-left:auto;font-size:12px;padding:4px 10px;border:1px solid var(--cr2);background:#fff;border-radius:6px;cursor:pointer;color:var(--ink2)"
+            title="把所有展開的公告收合">
+            ⊟ 全部收合
+          </button>
+        </div>
         <div id="ann-banners" style="display:flex;flex-direction:column;gap:8px"></div>
         <div id="ann-empty" style="display:none;color:var(--ink3);font-size:13px;padding:20px 0">目前無公告</div>
       </div>
@@ -490,19 +498,23 @@ async function signOut() {
   location.reload();
 }
 
-/* ════ 公佈欄公告 ════ */
+/* ════ 公佈欄公告（含收合/展開） ════ */
 async function loadPublicAnnouncements(role) {
   try {
     const now = new Date().toISOString();
     const { data } = await sb.from('announcements')
       .select('id,title,content,target,expires_at')
-      .or(`target.eq.${role},target.eq.all`)
+      .in('target', [role, 'all'])
       .or(`expires_at.is.null,expires_at.gt.${now}`)
       .order('created_at', {ascending:false})
-      .limit(5);
+      .limit(10);
     const el = document.getElementById('ann-banners');
     if (!el) return;
-    if (!data?.length) { const emp=document.getElementById('ann-empty'); if(emp) emp.style.display='block'; return; }
+    if (!data?.length) {
+      const emp = document.getElementById('ann-empty');
+      if (emp) emp.style.display = 'block';
+      return;
+    }
 
     // 查附件
     const ids = data.map(a=>a.id);
@@ -510,33 +522,57 @@ async function loadPublicAnnouncements(role) {
     const attMap={};
     (atts||[]).forEach(a=>{ if(!attMap[a.ref_id]) attMap[a.ref_id]=[]; attMap[a.ref_id].push(a); });
 
-    el.innerHTML = await Promise.all(data.map(async a=>{
-      const annAtts = attMap[a.id]||[];
-      let attHtml = '';
-      if (annAtts.length) {
-        const links = await Promise.all(annAtts.map(async att=>{
-          const {data:su} = await sb.storage.from('admin-assets').createSignedUrl(att.file_path, 3600);
-          const url = su?.signedUrl||'#';
-          return `<a href="${url}" target="_blank" style="font-size:11px;padding:2px 8px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none">📎 ${att.filename}</a>`;
-        }));
-        attHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${links.join('')}</div>`;
+    // 預先取得所有 signed URL
+    const signedMap = {};
+    for (const annId of ids) {
+      for (const att of (attMap[annId]||[])) {
+        const {data:su} = await sb.storage.from('admin-assets').createSignedUrl(att.file_path, 3600);
+        signedMap[att.id] = su?.signedUrl || '#';
       }
-      return `<div style="background:#EDE9FE;color:#4C1D95;border:1px solid #C4B5FD;border-radius:8px;padding:12px 16px;font-size:13px">
-        <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
-          <div style="display:flex;align-items:flex-start;gap:8px;flex:1">
-            <span style="flex-shrink:0">📌</span>
-            <div>
-              <div style="font-weight:600">${a.title}</div>
-              ${a.content?`<div style="font-size:12px;margin-top:3px;white-space:pre-wrap">${a.content}</div>`:''}
-              ${attHtml}
-            </div>
-          </div>
-          ${a.expires_at?`<div style="font-size:11px;opacity:.7;flex-shrink:0;margin-left:12px">至 ${new Date(a.expires_at).toLocaleDateString('zh-TW')}</div>`:''}
+    }
+
+    el.innerHTML = data.map((a, idx) => {
+      const annAtts = attMap[a.id]||[];
+      const attHtml = annAtts.length
+        ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+            ${annAtts.map(att=>`<a href="${signedMap[att.id]}" target="_blank"
+              style="font-size:11px;padding:3px 10px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+              📎 ${att.filename}</a>`).join('')}
+           </div>` : '';
+      const hasBody = a.content || annAtts.length;
+      const expStr = a.expires_at ? `至 ${new Date(a.expires_at).toLocaleDateString('zh-TW')}` : '';
+
+      return `<div style="background:#EDE9FE;border:1px solid #C4B5FD;border-radius:10px;overflow:hidden">
+        <!-- 標題列（點擊收合/展開）-->
+        <div onclick="toggleAnn(${idx})" style="display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:${hasBody?'pointer':'default'};user-select:none">
+          <span style="flex-shrink:0;font-size:16px">📌</span>
+          <div style="flex:1;font-size:13px;font-weight:600;color:#4C1D95">${a.title}</div>
+          ${expStr ? `<span style="font-size:11px;color:#7C3AED;opacity:.7;flex-shrink:0">${expStr}</span>` : ''}
+          ${hasBody ? `<span id="ann-arrow-${idx}" style="font-size:12px;color:#7C3AED;flex-shrink:0;transition:transform .2s">▼</span>` : ''}
         </div>
+        <!-- 展開內容（預設隱藏）-->
+        ${hasBody ? `<div id="ann-body-${idx}" style="display:none;padding:0 16px 14px 16px;border-top:1px solid #C4B5FD">
+          ${a.content ? `<div style="font-size:13px;color:#3B0764;line-height:1.8;white-space:pre-wrap;margin-top:10px">${a.content}</div>` : ''}
+          ${attHtml}
+        </div>` : ''}
       </div>`;
-    }));
-    el.innerHTML = el.innerHTML;
+    }).join('');
   } catch(e) { console.warn('公佈欄載入失敗',e); }
+}
+
+function toggleAnn(idx) {
+  const body = document.getElementById('ann-body-' + idx);
+  const arrow = document.getElementById('ann-arrow-' + idx);
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? '' : 'none';
+  if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : '';
+}
+
+/* 全部收合 */
+function collapseAllAnn() {
+  document.querySelectorAll('[id^="ann-body-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('[id^="ann-arrow-"]').forEach(el => el.style.transform = '');
 }
 
 function showLogin() {
