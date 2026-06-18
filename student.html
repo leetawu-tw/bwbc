@@ -1,0 +1,1971 @@
+<!DOCTYPE html>
+<!-- BWBC Student v2.2 2026-06-17 -->
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>學生選課入口 — 福智佛教學院</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1B3A6B;--navy2:#2B5FA0;--navy3:#EEF2FA;
+  --green:#1F5C3A;--green3:#EAF4EE;
+  --gold:#C4960A;--gold3:#FFF8E1;
+  --red:#C04030;--red3:#FEE;
+  --ink:#2C2C2A;--ink2:#444;--ink3:#888;
+  --cr2:#E8E8E8;--cr3:#F7F6F3;
+  --r:10px;--sh:0 1px 4px rgba(0,0,0,.08);--sh2:0 8px 24px rgba(0,0,0,.15);
+}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink);line-height:1.6;font-size:14px}
+button{cursor:pointer;font-family:inherit}
+input{font-family:inherit}
+
+/* ── LOGIN ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,#2B5FA0 100%)}
+.login-card{background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:var(--sh2)}
+.login-logo{font-family:'Noto Serif TC',serif;font-size:22px;font-weight:600;color:var(--navy);text-align:center;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--ink3);text-align:center;margin-bottom:28px}
+.flabel{font-size:12.5px;color:var(--ink3);margin-bottom:5px;display:block}
+.finput{width:100%;padding:10px 12px;border:1.5px solid var(--cr2);border-radius:8px;font-size:14px;outline:none;transition:border .15s}
+.finput:focus{border-color:var(--navy2)}
+.frow{margin-bottom:14px}
+.login-btn{width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;margin-top:4px;transition:background .15s}
+.login-btn:hover{background:var(--navy2)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none;text-align:center}
+.feedback.ok{background:#E8F5E9;color:#1A6A30}
+.feedback.err{background:var(--red3);color:var(--red)}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--navy);color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.topbar-logo{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600}
+.topbar-user{margin-left:auto;font-size:12.5px;opacity:.8}
+.topbar-btn{padding:5px 12px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:transparent;color:#fff;font-size:12px}
+.topbar-btn:hover{background:rgba(255,255,255,.1)}
+
+/* ── MAIN ── */
+.main{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;background:var(--cr2);border-radius:var(--r);padding:3px;margin-bottom:20px;width:fit-content}
+.tab{padding:7px 20px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--ink3);transition:all .15s}
+.tab.on{background:#fff;color:var(--navy);box-shadow:var(--sh)}
+.page{display:none}.page.on{display:block}
+
+/* ── STATUS BANNER ── */
+.banner{border-radius:var(--r);padding:12px 16px;font-size:13px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px}
+.banner-warn{background:#FFF8E1;color:#7A5C00;border:1px solid #F0C040}
+.banner-err{background:var(--red3);color:var(--red);border:1px solid #FCC}
+.banner-ok{background:var(--green3);color:var(--green);border:1px solid #90D090}
+.banner-info{background:var(--navy3);color:var(--navy);border:1px solid rgba(43,95,160,.2)}
+
+/* ── CREDIT SUMMARY ── */
+.credit-bar{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--sh)}
+.credit-num{font-family:'Noto Serif TC',serif;font-size:28px;font-weight:600}
+.credit-lbl{font-size:11.5px;color:var(--ink3);margin-top:2px}
+.credit-bar-fill{flex:1;min-width:200px}
+.credit-track{height:8px;background:var(--cr2);border-radius:4px;overflow:hidden;margin-top:6px}
+.credit-fill{height:100%;border-radius:4px;transition:width .4s ease;background:var(--navy)}
+.credit-fill.warn{background:var(--gold)}
+.credit-fill.over{background:var(--red)}
+
+/* ── COURSE GRID ── */
+.course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.course-card{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);box-shadow:var(--sh);overflow:hidden;transition:box-shadow .15s;display:flex;flex-direction:column}
+.course-card:hover{box-shadow:var(--sh2)}
+.cc-top{padding:12px 14px 10px;flex:1}
+.cc-code{font-size:10.5px;color:var(--ink3);margin-bottom:4px}
+.cc-name{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;line-height:1.3}
+.cc-en{font-size:11px;color:var(--ink3);font-style:italic;margin-bottom:7px}
+.cc-info{font-size:12px;color:var(--ink3);display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.cc-teachers{display:flex;flex-wrap:wrap;gap:4px}
+.cc-bot{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;background:var(--cr3);border-top:1px solid var(--cr2)}
+.cc-cred{font-size:12.5px;font-weight:500;color:var(--ink)}
+
+/* ── ENROLL BUTTON ── */
+.btn-enroll{padding:6px 16px;border-radius:6px;font-size:12.5px;font-weight:500;border:none;transition:all .15s;white-space:nowrap}
+.btn-enroll.can{background:var(--navy);color:#fff}.btn-enroll.can:hover{background:var(--navy2)}
+.btn-enroll.enrolled{background:var(--green3);color:var(--green);border:1px solid #90D090}
+.btn-enroll.enrolled:hover{background:#C8ECD0}
+.btn-enroll.disabled{background:var(--cr2);color:var(--ink3);cursor:not-allowed}
+.btn-enroll.withdrawn{background:#FFF3E0;color:#B05010;border:1px solid #F0C080;cursor:not-allowed}
+
+/* ── MY COURSES TABLE ── */
+.my-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+.my-table thead tr{background:var(--navy)}
+.my-table th{padding:9px 12px;text-align:left;font-weight:500;color:#fff;font-size:12px}
+.my-table tbody tr{border-bottom:1px solid var(--cr2);transition:background .15s}
+.my-table tbody tr:hover{background:var(--cr3)}
+.my-table td{padding:10px 12px;font-size:13px;vertical-align:middle}
+
+/* ── BADGE ── */
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+.badge-req{background:#FFF3E0;color:#B05010;border:1px solid #F0C080}
+.badge-sel{background:var(--green3);color:var(--green);border:1px solid #90D090}
+.badge-go{background:#E8EAF6;color:#3949AB;border:1px solid #9FA8DA}
+.badge-enrolled{background:var(--green3);color:var(--green)}
+.badge-pending{background:var(--gold3);color:var(--gold)}
+.badge-dropped{background:var(--cr2);color:var(--ink3)}
+.badge-withdrawn{background:#FFF3E0;color:#B05010}
+.badge-waitlist{background:#EDE7F6;color:#6A1B9A}
+
+/* ── SECTION TITLE ── */
+.section-title{font-family:'Noto Serif TC',serif;font-size:16px;font-weight:600;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-count{font-size:12px;padding:2px 10px;border-radius:20px;background:var(--navy3);color:var(--navy);font-weight:400}
+
+/* ── GRADUATION PROGRESS ── */
+.grad-wrap{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);padding:14px 18px;margin-bottom:16px;box-shadow:var(--sh)}
+.grad-title{font-size:12px;font-weight:500;color:var(--ink3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.grad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:10px}
+.grad-item{}
+.grad-lbl{font-size:11px;color:var(--ink3);margin-bottom:3px;display:flex;justify-content:space-between}
+.grad-track{height:6px;background:var(--cr2);border-radius:3px;overflow:hidden;display:flex}
+.grad-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.grad-fill-req{background:var(--navy)}
+.grad-fill-sel{background:var(--green)}
+.grad-fill-total{background:var(--gold)}
+.grad-fill-done{background:#90D090}
+.grad-warn{font-size:12px;color:#B05010;background:#FFF8E1;border-radius:6px;padding:5px 10px;margin-top:6px;border:1px solid #F0C040}
+@media(max-width:600px){.grad-grid{grid-template-columns:1fr}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 22px;border-radius:30px;font-size:13.5px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap;box-shadow:var(--sh2)}
+.toast.show{opacity:1}
+.toast.success{background:var(--navy);color:#fff}
+.toast.error{background:var(--red);color:#fff}
+
+/* ── SIDE NAV ── */
+.side-nav{width:140px;flex-shrink:0;background:#fff;border-right:1px solid var(--cr2);padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+.side-nav-label{font-size:11px;font-weight:600;color:#888;padding:0 16px 8px;letter-spacing:.05em}
+.side-item{padding:10px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;color:var(--ink2);border-left:3px solid transparent;transition:all .15s}
+.side-item:hover{background:var(--cr3);color:var(--navy)}
+.side-item.active{background:var(--navy3);border-left-color:var(--navy);color:var(--navy);font-weight:600}
+.t-section{display:none}.t-section.on{display:block}
+.btn-enroll.drop{background:#FFEBEE;color:#C62828;border:1px solid #EF9A9A}
+.btn-enroll.drop:hover{background:#FFCDD2}
+
+@media(max-width:600px){.main{padding:16px 12px 60px}.tabs{width:100%}.tab{flex:1;text-align:center}.course-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">福智佛教學院</div>
+    <div class="login-sub">佛法應用研究所 · 學生選課入口</div>
+    <div class="frow">
+      <label class="flabel">學校 Email</label>
+      <input class="finput" id="s-email" type="email" placeholder="學號@bwbc.edu.tw">
+    </div>
+    <button class="login-btn" id="s-login-btn" onclick="sendLink()">傳送登入連結</button>
+    <div class="feedback" id="s-feedback"></div>
+
+    <!-- 測試用：密碼登入（正式上線可隱藏此區塊）-->
+    <div style="margin-top:20px;padding-top:16px;border-top:1px dashed var(--cr2)">
+      <div style="font-size:11px;color:var(--ink3);text-align:center;margin-bottom:10px">— 或使用密碼登入（測試用）—</div>
+      <div class="frow">
+        <input class="finput" id="s-password" type="password" placeholder="密碼" onkeydown="if(event.key==='Enter')passwordLogin()">
+      </div>
+      <button class="login-btn" style="background:var(--ink3)" onclick="passwordLogin()">密碼登入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app-screen" style="display:none">
+  <div class="topbar">
+    <div class="topbar-logo">福智佛教學院 · 學生選課入口</div>
+    <div class="topbar-user" id="s-user-label"></div>
+    <button class="topbar-btn" onclick="signOut()">登出</button>
+  </div>
+
+  <div style="display:flex;min-height:calc(100vh - 52px)">
+    <!-- 左側導覽 -->
+    <div class="side-nav">
+      <div class="side-nav-label">功能選單</div>
+      <div class="side-item" id="nav-ann"    onclick="showSection('ann')">📢 公佈欄</div>
+      <div class="side-item" id="nav-select" onclick="showSection('select')">📚 選課</div>
+      <div class="side-item" id="nav-thesis" onclick="showSection('thesis')">📝 畢業論文</div>
+      <div class="side-item" id="nav-survey" onclick="showSection('survey')">📋 意見調查</div>
+    </div>
+
+    <!-- 右側主內容 -->
+    <div class="main" style="flex:1;max-width:none">
+      <div id="status-banner" style="display:none"></div>
+
+      <!-- ── 公佈欄 ── -->
+      <div id="sec-ann" class="t-section">
+        <div class="section-title" style="display:flex;align-items:center;gap:12px">
+          📢 公佈欄
+          <button onclick="collapseAllAnn()"
+            style="margin-left:auto;font-size:12px;padding:4px 10px;border:1px solid var(--cr2);background:#fff;border-radius:6px;cursor:pointer;color:var(--ink2)"
+            title="把所有展開的公告收合">
+            ⊟ 全部收合
+          </button>
+        </div>
+        <div id="ann-banners" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="ann-empty" style="display:none;color:var(--ink3);font-size:13px;padding:20px 0">目前無公告</div>
+      </div>
+
+      <!-- ── 選課 ── -->
+      <div id="sec-select" class="t-section on">
+        <!-- 公佈欄快訊（在選課頁顯示）-->
+        <div id="ann-banners-select" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+
+        <!-- 畢業進度 -->
+    <div class="grad-wrap" id="grad-wrap" style="display:none">
+      <div style="display:flex;align-items:flex-start;gap:16px">
+        <!-- 左：學分進度 -->
+        <div style="flex:1">
+          <div class="grad-title">🎓 畢業進度 <span id="grad-cohort" style="color:var(--navy)"></span>
+            <span style="margin-left:8px;font-size:11px;color:var(--ink3);font-weight:400">
+              <span style="display:inline-block;width:10px;height:10px;background:var(--navy);border-radius:2px;margin-right:3px;vertical-align:middle"></span>已取得＋本學期
+              <span style="display:inline-block;width:10px;height:10px;background:#90CAF9;border-radius:2px;margin:0 3px 0 8px;vertical-align:middle"></span>新學期
+            </span>
+          </div>
+          <!-- 學期明細列 -->
+          <div id="grad-sem-breakdown" style="font-size:11px;color:var(--ink3);margin-bottom:8px;line-height:1.8"></div>
+          <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center">
+            <!-- 必修 -->
+            <div style="font-size:12px;color:var(--ink3)">必修</div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px">
+                <span style="color:var(--ink3)">已取得 <strong id="grad-req-done" style="color:var(--navy)">0</strong> ＋ 本學期 <strong id="grad-req-cur" style="color:var(--navy)">0</strong> ＋ 新學期 <strong id="grad-req-new" style="color:#1565C0">0</strong> 學分 ＝ 累計 <strong id="grad-req-sum" style="color:var(--ink)">0</strong> 學分</span>
+                <span style="color:var(--ink3)">應修 <strong id="grad-req-max">12</strong> 學分（<strong id="grad-req-pct" style="color:var(--navy)">0%</strong>）</span>
+              </div>
+              <div style="width:100%"><div class="grad-track" id="grad-req-track" style="width:25%"><div id="grad-req-fill-hist" style="height:100%;background:var(--navy);transition:width .4s;flex-shrink:0"></div><div id="grad-req-fill-cur" style="height:100%;background:#90CAF9;transition:width .4s;flex-shrink:0"></div></div></div>
+            </div>
+            <!-- 選修 -->
+            <div style="font-size:12px;color:var(--ink3)">選修</div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px">
+                <span style="color:var(--ink3)">已取得 <strong id="grad-sel-done" style="color:var(--green)">0</strong> ＋ 本學期 <strong id="grad-sel-cur" style="color:var(--green)">0</strong> ＋ 新學期 <strong id="grad-sel-new" style="color:#2E7D32">0</strong> 學分 ＝ 累計 <strong id="grad-sel-sum" style="color:var(--ink)">0</strong> 學分</span>
+                <span style="color:var(--ink3)">應修 <strong id="grad-sel-max">24</strong> 學分（<strong id="grad-sel-pct" style="color:var(--green)">0%</strong>）</span>
+              </div>
+              <div style="width:100%"><div class="grad-track" id="grad-sel-track" style="width:75%"><div id="grad-sel-fill-hist" style="height:100%;background:var(--green);transition:width .4s;flex-shrink:0"></div><div id="grad-sel-fill-cur" style="height:100%;background:#A5D6A7;transition:width .4s;flex-shrink:0"></div></div></div>
+            </div>
+            <!-- 合計 -->
+            <div style="font-size:12px;color:var(--ink3)">合計</div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px">
+                <span style="color:var(--ink3)">已取得 <strong id="grad-tot-done" style="color:var(--gold)">0</strong> ＋ 本學期 <strong id="grad-tot-cur" style="color:var(--gold)">0</strong> ＋ 新學期 <strong id="grad-tot-new" style="color:#F57F17">0</strong> 學分 ＝ 累計 <strong id="grad-tot-sum" style="color:var(--ink)">0</strong> 學分</span>
+                <span style="color:var(--ink3)">應修 <strong id="grad-tot-max">36</strong> 學分（<strong id="grad-tot-pct" style="color:var(--gold2)">0%</strong>）</span>
+              </div>
+              <div style="width:100%"><div class="grad-track" id="grad-tot-track" style="width:100%"><div id="grad-tot-fill-hist" style="height:100%;background:var(--gold);transition:width .4s;flex-shrink:0"></div><div id="grad-tot-fill-cur" style="height:100%;background:#FFE082;transition:width .4s;flex-shrink:0"></div></div></div>
+            </div>
+          </div>
+          <div id="grad-warnings" style="margin-top:8px"></div>
+        </div>
+
+        <!-- 右：論文進度儀表 -->
+        <div style="flex-shrink:0;text-align:center;min-width:150px">
+          <div style="font-size:11px;color:var(--ink3);margin-bottom:2px;font-weight:500;white-space:nowrap">📝 畢業論文進度</div>
+          <div id="thesis-gauge-wrap">
+            <svg width="150" height="100" viewBox="0 0 150 100" id="thesis-gauge-svg"></svg>
+          </div>
+          <div style="font-size:10px;color:var(--ink3);margin-top:0;line-height:1.5" id="thesis-stage-label">尚未申請</div>
+          <!-- tooltip -->
+          <div id="gauge-tooltip" style="display:none;position:fixed;background:var(--navy);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;pointer-events:none;z-index:200;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.2)"></div>
+        </div>
+      </div>
+    </div>
+
+        <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab on" onclick="switchTab('select',this)">📚 選課</button>
+      <button class="tab" onclick="switchTab('enrolled',this)" id="tab-enrolled-btn">✅ 本學期已選課程</button>
+      <button class="tab" onclick="switchTab('history',this)">📖 歷年已選課程</button>
+      
+    </div>
+
+    <!-- ── 選課頁面 ── -->
+    <div id="tab-select" class="page on">
+      <!-- 學分統計 -->
+      <div class="credit-bar" id="credit-bar">
+        <div>
+          <div class="credit-num" id="cr-now">0</div>
+          <div class="credit-lbl">已選學分</div>
+        </div>
+        <div style="width:1px;background:var(--cr2)"></div>
+        <div>
+          <div style="font-size:16px;font-weight:600;color:var(--ink)" id="cr-max">12</div>
+          <div class="credit-lbl">本學期上限</div>
+        </div>
+        <div class="credit-bar-fill">
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink3);margin-bottom:3px">
+            <span>學分進度</span>
+            <span id="cr-pct">0 / 12</span>
+          </div>
+          <div class="credit-track">
+            <div class="credit-fill" id="cr-fill" style="width:0%"></div>
+          </div>
+        </div>
+        <div id="cr-over-badge" style="display:none">
+          <span style="font-size:12px;padding:4px 10px;border-radius:6px;background:#FFF3E0;color:#B05010;border:1px solid #F0C080">⚠️ 超修申請中</span>
+        </div>
+      </div>
+
+      <!-- 課程卡片 -->
+      <div class="section-title">
+        本學期可選課程
+        <span class="section-count" id="available-count">—</span>
+        <span id="sem-period" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:4px"></span>
+        <div id="cohort-toggle-wrap" style="margin-left:auto"></div>
+      </div>
+      <div id="available-grid" class="course-grid">
+        <div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>
+      </div>
+    </div>
+
+    <!-- ── 本學期已選課程 ── -->
+    <div id="tab-enrolled" class="page">
+      <div class="section-title">
+        <span id="enrolled-tab-title">本學期已選課程</span>
+        <span class="section-count" id="enrolled-count">—</span>
+      </div>
+      <div id="enrolled-wrap">
+        <div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>
+      </div>
+    </div>
+
+    <!-- ── 歷年已選課程 ── -->
+    <div id="tab-history" class="page">
+      <div class="section-title">歷年已選課程</div>
+      <div id="history-wrap">
+        <div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>
+      </div>
+    </div>
+
+    <!-- ── 畢業論文（移至左側導覽 sec-thesis）── -->
+
+
+
+      </div><!-- end sec-select -->
+
+      <!-- ── 畢業論文 ── -->
+      <div id="sec-thesis" class="t-section">
+        <div class="section-title">📝 畢業論文進度</div>
+        <div id="thesis-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── 意見調查 ── -->
+      <div id="sec-survey" class="t-section">
+        <div class="section-title">📋 教學意見調查</div>
+        <div id="survey-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+    </div><!-- end main -->
+  </div><!-- end flex -->
+
+<!-- 大綱 Modal -->
+<div id="syl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:720px;margin:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="background:var(--navy);color:#fff;padding:14px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;gap:10px">
+      <div style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;flex:1" id="syl-modal-title">課程大綱</div>
+      <button onclick="closeSyllabus()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="syl-modal-body" style="padding:20px;max-height:75vh;overflow-y:auto;font-size:13px;line-height:1.7">
+      <div style="text-align:center;padding:40px;color:var(--ink3)">載入中…</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 論文共用 Modal -->
+<div id="th-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:480px;margin:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="background:var(--navy);color:#fff;padding:14px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;gap:10px">
+      <div style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;flex:1" id="th-modal-title">標題</div>
+      <button onclick="closeThModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="th-modal-body" style="padding:20px"></div>
+  </div>
+</div>
+
+<script>
+function openThModal(title, bodyHtml) {
+  document.getElementById('th-modal-title').textContent = title;
+  document.getElementById('th-modal-body').innerHTML = bodyHtml;
+  document.getElementById('th-modal').style.display = 'flex';
+}
+function closeThModal() {
+  document.getElementById('th-modal').style.display = 'none';
+}
+</script>
+
+
+<script>
+const SB_URL  = 'https://pjyjpcumakxevxuxwcyx.supabase.co';
+const SB_ANON = 'sb_publishable_Hxw2qfgBO5BTkX4wG4xeTQ_tEsPG3pc';
+const sb = supabase.createClient(SB_URL, SB_ANON, {
+  auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storageKey:'bwbc-student-auth' }
+});
+
+const AX_COLOR = {底蘊:'#1B3A6B',對話:'#1F5C3A',應用:'#7A3210'};
+const AX_BG    = {底蘊:'#EEF2FA',對話:'#EAF4EE',應用:'#FAF0EB'};
+const REQ_ZH   = {req:'必修',sel:'選修',go:'二選一'};
+const STATUS_LABEL = {
+  confirmed:'已選',pending:'待確認',dropped:'已退選',
+  waitlist:'候補',withdrawn:'停修'
+};
+const STATUS_BADGE = {
+  confirmed:'badge-enrolled',pending:'badge-pending',dropped:'badge-dropped',
+  waitlist:'badge-waitlist',withdrawn:'badge-withdrawn'
+};
+
+let ME = null;           // 學生資料
+let SETTING = null;      // enrollment_settings
+let MY_ENROLLMENTS = {}; // { offering_id: enrollment_record }
+let CURRENT_SEM_ID = null;
+let CURRENT_SEM_LABEL = '';
+let CAN_ENROLL  = false;
+let CAN_DROP    = false;
+let ACTIVE_SEM_ID    = null;
+let ACTIVE_SEM_LABEL = '';
+let AVAILABLE_COURSES = [];
+let AVAILABLE_VIEW    = 'card';
+
+/* ════ AUTH ════ */
+async function init() {
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session) await enterApp(session.user);
+}
+
+async function sendLink() {
+  const email = document.getElementById('s-email').value.trim();
+  const btn = document.getElementById('s-login-btn');
+  const fb  = document.getElementById('s-feedback');
+  if (!email) { showFeedback('請輸入 Email','err'); return; }
+  btn.disabled=true; btn.textContent='傳送中…';
+  try {
+    const { error } = await sb.auth.signInWithOtp({
+      email, options:{ emailRedirectTo: window.location.href }
+    });
+    btn.disabled=false; btn.textContent='傳送登入連結';
+    if (error) showFeedback('❌ '+error.message,'err');
+    else showFeedback('✅ 登入連結已寄出！請查收 '+email+' 的信件','ok');
+  } catch(e) {
+    btn.disabled=false; btn.textContent='傳送登入連結';
+    showFeedback('❌ 發生錯誤：'+e.message,'err');
+    console.error('sendLink error:', e);
+  }
+}
+
+function showFeedback(msg, type) {
+  const fb=document.getElementById('s-feedback');
+  fb.textContent=msg; fb.className='feedback '+type; fb.style.display='block';
+}
+
+/* 測試用：密碼登入 */
+async function passwordLogin() {
+  const email = document.getElementById('s-email').value.trim();
+  const password = document.getElementById('s-password').value;
+  if (!email || !password) { showFeedback('請輸入 Email 與密碼','err'); return; }
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { showFeedback('❌ '+error.message,'err'); return; }
+    // 成功會觸發 onAuthStateChange → enterApp
+  } catch(e) {
+    showFeedback('❌ 登入失敗：'+e.message,'err');
+  }
+}
+
+async function enterApp(user) {
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('s-user-label').textContent = user.email;
+
+  // 找學生資料（不分大小寫）
+  const emailLower = user.email.trim().toLowerCase();
+  const { data:s } = await sb.from('students').select('*')
+    .ilike('email', emailLower).maybeSingle();
+  if (!s) {
+    showBanner('err','❌ 找不到對應的學生資料，請聯絡行政辦公室。');
+    return;
+  }
+  ME = s;
+
+  // 更新頂部顯示：姓名 + email
+  document.getElementById('s-user-label').textContent = `${ME.name_zh}　${user.email}`;
+
+  // 第一次登入時自動建立 users 記錄（確保 RLS 正常運作）
+  const { data:uRow } = await sb.from('users').select('id').eq('id', user.id).maybeSingle();
+  if (!uRow) {
+    await sb.from('users').insert({
+      id: user.id, email: emailLower, role: 'student', student_id: s.id
+    });
+  }
+
+  // 找選課開放中的學期（從 enrollment_settings 找最近的學期）
+  const { data:semList } = await sb.from('enrollment_settings')
+    .select('*, semesters(*)')
+    .order('open_at', {ascending: false});
+  const now2 = new Date();
+  let targetSetting = (semList||[]).find(es =>
+    now2 >= new Date(es.open_at) && now2 <= new Date(es.withdraw_deadline||es.close_at)
+  ) || (semList||[]).find(es => now2 < new Date(es.open_at));
+  if (!targetSetting) targetSetting = (semList||[])[0];
+  const sem = targetSetting?.semesters;
+  if (!sem) { showBanner('warn','⚠️ 目前尚未設定選課學期，請聯絡行政辦公室。'); return; }
+  CURRENT_SEM_ID    = sem.id;
+  CURRENT_SEM_LABEL = sem.label;
+
+  // 找本學期（is_current=true）
+  const { data:activeSem } = await sb.from('semesters')
+    .select('id, label').eq('is_current', true).maybeSingle();
+  ACTIVE_SEM_ID    = activeSem?.id    || CURRENT_SEM_ID;
+  ACTIVE_SEM_LABEL = activeSem?.label || CURRENT_SEM_LABEL;
+
+  // 更新子頁籤名稱
+  document.getElementById('tab-enrolled-btn').textContent = `✅ ${ACTIVE_SEM_LABEL} 已選課程`;
+  document.getElementById('enrolled-tab-title').textContent = `${ACTIVE_SEM_LABEL} 已選課程`;
+
+  const setting = targetSetting;
+  SETTING = setting;
+
+  // 判斷選課狀態
+  const now = new Date();
+  const isLeave = ME.status === 'leave';
+  const inPeriod = setting
+    ? (now >= new Date(setting.open_at) && now <= new Date(setting.close_at))
+    : false;
+
+  CAN_ENROLL = !isLeave && inPeriod;
+  CAN_DROP   = !isLeave && setting && now <= new Date(setting.close_at);
+
+  // 顯示狀態 banner
+  if (isLeave) {
+    showBanner('err','⚠️ 您目前為休學狀態，無法進行選課。如需復學，請聯絡行政辦公室完成復學及註冊手續。');
+  } else if (!setting) {
+    showBanner('warn','⚠️ 本學期選課尚未開放，請留意學校公告。');
+  } else if (now < new Date(setting.open_at)) {
+    const openDate = new Date(setting.open_at).toLocaleDateString('zh-TW');
+    showBanner('info',`📅 選課開放時間：${openDate}，目前尚未開放。`);
+  } else if (now > new Date(setting.close_at)) {
+    const closeDate = new Date(setting.close_at).toLocaleDateString('zh-TW');
+    showBanner('warn',`⏰ 加退選截止（${closeDate}）已過，如需停修請聯絡行政辦公室。`);
+  } else {
+    // 選課進行中不顯示綠色 banner（避免每頁都看到），改為更新 sem-period 顯示
+    document.getElementById('sem-period').textContent = `${CURRENT_SEM_LABEL}`;
+  }
+
+  await Promise.all([loadMyEnrollments(), loadAvailableCourses()]);
+  loadPublicAnnouncements('student');
+  showSection('ann');
+}
+
+async function signOut() { await sb.auth.signOut(); location.reload(); }
+
+/* ════ 公佈欄公告 ════ */
+async function loadPublicAnnouncements(role) {
+  try {
+    const now = new Date().toISOString();
+    const { data } = await sb.from('announcements')
+      .select('id,title,content,target,expires_at')
+      .in('target', [role, 'all'])
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order('created_at', {ascending:false})
+      .limit(10);
+    const el = document.getElementById('ann-banners');
+    if (!el) return;
+    if (!data?.length) {
+      const emp = document.getElementById('ann-empty');
+      if (emp) emp.style.display = 'block';
+      return;
+    }
+
+    // 查附件，用 signed URL
+    const ids = data.map(a=>a.id);
+    const {data:atts} = await sb.from('attachments').select('*').eq('ref_type','announcement').in('ref_id',ids);
+    const attMap={};
+    (atts||[]).forEach(a=>{ if(!attMap[a.ref_id]) attMap[a.ref_id]=[]; attMap[a.ref_id].push(a); });
+
+    // 預先取得所有 signed URL
+    const signedMap = {};
+    for (const annId of ids) {
+      for (const att of (attMap[annId]||[])) {
+        const {data:su} = await sb.storage.from('admin-assets').createSignedUrl(att.file_path, 3600);
+        signedMap[att.id] = su?.signedUrl || '#';
+      }
+    }
+
+    el.innerHTML = data.map((a, idx) => {
+      const annAtts = attMap[a.id]||[];
+      const attHtml = annAtts.length
+        ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+            ${annAtts.map(att=>`<a href="${signedMap[att.id]}" target="_blank"
+              style="font-size:11px;padding:3px 10px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+              📎 ${att.filename}</a>`).join('')}
+           </div>` : '';
+      const hasBody = a.content || annAtts.length;
+      const expStr = a.expires_at ? `至 ${new Date(a.expires_at).toLocaleDateString('zh-TW')}` : '';
+
+      return `<div style="background:#EDE9FE;border:1px solid #C4B5FD;border-radius:10px;overflow:hidden">
+        <!-- 標題列（點擊收合/展開）-->
+        <div onclick="toggleAnn(${idx})" style="display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:${hasBody?'pointer':'default'};user-select:none">
+          <span style="flex-shrink:0;font-size:16px">📌</span>
+          <div style="flex:1;font-size:13px;font-weight:600;color:#4C1D95">${a.title}</div>
+          ${expStr ? `<span style="font-size:11px;color:#7C3AED;opacity:.7;flex-shrink:0">${expStr}</span>` : ''}
+          ${hasBody ? `<span id="ann-arrow-${idx}" style="font-size:12px;color:#7C3AED;flex-shrink:0;transition:transform .2s">▼</span>` : ''}
+        </div>
+        <!-- 展開內容（預設隱藏）-->
+        ${hasBody ? `<div id="ann-body-${idx}" style="display:none;padding:0 16px 14px 16px;border-top:1px solid #C4B5FD">
+          ${a.content ? `<div style="font-size:13px;color:#3B0764;line-height:1.8;white-space:pre-wrap;margin-top:10px">${a.content}</div>` : ''}
+          ${attHtml}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) { console.warn('公佈欄載入失敗',e); }
+}
+
+function toggleAnn(idx) {
+  const body  = document.getElementById('ann-body-' + idx);
+  const arrow = document.getElementById('ann-arrow-' + idx);
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display  = isOpen ? 'none' : '';
+  if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+/* 全部收合 */
+function collapseAllAnn() {
+  document.querySelectorAll('[id^="ann-body-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('[id^="ann-arrow-"]').forEach(el => el.style.transform = '');
+}
+
+/* ════ GRADUATION PROGRESS ════ */
+async function loadGraduationProgress() {
+  try {
+  const { data:reqs } = await sb.from('graduation_requirements')
+    .select('*')
+    .lte('cohort_from', ME.cohort)
+    .or(`cohort_to.is.null,cohort_to.gte.${ME.cohort}`)
+    .maybeSingle();
+  if (!reqs) return;
+
+  document.getElementById('grad-wrap').style.display = '';
+  document.getElementById('grad-cohort').textContent = `${ME.cohort}級`;
+  document.getElementById('grad-req-max').textContent = reqs.req_credits;
+  document.getElementById('grad-sel-max').textContent = reqs.sel_credits;
+  document.getElementById('grad-tot-max').textContent = reqs.total_min;
+
+  // 取得所有學期（依時間排序）
+  const { data:allSems } = await sb.from('semesters')
+    .select('id, label, academic_year, semester_num')
+    .order('academic_year').order('semester_num');
+
+  // 所有已確認選課（跨所有學期）
+  const { data:allEnr } = await sb.from('enrollments')
+    .select('offering_id, semester_id, status')
+    .eq('student_id', ME.id)
+    .eq('status', 'confirmed');
+
+  if (!allEnr?.length) {
+    // 沒選課記錄:用空資料初始化 UI（讓進度條軌道仍可見）
+    const curSem = (allSems||[]).find(s=>s.id===CURRENT_SEM_ID);
+    const curOrder = curSem ? curSem.academic_year*10+curSem.semester_num : 99999;
+    const semOrders = (allSems||[]).map(s=>s.academic_year*10+s.semester_num).sort((a,b)=>a-b);
+    const curIdx = semOrders.indexOf(curOrder);
+    const prevOrder = curIdx > 0 ? semOrders[curIdx-1] : curOrder - 1;
+    updateGradUI(allSems||[], {}, prevOrder, curOrder, reqs, []);
+    return;
+  }
+
+  const offeringIds = allEnr.map(e=>e.offering_id);
+  // 查 course_offerings 取得 course_id 和 group_id
+  const { data:offerings } = await sb.from('course_offerings')
+    .select('id, course_id, group_id')
+    .in('id', offeringIds);
+  const courseIds = [...new Set((offerings||[]).map(o=>o.course_id))];
+  const groupIds  = [...new Set((offerings||[]).map(o=>o.group_id).filter(Boolean))];
+  const [{ data:coursesData }, { data:groupsData }] = await Promise.all([
+    sb.from('courses').select('id, req_type, credits, is_audit').in('id', courseIds),
+    groupIds.length ? sb.from('course_groups').select('id, name, required_count').in('id', groupIds) : Promise.resolve({data:[]}),
+  ]);
+  const courseLookup = {};
+  (coursesData||[]).forEach(c=>{ courseLookup[c.id]=c; });
+  const groupLookup = {};
+  (groupsData||[]).forEach(g=>{ groupLookup[g.id]=g; });
+
+  const courseMap = {};
+  (offerings||[]).forEach(co=>{
+    const c = courseLookup[co.course_id];
+    const g = co.group_id ? groupLookup[co.group_id] : null;
+    if (!c) return;
+    courseMap[co.id] = {
+      req_type:            c.req_type,
+      credits:             c.credits,
+      group_name:          g?.name || null,
+      group_required_count: g?.required_count || null,
+    };
+  });
+
+  // 判斷 CURRENT_SEM 的順序值
+  const curSem = (allSems||[]).find(s=>s.id===CURRENT_SEM_ID);
+  const curOrder = curSem ? curSem.academic_year*10+curSem.semester_num : 99999;
+
+  // 按學期分組計算 req/sel
+  // semData: { semId: { label, order, req, sel } }
+  const semData = {};
+  (allSems||[]).forEach(s=>{
+    semData[s.id]={ label:s.label, order:s.academic_year*10+s.semester_num, req:0, sel:0 };
+  });
+
+  const groupMap = {};
+  allEnr.forEach(e=>{
+    const c = courseMap[e.offering_id];
+    if (!c) return;
+    const credits = c.credits||0;
+    if (!semData[e.semester_id]) return;
+    if (c.req_type==='req') semData[e.semester_id].req+=credits;
+    else if (c.req_type==='sel'||c.req_type==='go') {
+      semData[e.semester_id].sel+=credits;
+      if (c.req_type==='go'&&c.group_name) {
+        if (!groupMap[c.group_name]) groupMap[c.group_name]={required:c.group_required_count||1,enrolled:0};
+        groupMap[c.group_name].enrolled++;
+      }
+    }
+  });
+
+  // 二選一警示
+  const warnings = [];
+  Object.entries(groupMap).forEach(([grp,val])=>{
+    if (val.enrolled<val.required)
+      warnings.push(`⚠️ 「${grp}」尚未完成選擇（已選 ${val.enrolled}，需選 ${val.required}）`);
+  });
+
+  // 只保留有選課記錄的學期（但全部顯示，包括 0 學分的）
+  // 依順序分為：已取得（order < curOrder - 1）、本學期（curOrder - 1）、新學期（curOrder）
+  // 找前一個學期的 order
+  const semOrders = (allSems||[]).map(s=>s.academic_year*10+s.semester_num).sort((a,b)=>a-b);
+  const curIdx = semOrders.indexOf(curOrder);
+  const prevOrder = curIdx > 0 ? semOrders[curIdx-1] : -1;
+
+  // 篩選有選課記錄的學期
+  const enrSemIds = new Set(allEnr.map(e=>e.semester_id));
+  const activeSems = (allSems||[])
+    .filter(s=>enrSemIds.has(s.id))
+    .sort((a,b)=>(a.academic_year*10+a.semester_num)-(b.academic_year*10+b.semester_num));
+
+  updateGradUI(activeSems, semData, prevOrder, curOrder, reqs, warnings);
+  } catch(e) { console.warn('loadGraduationProgress error:', e); }
+}
+
+function updateGradUI(activeSems, semData, prevOrder, curOrder, reqs, warnings=[]) {
+  const reqMax = reqs.req_credits;
+  const selMax = reqs.sel_credits;
+  const totMax = reqs.total_min;
+
+  // 計算各類合計
+  let doneReq=0, doneSelArr=[], curReq=0, curSel=0, newReq=0, newSel=0;
+  const doneSemsReq=[], doneSelByLabel={};
+
+  (activeSems||[]).forEach(s=>{
+    const sd = semData[s.id];
+    if (!sd) return;
+    const order = sd.order;
+    if (order < prevOrder) {
+      // 已取得（更早的學期）
+      doneReq += sd.req;
+      if (!doneSelByLabel[sd.label]) doneSelByLabel[sd.label]=0;
+      doneSelByLabel[sd.label] += sd.sel;
+      doneSemsReq.push({label:sd.label, req:sd.req, sel:sd.sel});
+    } else if (order === prevOrder) {
+      // 本學期（CURRENT_SEM 的前一個學期）
+      curReq = sd.req; curSel = sd.sel;
+    } else if (order === curOrder) {
+      // 新學期（CURRENT_SEM，正在選課）
+      newReq = sd.req; newSel = sd.sel;
+    }
+  });
+  const doneSelTotal = doneSemsReq.reduce((s,x)=>s+x.sel,0);
+
+  const sumReq = doneReq + curReq + newReq;
+  const sumSel = doneSelTotal + curSel + newSel;
+  const sumTot = sumReq + sumSel;
+
+  // 進度條計算
+  const trackPct = (max) => (max/totMax*100)+'%';
+  const fillPct  = (v,max) => Math.min(100,v/max*100)+'%';
+  const donePct  = (v,max) => Math.round(Math.min(100,v/max*100))+'%';
+
+  document.getElementById('grad-req-track').style.width = trackPct(reqMax);
+  document.getElementById('grad-sel-track').style.width = trackPct(selMax);
+  document.getElementById('grad-tot-track').style.width = trackPct(totMax);
+
+  // 進度條填充（已取得=深色，本學期=中色，新學期=淺色）
+  // 必修
+  document.getElementById('grad-req-fill-hist').style.width = fillPct(doneReq+curReq, reqMax);
+  document.getElementById('grad-req-fill-cur').style.width  = fillPct(newReq, reqMax);
+  document.getElementById('grad-req-pct').textContent = donePct(sumReq, reqMax);
+  document.getElementById('grad-req-sum').style.color = sumReq>=reqMax?'var(--green)':'var(--ink)';
+  // 選修
+  document.getElementById('grad-sel-fill-hist').style.width = fillPct(doneSelTotal+curSel, selMax);
+  document.getElementById('grad-sel-fill-cur').style.width  = fillPct(newSel, selMax);
+  document.getElementById('grad-sel-pct').textContent = donePct(sumSel, selMax);
+  document.getElementById('grad-sel-sum').style.color = sumSel>=selMax?'var(--green)':'var(--ink)';
+  // 合計
+  document.getElementById('grad-tot-fill-hist').style.width = fillPct(doneReq+curReq+doneSelTotal+curSel, totMax);
+  document.getElementById('grad-tot-fill-cur').style.width  = fillPct(newReq+newSel, totMax);
+  document.getElementById('grad-tot-pct').textContent = donePct(sumTot, totMax);
+  document.getElementById('grad-tot-sum').style.color = sumTot>=totMax?'var(--green)':'var(--ink)';
+
+  // 最大值顯示
+  document.getElementById('grad-req-max').textContent = reqMax;
+  document.getElementById('grad-sel-max').textContent = selMax;
+  document.getElementById('grad-tot-max').textContent = totMax;
+
+  // 找本學期和新學期的 label
+  const prevSem = (activeSems||[]).find(s=>semData[s.id]?.order===prevOrder);
+  const curSemObj = (activeSems||[]).find(s=>semData[s.id]?.order===curOrder);
+  const prevLabel = prevSem ? semData[prevSem.id].label : '本學期';
+  const curLabel  = curSemObj ? semData[curSemObj.id].label : '新學期';
+
+  // 文字說明（逐學期列出）
+  function buildSemText(doneArr, curR, curS, curLbl, newR, newS, newLbl, sumV, maxV, type) {
+    const doneText = doneArr.length
+      ? doneArr.map(x=>`已取得 <strong>${type==='req'?x.req:x.sel}</strong> 學分（${x.label}）`).join(' ＋ ')
+      : '';
+    const curText  = `本學期 <strong>${curR}</strong> 學分（${curLbl}）`;
+    const newText  = `新學期 <strong>${newR}</strong> 學分（${newLbl}）`;
+    const parts = [];
+    if (doneText) parts.push(doneText);
+    parts.push(curText);
+    parts.push(newText);
+    return `<span style="color:var(--ink3)">${parts.join(' ＋ ')} ＝ 累計 <strong id="grad-${type}-sum" style="color:${sumV>=maxV?'var(--green)':'var(--ink)'}">${sumV}</strong> 學分</span>`;
+  }
+
+  const reqTextEl = document.querySelector('#grad-req-fill-hist')?.closest('div')?.previousElementSibling?.querySelector('span:first-child');
+  const selTextEl = document.querySelector('#grad-sel-fill-hist')?.closest('div')?.previousElementSibling?.querySelector('span:first-child');
+  const totTextEl = document.querySelector('#grad-tot-fill-hist')?.closest('div')?.previousElementSibling?.querySelector('span:first-child');
+
+  if (reqTextEl) reqTextEl.innerHTML = buildSemText(doneSemsReq, curReq, curReq, prevLabel, newReq, newReq, curLabel, sumReq, reqMax, 'req')
+    .replace('本學期 <strong>'+curReq+'</strong>', '本學期 <strong>'+curReq+'</strong>')
+    .replace('新學期 <strong>'+newReq+'</strong>', '新學期 <strong>'+newReq+'</strong>');
+
+  // 直接更新 DOM 文字（三欄分開：已取得 / 本學期 / 新學期）
+  const setEl=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('grad-req-done', doneReq);
+  setEl('grad-req-cur',  curReq);
+  setEl('grad-req-new',  newReq);
+  setEl('grad-req-sum',  sumReq);
+  setEl('grad-sel-done', doneSelTotal);
+  setEl('grad-sel-cur',  curSel);
+  setEl('grad-sel-new',  newSel);
+  setEl('grad-sel-sum',  sumSel);
+  setEl('grad-tot-done', doneReq+doneSelTotal);
+  setEl('grad-tot-cur',  curReq+curSel);
+  setEl('grad-tot-new',  newReq+newSel);
+  setEl('grad-tot-sum',  sumTot);
+
+  // 逐學期詳細文字（更新說明列）
+  const semBreakdown = document.getElementById('grad-sem-breakdown');
+  if (semBreakdown) {
+    const rows = [];
+    doneSemsReq.forEach(x=>{
+      rows.push(`<span style="color:var(--ink3);margin-right:8px">已取得 ${x.req+x.sel} 學分（${x.label}）</span>`);
+    });
+    if (prevLabel) rows.push(`<span style="color:var(--navy);margin-right:8px">本學期 ${curReq+curSel} 學分（${prevLabel}）</span>`);
+    if (curLabel)  rows.push(`<span style="color:#1565C0">新學期 ${newReq+newSel} 學分（${curLabel}）</span>`);
+    semBreakdown.innerHTML = rows.join('＋ ');
+  }
+
+  const warnEl = document.getElementById('grad-warnings');
+  warnEl.innerHTML = warnings.map(w=>`<div class="grad-warn">${w}</div>`).join('');
+  loadThesisGauge();
+}
+
+// 極座標轉直角（半圓儀表用）
+function polarPt(cx, cy, r, angleDeg) {
+  const rad = (angleDeg) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+async function loadThesisGauge() {
+  try {
+    // 讀取該年級階段定義
+    const { data:req } = await sb.from('thesis_requirements')
+      .select('stages')
+      .lte('cohort_from', ME.cohort)
+      .or(`cohort_to.is.null,cohort_to.gte.${ME.cohort}`)
+      .maybeSingle();
+    const stages = req?.stages || ['申請指導教授','確認論文題目','送件學倫審查','完成論文撰寫'];
+
+    // 讀取學生論文進度
+    const { data:prog } = await sb.from('thesis_progress')
+      .select('stage')
+      .eq('student_id', ME.id)
+      .maybeSingle();
+    const currentStage = prog?.stage || 0;
+
+    renderThesisGauge(stages, currentStage);
+  } catch(e) {
+    console.warn('thesis gauge:', e);
+    renderThesisGauge(['申請指導教授','確認論文題目','送件學倫審查','完成論文撰寫'], 0);
+  }
+}
+
+function renderThesisGauge(stages, currentStage) {
+  const svg = document.getElementById('thesis-gauge-svg');
+  if (!svg) return;
+
+  const n = stages.length;
+  const cx = 75, cy = 80, r = 52;
+  const colors = ['#C4B5FD','#8B5CF6','#6D28D9','#3B0764','#A78BFA','#7C3AED'];
+  const segGap = 3; // 段間隙（度）
+  const totalDeg = 180;
+  const segDeg = (totalDeg - segGap*(n-1)) / n;
+
+  let html = '';
+
+  // 各段弧形（從左 180° 到右 360°/0°）
+  for (let i = 0; i < n; i++) {
+    const startA = 180 + i * (segDeg + segGap);
+    const endA   = startA + segDeg;
+    const p1 = polarPt(cx, cy, r, startA);
+    const p2 = polarPt(cx, cy, r, endA);
+    const done = i < currentStage;
+    const active = i === currentStage - 1;
+    const color = done ? colors[i % colors.length] : '#E8E8E8';
+    html += `<path d="M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${r} ${r} 0 0 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}"
+      fill="none" stroke="${color}" stroke-width="11" stroke-linecap="round"
+      data-stage="${i+1}" data-name="${stages[i]}"
+      style="cursor:pointer;transition:stroke .4s"
+      onmouseenter="showGaugeTip(event,'${stages[i].replace(/'/g,'')}')"
+      onmousemove="moveGaugeTip(event)"
+      onmouseleave="hideGaugeTip()"/>`;
+
+    // 階段圓圈數字（弧段中央，字體放大）
+    const midA = startA + segDeg/2;
+    const labelPt = polarPt(cx, cy, r+14, midA);
+    const numColor = done ? '#6D28D9' : '#BBB';
+    html += `<text x="${labelPt.x.toFixed(1)}" y="${(labelPt.y+4).toFixed(1)}"
+      text-anchor="middle" font-size="11" font-weight="700" fill="${numColor}"
+      font-family="sans-serif" style="pointer-events:none">${'①②③④'[i]}</text>`;
+  }
+
+  // 分界刻度直線（只保留中間3條，移除首尾）
+  for (let i = 1; i < n; i++) {
+    const tickA = 180 + i * (segDeg + segGap) - segGap/2;
+    const inner = polarPt(cx, cy, r-7, tickA);
+    const outer = polarPt(cx, cy, r+7, tickA);
+    html += `<line x1="${inner.x.toFixed(1)}" y1="${inner.y.toFixed(1)}"
+      x2="${outer.x.toFixed(1)}" y2="${outer.y.toFixed(1)}"
+      stroke="#AAA" stroke-width="1.5" stroke-linecap="round" style="pointer-events:none"/>`;
+  }
+
+  // 指針角度：0階段=180°(左)，n階段=360°(右)
+  const needleAngle = 180 + (currentStage / n) * 180;
+  const needleEnd = polarPt(cx, cy, r-8, needleAngle);
+
+  html += `<g style="transition:transform .7s cubic-bezier(.34,1.4,.6,1)">
+    <line x1="${cx}" y1="${cy}" x2="${needleEnd.x.toFixed(1)}" y2="${needleEnd.y.toFixed(1)}" stroke="#1B3A6B" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="5" fill="#1B3A6B"/>
+  </g>`;
+
+  // 中心文字
+  html += `<text x="${cx}" y="64" text-anchor="middle" font-size="16" font-weight="700" fill="${currentStage>0?'#4C1D95':'#999'}" font-family="sans-serif">${currentStage}</text>`;
+  html += `<text x="${cx}" y="86" text-anchor="middle" font-size="9" fill="#999" font-family="sans-serif">/ ${n} 階段</text>`;
+
+  svg.innerHTML = html;
+
+  // 文字標籤（依 UM：stage = 已完成階段數，顯示「進行中的下一階段」）
+  const labelEl = document.getElementById('thesis-stage-label');
+  if (labelEl) {
+    const symbols = ['①','②','③','④'];
+    if (currentStage === 0) labelEl.textContent = symbols[0] + ' ' + stages[0];
+    else if (currentStage >= n) labelEl.textContent = '✅ 已完成';
+    else labelEl.textContent = symbols[currentStage] + ' ' + stages[currentStage] + '（進行中）';
+  }
+
+  // 同步更新畢業論文頁面的儀表（如果存在）
+  const svg2 = document.getElementById('thesis-gauge-svg-2');
+  if (svg2) svg2.innerHTML = html;
+  const label2 = document.getElementById('thesis-stage-label-2');
+  if (label2) {
+    const symbols = ['①','②','③','④'];
+    if (currentStage === 0) label2.textContent = symbols[0] + ' ' + stages[0];
+    else if (currentStage >= n) label2.textContent = '✅ 已完成';
+    else label2.textContent = symbols[currentStage] + ' ' + stages[currentStage] + '（進行中）';
+  }
+}
+
+function showGaugeTip(e, name) {
+  const tip = document.getElementById('gauge-tooltip');
+  if (!tip) return;
+  tip.textContent = name;
+  tip.style.display = 'block';
+  moveGaugeTip(e);
+}
+function moveGaugeTip(e) {
+  const tip = document.getElementById('gauge-tooltip');
+  if (!tip) return;
+  tip.style.left = (e.clientX + 12) + 'px';
+  tip.style.top  = (e.clientY - 30) + 'px';
+}
+function hideGaugeTip() {
+  const tip = document.getElementById('gauge-tooltip');
+  if (tip) tip.style.display = 'none';
+}
+
+/* ════ LOAD DATA ════ */
+async function loadMyEnrollments() {
+  // MY_ENROLLMENTS: 選課學期（CURRENT_SEM_ID = 115-1）→ 給選課頁的按鈕用
+  const { data } = await sb.from('enrollments')
+    .select('*')
+    .eq('student_id', ME.id)
+    .eq('semester_id', CURRENT_SEM_ID)
+    .in('status',['confirmed','pending','waitlist','withdrawn']);
+  MY_ENROLLMENTS = {};
+  (data||[]).forEach(e => { MY_ENROLLMENTS[e.offering_id] = e; });
+  updateCreditBar();
+
+  // 已選課程頁顯示本學期（ACTIVE_SEM_ID = 114-2）的選課
+  const activeSemForEnrolled = ACTIVE_SEM_ID || CURRENT_SEM_ID;
+  if (activeSemForEnrolled === CURRENT_SEM_ID) {
+    // 同一學期，直接用 data
+    renderEnrolled(data||[]);
+  } else {
+    const { data:activeData } = await sb.from('enrollments')
+      .select('*')
+      .eq('student_id', ME.id)
+      .eq('semester_id', activeSemForEnrolled)
+      .in('status',['confirmed','pending','waitlist','withdrawn']);
+    renderEnrolled(activeData||[]);
+  }
+
+  // 畢業進度非同步載入，不阻塞主流程
+  loadGraduationProgress().catch(e => console.warn('grad:', e));
+}
+
+async function loadAvailableCourses(showAllCohorts = false) {
+  // 載入本學期課程
+  let query = sb.from('v_course_schedule').select('*').eq('semester_label', CURRENT_SEM_LABEL);
+  if (!showAllCohorts) {
+    query = query.or(`target_cohort.eq.${ME.cohort},target_cohort.is.null`);
+  }
+  const { data } = await query.order('axis_code').order('code');
+
+  // 取得教師
+  const ids = (data||[]).map(c=>c.offering_id);
+  let teacherMap = {};
+  if (ids.length) {
+    const { data:ot } = await sb.from('v_offering_teachers').select('*').in('offering_id',ids);
+    (ot||[]).forEach(t=>{ if(!teacherMap[t.offering_id]) teacherMap[t.offering_id]=[]; teacherMap[t.offering_id].push(t.name_zh); });
+  }
+
+  // 取得已有大綱的 offering_id
+  let sylSet = new Set();
+  if (ids.length) {
+    const { data:syls } = await sb.from('syllabi').select('offering_id').in('offering_id',ids);
+    (syls||[]).forEach(s=>sylSet.add(s.offering_id));
+  }
+
+  const grid = document.getElementById('available-grid');
+  const myCount = (data||[]).filter(c=>!c.target_cohort||c.target_cohort===ME.cohort).length;
+  document.getElementById('available-count').textContent = myCount + ' 門';
+
+  // 跨年級切換按鈕
+  const toggleBtn = showAllCohorts
+    ? `<button onclick="loadAvailableCourses(false)" style="padding:5px 12px;border-radius:6px;font-size:12px;background:var(--navy3);color:var(--navy);border:1px solid rgba(43,95,160,.2);cursor:pointer">← 只看本年級</button>`
+    : `<button onclick="loadAvailableCourses(true)" style="padding:5px 12px;border-radius:6px;font-size:12px;background:var(--cr2);color:var(--ink3);border:none;cursor:pointer">🔍 查看其他年級課程</button>`;
+  document.getElementById('cohort-toggle-wrap').innerHTML = toggleBtn;
+
+  if (!data?.length) { grid.innerHTML='<div style="color:var(--ink3);padding:20px;font-size:13px">本學期無可選課程</div>'; return; }
+
+  grid.innerHTML = (data||[]).map(c => {
+    const axColor = AX_COLOR[c.axis_code]||'#1B3A6B';
+    const axBg    = AX_BG[c.axis_code]||'#EEF2FA';
+    const teachers = (teacherMap[c.offering_id]||[]).join('、');
+    const en = MY_ENROLLMENTS[c.offering_id];
+    const reqBadge = c.req_type ? `<span class="badge badge-${c.req_type==='req'?'req':c.req_type==='go'?'go':'sel'}">${REQ_ZH[c.req_type]||''}</span>` : '';
+    const isCross = c.target_cohort && c.target_cohort !== ME.cohort;
+    const crossBadge = isCross ? `<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:#FFF3E0;color:#B05010;border:1px solid #F0C080">${c.target_cohort}級課程</span>` : '';
+    const hasSyl = sylSet.has(c.offering_id);
+
+    let btnHtml = '';
+    if (en) {
+      if (en.status==='confirmed') {
+        btnHtml = CAN_ENROLL
+          ? `<button class="btn-enroll enrolled" onclick="dropCourse('${c.offering_id}')">✅ 已選　退選</button>`
+          : `<button class="btn-enroll disabled">✅ 已選</button>`;
+      } else if (en.status==='withdrawn') {
+        btnHtml = `<button class="btn-enroll withdrawn">停修</button>`;
+      } else if (en.status==='waitlist') {
+        btnHtml = `<button class="btn-enroll disabled">候補中</button>`;
+      } else {
+        btnHtml = `<button class="btn-enroll disabled">${STATUS_LABEL[en.status]||en.status}</button>`;
+      }
+    } else {
+      btnHtml = CAN_ENROLL
+        ? `<button class="btn-enroll can" onclick="enrollCourse('${c.offering_id}',${c.credits})">＋ 加選</button>`
+        : `<button class="btn-enroll disabled">加選</button>`;
+    }
+
+    const isEnrolled = en && en.status === 'confirmed';
+    const cardBg = isEnrolled ? 'background:#F0FAF4;' : '';
+    return `<div class="course-card" style="border-top:3px solid ${axColor};${cardBg}${isCross?'opacity:.85':''}">
+      <div class="cc-top">
+        <div class="cc-code" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          <span>${c.code}</span>
+          <span style="font-size:10px;padding:1px 7px;border-radius:4px;background:${axBg};color:${axColor}">${c.axis_code||''}</span>
+          ${reqBadge}${crossBadge}
+        </div>
+        <div class="cc-name">${c.name_zh}</div>
+        ${c.name_en?`<div class="cc-en">${c.name_en}</div>`:''}
+        <div class="cc-info">
+          <span>⏰ ${c.time_raw||'時間待確認'}</span>
+          <span>🏛 ${c.classroom_name||'教室待確認'}</span>
+          ${teachers?`<span>👤 ${teachers}</span>`:''}
+        </div>
+      </div>
+      <div class="cc-bot">
+        <span class="cc-cred">${c.credits} 學分</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${hasSyl ? `<button onclick="openSyllabus('${c.offering_id}','${c.name_zh.replace(/'/g,"&#39;")}')" style="padding:4px 10px;border-radius:6px;font-size:12px;background:var(--navy3);color:var(--navy);border:1px solid rgba(43,95,160,.2);cursor:pointer">📋 大綱</button>` : ''}
+          ${btnHtml}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ════ ENROLL / DROP ════ */
+async function enrollCourse(offeringId, credits) {
+  if (!CAN_ENROLL) { showToast('目前非選課期間','error'); return; }
+
+  // 取出想加選課程資訊
+  const { data:newCourse } = await sb.from('v_course_schedule')
+    .select('code,name_zh,day,start_time,end_time,week_pattern,credits')
+    .eq('offering_id', offeringId).single();
+
+  // ── 課程名稱重複檢查（跨所有學期歷史）──
+  const { data:allEnrollments } = await sb.from('enrollments')
+    .select('offering_id, status')
+    .eq('student_id', ME.id)
+    .in('status', ['confirmed','withdrawn']);  // 含已修課與停修
+
+  let dupNote = null;
+  if (allEnrollments?.length) {
+    const histIds = allEnrollments.map(e=>e.offering_id).filter(id=>id!==offeringId);
+    if (histIds.length) {
+      const { data:histCourses } = await sb.from('v_course_schedule')
+        .select('offering_id,name_zh,semester_label').in('offering_id', histIds);
+
+      // 去掉課名末尾的中文數字（一二三四五…）
+      const stripNum = name => name.replace(/[一二三四五六七八九十百千]+$/,'').trim();
+      const newBase = stripNum(newCourse.name_zh);
+
+      for (const hc of (histCourses||[])) {
+        if (hc.name_zh === newCourse.name_zh) {
+          // 完全相同 → 擋住
+          showToast(`❌ 您已修過「${hc.name_zh}」（${hc.semester_label}），無法重複加選。`, 'error');
+          return;
+        }
+        if (stripNum(hc.name_zh) === newBase && hc.name_zh !== newCourse.name_zh) {
+          // 高度相似 → 記錄但繼續
+          dupNote = `學生曾修過高度相似課程：「${hc.name_zh}」(${hc.semester_label})，請行政確認是否允許。`;
+        }
+      }
+    }
+  }
+
+  // 高度相似確認
+  if (dupNote) {
+    const msg = `⚠️ 您曾修過高度相似課程。\n\n${dupNote}\n\n確定要加選「${newCourse.name_zh}」？`;
+    if (!confirm(msg)) return;
+  }
+
+  // ── 衝堂檢查 ──
+  const enrolledIds = Object.values(MY_ENROLLMENTS)
+    .filter(e=>e.status==='confirmed'||e.status==='pending')
+    .map(e=>e.offering_id);
+
+  let currentCredits = 0;
+  let conflicts = [];
+
+  if (enrolledIds.length) {
+    const { data:enrolled } = await sb.from('v_course_schedule')
+      .select('code,name_zh,day,start_time,end_time,week_pattern,credits')
+      .in('offering_id', enrolledIds);
+
+    currentCredits = (enrolled||[]).reduce((s,c)=>s+c.credits, 0);
+
+    if (newCourse?.day && newCourse?.start_time && newCourse?.end_time
+        && newCourse?.week_pattern !== 'intensive') {
+      conflicts = (enrolled||[]).filter(c => {
+        if (!c.day || !c.start_time || !c.end_time) return false;
+        if (c.week_pattern === 'intensive') return false;
+        if (c.day !== newCourse.day) return false;
+        if ((c.week_pattern==='odd' && newCourse.week_pattern==='even') ||
+            (c.week_pattern==='even' && newCourse.week_pattern==='odd')) return false;
+        return newCourse.start_time < c.end_time && newCourse.end_time > c.start_time;
+      });
+    }
+  }
+
+  if (conflicts.length > 0) {
+    const conflictNames = conflicts.map(c=>`「${c.name_zh}」`).join('、');
+    showToast(`⚠️ 時間衝突：與 ${conflictNames} 上課時間重疊，無法加選。`, 'error');
+    return;
+  }
+
+  // ── 學分上限檢查 ──
+  const maxNormal = SETTING?.max_credits_normal || 12;
+  const newTotal = currentCredits + credits;
+  if (newTotal > maxNormal) {
+    showToast(`加選後將達 ${newTotal} 學分，超過上限 ${maxNormal} 學分，無法加選。如需超修請洽行政辦公室申請。`, 'error');
+    return;
+  }
+
+  // ── 加選（UPSERT：退選後可再加選）──
+  const { data:existing } = await sb.from('enrollments')
+    .select('id,status')
+    .eq('student_id', ME.id)
+    .eq('offering_id', offeringId)
+    .eq('semester_id', CURRENT_SEM_ID)
+    .maybeSingle();
+
+  let error;
+  if (existing) {
+    ({ error } = await sb.from('enrollments').update({
+      status: 'confirmed',
+      drop_at: null,
+      enrolled_at: new Date().toISOString(),
+      director_note: dupNote || existing.director_note || null
+    }).eq('id', existing.id));
+  } else {
+    ({ error } = await sb.from('enrollments').insert({
+      student_id:  ME.id,
+      offering_id: offeringId,
+      semester_id: CURRENT_SEM_ID,
+      status:      'confirmed',
+      over_credit_request: false,
+      director_note: dupNote || null,
+      enrolled_at: new Date().toISOString()
+    }));
+  }
+
+  if (error) { showToast('加選失敗：'+error.message,'error'); return; }
+  showToast(dupNote ? '✅ 加選成功（已通知行政人員確認）' : '✅ 加選成功！');
+  await loadMyEnrollments();
+  await loadAvailableCourses();
+}
+
+async function dropCourse(offeringId) {
+  if (!CAN_DROP) { showToast('目前非加退選期間','error'); return; }
+  if (!confirm('確定要退選這門課嗎？')) return;
+
+  const { error } = await sb.from('enrollments').update({
+    status: 'dropped',
+    drop_at: new Date().toISOString()
+  }).eq('student_id', ME.id).eq('offering_id', offeringId).eq('semester_id', CURRENT_SEM_ID);
+
+  if (error) { showToast('退選失敗：'+error.message,'error'); return; }
+  showToast('已退選');
+  await loadMyEnrollments();
+  await loadAvailableCourses();
+}
+
+/* ════ RENDER ENROLLED ════ */
+/* ── 已選課程排序狀態 ── */
+let _enrollSort = { field:'code', dir:1 };
+
+function sortEnrolled(field) {
+  if (_enrollSort.field===field) _enrollSort.dir*=-1;
+  else { _enrollSort.field=field; _enrollSort.dir=1; }
+  // 重新 render（資料已在 _lastEnrolledData）
+  if (window._lastEnrolledData) renderEnrolled(window._lastEnrolledData);
+}
+
+async function renderEnrolled(list) {
+  window._lastEnrolledData = list; // 供排序重用
+  const active = list.filter(e=>e.status!=='dropped');
+  document.getElementById('enrolled-count').textContent = active.length + ' 門';
+  const wrap = document.getElementById('enrolled-wrap');
+
+  if (!active.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">尚未選課</div>';
+    return;
+  }
+
+  // 取得課程資訊
+  const ids = active.map(e=>e.offering_id);
+  const { data:courses } = await sb.from('v_course_schedule').select('*').in('offering_id',ids);
+  const courseMap = {};
+  (courses||[]).forEach(c=>{ courseMap[c.offering_id]=c; });
+
+  // 排序
+  const REQ_ORDER = {req:0,go:1,sel:2};
+  const getVal = (e) => {
+    const c = courseMap[e.offering_id];
+    if (!c) return '';
+    switch(_enrollSort.field) {
+      case 'code':    return c.code||'';
+      case 'name':    return c.name_zh||'';
+      case 'req':     return REQ_ORDER[c.req_type]??9;
+      case 'credits': return c.credits||0;
+      case 'time':    return c.time_raw||'';
+      case 'room':    return c.classroom_name||'';
+      case 'status':  return e.status||'';
+      default: return '';
+    }
+  };
+  const sorted = [...active].sort((a,b)=>{
+    const va=getVal(a), vb=getVal(b);
+    if (typeof va==='number') return (va-vb)*_enrollSort.dir;
+    return va.localeCompare(vb,'zh')*_enrollSort.dir;
+  });
+
+  const totalCredits = active.filter(e=>e.status==='confirmed').reduce((s,e)=>{
+    const c=courseMap[e.offering_id]; return s+(c?.credits||0);
+  },0);
+
+  const REQ_LABEL_SHORT = {req:'必修',sel:'選修',go:'二選一'};
+
+  // 排序圖示
+  const icon = (f) => {
+    if (_enrollSort.field!==f) return '<span style="opacity:.3;font-size:10px">⇅</span>';
+    return `<span style="font-size:10px;color:var(--gold2)">${_enrollSort.dir===1?'↑':'↓'}</span>`;
+  };
+
+  // th 樣式
+  const th = (f, label, extra='') =>
+    `<th onclick="sortEnrolled('${f}')" style="cursor:pointer;user-select:none;${extra}" onmouseover="this.style.background='var(--navy2)'" onmouseout="this.style.background=''">
+      ${label} ${icon(f)}
+    </th>`;
+
+  wrap.innerHTML = `
+    <table class="my-table">
+      <thead><tr>
+        ${th('code','課程代碼')}
+        ${th('name','課程名稱')}
+        ${th('req','必/選修','text-align:center')}
+        ${th('credits','學分','text-align:center')}
+        ${th('time','上課時間')}
+        ${th('room','教室')}
+        ${th('status','狀態','text-align:center')}
+        ${CAN_ENROLL?'<th style="text-align:center">操作</th>':''}
+      </tr></thead>
+      <tbody>
+        ${sorted.map(e=>{
+          const c = courseMap[e.offering_id];
+          if (!c) return '';
+          const axColor = AX_COLOR[c.axis_code]||'#1B3A6B';
+          const axBg    = AX_BG[c.axis_code]||'#EEF2FA';
+          const reqBadge = c.req_type
+            ? `<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:${c.req_type==='req'?'#FFF3E0':c.req_type==='go'?'#E8EAF6':'#E8F5E9'};color:${c.req_type==='req'?'#B05010':c.req_type==='go'?'#3949AB':'#1A6A30'}">${REQ_LABEL_SHORT[c.req_type]||''}</span>`
+            : '';
+          const dropBtn = (e.status==='confirmed' && CAN_ENROLL)
+            ? `<button onclick="dropCourse('${e.offering_id}')" style="padding:3px 10px;border-radius:5px;font-size:12px;background:#FEE;color:var(--red);border:1px solid #FCC;cursor:pointer">退選</button>`
+            : '—';
+          return `<tr>
+            <td><span style="font-family:monospace;font-size:12px;color:var(--ink3)">${c.code}</span></td>
+            <td>
+              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${axColor};margin-right:5px;vertical-align:middle"></span>
+              <strong>${c.name_zh}</strong>
+            </td>
+            <td style="text-align:center">${reqBadge}</td>
+            <td style="text-align:center">${c.credits}</td>
+            <td style="font-size:12px;color:var(--ink3)">${c.time_raw||'待確認'}</td>
+            <td style="font-size:12px;color:var(--ink3)">${c.classroom_name||'待確認'}</td>
+            <td style="text-align:center">
+              <span class="badge ${STATUS_BADGE[e.status]||''}">${STATUS_LABEL[e.status]||e.status}</span>
+              ${e.over_credit_request?'<br><span style="font-size:10px;color:#B05010">超修中</span>':''}
+            </td>
+            ${CAN_ENROLL?`<td style="text-align:center">${dropBtn}</td>`:''}
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot>
+        <tr style="background:var(--cr3);border-top:2px solid var(--cr2)">
+          <td colspan="3" style="padding:8px 12px;font-weight:500;color:var(--ink3)">已確認學分合計</td>
+          <td style="text-align:center;font-weight:600;color:var(--navy);font-size:15px">${totalCredits}</td>
+          <td colspan="${CAN_ENROLL?4:3}"></td>
+        </tr>
+      </tfoot>
+    </table>`;
+}
+
+/* ════ CREDIT BAR ════ */
+
+function updateCreditBar() {
+  const confirmed = Object.values(MY_ENROLLMENTS).filter(e=>e.status==='confirmed'||e.status==='pending');
+  // 先用已知的計算（完整資料在 renderEnrolled 之後才有）
+  const maxNormal = SETTING?.max_credits_normal || 12;
+  const hasOverCredit = confirmed.some(e=>e.over_credit_request);
+
+  document.getElementById('cr-max').textContent = maxNormal;
+  document.getElementById('cr-over-badge').style.display = hasOverCredit ? '' : 'none';
+
+  // 非同步取學分
+  if (confirmed.length) {
+    const ids = confirmed.map(e=>e.offering_id);
+    sb.from('v_course_schedule').select('offering_id,credits').in('offering_id',ids).then(({data})=>{
+      const total = (data||[]).reduce((s,c)=>s+c.credits,0);
+      document.getElementById('cr-now').textContent = total;
+      const pct = Math.min((total/maxNormal)*100, 100);
+      const fill = document.getElementById('cr-fill');
+      fill.style.width = pct+'%';
+      fill.className = 'credit-fill' + (total>maxNormal?' over':total>=maxNormal*0.8?' warn':'');
+      document.getElementById('cr-pct').textContent = `${total} / ${maxNormal}`;
+    });
+  } else {
+    document.getElementById('cr-now').textContent = 0;
+    document.getElementById('cr-fill').style.width = '0%';
+    document.getElementById('cr-pct').textContent = `0 / ${maxNormal}`;
+  }
+}
+
+/* ════ SYLLABUS MODAL ════ */
+async function openSyllabus(offeringId, name) {
+  const modal = document.getElementById('syl-modal');
+  document.getElementById('syl-modal-title').textContent = name + ' — 課程大綱';
+  document.getElementById('syl-modal-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3)">載入中…</div>';
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  const { data } = await sb.from('syllabi').select('*').eq('offering_id', offeringId).maybeSingle();
+  if (!data) {
+    document.getElementById('syl-modal-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3)">尚無大綱資料</div>';
+    return;
+  }
+
+  const section = (title, content) => content
+    ? `<div style="margin-bottom:16px"><div style="font-weight:600;color:var(--navy);margin-bottom:6px;font-size:13.5px">${title}</div>${content}</div>`
+    : '';
+
+  const listItems = arr => (arr||[]).map((o,i)=>`<div style="padding:3px 0;padding-left:12px;border-left:2px solid var(--cr2);margin-bottom:4px">${i+1}. ${o.text||o}</div>`).join('');
+  const asmntItems = arr => (arr||[]).map(a=>`<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--cr2)"><span style="flex:1">${a.name}</span><span style="color:var(--navy);font-weight:500;width:40px;text-align:right">${a.pct}%</span>${a.desc?`<span style="color:var(--ink3);flex:1">${a.desc}</span>`:''}</div>`).join('');
+  const weekItems = arr => (arr||[]).filter(w=>w.title).map(w=>`<div style="padding:8px 0;border-bottom:1px solid var(--cr2);font-size:12.5px"><div style="display:grid;grid-template-columns:52px 1fr 120px;gap:8px;align-items:baseline"><span style="color:var(--navy);font-weight:600">第${w.week}週</span><span style="font-weight:500;color:var(--ink)">${w.title}</span><span style="color:var(--ink3);font-size:12px">${w.teacher||''}</span></div>${w.content?`<div style="margin-top:5px;padding-left:52px;color:var(--ink3);font-size:12px;line-height:1.7;white-space:pre-wrap">${w.content}</div>`:''}</div>`).join('');
+  const bibItems = arr => (arr||[]).map(b=>`<div style="padding:3px 0;color:var(--ink2)">・${b}</div>`).join('');
+
+  document.getElementById('syl-modal-body').innerHTML = [
+    section('📝 課程概述', data.overview_zh ? `<div style="color:var(--ink2);line-height:1.8">${data.overview_zh}</div>` : ''),
+    section('🎯 教學目標', listItems(data.objectives)),
+    section('🔧 教學方法', listItems(data.methods)),
+    section('📊 評量方式', data.assessment?.length ? `<div style="border:1px solid var(--cr2);border-radius:6px;overflow:hidden;padding:4px 10px">${asmntItems(data.assessment)}</div>` : ''),
+    section('📅 教學進度', data.weeks?.some(w=>w.title) ? `<div style="border:1px solid var(--cr2);border-radius:6px;overflow:hidden;padding:4px 10px">${weekItems(data.weeks)}</div>` : ''),
+    section('📚 必讀書目', bibItems(data.bibliography?.required)),
+    section('📚 參考書目', bibItems(data.bibliography?.optional)),
+    data.notes ? section('💬 備註', `<div style="color:var(--ink3)">${data.notes}</div>`) : '',
+  ].filter(Boolean).join('') || '<div style="color:var(--ink3);padding:20px;text-align:center">大綱尚在填寫中</div>';
+}
+
+function closeSyllabus() {
+  document.getElementById('syl-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+/* ════ HISTORY TAB ════ */
+async function loadHistory() {
+  const wrap = document.getElementById('history-wrap');
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+
+  const { data:allEnr } = await sb.from('enrollments')
+    .select('offering_id, semester_id, status, final_grade, director_note')
+    .eq('student_id', ME.id)
+    .not('semester_id', 'in', `(${[ACTIVE_SEM_ID, CURRENT_SEM_ID].filter(Boolean).join(',')})`)
+    .in('status', ['confirmed','withdrawn'])
+    .order('enrolled_at');
+
+  if (!allEnr?.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);padding:20px">尚無歷史記錄</div>';
+    return;
+  }
+
+  const ids = allEnr.map(e=>e.offering_id);
+  // 直接查 course_offerings + courses，避免 v_course_schedule is_active 過濾
+  const { data:offsData } = await sb.from('course_offerings')
+    .select('id, course_id, semester_id, time_raw, semesters(label), courses(code, name_zh, credits, req_type, course_axes(code))')
+    .in('id', ids);
+  const courseMap = {};
+  (offsData||[]).forEach(o=>{
+    const c = o.courses;
+    if (!c) return;
+    courseMap[o.id] = {
+      offering_id:    o.id,
+      code:           c.code,
+      name_zh:        c.name_zh,
+      credits:        c.credits,
+      req_type:       c.req_type,
+      axis_code:      c.course_axes?.code||'',
+      semester_label: o.semesters?.label||'',
+      time_raw:       o.time_raw||'',
+    };
+  });
+
+  const byTerm = {};
+  allEnr.forEach(e => {
+    const c = courseMap[e.offering_id];
+    if (!c) return;
+    const term = c.semester_label || '未知';
+    if (!byTerm[term]) byTerm[term] = [];
+    byTerm[term].push({...c, status: e.status, grade: e.final_grade});
+  });
+
+  window._histByTerm = byTerm;
+  window._histSort = { field:'code', dir:1 };
+  renderHistory();
+}
+
+function renderHistory() {
+  const wrap = document.getElementById('history-wrap');
+  const byTerm = window._histByTerm;
+  const s = window._histSort;
+  if (!byTerm) return;
+
+  const REQ_ORDER = {req:0, go:1, sel:2};
+  const REQ_LABEL = {req:'必修', sel:'選修', go:'二選一'};
+  const STATUS_ZH = {confirmed:'已修', withdrawn:'停修 W'};
+
+  const icon = f => s.field===f
+    ? `<span style="color:var(--gold2)">${s.dir===1?'↑':'↓'}</span>`
+    : '<span style="opacity:.3;font-size:10px">⇅</span>';
+
+  const th = (f, label, extra='') =>
+    `<th onclick="histSort('${f}')" style="cursor:pointer;user-select:none;${extra}"
+      onmouseover="this.style.background='var(--navy2)'" onmouseout="this.style.background=''">
+      ${label} ${icon(f)}</th>`;
+
+  const getVal = (item, field) => {
+    if (field==='code')   return item.code||'';
+    if (field==='name')   return item.name_zh||'';
+    if (field==='req')    return REQ_ORDER[item.req_type]??9;
+    if (field==='status') return item.status||'';
+    return '';
+  };
+
+  let html = '';
+  for (const term of Object.keys(byTerm).sort().reverse()) {
+    const items = [...byTerm[term]].sort((a,b)=>{
+      const va=getVal(a,s.field), vb=getVal(b,s.field);
+      return (typeof va==='number' ? (va-vb) : va.localeCompare(vb,'zh')) * s.dir;
+    });
+    const termCredits = items.filter(i=>i.status==='confirmed').reduce((sum,i)=>sum+i.credits,0);
+    html += `<div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--navy)">${term}</span>
+        <span style="font-size:12px;color:var(--ink3)">共 ${items.length} 門 · ${termCredits} 學分</span>
+      </div>
+      <table class="my-table">
+        <thead><tr>
+          ${th('code','課程代碼')}
+          ${th('name','課程名稱')}
+          ${th('req','必/選修','text-align:center')}
+          <th style="text-align:center">學分</th>
+          <th>上課時間</th>
+          ${th('status','狀態','text-align:center')}
+          <th style="text-align:center">成績</th>
+        </tr></thead>
+        <tbody>
+          ${items.map(i => {
+            const axColor = AX_COLOR[i.axis_code]||'#1B3A6B';
+            const isW = i.status==='withdrawn';
+            const reqBadge = i.req_type
+              ? `<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:${i.req_type==='req'?'#FFF3E0':'#E8F5E9'};color:${i.req_type==='req'?'#B05010':'#1A6A30'}">${REQ_LABEL[i.req_type]||''}</span>`
+              : '';
+            return `<tr style="${isW?'background:#FFF8F0;':''}">
+              <td><span style="font-family:monospace;font-size:12px;color:var(--ink3)">${i.code}</span></td>
+              <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${axColor};margin-right:5px;vertical-align:middle"></span><strong>${i.name_zh}</strong></td>
+              <td style="text-align:center">${reqBadge}</td>
+              <td style="text-align:center">${i.credits}</td>
+              <td style="font-size:12px;color:var(--ink3)">${i.time_raw||'—'}</td>
+              <td style="text-align:center"><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${isW?'#FFF3E0':'#E8F5E9'};color:${isW?'#B05010':'#1A6A30'}">${STATUS_ZH[i.status]||i.status}</span></td>
+              <td style="text-align:center;font-size:13px;font-weight:500">${i.grade||'—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+function histSort(field) {
+  const s = window._histSort;
+  if (s.field===field) s.dir*=-1; else { s.field=field; s.dir=1; }
+  renderHistory();
+}
+
+/* ════ UI HELPERS ════ */
+function showBanner(type, msg) {
+  const el = document.getElementById('status-banner');
+  const cls = {ok:'banner-ok',warn:'banner-warn',err:'banner-err',info:'banner-info'}[type]||'banner-info';
+  el.className = 'banner ' + cls;
+  el.innerHTML = msg;
+  el.style.display = 'flex';
+}
+
+function showSection(id) {
+  document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
+  const sec = document.getElementById('sec-' + id);
+  const nav = document.getElementById('nav-' + id);
+  if (sec) sec.classList.add('on');
+  if (nav) nav.classList.add('active');
+  if (id === 'thesis') loadThesisView();
+  if (id === 'survey') loadStudentSurveys();
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  const el = document.getElementById('tab-'+id);
+  if (el) el.classList.add('on');
+  if (id === 'history') loadHistory();
+  if (id === 'thesis') { showSection('thesis'); return; }
+}
+
+/* ════ 批次A：論文進度唯讀顯示 ════ */
+async function loadThesisView() {
+  const wrap = document.getElementById('thesis-wrap');
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  try {
+    // 階段定義
+    const { data:req } = await sb.from('thesis_requirements')
+      .select('stages')
+      .lte('cohort_from', ME.cohort)
+      .or(`cohort_to.is.null,cohort_to.gte.${ME.cohort}`)
+      .maybeSingle();
+    const stages = req?.stages || ['申請指導教授','確認論文題目','送件學倫審查','完成論文撰寫'];
+
+    // 論文進度（唯讀，不自動建立）
+    const { data:prog } = await sb.from('thesis_progress')
+      .select('*').eq('student_id', ME.id).maybeSingle();
+    const stage = prog?.stage || 0;
+
+    // 階段進度條
+    const stageBar = stages.map((s,i)=>{
+      const done = i < stage, active = i === stage;
+      return `<div style="flex:1;text-align:center;min-width:70px">
+        <div style="width:30px;height:30px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;
+          background:${done?'#6D28D9':active?'#EDE9FE':'#F0F0F0'};color:${done?'#fff':active?'#6D28D9':'#999'};border:2px solid ${done?'#6D28D9':active?'#A78BFA':'#E0E0E0'}">${done?'✓':i+1}</div>
+        <div style="font-size:11px;color:${done||active?'var(--navy)':'var(--ink3)'}">${s}</div></div>`;
+    }).join('<div style="flex:0 0 16px;height:2px;background:#E0E0E0;margin-top:14px"></div>');
+
+    let html = `<div style="background:#FAFBFD;border:1px solid var(--cr2);border-radius:12px;padding:20px;margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px;display:flex;align-items:center;justify-content:space-between;gap:6px">${stageBar}</div>
+        <div style="flex-shrink:0;text-align:center;min-width:160px">
+          <svg width="150" height="100" viewBox="0 0 150 100" id="thesis-gauge-svg-2"></svg>
+          <div style="font-size:10px;color:var(--ink3);line-height:1.5" id="thesis-stage-label-2">載入中…</div>
+        </div>
+      </div>
+    </div>`;
+
+    // 已申請的指導教授
+    if (prog) {
+      const { data:advisors } = await sb.from('thesis_advisors')
+        .select('*, teachers(name_zh)').eq('thesis_id', prog.id)
+        .eq('is_active', true).order('sort_order');
+
+      html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px;margin-bottom:16px">
+        <div style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--navy);margin-bottom:12px">指導教授</div>`;
+      if (advisors?.length) {
+        advisors.forEach(a => {
+          const role = a.advisor_role==='main' ? '指導教授（主）' : '協同指導教授';
+          const sc = {申請中:'#B05010',核定中:'#1565C0',完成:'#1A6A30',退回重議:'#C62828'}[a.status]||'#888';
+          html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--cr2)">
+            <span style="font-size:13px;color:var(--ink3);min-width:110px">${role}</span>
+            <strong style="font-size:14px">${a.teachers?.name_zh||'—'}</strong>
+            <span style="font-size:11px;padding:2px 10px;border-radius:20px;background:${sc}18;color:${sc};margin-left:auto">${a.status}</span></div>`;
+        });
+        if (prog.research_direction)
+          html += `<div style="font-size:13px;color:var(--ink2);margin-top:10px"><span style="color:var(--ink3)">研究方向／題目：</span>${prog.research_direction}</div>`;
+        html += `<button onclick="printAdvisorForm()" style="margin-top:14px;padding:8px 16px;border-radius:8px;background:var(--navy);color:#fff;border:none;cursor:pointer;font-size:13px">🖨 列印指導教授申請單</button>`;
+      } else {
+        // 檢查是否有待審核
+        const { data:pending } = await sb.from('thesis_pending_reviews')
+          .select('id').eq('thesis_id', prog.id).eq('review_type','advisor_apply').eq('status','pending');
+        if (pending?.length) {
+          html += `<div style="background:#FFF8E1;border-radius:6px;padding:10px 14px;font-size:13px;color:#8A6D00">⏳ 指導教授申請審核中…</div>`;
+        } else {
+          // 檢查是否曾被退回（最近一筆 rejected）
+          const { data:rejected } = await sb.from('thesis_pending_reviews')
+            .select('note, reviewed_at')
+            .eq('thesis_id', prog.id).eq('review_type','advisor_apply').eq('status','rejected')
+            .order('reviewed_at',{ascending:false}).limit(1);
+          if (rejected?.length) {
+            const r = rejected[0];
+            html += `<div style="background:#FEECEC;border:1px solid #F5C0C0;border-radius:8px;padding:12px 14px;margin-bottom:12px">
+              <div style="font-size:13px;color:#C62828;font-weight:500;margin-bottom:4px">⚠️ 您的指導教授申請已被退回，請重新申請</div>
+              ${r.note?`<div style="font-size:12.5px;color:var(--ink2);line-height:1.7">退回原因：${r.note}</div>`:''}
+            </div>
+            <button onclick="openAdvisorForm()" style="padding:9px 18px;border-radius:8px;background:var(--navy);color:#fff;border:none;cursor:pointer;font-size:13px">＋ 重新申請指導教授</button>`;
+          } else {
+            html += `<div style="color:var(--ink3);font-size:13px;margin-bottom:12px">尚未申請指導教授</div>
+              <button onclick="openAdvisorForm()" style="padding:9px 18px;border-radius:8px;background:var(--navy);color:#fff;border:none;cursor:pointer;font-size:13px">＋ 申請指導教授</button>`;
+          }
+        }
+      }
+      html += `</div>`;
+
+      // 論文題目
+      if (prog.title_zh) {
+        html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px">
+          <div style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--navy);margin-bottom:10px">論文題目</div>
+          <div style="font-size:14px"><strong>${prog.title_zh}</strong></div>
+          ${prog.title_en?`<div style="font-size:12px;color:var(--ink3);font-style:italic;margin-top:4px">${prog.title_en}</div>`:''}</div>`;
+      }
+    } else {
+      html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px;text-align:center">
+        <div style="color:var(--ink3);font-size:13px;margin-bottom:14px">尚未開始論文流程</div>
+        <button onclick="openAdvisorForm()" style="padding:9px 18px;border-radius:8px;background:var(--navy);color:#fff;border:none;cursor:pointer;font-size:13px">＋ 申請指導教授</button>
+      </div>`;
+    }
+
+    wrap.innerHTML = html;
+
+    // 重新渲染 gauge（讓第二個 SVG 也畫出來）
+    loadThesisGauge();
+  } catch(e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px;font-size:13px">論文進度載入失敗：${e.message}</div>`;
+    console.warn('loadThesisView:', e);
+  }
+}
+
+/* ════ 批次B：申請指導教授 ════ */
+let _allTeachers = [];
+
+async function openAdvisorForm() {
+  try {
+    if (!_allTeachers.length) {
+      const { data:ts } = await sb.from('teachers').select('id,name_zh').order('name_zh');
+      _allTeachers = ts || [];
+    }
+
+    // 帶入上次被退回的申請內容（讓學生在原基礎上修改）
+    let prefill = { mainName:'', co1Name:'', co2Name:'', direction:'' };
+    const { data:prog } = await sb.from('thesis_progress')
+      .select('id, research_direction').eq('student_id', ME.id).maybeSingle();
+    if (prog) {
+      const { data:rejected } = await sb.from('thesis_pending_reviews')
+        .select('content').eq('thesis_id', prog.id)
+        .eq('review_type','advisor_apply').eq('status','rejected')
+        .order('reviewed_at',{ascending:false}).limit(1);
+      if (rejected?.length) {
+        const c = rejected[0].content || {};
+        const advs = c.advisors || [];
+        prefill.mainName = advs[0] || '';
+        prefill.co1Name  = advs[1] || '';
+        prefill.co2Name  = advs[2] || '';
+        prefill.direction = c.direction || prog.research_direction || '';
+      } else if (prog.research_direction) {
+        prefill.direction = prog.research_direction;
+      }
+    }
+
+    // 依教授姓名找回 id（供下拉預選）
+    const idByName = (name) => _allTeachers.find(t=>t.name_zh===name)?.id || '';
+    const mainId = idByName(prefill.mainName);
+    const co1Id  = idByName(prefill.co1Name);
+    const co2Id  = idByName(prefill.co2Name);
+
+    const optsFor = (selId) => _allTeachers.map(t=>`<option value="${t.id}"${t.id===selId?' selected':''}>${t.name_zh}</option>`).join('');
+
+    const html = `
+      <div style="margin-bottom:14px"><label style="font-size:13px;color:var(--ink3);display:block;margin-bottom:4px">指導教授（主）<span style="color:var(--red)">*</span></label>
+        <select id="adv-main" style="width:100%;padding:8px;border:1px solid var(--cr2);border-radius:6px;font-size:14px"><option value="">請選擇</option>${optsFor(mainId)}</select></div>
+      <div style="margin-bottom:14px"><label style="font-size:13px;color:var(--ink3);display:block;margin-bottom:4px">協同指導教授（選填，最多2位）</label>
+        <select id="adv-co1" style="width:100%;padding:8px;border:1px solid var(--cr2);border-radius:6px;font-size:14px;margin-bottom:6px"><option value="">無</option>${optsFor(co1Id)}</select>
+        <select id="adv-co2" style="width:100%;padding:8px;border:1px solid var(--cr2);border-radius:6px;font-size:14px"><option value="">無</option>${optsFor(co2Id)}</select></div>
+      <div style="margin-bottom:14px"><label style="font-size:13px;color:var(--ink3);display:block;margin-bottom:4px">論文研究方向／題目<span style="color:var(--red)">*</span></label>
+        <textarea id="adv-dir" rows="3" style="width:100%;padding:8px;border:1px solid var(--cr2);border-radius:6px;font-size:14px;resize:vertical" placeholder="請簡述論文研究方向或暫定題目">${prefill.direction.replace(/</g,'&lt;')}</textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="closeThModal()" style="padding:9px 18px;border-radius:8px;background:var(--cr2);color:var(--ink2);border:none;cursor:pointer">取消</button>
+        <button onclick="submitAdvisor()" style="padding:9px 18px;border-radius:8px;background:var(--navy);color:#fff;border:none;cursor:pointer">送出申請</button></div>`;
+    openThModal('申請指導教授', html);
+  } catch(e) {
+    showToast('開啟表單失敗：'+e.message,'error');
+  }
+}
+
+async function submitAdvisor() {
+  const mainId = document.getElementById('adv-main').value;
+  const co1 = document.getElementById('adv-co1').value;
+  const co2 = document.getElementById('adv-co2').value;
+  const dir = document.getElementById('adv-dir').value.trim();
+
+  if (!mainId) { showToast('請選擇指導教授（主）','error'); return; }
+  if (!dir) { showToast('請填寫論文研究方向／題目','error'); return; }
+  if ((co1&&co1===mainId)||(co2&&co2===mainId)||(co1&&co2&&co1===co2)) {
+    showToast('教授不可重複選擇','error'); return;
+  }
+
+  try {
+    // 確保有 thesis_progress 記錄
+    let { data:prog } = await sb.from('thesis_progress')
+      .select('id').eq('student_id', ME.id).maybeSingle();
+    if (!prog) {
+      const { data:np } = await sb.from('thesis_progress')
+        .insert({ student_id: ME.id, stage: 0 }).select('id').maybeSingle();
+      prog = np;
+    }
+
+    // 寫入指導教授
+    const inserts = [{ thesis_id: prog.id, teacher_id: mainId, advisor_role:'main', sort_order:0, status:'申請中' }];
+    if (co1) inserts.push({ thesis_id: prog.id, teacher_id: co1, advisor_role:'co', sort_order:1, status:'申請中' });
+    if (co2) inserts.push({ thesis_id: prog.id, teacher_id: co2, advisor_role:'co', sort_order:2, status:'申請中' });
+    await sb.from('thesis_advisors').insert(inserts);
+
+    // 更新研究方向
+    await sb.from('thesis_progress').update({
+      research_direction: dir, advisor_status:'申請中'
+    }).eq('id', prog.id);
+
+    // 待審核
+    const names = [mainId,co1,co2].filter(Boolean).map(id=>_allTeachers.find(t=>t.id===id)?.name_zh).filter(Boolean);
+    await sb.from('thesis_pending_reviews').insert({
+      thesis_id: prog.id, student_id: ME.id, review_type:'advisor_apply',
+      content: { advisors: names, direction: dir }, status:'pending'
+    });
+
+    closeThModal();
+    showToast('✅ 申請已送出，等待行政審核');
+    loadThesisView();
+  } catch(e) {
+    showToast('送出失敗：'+e.message,'error');
+    console.warn('submitAdvisor:', e);
+  }
+}
+
+
+
+/* ════ 列印指導教授申請單（A4）════ */
+async function printAdvisorForm() {
+  try {
+    const { data:prog } = await sb.from('thesis_progress')
+      .select('id, research_direction').eq('student_id', ME.id).maybeSingle();
+    if (!prog) { showToast('查無論文資料','error'); return; }
+
+    const { data:advisors } = await sb.from('thesis_advisors')
+      .select('advisor_role, teachers(name_zh)').eq('thesis_id', prog.id)
+      .eq('is_active', true).order('sort_order');
+    const main = (advisors||[]).find(a=>a.advisor_role==='main');
+    const cos  = (advisors||[]).filter(a=>a.advisor_role==='co');
+
+    const today = new Date();
+    const dateStr = `${today.getFullYear()-1911}/${today.getMonth()+1}/${today.getDate()}`;
+    const dir = (prog.research_direction||'').replace(/</g,'&lt;');
+
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>指導教授申請表</title>
+    <style>
+      @page { size:A4; margin:2cm; }
+      body { font-family:'Microsoft JhengHei','Noto Sans TC',sans-serif; color:#222; line-height:1.9; }
+      h1 { text-align:center; font-size:20px; margin:0 0 4px }
+      h2 { text-align:center; font-size:16px; font-weight:normal; margin:0 0 24px; color:#555 }
+      table { width:100%; border-collapse:collapse; }
+      td { padding:12px 8px; border-bottom:1px solid #ccc; font-size:14px; vertical-align:top }
+      .label { color:#666; width:130px }
+      .line { border-bottom:1px solid #888; display:inline-block; min-width:120px }
+      .box { width:14px;height:14px;border:1px solid #888;display:inline-block;vertical-align:middle;margin-right:4px }
+      .sign { padding:18px 8px }
+    </style></head><body>
+      <h1>福智佛教學院 佛法應用研究所</h1>
+      <h2>碩士論文指導教授申請表</h2>
+      <table>
+        <tr><td class="label">學號</td><td>${ME.student_code}</td><td class="label">姓名</td><td>${ME.name_zh}</td></tr>
+        <tr><td class="label">年級</td><td>${ME.cohort}級</td><td class="label">申請日期</td><td>${dateStr}</td></tr>
+        <tr><td class="label">指導教授（主）</td><td colspan="3">${main?.teachers?.name_zh||'＿＿＿＿＿＿'}　　簽章：<span class="line"></span></td></tr>
+        <tr><td class="label">協同指導教授</td><td colspan="3">${cos[0]?.teachers?.name_zh||'＿＿＿＿＿＿'}　　簽章：<span class="line"></span></td></tr>
+        <tr><td class="label">協同指導教授</td><td colspan="3">${cos[1]?.teachers?.name_zh||'＿＿＿＿＿＿'}　　簽章：<span class="line"></span></td></tr>
+        <tr><td class="label">論文研究方向／題目</td><td colspan="3" style="padding-bottom:50px">${dir}</td></tr>
+        <tr><td class="label">指導教授意見</td><td colspan="3" style="padding-bottom:45px"></td></tr>
+        <tr><td colspan="4"><span class="box"></span>同意指導　　　<span class="box"></span>需修正</td></tr>
+        <tr><td class="sign" colspan="4">所長核章：<span class="line"></span>　　日期：＿＿＿/＿＿/＿＿</td></tr>
+        <tr><td class="sign" colspan="4">教育處助理：<span class="line"></span>　日期：＿＿＿/＿＿/＿＿</td></tr>
+        <tr><td class="sign" colspan="4">教育長核章：<span class="line"></span>　日期：＿＿＿/＿＿/＿＿</td></tr>
+      </table>
+    </bo`+`dy></ht`+`ml>`);
+    w.document.close();
+    setTimeout(()=>w.print(), 400);
+  } catch(e) {
+    showToast('列印失敗：'+e.message,'error');
+    console.warn('printAdvisorForm:', e);
+  }
+}
+
+
+/* ════ 意見調查 ════ */
+async function loadStudentSurveys() {
+  const wrap = document.getElementById('survey-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px">載入中…</div>';
+  const now = new Date().toISOString();
+  const {data:openSurveys} = await sb.from('surveys')
+    .select('id,title,start_at,end_at,round,semesters(label)')
+    .eq('status','open').order('created_at',{ascending:false});
+  const {data:upcomingSurveys} = await sb.from('surveys')
+    .select('id,title,start_at,end_at,round,semesters(label)')
+    .eq('status','draft').gt('start_at', now).order('start_at');
+  const {data:tokens} = await sb.from('survey_tokens')
+    .select('id,token,used,survey_id,offering_id,v_course_schedule(name_zh,code)')
+    .eq('student_id', ME.id);
+  const tokenMap = {};
+  (tokens||[]).forEach(t=>{ if(!tokenMap[t.survey_id]) tokenMap[t.survey_id]=[]; tokenMap[t.survey_id].push(t); });
+  const baseUrl = location.origin + location.pathname.replace(/student\.html$/, 'survey.html');
+  let html = '';
+  if (openSurveys?.length) {
+    html += '<div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:12px">📋 開放中的調查</div>';
+    openSurveys.forEach(sv=>{
+      const myTokens = tokenMap[sv.id]||[];
+      const endStr = sv.end_at ? new Date(sv.end_at).toLocaleDateString('zh-TW') : '';
+      html += `<div style="background:#fff;border-radius:10px;border:1px solid var(--cr2);padding:16px 20px;margin-bottom:12px">
+        <div style="font-weight:600;margin-bottom:6px">${sv.title}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:10px">${sv.semesters?.label||''} ${sv.round==='final'?'期末':'期中'} · 截止：${endStr}</div>`;
+      if (!myTokens.length) {
+        html += '<div style="font-size:13px;color:var(--ink3)">此調查無您的填答連結，請聯絡行政辦公室。</div>';
+      } else {
+        myTokens.forEach(tk=>{
+          const course = tk.v_course_schedule;
+          html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--cr2)">
+            <span style="flex:1;font-size:13px">${course?.name_zh||'課程'} <span style="color:var(--ink3);font-size:11px">${course?.code||''}</span></span>
+            ${tk.used
+              ? '<span style="font-size:12px;color:#1A6A30;padding:3px 10px;border-radius:20px;background:#E8F5E9">✅ 已完成</span>'
+              : `<a href="${baseUrl}?t=${tk.token}" target="_blank" style="font-size:12px;padding:4px 14px;border-radius:20px;background:var(--navy);color:#fff;text-decoration:none">填寫意見</a>`}
+          </div>`;
+        });
+      }
+      html += '</div>';
+    });
+  }
+  if (upcomingSurveys?.length) {
+    html += '<div style="font-size:13px;font-weight:600;color:var(--ink3);margin:16px 0 12px">📅 即將開放</div>';
+    upcomingSurveys.forEach(sv=>{
+      const startStr = sv.start_at ? new Date(sv.start_at).toLocaleDateString('zh-TW') : '';
+      html += `<div style="background:var(--cr3);border-radius:10px;border:1px solid var(--cr2);padding:14px 18px;margin-bottom:8px;opacity:.8">
+        <div style="font-weight:600;margin-bottom:4px">${sv.title}</div>
+        <div style="font-size:12px;color:var(--ink3)">${sv.semesters?.label||''} ${sv.round==='final'?'期末':'期中'} · 預計開放：${startStr}</div>
+      </div>`;
+    });
+  }
+  if (!openSurveys?.length && !upcomingSurveys?.length)
+    html = '<div style="text-align:center;padding:40px;color:var(--ink3)">目前沒有進行中的意見調查</div>';
+  wrap.innerHTML = html;
+}
+
+function showToast(msg, type='success') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+type+' show';
+  const duration = type==='error' ? 6000 : 3000;
+  setTimeout(()=>t.classList.remove('show'), duration);
+}
+
+/* ════ AUTH STATE ════ */
+sb.auth.onAuthStateChange((event,session)=>{
+  if (event==='SIGNED_IN'&&session) enterApp(session.user);
+  else if (event==='SIGNED_OUT') {
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('app-screen').style.display='none';
+  }
+});
+
+init();
+</script>
+</body>
+</html>
