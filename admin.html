@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v5.0 2026-06-17 -->
+<!-- BWBC Admin v5.1 2026-06-17 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -6198,21 +6198,23 @@ async function exportClassRoster() {
   const title = `福智佛教學院 佛法應用研究所 ${cohortLabel} 學生名條`;
   const dateStr = new Date().toLocaleDateString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit'});
 
-  // 表頭
-  const headers = ['序號','學號','姓名','性別','年級','狀態',
-    '學校 Email','電話','通訊地址',
+  // 表頭（與更新匯入範本一致）
+  const headers = ['序號','學號','姓名','英文名','性別','狀態',
+    '學校email','個人email','電話','地址',
     '緊急聯絡人','關係','緊急電話',
-    '廣論班級','住宿','班導師','備註'];
+    '廣論班級','住宿','備註','學歷','畢業學校',
+    '入學日期(YYYY-MM-DD)','出生日期(YYYY-MM-DD)'];
 
   // 資料列
   const rows = list.map((s, i) => [
     i + 1,
     s.student_code || '',
     s.name_zh || '',
+    s.name_en || '',
     GENDER_LABEL[s.gender] || '',
-    s.cohort || '',
     STU_STATUS_LABEL[s.status] || s.status || '',
     s.school_email || '',
+    s.personal_email || '',
     s.phone || '',
     s.address || '',
     s.emergency_name || '',
@@ -6220,8 +6222,11 @@ async function exportClassRoster() {
     s.emergency_phone || '',
     s.guang_lun_class || '',
     HOUSING_LABEL[s.housing] || s.housing || '',
-    s._advisor_name || '',
-    s.notes || ''
+    s.notes || '',
+    s.prev_education || '',
+    s.prev_school || '',
+    s.enrolled_date ? s.enrolled_date.substring(0,10) : '',
+    s.birth_date ? s.birth_date.substring(0,10) : ''
   ]);
 
   // 組合 Excel
@@ -6240,19 +6245,23 @@ async function exportClassRoster() {
     {wch:5},   // 序號
     {wch:10},  // 學號
     {wch:8},   // 姓名
+    {wch:14},  // 英文名
     {wch:5},   // 性別
-    {wch:5},   // 年級
     {wch:6},   // 狀態
     {wch:22},  // 學校 Email
+    {wch:22},  // 個人 Email
     {wch:14},  // 電話
-    {wch:25},  // 通訊地址
+    {wch:25},  // 地址
     {wch:8},   // 緊急聯絡人
-    {wch:8},   // 關係
+    {wch:6},   // 關係
     {wch:14},  // 緊急電話
     {wch:14},  // 廣論班級
     {wch:10},  // 住宿
-    {wch:8},   // 班導師
     {wch:15},  // 備註
+    {wch:10},  // 學歷
+    {wch:14},  // 畢業學校
+    {wch:14},  // 入學日期
+    {wch:14},  // 出生日期
   ];
 
   // 合併標題列
@@ -6956,25 +6965,24 @@ let _updateRows = [];
 // 中英文欄位名對照（含所有別名）
 var COL_MAP = {
   '學號':'student_code', 'student_code':'student_code',
-  '中文姓名':'name_zh', '姓名':'name_zh', 'name_zh':'name_zh',
-  '英文姓名':'name_en', '英文名':'name_en', 'name_en':'name_en',
+  '姓名':'name_zh', '中文姓名':'name_zh', 'name_zh':'name_zh',
+  '英文名':'name_en', '英文姓名':'name_en', 'name_en':'name_en',
   '性別':'gender', 'gender':'gender',
-  '出生日期':'birth_date', '生日':'birth_date', 'birth_date':'birth_date',
-  '入學年':'cohort', '年級':'cohort', 'cohort':'cohort',
   '狀態':'status', 'status':'status',
   '學校email':'school_email', '學校Email':'school_email', 'school_email':'school_email',
   '個人email':'personal_email', '個人Email':'personal_email', 'personal_email':'personal_email',
   '電話':'phone', 'phone':'phone',
-  '通訊地址':'address', '地址':'address', 'address':'address',
+  '地址':'address', '通訊地址':'address', 'address':'address',
   '緊急聯絡人':'emergency_name', 'emergency_name':'emergency_name',
   '關係':'emergency_relation', 'emergency_relation':'emergency_relation',
   '緊急電話':'emergency_phone', 'emergency_phone':'emergency_phone',
-  '入學日期':'enrolled_date', 'enrolled_date':'enrolled_date',
-  '學歷':'prev_education', 'prev_education':'prev_education',
-  '畢業學校':'prev_school', 'prev_school':'prev_school',
   '廣論班級':'guang_lun_class', 'guang_lun_class':'guang_lun_class',
   '住宿':'housing', 'housing':'housing',
-  '備註':'notes', 'notes':'notes'
+  '備註':'notes', 'notes':'notes',
+  '學歷':'prev_education', 'prev_education':'prev_education',
+  '畢業學校':'prev_school', 'prev_school':'prev_school',
+  '入學日期(YYYY-MM-DD)':'enrolled_date', '入學日期':'enrolled_date', 'enrolled_date':'enrolled_date',
+  '出生日期(YYYY-MM-DD)':'birth_date', '出生日期':'birth_date', 'birth_date':'birth_date'
 };
 
 async function downloadUpdateTemplate() {
@@ -6986,9 +6994,9 @@ async function downloadUpdateTemplate() {
       document.head.appendChild(s);
     });
   }
-  var headers = ['學號','中文姓名','英文姓名','性別(M/F/O)','出生日期(YYYY-MM-DD)','入學年','狀態','學校email','個人email','電話','通訊地址','緊急聯絡人','關係','緊急電話','入學日期(YYYY-MM-DD)','學歷','畢業學校','廣論班級','住宿','備註'];
-  var example = ['11421101','盧瑞萱','','F','1998-05-20','114','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','2025-09-01','學士','國立台灣大學','北17秋01','commute',''];
-  var note = ['# 必填(8碼)','# 必填','','# M=男 F=女 O=其他','# 如1998-05-20','# 如114','# active在學/leave休學/graduated已畢業/dropout退學','','','','','','','','# 如2025-09-01','# 最高學歷','','','# self_home自宅/eco_village生態村/off_campus校外/commute通勤/other',''];
+  var headers = ['學號','姓名','英文名','性別','狀態','學校email','個人email','電話','地址','緊急聯絡人','關係','緊急電話','廣論班級','住宿','備註','學歷','畢業學校','入學日期(YYYY-MM-DD)','出生日期(YYYY-MM-DD)'];
+  var example = ['11421101','盧瑞萱','Lu Jui-Hsuan','F','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','北17秋01','commute','','學士','國立台灣大學','2025-09-01','1998-05-20'];
+  var note = ['# 必填8碼','# 必填','','# M男/F女/O其他','# active在學/leave休學/graduated已畢業/dropout退學','','','','','','','','','# self_home自宅/eco_village生態村/off_campus校外/commute通勤/other','','','','# YYYY-MM-DD','# YYYY-MM-DD'];
   var ws = XLSX.utils.aoa_to_sheet([headers, example, note]);
   ws['!cols'] = headers.map(function(){ return {wch:14}; });
   var wb = XLSX.utils.book_new();
@@ -7101,13 +7109,14 @@ async function executeStudentUpdate() {
 
   var FIELD_MAP = {
     student_code:'student_code', name_zh:'name_zh', name_en:'name_en',
-    gender:'gender', birth_date:'birth_date', cohort:'cohort', status:'status',
+    gender:'gender', status:'status',
     school_email:'school_email', personal_email:'personal_email',
     phone:'phone', address:'address',
     emergency_name:'emergency_name', emergency_relation:'emergency_relation',
-    emergency_phone:'emergency_phone', enrolled_date:'enrolled_date',
+    emergency_phone:'emergency_phone',
+    guang_lun_class:'guang_lun_class', housing:'housing', notes:'notes',
     prev_education:'prev_education', prev_school:'prev_school',
-    guang_lun_class:'guang_lun_class', housing:'housing', notes:'notes'
+    enrolled_date:'enrolled_date', birth_date:'birth_date'
   };
 
   for (var i = 0; i < _updateRows.length; i++) {
@@ -7120,23 +7129,21 @@ async function executeStudentUpdate() {
     Object.keys(FIELD_MAP).forEach(function(excelKey) {
       var dbKey = FIELD_MAP[excelKey];
       if (r[excelKey] !== undefined && r[excelKey] !== '') {
-        var val = r[excelKey];
-        if (dbKey === 'cohort') val = parseInt(val) || null;
-        else val = String(val).trim();
-        payload[dbKey] = val;
+        payload[dbKey] = String(r[excelKey]).trim();
       }
     });
 
     try {
       var existing = existMap[code];
       if (existing) {
-        // 更新
-        delete payload.student_code; // 不更新學號本身
+        // 更新（不改學號）
+        delete payload.student_code;
         var res = await sb.from('students').update(payload).eq('id', existing.id);
         if (res.error) throw res.error;
       } else {
-        // 新增
-        if (!payload.cohort) payload.cohort = parseInt(code.substring(0,3)) || 114;
+        // 新增（cohort 從學號推算）
+        payload.student_code = code;
+        payload.cohort = parseInt(code.substring(0,3)) || null;
         if (!payload.status) payload.status = 'active';
         if (!payload.school_email) payload.school_email = code + '@bwbc.edu.tw';
         var res = await sb.from('students').insert(payload);
