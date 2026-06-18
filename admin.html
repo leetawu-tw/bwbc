@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v5.1 2026-06-17 -->
+<!-- BWBC Admin v5.4 2026-06-17 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -66,10 +66,11 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .badge-ok{background:#E8F5E9;color:#1A6A30;border:1px solid #90D090}
 
 /* ── TABLE ── */
-.tbl-wrap{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow:auto;box-shadow:var(--sh)}
+.tbl-wrap{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow:auto;max-height:calc(100vh - 160px);box-shadow:var(--sh)}
 table{border-collapse:collapse;width:100%;min-width:700px;font-size:13px}
+thead{position:sticky;top:0;z-index:2}
 thead tr{background:var(--navy)}
-th{padding:9px 12px;text-align:left;font-weight:500;color:#fff;font-size:11.5px;letter-spacing:.04em;white-space:nowrap;position:sticky;top:0}
+th{padding:9px 12px;text-align:left;font-weight:500;color:#fff;font-size:11.5px;letter-spacing:.04em;white-space:nowrap;background:var(--navy)}
 tbody tr{border-bottom:1px solid var(--cr2);transition:background .15s}
 tbody tr:hover{background:var(--cr3)}
 td{padding:8px 10px;color:var(--ink2);vertical-align:middle}
@@ -145,7 +146,7 @@ th.sortable:hover{background:var(--navy2)}
 .sort-icon{font-size:11px;opacity:.5;margin-left:3px}
 th.sort-asc .sort-icon{opacity:1;color:var(--gold2)}
 th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
-.stu-th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff;background:var(--navy)}
+.stu-th{padding:8px 10px;text-align:left;font-size:12px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff;background:var(--navy)}
 .usr-th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff}
 .usr-th:hover{background:var(--navy2)}
 
@@ -531,8 +532,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </div>
         </div>
         <div id="stu-stats" style="font-size:12px;color:var(--ink3);padding:0 4px"></div>
-        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow-x:auto;overflow-y:visible;width:100%;max-width:100%">
-          <table style="border-collapse:separate;border-spacing:0;min-width:1500px;width:max-content">
+        <div class="tbl-wrap" style="max-height:calc(100vh - 140px)">
+          <table style="border-collapse:separate;border-spacing:0;min-width:1600px;width:max-content">
             <thead style="position:sticky;top:0;z-index:2">
               <tr style="background:var(--navy);color:#fff">
                 <th class="stu-th" style="width:60px">📷</th>
@@ -6126,21 +6127,21 @@ function renderStudents() {
       : '<span style="color:var(--ink3);font-size:11px">—</span>';
 
     return `<tr style="border-bottom:1px solid var(--cr2)">
-      <td style="padding:8px 14px">${photo}</td>
-      <td style="padding:10px 14px;font-family:monospace;font-size:13px"><strong>${s.student_code||'?'}</strong></td>
-      <td style="padding:10px 14px;font-size:13px"><strong>${s.name_zh||'?'}</strong>
+      <td style="padding:6px 8px">${photo}</td>
+      <td style="padding:6px 8px;font-family:monospace;font-size:12px"><strong>${s.student_code||'?'}</strong></td>
+      <td style="padding:6px 8px;font-size:12px"><strong>${s.name_zh||'?'}</strong>
         ${s.name_en?`<div style="font-size:11px;color:var(--ink3)">${s.name_en}</div>`:''}</td>
       <td style="padding:10px 14px;text-align:center;font-size:13px">${GENDER_LABEL[s.gender]||'—'}</td>
-      <td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:500">${s.cohort||'—'}</td>
-      <td style="padding:10px 14px;text-align:center">
+      <td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:500">${s.cohort||'—'}</td>
+      <td style="padding:6px 8px;text-align:center">
         <span class="stu-status-badge ${statusClass}">${status}</span></td>
-      <td style="padding:10px 14px;font-size:12px;font-family:monospace;color:var(--ink2)">${s.school_email||'—'}</td>
-      <td style="padding:10px 14px;font-size:12px">${s.phone||'—'}</td>
-      <td style="padding:10px 14px;font-size:12px">${emergencyName}</td>
-      <td style="padding:10px 14px;font-size:12px">${s.emergency_phone||'<span style="color:var(--ink3)">—</span>'}</td>
-      <td style="padding:10px 14px;font-size:12px">${advisorBadge}</td>
-      <td style="padding:10px 14px;text-align:center">
-        <button onclick="openStudentModal('${s.id}')" style="padding:4px 10px;border-radius:5px;font-size:12px;background:var(--navy);color:#fff;border:none;cursor:pointer">✏️ 編輯</button>
+      <td style="padding:6px 8px;font-size:11.5px;font-family:monospace;color:var(--ink2)">${s.school_email||'—'}</td>
+      <td style="padding:6px 8px;font-size:11.5px">${s.phone||'—'}</td>
+      <td style="padding:6px 8px;font-size:11.5px">${emergencyName}</td>
+      <td style="padding:6px 8px;font-size:11.5px">${s.emergency_phone||'<span style="color:var(--ink3)">—</span>'}</td>
+      <td style="padding:6px 8px;font-size:11.5px">${advisorBadge}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <button onclick="openStudentModal('${s.id}')" style="padding:3px 8px;border-radius:5px;font-size:11.5px;background:var(--navy);color:#fff;border:none;cursor:pointer">✏️</button>
       </td>
     </tr>`;
   }).join('');
