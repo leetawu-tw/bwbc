@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v2.2 2026-06-17 -->
+<!-- BWBC Student v2.3 2026-06-17 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -477,10 +477,21 @@ async function enterApp(user) {
   document.getElementById('app-screen').style.display='block';
   document.getElementById('s-user-label').textContent = user.email;
 
-  // 找學生資料（不分大小寫）
-  const emailLower = user.email.trim().toLowerCase();
-  const { data:s } = await sb.from('students').select('*')
-    .ilike('email', emailLower).maybeSingle();
+  // 透過 users 表的 student_id 找學生資料（最可靠的關聯方式）
+  const { data:uRow } = await sb.from('users').select('student_id,role').eq('id', user.id).maybeSingle();
+  let s = null;
+  if (uRow?.student_id) {
+    const { data:stuData } = await sb.from('students').select('*').eq('id', uRow.student_id).maybeSingle();
+    s = stuData;
+  }
+  // fallback: 用 email 比對（相容舊資料）
+  if (!s) {
+    var emailLower = user.email.trim().toLowerCase();
+    var { data:stuByEmail } = await sb.from('students').select('*')
+      .or('email.ilike.' + emailLower + ',school_email.ilike.' + emailLower)
+      .maybeSingle();
+    s = stuByEmail;
+  }
   if (!s) {
     showBanner('err','❌ 找不到對應的學生資料，請聯絡行政辦公室。');
     return;
@@ -491,10 +502,9 @@ async function enterApp(user) {
   document.getElementById('s-user-label').textContent = `${ME.name_zh}　${user.email}`;
 
   // 第一次登入時自動建立 users 記錄（確保 RLS 正常運作）
-  const { data:uRow } = await sb.from('users').select('id').eq('id', user.id).maybeSingle();
   if (!uRow) {
     await sb.from('users').insert({
-      id: user.id, email: emailLower, role: 'student', student_id: s.id
+      id: user.id, email: user.email.toLowerCase(), role: 'student', student_id: s.id
     });
   }
 

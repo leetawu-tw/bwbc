@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v4.5 2026-06-17 -->
+<!-- BWBC Admin v4.8 2026-06-17 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -145,7 +145,7 @@ th.sortable:hover{background:var(--navy2)}
 .sort-icon{font-size:11px;opacity:.5;margin-left:3px}
 th.sort-asc .sort-icon{opacity:1;color:var(--gold2)}
 th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
-.stu-th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff}
+.stu-th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff;background:var(--navy)}
 .usr-th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff}
 .usr-th:hover{background:var(--navy2)}
 
@@ -525,13 +525,14 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <button class="btn" onclick="exportClassRoster()">📋 學生資料列表</button>
             <button class="btn" onclick="printBlankRoster()">📋 班級名條</button>
             <button class="btn" onclick="openStudentImport()">📥 批次匯入</button>
+            <button class="btn" onclick="openStudentUpdateImport()" style="color:#1A6A30;border-color:#1A6A30">📥 更新匯入</button>
             <button class="btn btn-pri" onclick="openStudentModal()">➕ 新增學生</button>
           </div>
         </div>
         <div id="stu-stats" style="font-size:12px;color:var(--ink3);padding:0 4px"></div>
-        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow-x:auto;width:100%;max-width:100%">
-          <table style="border-collapse:collapse;min-width:1500px;width:max-content">
-            <thead>
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow-x:auto;overflow-y:visible;width:100%;max-width:100%">
+          <table style="border-collapse:separate;border-spacing:0;min-width:1500px;width:max-content">
+            <thead style="position:sticky;top:0;z-index:2">
               <tr style="background:var(--navy);color:#fff">
                 <th class="stu-th" style="width:60px">📷</th>
                 <th class="stu-th" onclick="stuSort('student_code')">學號 <span class="sort-icon" id="stu-sort-student_code">⇅</span></th>
@@ -544,7 +545,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
                 <th class="stu-th" onclick="stuSort('emergency_name')">緊急聯絡人 <span class="sort-icon" id="stu-sort-emergency_name">⇅</span></th>
                 <th class="stu-th" onclick="stuSort('emergency_phone')">緊急電話 <span class="sort-icon" id="stu-sort-emergency_phone">⇅</span></th>
                 <th class="stu-th" onclick="stuSort('_advisor_name')">班導師 <span class="sort-icon" id="stu-sort-_advisor_name">⇅</span></th>
-                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
+                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;background:var(--navy)">操作</th>
               </tr>
             </thead>
             <tbody id="stu-tbody">
@@ -994,6 +995,31 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
   </div>
 </div>
 
+<!-- ══ Modal: 學生更新匯入 ══ -->
+<div class="modal-bg" id="stu-update-modal">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-hdr">
+      <div class="modal-title">📥 更新匯入學生資料</div>
+      <button class="modal-close" onclick="closeModal('stu-update-modal')">✕</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow-y:auto">
+      <div style="padding:10px 14px;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;font-size:12.5px;color:#6D4C00;line-height:1.7">
+        <strong>📌 規則：</strong>依「學號」比對 — 學號存在則<strong style="color:#1A6A30">更新</strong>、學號不存在則<strong style="color:#1565C0">新增</strong><br>
+        <strong>📄 欄位：</strong>學號(必填)、姓名、英文名、性別(M/F)、入學年(如114)、狀態、學校email、個人email、電話、地址、緊急聯絡人、關係、緊急電話、廣論班級、住宿、備註
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="file" id="stu-update-file" accept=".xlsx,.xls,.csv" onchange="onStudentUpdateFile(event)" style="font-size:13px">
+        <button class="btn btn-sm" onclick="downloadUpdateTemplate()" style="flex-shrink:0">📥 下載範本</button>
+      </div>
+      <div id="stu-update-preview" style="font-size:12.5px;color:var(--ink3)">請選擇 Excel 檔案</div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('stu-update-modal')">取消</button>
+      <button id="stu-update-btn" class="btn btn-pri" onclick="executeStudentUpdate()" disabled style="opacity:.5">確認執行</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ Modal: 編輯帳號權限 ══ -->
 <!-- ══ Modal: 課程點名單設定 ══ -->
 <div class="modal-bg" id="att-modal">
@@ -1037,6 +1063,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     </div>
     <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="closeModal('att-modal')">取消</button>
+      <button class="btn" onclick="exportAttendanceExcel()" style="color:#1A6A30;border-color:#1A6A30">📥 匯出 Excel</button>
       <button class="btn btn-pri" onclick="printCourseAttendance()">🖨 列印點名單</button>
     </div>
   </div>
@@ -6352,7 +6379,7 @@ async function printCourseAttendance() {
   // 列印 HTML — 教師和學生在同一個 table（不二犯規則）
   var h = '<html><head><meta charset="UTF-8"><title>各科點名單</title>';
   h += '<sty' + 'le>';
-  h += '@page{size:A4 landscape;margin:12mm}';
+  h += '@page{size:A4 portrait;margin:12mm}';
   h += 'body{font-family:"標楷體","DFKai-SB","Noto Serif TC",serif;margin:0;padding:0;color:#222;font-size:13px}';
   h += 'table{border-collapse:collapse;width:100%}';
   h += '.hdr td{padding:4px 10px;font-size:13px;vertical-align:top}';
@@ -6410,6 +6437,117 @@ async function printCourseAttendance() {
   showToast('✅ 已開啟點名單列印');
 }
 
+/* ─── 匯出點名單 Excel ─── */
+async function exportAttendanceExcel() {
+  // 動態載入 SheetJS
+  if (typeof XLSX === 'undefined') {
+    await new Promise(function(res, rej) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  var offeringId = document.getElementById('att-offering-id').value;
+  var o = OFFERINGS.find(function(x){ return x.offering_id === offeringId; });
+  if (!o) { showToast('找不到該課程', 'error'); return; }
+
+  var year  = document.getElementById('att-year').value;
+  var month = document.getElementById('att-month').value;
+  var angel = document.getElementById('att-angel').value.trim();
+  var ta    = document.getElementById('att-ta').value.trim();
+  var av    = document.getElementById('att-av').value.trim();
+  var isDigital = document.getElementById('att-digital').checked;
+
+  // 儲存幹部
+  try { localStorage.setItem('att_staff_' + offeringId, JSON.stringify({ angel: angel, ta: ta, av: av })); } catch(e) {}
+
+  var teacherArr = TEACHERS_MAP[offeringId] || [];
+  var REQ_LABEL = { req:'必修', sel:'選修', go:'選修(2選1)' };
+  var reqLabel = REQ_LABEL[o.req_type] || o.req_type || '';
+  var ROLE_LABEL = { '主講':'主授教授', '共同授課':'協同教授', '週次講師':'週次講師', '來賓':'特邀來賓' };
+  var semText = o.academic_year + '學年度' + (o.semester_num === 1 ? '上' : '下') + '學期';
+  var attendLabel = isDigital ? '□實體 連線(□同步 □非同步)' : '□實體 □連線';
+
+  // 選課學生
+  var enrRes = await sb.from('enrollments').select('student_id, status').eq('offering_id', offeringId);
+  var students = [];
+  if (enrRes.data?.length) {
+    var stuIds = [...new Set(enrRes.data.map(function(e){ return e.student_id; }))];
+    var stuRes = await sb.from('students').select('id, student_code, name_zh, status').in('id', stuIds).order('student_code');
+    var enrMap = {};
+    enrRes.data.forEach(function(e){ enrMap[e.student_id] = e.status; });
+    students = (stuRes.data || []).map(function(s){ return Object.assign({}, s, { enr_status: enrMap[s.id] || 'confirmed' }); });
+  }
+  var activeCount = students.filter(function(s){ return s.enr_status === 'confirmed' || s.enr_status === 'pending'; }).length;
+
+  var wk = 5;
+  var wsData = [];
+
+  // 學期標題
+  wsData.push([semText]);
+  wsData.push([]);
+
+  // 課程資訊
+  wsData.push(['課程編號', o.code, '', angel ? '小天使: ' + angel : '']);
+  wsData.push(['課程名稱', o.name_zh, '', av ? '視聽: ' + av : '']);
+  wsData.push(['教師', teacherArr.map(function(t){return t.name_zh;}).join('、'), '', ta ? 'TA: ' + ta : '']);
+  wsData.push(['必選修', reqLabel, '', '上課地點: ' + (o.classroom_name || '待確認')]);
+  wsData.push(['學分數', o.credits, '', '上課時間: ' + (o.time_raw || '待確認')]);
+  wsData.push(['選課總人數', activeCount]);
+  wsData.push([]);
+
+  // 教授出席標題列
+  var teacherHeader = ['教授姓名＼上課日期', '角色'];
+  for (var i = 0; i < wk; i++) teacherHeader.push('＿/＿');
+  wsData.push(teacherHeader);
+
+  // 教授出席列
+  teacherArr.forEach(function(t) {
+    var row = [t.name_zh, ROLE_LABEL[t.role] || t.role || '協同教授'];
+    for (var i = 0; i < wk; i++) row.push(attendLabel);
+    wsData.push(row);
+  });
+
+  wsData.push([]);
+
+  // 學生標題列
+  var stuHeader = ['學生姓名', '狀態'];
+  for (var i = 0; i < wk; i++) stuHeader.push('');
+  wsData.push(stuHeader);
+
+  // 學生列
+  students.forEach(function(s) {
+    var isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'withdrawn';
+    var sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'withdrawn' ? '退學' : '選課';
+    var row = [(s.student_code || '') + (s.name_zh || ''), sl];
+    for (var i = 0; i < wk; i++) row.push(isDropped ? '停修' : '');
+    wsData.push(row);
+  });
+
+  // 建立 Excel
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [
+    {wch: 18}, // 姓名/課程資訊
+    {wch: 12}, // 角色/狀態
+    {wch: 18}, // 週1
+    {wch: 18}, // 週2
+    {wch: 18}, // 週3
+    {wch: 18}, // 週4
+    {wch: 18}, // 週5
+  ];
+  // 合併標題列
+  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:6}}];
+
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '點名單');
+  var fileName = '點名單_' + o.code + '_' + o.name_zh + '_' + year + '年' + month + '月.xlsx';
+  XLSX.writeFile(wb, fileName);
+
+  closeModal('att-modal');
+  showToast('✅ 已匯出「' + fileName + '」');
+}
 
 
 /* ─── 班級名條列印（空白名條：學號＋姓名＋4 欄空白）─── */
@@ -6808,6 +6946,210 @@ async function executeStudentImport() {
     showToast('匯入失敗:' + e.message, 'error');
     console.warn('importStudents:', e);
   }
+}
+
+/* ─── 更新匯入（Upsert by student_code）─── */
+
+let _updateRows = [];
+
+// 中英文欄位名對照
+var COL_MAP = {
+  '學號':'student_code', 'student_code':'student_code',
+  '姓名':'name_zh', 'name_zh':'name_zh', '中文姓名':'name_zh',
+  '英文名':'name_en', 'name_en':'name_en', '英文姓名':'name_en',
+  '性別':'gender', 'gender':'gender',
+  '入學年':'cohort', 'cohort':'cohort', '年級':'cohort',
+  '狀態':'status', 'status':'status',
+  '學校email':'school_email', 'school_email':'school_email', '學校Email':'school_email',
+  '個人email':'personal_email', 'personal_email':'personal_email', '個人Email':'personal_email',
+  '電話':'phone', 'phone':'phone',
+  '地址':'address', 'address':'address', '通訊地址':'address',
+  '緊急聯絡人':'emergency_name', 'emergency_name':'emergency_name',
+  '關係':'emergency_relation', 'emergency_relation':'emergency_relation',
+  '緊急電話':'emergency_phone', 'emergency_phone':'emergency_phone',
+  '廣論班級':'guang_lun_class', 'guang_lun_class':'guang_lun_class',
+  '住宿':'housing', 'housing':'housing',
+  '備註':'notes', 'notes':'notes'
+};
+
+async function downloadUpdateTemplate() {
+  if (typeof XLSX === 'undefined') {
+    await new Promise(function(res, rej) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  var headers = ['學號','姓名','英文名','性別','入學年','狀態','學校email','個人email','電話','地址','緊急聯絡人','關係','緊急電話','廣論班級','住宿','備註'];
+  var example = ['11421101','盧瑞萱','','F','114','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','北17秋01','commute',''];
+  var note = ['# 學號:必填(8碼)','# 性別:M/F','','# M=男 F=女','# 如114','# active/leave/withdrawn','','','','','','# 如:父/母/配偶','','','# self_home/eco_village/off_campus/commute/other',''];
+  var ws = XLSX.utils.aoa_to_sheet([headers, example, note]);
+  ws['!cols'] = headers.map(function(){ return {wch:14}; });
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '更新匯入範本');
+  XLSX.writeFile(wb, '學生更新匯入範本.xlsx');
+  showToast('✅ 已下載範本');
+}
+
+function openStudentUpdateImport() {
+  _updateRows = [];
+  document.getElementById('stu-update-file').value = '';
+  document.getElementById('stu-update-preview').innerHTML = '請選擇 Excel 檔案';
+  document.getElementById('stu-update-btn').disabled = true;
+  document.getElementById('stu-update-btn').style.opacity = '.5';
+  openModal('stu-update-modal');
+}
+
+async function onStudentUpdateFile(e) {
+  if (typeof XLSX === 'undefined') {
+    await new Promise(function(res, rej) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      var wb = XLSX.read(evt.target.result, { type:'binary' });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rawRows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      if (!rawRows.length) { document.getElementById('stu-update-preview').innerHTML = '❌ 檔案沒有資料'; return; }
+
+      // 欄位名稱轉換（中文→英文）
+      var rows = rawRows.map(function(r) {
+        var mapped = {};
+        Object.keys(r).forEach(function(k) {
+          var dbKey = COL_MAP[k.trim()];
+          if (dbKey) mapped[dbKey] = r[k];
+        });
+        return mapped;
+      });
+
+      // 檢查必要欄位
+      if (!rows[0].hasOwnProperty('student_code')) {
+        var origKeys = Object.keys(rawRows[0]).join('、');
+        document.getElementById('stu-update-preview').innerHTML =
+          '❌ 找不到「學號」或「student_code」欄位<br>' +
+          '<span style="font-size:11px;color:var(--ink3)">檔案欄位：' + origKeys + '</span><br>' +
+          '<span style="font-size:11px">請使用「📥 下載範本」取得正確格式</span>';
+        return;
+      }
+
+      // 過濾空行
+      rows = rows.filter(function(r) { return r.student_code && String(r.student_code).trim(); });
+
+      // 比對現有資料
+      var existMap = {};
+      STUDENTS_ALL.forEach(function(s) { existMap[s.student_code] = s; });
+
+      var newList = [], updateList = [];
+      rows.forEach(function(r) {
+        var code = String(r.student_code).trim();
+        r.student_code = code;
+        if (existMap[code]) updateList.push({ row: r, existing: existMap[code] });
+        else newList.push(r);
+      });
+
+      _updateRows = rows;
+
+      // 預覽
+      var html = '<div style="margin-bottom:8px"><strong>共 ' + rows.length + ' 列</strong>　·　';
+      html += '<span style="color:#1565C0;font-weight:600">新增 ' + newList.length + ' 位</span>　·　';
+      html += '<span style="color:#1A6A30;font-weight:600">更新 ' + updateList.length + ' 位</span></div>';
+
+      if (newList.length) {
+        html += '<div style="margin-bottom:6px;font-weight:600;color:#1565C0">🆕 新增（' + newList.length + '）：</div>';
+        html += '<div style="font-size:11.5px;color:var(--ink2);margin-bottom:10px">' +
+          newList.map(function(r) { return r.student_code + ' ' + (r.name_zh||''); }).join('、') + '</div>';
+      }
+
+      if (updateList.length) {
+        html += '<div style="margin-bottom:6px;font-weight:600;color:#1A6A30">✏️ 更新（' + updateList.length + '）：</div>';
+        html += '<div style="font-size:11.5px;color:var(--ink2);margin-bottom:10px">' +
+          updateList.map(function(u) { return u.row.student_code + ' ' + (u.existing.name_zh||''); }).join('、') + '</div>';
+      }
+
+      document.getElementById('stu-update-preview').innerHTML = html;
+      document.getElementById('stu-update-btn').disabled = false;
+      document.getElementById('stu-update-btn').style.opacity = '1';
+    } catch(err) {
+      document.getElementById('stu-update-preview').innerHTML = '❌ 解析失敗: ' + err.message;
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+async function executeStudentUpdate() {
+  if (!_updateRows.length) return;
+  if (!confirm('確認執行更新匯入？\n\n新學號 → 新增\n既有學號 → 更新')) return;
+
+  var existMap = {};
+  STUDENTS_ALL.forEach(function(s) { existMap[s.student_code] = s; });
+
+  var successCount = 0, errorCount = 0, errors = [];
+
+  var FIELD_MAP = {
+    student_code:'student_code', name_zh:'name_zh', name_en:'name_en',
+    gender:'gender', cohort:'cohort', status:'status',
+    school_email:'school_email', personal_email:'personal_email',
+    phone:'phone', address:'address',
+    emergency_name:'emergency_name', emergency_relation:'emergency_relation',
+    emergency_phone:'emergency_phone',
+    guang_lun_class:'guang_lun_class', housing:'housing', notes:'notes'
+  };
+
+  for (var i = 0; i < _updateRows.length; i++) {
+    var r = _updateRows[i];
+    var code = String(r.student_code || '').trim();
+    if (!code) continue;
+
+    // 組合 payload（只取有值的欄位）
+    var payload = {};
+    Object.keys(FIELD_MAP).forEach(function(excelKey) {
+      var dbKey = FIELD_MAP[excelKey];
+      if (r[excelKey] !== undefined && r[excelKey] !== '') {
+        var val = r[excelKey];
+        if (dbKey === 'cohort') val = parseInt(val) || null;
+        else val = String(val).trim();
+        payload[dbKey] = val;
+      }
+    });
+
+    try {
+      var existing = existMap[code];
+      if (existing) {
+        // 更新
+        delete payload.student_code; // 不更新學號本身
+        var res = await sb.from('students').update(payload).eq('id', existing.id);
+        if (res.error) throw res.error;
+      } else {
+        // 新增
+        if (!payload.cohort) payload.cohort = parseInt(code.substring(0,3)) || 114;
+        if (!payload.status) payload.status = 'active';
+        if (!payload.school_email) payload.school_email = code + '@bwbc.edu.tw';
+        var res = await sb.from('students').insert(payload);
+        if (res.error) throw res.error;
+      }
+      successCount++;
+    } catch(err) {
+      errorCount++;
+      errors.push(code + ': ' + err.message);
+    }
+  }
+
+  var msg = '✅ 完成！成功 ' + successCount + ' 筆';
+  if (errorCount) msg += '、失敗 ' + errorCount + ' 筆\n\n' + errors.join('\n');
+  alert(msg);
+
+  closeModal('stu-update-modal');
+  loadStudents();
+  showToast(msg.split('\n')[0]);
 }
 
 /* ════════════════════════════════════════════════════════════════════
