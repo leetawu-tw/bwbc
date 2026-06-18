@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v4.8 2026-06-17 -->
+<!-- BWBC Admin v5.0 2026-06-17 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -168,6 +168,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .stu-status-leave{background:#FFF3E0;color:#B05010}
 .stu-status-graduated{background:#E3F2FD;color:#1565C0}
 .stu-status-withdrawn{background:#FCE4EC;color:#C2185B}
+.stu-status-dropout{background:#FCE4EC;color:#C2185B}
 
 /* Toast */
 .toast{position:fixed;bottom:24px;right:24px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:200;display:none;align-items:center;gap:8px;box-shadow:var(--sh2);animation:slideIn .3s ease}
@@ -520,7 +521,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <option value="active">在學</option>
               <option value="leave">休學</option>
               <option value="graduated">已畢業</option>
-              <option value="withdrawn">退學</option>
+              <option value="dropout">退學</option>
             </select>
             <button class="btn" onclick="exportClassRoster()">📋 學生資料列表</button>
             <button class="btn" onclick="printBlankRoster()">📋 班級名條</button>
@@ -831,7 +832,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <option value="active">在學</option>
             <option value="leave">休學</option>
             <option value="graduated">已畢業</option>
-            <option value="withdrawn">退學</option>
+            <option value="dropout">退學</option>
           </select>
         </div>
         <div class="frow"><label class="flabel">性別</label>
@@ -1005,7 +1006,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow-y:auto">
       <div style="padding:10px 14px;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;font-size:12.5px;color:#6D4C00;line-height:1.7">
         <strong>📌 規則：</strong>依「學號」比對 — 學號存在則<strong style="color:#1A6A30">更新</strong>、學號不存在則<strong style="color:#1565C0">新增</strong><br>
-        <strong>📄 欄位：</strong>學號(必填)、姓名、英文名、性別(M/F)、入學年(如114)、狀態、學校email、個人email、電話、地址、緊急聯絡人、關係、緊急電話、廣論班級、住宿、備註
+        <strong>📄 欄位（按下載範本為準）：</strong>學號(必填)、中文姓名、英文姓名、性別(M/F/O)、出生日期、入學年、狀態(active在學/leave休學/graduated已畢業/dropout退學)、學校email、個人email、電話、通訊地址、緊急聯絡人、關係、緊急電話、入學日期、學歷、畢業學校、廣論班級、住宿、備註
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="file" id="stu-update-file" accept=".xlsx,.xls,.csv" onchange="onStudentUpdateFile(event)" style="font-size:13px">
@@ -6022,7 +6023,7 @@ let _stuSort = { field:'student_code', dir:1 };
 let _stuPhotoFile = null;  // 暫存待上傳的大頭照
 let _stuImportData = null; // 暫存匯入解析結果
 
-const STU_STATUS_LABEL = { active:'在學', leave:'休學', graduated:'已畢業', withdrawn:'退學' };
+const STU_STATUS_LABEL = { active:'在學', leave:'休學', graduated:'已畢業', dropout:'退學' };
 const STU_HOUSING_LABEL = {
   self_home:'自宅', eco_village:'生態村租屋', off_campus:'校外租屋',
   commute:'通勤', other:'其他'
@@ -6364,8 +6365,8 @@ async function printCourseAttendance() {
 
   // 學生列（與教師共用同一 table，colspan=2 對齊教師的姓名+角色兩欄）
   var stuRows = students.length ? students.map(function(s) {
-    var isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'withdrawn';
-    var sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'withdrawn' ? '退學' : '';
+    var isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'dropout';
+    var sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'dropout' ? '退學' : '';
     var bg = isDropped ? 'background:#f5f5f5;color:#999' : '';
     var cells = isDropped
       ? Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999;text-align:center;font-size:11px;color:#999">停修</td>').join('')
@@ -6519,8 +6520,8 @@ async function exportAttendanceExcel() {
 
   // 學生列
   students.forEach(function(s) {
-    var isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'withdrawn';
-    var sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'withdrawn' ? '退學' : '選課';
+    var isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'dropout';
+    var sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'dropout' ? '退學' : '選課';
     var row = [(s.student_code || '') + (s.name_zh || ''), sl];
     for (var i = 0; i < wk; i++) row.push(isDropped ? '停修' : '');
     wsData.push(row);
@@ -6952,21 +6953,25 @@ async function executeStudentImport() {
 
 let _updateRows = [];
 
-// 中英文欄位名對照
+// 中英文欄位名對照（含所有別名）
 var COL_MAP = {
   '學號':'student_code', 'student_code':'student_code',
-  '姓名':'name_zh', 'name_zh':'name_zh', '中文姓名':'name_zh',
-  '英文名':'name_en', 'name_en':'name_en', '英文姓名':'name_en',
+  '中文姓名':'name_zh', '姓名':'name_zh', 'name_zh':'name_zh',
+  '英文姓名':'name_en', '英文名':'name_en', 'name_en':'name_en',
   '性別':'gender', 'gender':'gender',
-  '入學年':'cohort', 'cohort':'cohort', '年級':'cohort',
+  '出生日期':'birth_date', '生日':'birth_date', 'birth_date':'birth_date',
+  '入學年':'cohort', '年級':'cohort', 'cohort':'cohort',
   '狀態':'status', 'status':'status',
-  '學校email':'school_email', 'school_email':'school_email', '學校Email':'school_email',
-  '個人email':'personal_email', 'personal_email':'personal_email', '個人Email':'personal_email',
+  '學校email':'school_email', '學校Email':'school_email', 'school_email':'school_email',
+  '個人email':'personal_email', '個人Email':'personal_email', 'personal_email':'personal_email',
   '電話':'phone', 'phone':'phone',
-  '地址':'address', 'address':'address', '通訊地址':'address',
+  '通訊地址':'address', '地址':'address', 'address':'address',
   '緊急聯絡人':'emergency_name', 'emergency_name':'emergency_name',
   '關係':'emergency_relation', 'emergency_relation':'emergency_relation',
   '緊急電話':'emergency_phone', 'emergency_phone':'emergency_phone',
+  '入學日期':'enrolled_date', 'enrolled_date':'enrolled_date',
+  '學歷':'prev_education', 'prev_education':'prev_education',
+  '畢業學校':'prev_school', 'prev_school':'prev_school',
   '廣論班級':'guang_lun_class', 'guang_lun_class':'guang_lun_class',
   '住宿':'housing', 'housing':'housing',
   '備註':'notes', 'notes':'notes'
@@ -6981,9 +6986,9 @@ async function downloadUpdateTemplate() {
       document.head.appendChild(s);
     });
   }
-  var headers = ['學號','姓名','英文名','性別','入學年','狀態','學校email','個人email','電話','地址','緊急聯絡人','關係','緊急電話','廣論班級','住宿','備註'];
-  var example = ['11421101','盧瑞萱','','F','114','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','北17秋01','commute',''];
-  var note = ['# 學號:必填(8碼)','# 性別:M/F','','# M=男 F=女','# 如114','# active/leave/withdrawn','','','','','','# 如:父/母/配偶','','','# self_home/eco_village/off_campus/commute/other',''];
+  var headers = ['學號','中文姓名','英文姓名','性別(M/F/O)','出生日期(YYYY-MM-DD)','入學年','狀態','學校email','個人email','電話','通訊地址','緊急聯絡人','關係','緊急電話','入學日期(YYYY-MM-DD)','學歷','畢業學校','廣論班級','住宿','備註'];
+  var example = ['11421101','盧瑞萱','','F','1998-05-20','114','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','2025-09-01','學士','國立台灣大學','北17秋01','commute',''];
+  var note = ['# 必填(8碼)','# 必填','','# M=男 F=女 O=其他','# 如1998-05-20','# 如114','# active在學/leave休學/graduated已畢業/dropout退學','','','','','','','','# 如2025-09-01','# 最高學歷','','','# self_home自宅/eco_village生態村/off_campus校外/commute通勤/other',''];
   var ws = XLSX.utils.aoa_to_sheet([headers, example, note]);
   ws['!cols'] = headers.map(function(){ return {wch:14}; });
   var wb = XLSX.utils.book_new();
@@ -7096,11 +7101,12 @@ async function executeStudentUpdate() {
 
   var FIELD_MAP = {
     student_code:'student_code', name_zh:'name_zh', name_en:'name_en',
-    gender:'gender', cohort:'cohort', status:'status',
+    gender:'gender', birth_date:'birth_date', cohort:'cohort', status:'status',
     school_email:'school_email', personal_email:'personal_email',
     phone:'phone', address:'address',
     emergency_name:'emergency_name', emergency_relation:'emergency_relation',
-    emergency_phone:'emergency_phone',
+    emergency_phone:'emergency_phone', enrolled_date:'enrolled_date',
+    prev_education:'prev_education', prev_school:'prev_school',
     guang_lun_class:'guang_lun_class', housing:'housing', notes:'notes'
   };
 
