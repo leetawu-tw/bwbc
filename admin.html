@@ -17,7 +17,7 @@
   --r:8px;--sh:0 2px 8px rgba(0,0,0,.08);--sh2:0 8px 24px rgba(0,0,0,.12);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--cr);color:var(--ink);min-height:100vh;font-size:14px}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cr);color:var(--ink);height:100vh;overflow:hidden;font-size:14px}
 button{cursor:pointer;font-family:inherit}
 input,select,textarea{font-family:inherit;font-size:14px}
 
@@ -33,7 +33,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .login-btn:hover{background:var(--navy2)}
 
 /* ── LAYOUT ── */
-.app{display:none;min-height:100vh;flex-direction:column}
+.app{display:none;height:100vh;flex-direction:column;overflow:hidden}
 .app.show{display:flex}
 .topbar{background:var(--navy);padding:0 24px;height:52px;display:flex;align-items:center;gap:16px;flex-shrink:0}
 .tb-logo{font-family:'Noto Serif TC',serif;font-size:14px;color:rgba(255,255,255,.8);flex:1}
@@ -42,7 +42,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .tb-logout:hover{background:rgba(255,255,255,.1)}
 
 .layout{display:flex;flex:1;overflow:hidden}
-.sidebar{width:200px;background:#fff;border-right:1px solid var(--cr2);padding:16px 0;flex-shrink:0;overflow-y:auto}
+.sidebar{width:200px;background:#fff;border-right:1px solid var(--cr2);padding:16px 0;flex-shrink:0;overflow-y:auto;height:100%}
 .nav-section{margin-bottom:16px}
 .nav-label{font-size:10px;font-weight:500;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;padding:0 16px;margin-bottom:4px}
 .nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;color:var(--ink2);cursor:pointer;transition:all .15s;border-left:3px solid transparent}
@@ -50,7 +50,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .nav-item.on{background:var(--navy3);color:var(--navy);border-left-color:var(--gold);font-weight:500}
 .nav-icon{font-size:16px;width:20px;text-align:center}
 
-.content{flex:1;overflow-y:auto;padding:20px 24px;min-width:0}
+.content{flex:1;overflow-y:auto;padding:20px 24px;min-width:0;height:100%}
 
 /* ── CARDS ── */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
@@ -1435,6 +1435,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <!-- 附件 -->
       <div class="frow">
         <label class="flabel">附件 <span style="font-size:11px;color:var(--ink3)">PDF/圖片/Word/PPT/CSV/文字（最多5個）</span></label>
+        <div id="ann-existing-files" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px"></div>
         <div id="ann-attachment-area" style="border:1.5px dashed var(--cr2);border-radius:8px;padding:12px;cursor:pointer;text-align:center"
           onclick="document.getElementById('ann-file-input').click()"
           ondragover="event.preventDefault();this.style.borderColor='var(--navy)'"
@@ -4024,12 +4025,13 @@ function openAnnModal(id) {
   document.getElementById('ann-target').value = 'admin';
   document.getElementById('ann-expire-type').value = 'forever';
   document.getElementById('ann-expires-at').value = '';
+  document.getElementById('ann-existing-files').innerHTML = '';
   document.getElementById('ann-file-list').innerHTML = '';
   document.getElementById('ann-modal-title').textContent = '📢 新增公告';
   openModal('ann-modal');
 }
 
-function editAnn(id) {
+async function editAnn(id) {
   const a = ANNOUNCEMENTS.find(x=>x.id===id);
   if (!a) return;
   ANN_FILES = [];
@@ -4040,23 +4042,55 @@ function editAnn(id) {
   document.getElementById('ann-expire-type').value = a.expire_type||'forever';
   document.getElementById('ann-expires-at').value = a.expires_at ? new Date(a.expires_at).toISOString().slice(0,16) : '';
   document.getElementById('ann-file-list').innerHTML = '';
+  document.getElementById('ann-existing-files').innerHTML = '<div style="font-size:12px;color:var(--ink3);padding:4px 0">載入附件中…</div>';
   document.getElementById('ann-modal-title').textContent = '📢 編輯公告';
   openModal('ann-modal');
+
+  // 載入現有附件
+  const {data:atts} = await sb.from('attachments')
+    .select('*').eq('ref_type','announcement').eq('ref_id',a.id).order('created_at');
+  renderAnnExistingAttachments(atts||[]);
+}
+
+function renderAnnExistingAttachments(atts) {
+  const el = document.getElementById('ann-existing-files');
+  if (!atts.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div style="font-size:11px;color:var(--ink3);margin-bottom:2px">目前附件（點🗑立即刪除）</div>'
+    + atts.map(att => `
+    <div id="ann-existing-${att.id}" style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 8px;background:var(--cr3);border-radius:6px">
+      <span style="flex:1">📎 ${att.filename} <span style="color:var(--ink3)">(${((att.file_size||0)/1024).toFixed(0)}KB)</span></span>
+      <button onclick="deleteAnnAttachment('${att.id}','${att.file_path}')" title="刪除此附件" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px">🗑</button>
+    </div>`).join('');
+}
+
+async function deleteAnnAttachment(attId, filePath) {
+  if (!confirm('確定刪除此附件？此動作會立即生效，無法復原。')) return;
+  const {error:se} = await sb.storage.from('admin-assets').remove([filePath]);
+  if (se) console.warn('Storage 刪除失敗：', se.message);
+  const {error} = await sb.from('attachments').delete().eq('id', attId);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  const row = document.getElementById('ann-existing-'+attId);
+  if (row) row.remove();
+  showToast('✅ 附件已刪除');
 }
 
 function handleAnnFiles(files) {
   const allowed = ['pdf','jpg','jpeg','png','gif','doc','docx','odt','ppt','pptx','csv','txt','md'];
+  const existingCount = document.getElementById('ann-existing-files').querySelectorAll('[id^="ann-existing-"]').length;
   Array.from(files).forEach(f=>{
     const ext = f.name.split('.').pop().toLowerCase();
     if (!allowed.includes(ext)) { showToast(`不支援 .${ext} 格式`,'error'); return; }
-    if (ANN_FILES.length>=5) { showToast('最多5個附件','error'); return; }
+    if (existingCount + ANN_FILES.length>=5) { showToast('最多5個附件（含現有附件）','error'); return; }
     ANN_FILES.push(f);
   });
   renderAnnFileList();
 }
 
 function renderAnnFileList() {
-  document.getElementById('ann-file-list').innerHTML = ANN_FILES.map((f,i)=>
+  const el = document.getElementById('ann-file-list');
+  if (!ANN_FILES.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div style="font-size:11px;color:var(--ink3);margin-bottom:2px">待上傳新檔案</div>'
+    + ANN_FILES.map((f,i)=>
     `<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 8px;background:var(--cr3);border-radius:6px">
       <span style="flex:1">📎 ${f.name} <span style="color:var(--ink3)">(${(f.size/1024).toFixed(0)}KB)</span></span>
       <button onclick="ANN_FILES.splice(${i},1);renderAnnFileList()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:12px">✕</button>
