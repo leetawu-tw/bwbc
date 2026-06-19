@@ -17,7 +17,7 @@
   --cr2:#E8E8E8;--cr3:#F7F6F3;
   --r:10px;--sh:0 1px 4px rgba(0,0,0,.08);
 }
-body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink);line-height:1.6}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink);line-height:1.6;height:100vh;overflow:hidden}
 
 /* ── LOGIN ── */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,#2B5FA0 100%)}
@@ -178,7 +178,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
     <div class="topbar-user" id="t-user-label"></div>
     <button class="topbar-btn" onclick="signOut()">登出</button>
   </div>
-  <div style="display:flex;min-height:calc(100vh - 52px)">
+  <div style="display:flex;height:calc(100vh - 52px);overflow:hidden">
     <!-- 左側導覽 -->
     <div style="width:140px;flex-shrink:0;background:#fff;border-right:1px solid #E8E8E8;padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto">
       <div style="font-size:11px;font-weight:600;color:#888;padding:0 16px 8px;letter-spacing:.05em">功能選單</div>
@@ -190,7 +190,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <div class="side-item" id="nav-grades"      onclick="showSection('grades')">📊 成績登錄</div>
     </div>
     <!-- 右側主內容 -->
-    <div class="main" style="flex:1;overflow-y:auto">
+    <div class="main" style="flex:1;overflow-y:auto;height:100%">
 
       <!-- ── 公佈欄 section ── -->
       <div id="sec-ann" class="t-section">
