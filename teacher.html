@@ -90,6 +90,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .del-btn:hover{background:#fee;border-color:#fcc;color:#c00}
 .modal-footer{padding:14px 20px;border-top:1px solid var(--cr2);display:flex;justify-content:flex-end;gap:10px}
 .btn-save{padding:9px 22px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-secondary{padding:9px 18px;background:var(--cr2);color:var(--ink2);border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-secondary:hover{background:#ddd}
 .btn-save:hover{background:var(--navy2)}
 .btn-cancel{padding:9px 18px;background:#fff;color:var(--ink3);border:1px solid var(--cr2);border-radius:8px;font-size:13.5px;cursor:pointer;font-family:inherit}
 
@@ -325,7 +327,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 
       <!-- ── 成績登錄 section ── -->
       <div id="sec-grades" class="t-section">
-        <div class="section-title">📝 成績登錄</div>
+        <div class="section-title">📊 成績登錄</div>
 
         <!-- 課程卡片列表 -->
         <div id="grade-course-list">
@@ -346,16 +348,16 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
           </div>
 
           <!-- 成績表格 -->
-          <div class="table-wrap">
-            <table class="data-table" id="grade-sheet-table">
+          <div class="tbl-wrap" style="max-height:calc(100vh - 280px);overflow:auto">
+            <table id="grade-sheet-table">
               <thead>
                 <tr>
-                  <th style="width:40px">序號</th>
-                  <th onclick="sortTable('grade-sheet-table',1)">學號 ↕</th>
-                  <th onclick="sortTable('grade-sheet-table',2)">姓名 ↕</th>
-                  <th style="width:120px">成績（0-100）</th>
-                  <th style="width:80px">等第</th>
-                  <th style="width:100px">備註</th>
+                  <th style="width:40px;position:sticky;top:0;background:var(--navy);z-index:2">序號</th>
+                  <th class="sortable" onclick="sortTable('grade-sheet-table',1)" style="position:sticky;top:0;background:var(--navy);z-index:2">學號 <span class="sort-icon">⇅</span></th>
+                  <th class="sortable" onclick="sortTable('grade-sheet-table',2)" style="position:sticky;top:0;background:var(--navy);z-index:2">姓名 <span class="sort-icon">⇅</span></th>
+                  <th style="width:120px;position:sticky;top:0;background:var(--navy);z-index:2">成績（0-100）</th>
+                  <th style="width:80px;position:sticky;top:0;background:var(--navy);z-index:2">等第</th>
+                  <th style="width:100px;position:sticky;top:0;background:var(--navy);z-index:2">備註</th>
                 </tr>
               </thead>
               <tbody id="grade-sheet-tbody">
@@ -1268,9 +1270,10 @@ async function loadGradeSheet(offeringId) {
     const isSuspended = s?.status === 'leave';
     const entry     = _gradeEntries[e.student_id] || {};
     const score     = entry.score ?? '';
-    const gradeLabel = entry.grade_label || (score !== '' ? calcGradeLabel(Number(score)) : '');
-    const notes     = isWithdrawn ? '停修' : isSuspended ? '休學' : (entry.notes || '');
     const disabled  = isLocked || isWithdrawn || isSuspended;
+    // 休學/停修學生一律不顯示等第（即使資料庫曾留有舊紀錄）
+    const gradeLabel = (isWithdrawn || isSuspended) ? '' : (entry.grade_label || (score !== '' ? calcGradeLabel(Number(score)) : ''));
+    const notes     = isWithdrawn ? '停修' : isSuspended ? '休學' : (entry.notes || '');
     const rowStyle  = (isWithdrawn || isSuspended) ? 'background:#F5F5F5;color:#999' : '';
 
     return `<tr style="${rowStyle}">
@@ -1289,6 +1292,33 @@ async function loadGradeSheet(offeringId) {
       <td style="font-size:12px;color:var(--ink3)">${notes}</td>
     </tr>`;
   }).join('');
+}
+
+/* 通用表格排序（依欄位文字內容排序，可重複點擊切換方向）*/
+const _sortTableState = {};
+function sortTable(tableId, colIndex) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  const rows = [...tbody.querySelectorAll('tr')].filter(tr => tr.cells.length > colIndex);
+  if (!rows.length) return;
+
+  const key = tableId + '_' + colIndex;
+  const dir = (_sortTableState[key] = -(_sortTableState[key] || -1));
+  // 重設其他欄位排序狀態並更新圖示
+  table.querySelectorAll('th .sort-icon').forEach(el => el.textContent = '⇅');
+  const activeIcon = table.querySelectorAll('th')[colIndex]?.querySelector('.sort-icon');
+  if (activeIcon) activeIcon.textContent = dir === 1 ? '↑' : '↓';
+
+  rows.sort((a, b) => {
+    const va = a.cells[colIndex].textContent.trim();
+    const vb = b.cells[colIndex].textContent.trim();
+    const na = Number(va), nb = Number(vb);
+    if (!isNaN(na) && !isNaN(nb) && va !== '' && vb !== '') return (na - nb) * dir;
+    return va.localeCompare(vb, 'zh') * dir;
+  });
+  rows.forEach(tr => tbody.appendChild(tr));
 }
 
 function calcGradeLabel(score) {
@@ -1515,18 +1545,18 @@ async function handleGradeImportFile(file) {
 
   // 建立目前畫面上的學號 → input 對照（只含可輸入的，停修/休學略過）
   const codeToInput = {};
+  // 建立停修/休學學號 → 原因對照（用於正確顯示狀態，而非誤判為找不到學號）
+  const skipReasons = {};
   document.querySelectorAll('#grade-sheet-tbody tr').forEach(tr => {
-    const inp  = tr.querySelector('input[data-sid]');
-    const code = tr.cells[1]?.textContent.trim();
-    if (inp && code && !inp.disabled) codeToInput[code] = inp;
-  });
-  // 建立停修/休學學號集合（用於略過提示）
-  const skipCodes = new Set();
-  document.querySelectorAll('#grade-sheet-tbody tr').forEach(tr => {
-    const inp  = tr.querySelector('input[data-sid]');
-    const code = tr.cells[1]?.textContent.trim();
-    if (!inp && code) skipCodes.add(code); // 停修/休學沒有 input
-    if (inp?.disabled && code) skipCodes.add(code);
+    const inp   = tr.querySelector('input[data-sid]');
+    const code  = tr.cells[1]?.textContent.trim();
+    const note  = tr.cells[5]?.textContent.trim() || '';
+    if (!code) return;
+    if (inp && !inp.disabled) { codeToInput[code] = inp; return; }
+    // 沒有 input 或已 disabled：依備註欄判斷原因
+    if (note.includes('停修')) skipReasons[code] = '停修';
+    else if (note.includes('休學')) skipReasons[code] = '休學';
+    else if (inp?.disabled) skipReasons[code] = '已鎖定，無法匯入';
   });
 
   _importRows = [];
@@ -1539,8 +1569,9 @@ async function handleGradeImportFile(file) {
 
     const inp     = codeToInput[studentCode];
     const matched = !!inp;
-    const isSkip  = !matched || score === '' || inp?.disabled;
-    _importRows.push({ studentCode, score, notes, matched, isSkip, input: inp });
+    const skipReason = skipReasons[studentCode] || null; // 停修/休學/已鎖定，非「找不到」
+    const isSkip  = !matched || score === '' || !!skipReason;
+    _importRows.push({ studentCode, score, notes, matched, isSkip, skipReason, input: inp });
   });
 
   // 預覽表格
@@ -1559,7 +1590,7 @@ async function handleGradeImportFile(file) {
       <td style="padding:5px 10px">${r.score||'—'}</td>
       <td style="padding:5px 10px;color:#888">${r.notes||''}</td>
       <td style="padding:5px 10px">${
-        r.isSkipWithdrawn ? '<span style="color:#888">略過（停修）</span>' :
+        r.skipReason      ? `<span style="color:#888">略過（${r.skipReason}）</span>` :
         !r.matched        ? '<span style="color:#c00">找不到學號</span>' :
         r.isSkip          ? '<span style="color:#888">略過</span>' :
                             '<span style="color:#1A6A30">✅ 匯入</span>'

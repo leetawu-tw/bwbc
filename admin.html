@@ -148,6 +148,7 @@ th.sort-asc .sort-icon{opacity:1;color:var(--gold2)}
 th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .stu-th{padding:8px 10px;text-align:left;font-size:12px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff;background:var(--navy)}
 .usr-th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff}
+.sticky-thead th, .sticky-thead-th{position:sticky;top:0;background:var(--navy);z-index:2}
 .usr-th:hover{background:var(--navy2)}
 
 /* 4 級權限 radio group */
@@ -565,17 +566,17 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <span style="font-size:12px;color:var(--ink3);margin-left:12px">(只有 admin 能進入此頁)</span>
         </div>
         <div id="usr-stats" style="font-size:12px;color:var(--ink3);padding:0 4px"></div>
-        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow-x:auto">
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow:auto;max-height:calc(100vh - 230px)">
           <table style="border-collapse:collapse;min-width:1000px;width:max-content">
             <thead>
-              <tr style="background:var(--navy);color:#fff">
+              <tr style="background:var(--navy);color:#fff" class="sticky-thead">
                 <th class="usr-th" onclick="usrSort('email')">Email <span class="sort-icon" id="usr-sort-email">⇅</span></th>
                 <th class="usr-th" onclick="usrSort('_display_name')">顯示名稱 <span class="sort-icon" id="usr-sort-_display_name">⇅</span></th>
                 <th class="usr-th" onclick="usrSort('role')" style="text-align:center">角色 <span class="sort-icon" id="usr-sort-role">⇅</span></th>
                 <th class="usr-th" onclick="usrSort('_irole_str')">院內職務 <span class="sort-icon" id="usr-sort-_irole_str">⇅</span></th>
                 <th class="usr-th">權限 ({模組數})</th>
                 <th class="usr-th" onclick="usrSort('created_at')" style="text-align:center">建立 <span class="sort-icon" id="usr-sort-created_at">⇅</span></th>
-                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
+                <th class="sticky-thead-th" style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
               </tr>
             </thead>
             <tbody id="usr-tbody">
@@ -689,6 +690,13 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="page-hdr">
           <div class="page-title">📊 成績登錄管理（學科）</div>
         </div>
+        <div class="toolbar" style="margin-bottom:14px">
+          <label class="flabel" style="margin:0;white-space:nowrap">設定學期</label>
+          <select id="g-semester" class="fselect" style="width:160px" onchange="onGradeSemesterChange()">
+            <option value="">請選擇學期</option>
+          </select>
+          <span style="font-size:12px;color:var(--ink3)">套用於下方所有分頁；預設為現在學期，補資料時可手動切換</span>
+        </div>
         <div style="display:flex;gap:6px;margin-bottom:16px">
           <button class="btn btn-pri" id="gtab-setup-btn"  onclick="switchGradeTab('setup',this)">⚙️ 期程設定</button>
           <button class="btn btn-sec" id="gtab-assign-btn" onclick="switchGradeTab('assign',this)">👤 評分老師指定</button>
@@ -700,11 +708,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);padding:18px;max-width:640px;box-shadow:var(--sh)">
             <div style="font-weight:600;font-size:15px;margin-bottom:16px">學科成績登錄期程</div>
             <div class="frow-2">
-              <div>
-                <label class="flabel">學期 <span style="color:var(--red)">*</span></label>
-                <select id="gs-semester" class="fselect" onchange="loadGradePeriod()">
-                  <option value="">請選擇學期</option>
-                </select>
+              <div style="display:flex;align-items:center">
+                <span style="font-size:13px;color:var(--ink3)">學期：<strong id="gs-semester-label" style="color:var(--ink)">—</strong></span>
               </div>
               <div style="display:flex;align-items:flex-end">
                 <button class="btn btn-pri" onclick="activateGradePeriod('academic')" id="gs-activate-btn" style="width:100%">▶ 啟動成績登錄</button>
@@ -729,16 +734,20 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <!-- ── 評分老師指定 ── -->
         <div id="gpanel-assign" class="gpanel" style="display:none">
           <div class="toolbar">
-            <select id="ga-semester" class="fselect" style="width:160px" onchange="loadGradeAssignments()">
-              <option value="">請選擇學期</option>
+            <select id="ga-cohort" class="fselect" style="width:140px" onchange="filterGradeAssignments()">
+              <option value="">全年級</option>
             </select>
-            <span style="font-size:12.5px;color:var(--ink3)">選擇學期後顯示該學期所有開課，可指定評分老師</span>
+            <input class="search" id="ga-search" placeholder="🔍 課程名稱或授課教師…" style="width:220px" oninput="filterGradeAssignments()">
             <button class="btn btn-sec" onclick="applyDefaultAssignments()" style="margin-left:auto">⚡ 全部套用預設（第一位老師）</button>
           </div>
           <div class="tbl-wrap">
             <table>
               <thead><tr>
-                <th>課程代號</th><th>課程名稱</th><th>授課教師</th><th>評分負責老師</th><th>狀態</th>
+                <th onclick="sortAssignTable('code')" class="sortable">課程代號 <span class="sort-icon" id="gasort-code">⇅</span></th>
+                <th onclick="sortAssignTable('name')" class="sortable">課程名稱 <span class="sort-icon" id="gasort-name">⇅</span></th>
+                <th>授課教師</th>
+                <th onclick="sortAssignTable('teacher')" class="sortable">評分負責老師 <span class="sort-icon" id="gasort-teacher">⇅</span></th>
+                <th onclick="sortAssignTable('status')" class="sortable">狀態 <span class="sort-icon" id="gasort-status">⇅</span></th>
               </tr></thead>
               <tbody id="assign-tbody">
                 <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>
@@ -750,15 +759,24 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <!-- ── 成績狀態 ── -->
         <div id="gpanel-status" class="gpanel" style="display:none">
           <div class="toolbar">
-            <select id="gst-semester" class="fselect" style="width:160px" onchange="loadGradeStatus()">
-              <option value="">請選擇學期</option>
+            <input class="search" id="gst-search" placeholder="🔍 課程名稱或評分老師…" style="width:220px" oninput="filterGradeStatus()">
+            <select id="gst-status-filter" class="fselect" style="width:130px" onchange="filterGradeStatus()">
+              <option value="">全部狀態</option>
+              <option value="none">未登錄</option>
+              <option value="draft">填寫中</option>
+              <option value="submitted">已送出</option>
             </select>
             <input type="hidden" id="gst-type" value="academic">
           </div>
           <div class="tbl-wrap">
             <table>
               <thead><tr>
-                <th>課程</th><th>評分老師</th><th>已登錄</th><th>狀態</th><th>送出時間</th><th>操作</th>
+                <th onclick="sortStatusTable('label')" class="sortable">課程 <span class="sort-icon" id="gstsort-label">⇅</span></th>
+                <th onclick="sortStatusTable('teacher')" class="sortable">評分老師 <span class="sort-icon" id="gstsort-teacher">⇅</span></th>
+                <th onclick="sortStatusTable('count')" class="sortable">已登錄 <span class="sort-icon" id="gstsort-count">⇅</span></th>
+                <th onclick="sortStatusTable('status')" class="sortable">狀態 <span class="sort-icon" id="gstsort-status">⇅</span></th>
+                <th onclick="sortStatusTable('submitted_at')" class="sortable">送出時間 <span class="sort-icon" id="gstsort-submitted_at">⇅</span></th>
+                <th>操作</th>
               </tr></thead>
               <tbody id="status-tbody">
                 <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>
@@ -767,6 +785,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </div>
         </div>
       </div>
+
 
       <!-- ▌會議管理 ▌ -->
       <div id="page-meetings" style="display:none">
@@ -8662,16 +8681,32 @@ function switchGradeTab(tab, btn) {
 
 async function loadGradesAdmin() {
   if (!_gradeSemesters.length) {
-    const { data } = await sb.from('semesters').select('id,label').order('label', {ascending:false});
+    const { data } = await sb.from('semesters').select('id,label,is_current').order('label', {ascending:false});
     _gradeSemesters = data || [];
   }
   const opts = _gradeSemesters.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
-  const allOpts = '<option value="">請選擇學期</option>' + opts;
-  ['gs-semester','ga-semester','gst-semester'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = allOpts;
-  });
-  renderGradeScaleEditor(DEFAULT_GRADE_SCALE);
+  const sel = document.getElementById('g-semester');
+  sel.innerHTML = '<option value="">請選擇學期</option>' + opts;
+  const currentSem = _gradeSemesters.find(s => s.is_current);
+  if (currentSem) sel.value = currentSem.id; // 預設帶入現在學期，需要時可手動切換補資料
+  onGradeSemesterChange();
+}
+
+/* 共用學期切換：同步觸發三個分頁的資料載入 */
+function onGradeSemesterChange() {
+  const sel = document.getElementById('g-semester');
+  const semId = sel.value;
+  const label = sel.selectedOptions[0]?.textContent || '—';
+  document.getElementById('gs-semester-label').textContent = semId ? label : '—';
+  if (!semId) {
+    renderGradeScaleEditor(DEFAULT_GRADE_SCALE);
+    document.getElementById('assign-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>';
+    document.getElementById('status-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>';
+    return;
+  }
+  loadGradePeriod();
+  loadGradeAssignments();
+  loadGradeStatus();
 }
 
 /* ── 等第表編輯器 ── */
@@ -8707,7 +8742,7 @@ function getCurrentScale() { return document.getElementById('gs-scale-editor')._
 
 /* ── 期程設定（學科） ── */
 async function loadGradePeriod() {
-  const semId = document.getElementById('gs-semester').value;
+  const semId = document.getElementById('g-semester').value;
   if (!semId) return;
   const { data } = await sb.from('grade_periods')
     .select('*').eq('semester_id', semId).eq('grade_type','academic').maybeSingle();
@@ -8734,7 +8769,7 @@ async function loadGradePeriod() {
 }
 
 async function saveGradePeriod(type) {
-  const semId = document.getElementById('gs-semester').value;
+  const semId = document.getElementById('g-semester').value;
   if (!semId) { showToast('請選擇學期', 'error'); return; }
   const payload = {
     semester_id: semId,
@@ -8754,7 +8789,7 @@ async function saveGradePeriod(type) {
 }
 
 async function activateGradePeriod(type) {
-  const semId = document.getElementById('gs-semester').value;
+  const semId = document.getElementById('g-semester').value;
   if (!semId) { showToast('請先選擇學期並儲存設定', 'error'); return; }
   const existing = _currentGradePeriod.academic;
   if (!existing) { showToast('請先儲存期程設定', 'error'); return; }
@@ -8767,8 +8802,11 @@ async function activateGradePeriod(type) {
 }
 
 /* ── 評分老師指定 ── */
+let _gaRows = []; // 快取：每門開課的完整資料
+let _gaSort = { field:null, dir:1 };
+
 async function loadGradeAssignments() {
-  const semId = document.getElementById('ga-semester').value;
+  const semId = document.getElementById('g-semester').value;
   const tbody = document.getElementById('assign-tbody');
   if (!semId) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>'; return; }
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
@@ -8778,7 +8816,7 @@ async function loadGradeAssignments() {
 
   const { data: offerings, error } = await sb
     .from('course_offerings')
-    .select(`id, courses(code, name_zh),
+    .select(`id, target_cohort, courses(code, name_zh),
              offering_teachers(sort_order, teachers(id,name_zh)),
              grade_assignments(id, teacher_id, teachers(name_zh))`)
     .eq('semester_id', semId)
@@ -8788,34 +8826,80 @@ async function loadGradeAssignments() {
   if (error) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
   if (!offerings?.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">此學期無開課資料</td></tr>'; return; }
 
-  tbody.innerHTML = offerings.map(o => {
+  _gaRows = offerings.map(o => {
     const teachers = (o.offering_teachers||[]).sort((a,b)=>a.sort_order-b.sort_order).map(t=>t.teachers);
-    const teacherOpts = teachers.map(t=>`<option value="${t.id}">${t.name_zh}</option>`).join('');
     const assigned = o.grade_assignments?.[0];
+    return {
+      id: o.id, gpId: gp?.id||'',
+      code: o.courses?.code||'', name: o.courses?.name_zh||'',
+      cohort: o.target_cohort||'',
+      teachers, teacherNames: teachers.map(t=>t.name_zh).join('、'),
+      assignedId: assigned?.id||'', assignedTeacherId: assigned?.teacher_id || (teachers[0]?.id || ''),
+      assignedTeacherName: assigned?.teachers?.name_zh||'',
+    };
+  });
+
+  // 年級篩選選單
+  const cohorts = [...new Set(_gaRows.map(r=>r.cohort).filter(Boolean))].sort((a,b)=>b-a);
+  const cohortSel = document.getElementById('ga-cohort');
+  cohortSel.innerHTML = '<option value="">全年級</option>' + cohorts.map(c=>`<option value="${c}">${c}級</option>`).join('');
+  document.getElementById('ga-search').value = '';
+  _gaSort = { field:null, dir:1 };
+  renderAssignTable();
+}
+
+function filterGradeAssignments() { renderAssignTable(); }
+
+function sortAssignTable(field) {
+  if (_gaSort.field===field) _gaSort.dir*=-1; else { _gaSort.field=field; _gaSort.dir=1; }
+  renderAssignTable();
+}
+
+function renderAssignTable() {
+  const tbody = document.getElementById('assign-tbody');
+  document.querySelectorAll('#gpanel-assign th.sortable .sort-icon').forEach(el=>el.textContent='⇅');
+
+  const cohort = document.getElementById('ga-cohort').value;
+  const q = document.getElementById('ga-search').value.trim().toLowerCase();
+  let list = _gaRows.filter(r => {
+    if (cohort && String(r.cohort) !== cohort) return false;
+    if (q && !r.name.toLowerCase().includes(q) && !r.teacherNames.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  if (_gaSort.field) {
+    const icon = document.getElementById('gasort-'+_gaSort.field);
+    if (icon) icon.textContent = _gaSort.dir===1 ? '↑' : '↓';
+    const getter = { code:r=>r.code, name:r=>r.name, teacher:r=>r.assignedTeacherName, status:r=>r.assignedId?1:0 }[_gaSort.field];
+    list.sort((a,b)=>{ const va=getter(a), vb=getter(b); return (typeof va==='number'?(va-vb):String(va).localeCompare(String(vb),'zh'))*_gaSort.dir; });
+  }
+
+  if (!list.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">無符合條件的課程</td></tr>'; return; }
+
+  tbody.innerHTML = list.map(r => {
+    const teacherOpts = r.teachers.map(t=>`<option value="${t.id}">${t.name_zh}</option>`).join('');
     return `<tr>
-      <td class="mono">${o.courses?.code||'—'}</td>
-      <td>${o.courses?.name_zh||'—'}</td>
-      <td style="font-size:12px">${teachers.map(t=>t.name_zh).join('、')||'—'}</td>
+      <td class="mono">${r.code||'—'}</td>
+      <td>${r.name||'—'}</td>
+      <td style="font-size:12px">${r.teacherNames||'—'}</td>
       <td>
         <select class="fselect" style="font-size:12px;padding:4px 8px"
-          id="assign-${o.id}" onchange="saveAssignment('${o.id}','${gp?.id||''}',this.value,'${assigned?.id||''}')">
+          id="assign-${r.id}" onchange="saveAssignment('${r.id}','${r.gpId}',this.value,'${r.assignedId}')">
           ${teacherOpts}
         </select>
       </td>
-      <td><span id="assign-status-${o.id}" class="badge ${assigned?'badge-ok':'badge-warn'}">${assigned ? '✅ 已指定' : '⬜ 未指定'}</span></td>
+      <td><span id="assign-status-${r.id}" class="badge ${r.assignedId?'badge-ok':'badge-warn'}">${r.assignedId ? '✅ 已指定' : '⬜ 未指定'}</span></td>
     </tr>`;
   }).join('');
 
-  offerings.forEach(o => {
-    const assigned = o.grade_assignments?.[0];
-    const teachers = (o.offering_teachers||[]).sort((a,b)=>a.sort_order-b.sort_order).map(t=>t.teachers);
-    const sel = document.getElementById('assign-' + o.id);
-    if (sel) sel.value = assigned?.teacher_id || (teachers[0]?.id || '');
+  list.forEach(r => {
+    const sel = document.getElementById('assign-' + r.id);
+    if (sel) sel.value = r.assignedTeacherId;
   });
 }
 
 async function applyDefaultAssignments() {
-  const semId = document.getElementById('ga-semester').value;
+  const semId = document.getElementById('g-semester').value;
   if (!semId) { showToast('請先選擇學期', 'error'); return; }
   const { data: gp } = await sb.from('grade_periods')
     .select('id').eq('semester_id', semId).eq('grade_type','academic').maybeSingle();
@@ -8860,62 +8944,157 @@ async function saveAssignment(offeringId, gradePeriodId, teacherId, existingAssi
 }
 
 /* ── 成績狀態 ── */
+let _gstRows = []; // 快取
+let _gstSort = { field:null, dir:1 };
+
 async function loadGradeStatus() {
-  const semId = document.getElementById('gst-semester').value;
+  const semId = document.getElementById('g-semester').value;
   const tbody = document.getElementById('status-tbody');
   if (!semId) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>'; return; }
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
 
-  const { data: offerings } = await sb.from('course_offerings')
-    .select('id, courses(code, name_zh)').eq('semester_id', semId);
-  const offeringMap = {};
-  (offerings||[]).forEach(o => { offeringMap[o.id] = `${o.courses?.code||''} ${o.courses?.name_zh||''}`; });
-  const offeringIds = Object.keys(offeringMap);
-  if (!offeringIds.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">此學期無開課資料</td></tr>'; return; }
-
-  const { data, error } = await sb.from('grade_entries')
-    .select('offering_id, status, submitted_at, is_locked, teacher_id, teachers(name_zh)')
-    .eq('grade_type','academic').in('offering_id', offeringIds);
+  // 該學期所有開課（不論有沒有人填過成績都要列出）
+  const { data: offerings, error } = await sb
+    .from('course_offerings')
+    .select(`id, courses(code, name_zh), grade_assignments(teacher_id, teachers(name_zh))`)
+    .eq('semester_id', semId).eq('is_active', true).order('course_id');
   if (error) { tbody.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
+  if (!offerings?.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">此學期無開課資料</td></tr>'; return; }
 
-  const grouped = {};
-  (data||[]).forEach(r => {
-    const key = r.offering_id + '_' + r.teacher_id;
-    if (!grouped[key]) grouped[key] = {
-      label: offeringMap[r.offering_id]||'—', teacher: r.teachers?.name_zh||'—',
-      count: 0, status: r.status, submitted_at: r.submitted_at,
-      is_locked: r.is_locked, offering_id: r.offering_id,
-    };
-    grouped[key].count++;
+  const offeringIds = offerings.map(o=>o.id);
+  const { data: entries } = await sb.from('grade_entries')
+    .select('offering_id, status, submitted_at')
+    .eq('grade_type','academic').in('offering_id', offeringIds);
+
+  // 依 offering 彙整：已登錄人數、是否全部已送出、最新送出時間
+  const byOffering = {};
+  (entries||[]).forEach(e => {
+    if (!byOffering[e.offering_id]) byOffering[e.offering_id] = { count:0, allSubmitted:true, submitted_at:null };
+    const g = byOffering[e.offering_id];
+    g.count++;
+    if (e.status !== 'submitted') g.allSubmitted = false;
+    if (e.submitted_at && (!g.submitted_at || e.submitted_at > g.submitted_at)) g.submitted_at = e.submitted_at;
   });
 
-  const rows = Object.values(grouped);
-  if (!rows.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">尚無成績資料</td></tr>'; return; }
+  _gstRows = offerings.map(o => {
+    const assigned = o.grade_assignments?.[0];
+    const g = byOffering[o.id] || { count:0, allSubmitted:false, submitted_at:null };
+    const status = g.count===0 ? 'none' : (g.allSubmitted ? 'submitted' : 'draft');
+    return {
+      offering_id: o.id,
+      label: `${o.courses?.code||''} ${o.courses?.name_zh||''}`,
+      teacher: assigned?.teachers?.name_zh || '',
+      hasTeacher: !!assigned,
+      count: g.count, status, submitted_at: g.submitted_at,
+    };
+  });
 
-  tbody.innerHTML = rows.map(r => `<tr>
+  document.getElementById('gst-search').value = '';
+  document.getElementById('gst-status-filter').value = '';
+  _gstSort = { field:null, dir:1 };
+  renderStatusTable();
+}
+
+function filterGradeStatus() { renderStatusTable(); }
+
+function sortStatusTable(field) {
+  if (_gstSort.field===field) _gstSort.dir*=-1; else { _gstSort.field=field; _gstSort.dir=1; }
+  renderStatusTable();
+}
+
+const GRADE_STATUS_LABEL = { none:'未登錄', draft:'填寫中', submitted:'已送出' };
+const GRADE_STATUS_BADGE = {
+  none:      'background:var(--cr3);color:var(--ink3)',
+  draft:     'background:#FFF3E0;color:#B05010',
+  submitted: 'background:#E8F5E9;color:#1A6A30',
+};
+
+function renderStatusTable() {
+  const tbody = document.getElementById('status-tbody');
+  document.querySelectorAll('#gpanel-status th.sortable .sort-icon').forEach(el=>el.textContent='⇅');
+
+  const q = document.getElementById('gst-search').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('gst-status-filter').value;
+  let list = _gstRows.filter(r => {
+    if (q && !r.label.toLowerCase().includes(q) && !r.teacher.toLowerCase().includes(q)) return false;
+    if (statusFilter && r.status !== statusFilter) return false;
+    return true;
+  });
+
+  if (_gstSort.field) {
+    const icon = document.getElementById('gstsort-'+_gstSort.field);
+    if (icon) icon.textContent = _gstSort.dir===1 ? '↑' : '↓';
+    const getter = { label:r=>r.label, teacher:r=>r.teacher, count:r=>r.count, status:r=>r.status, submitted_at:r=>r.submitted_at||'' }[_gstSort.field];
+    list.sort((a,b)=>{ const va=getter(a), vb=getter(b); return (typeof va==='number'?(va-vb):String(va).localeCompare(String(vb),'zh'))*_gstSort.dir; });
+  }
+
+  if (!list.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">無符合條件的資料</td></tr>'; return; }
+
+  tbody.innerHTML = list.map(r => `<tr>
     <td>${r.label}</td>
-    <td>${r.teacher}</td>
+    <td>${r.hasTeacher ? r.teacher : '<span style="color:var(--red);font-size:12px">⚠️ 未指定評分老師</span>'}</td>
     <td>${r.count} 人</td>
-    <td>${r.status==='submitted'
-      ? '<span class="badge badge-ok">已送出</span>'
-      : r.is_locked
-        ? '<span class="badge badge-warn">已鎖定</span>'
-        : '<span class="badge" style="background:var(--cr3);color:var(--ink3)">草稿</span>'}</td>
+    <td><span class="badge" style="${GRADE_STATUS_BADGE[r.status]}">${GRADE_STATUS_LABEL[r.status]}</span></td>
     <td style="font-size:12px">${r.submitted_at ? r.submitted_at.slice(0,16).replace('T',' ') : '—'}</td>
-    <td>${(r.status==='submitted'||r.is_locked)
-      ? `<button class="btn btn-sec btn-sm" onclick="unlockGradeEntry('${r.offering_id}','${r.teacher}')">🔓 解鎖</button>`
-      : '—'}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-sec btn-sm" onclick="viewGradeEntries('${r.offering_id}','${r.label.replace(/'/g,"\\'")}','${(r.teacher||'未指定').replace(/'/g,"\\'")}')" title="檢視成績（唯讀）">👁 檢視</button>
+      ${r.status==='submitted'
+        ? `<button class="btn btn-sec btn-sm" onclick="rejectGradeEntry('${r.offering_id}','${(r.teacher||'').replace(/'/g,"\\'")}')" title="退回給老師修正" style="margin-left:4px;color:var(--red);border-color:var(--red)">↩️ 退回</button>`
+        : ''}
+    </td>
   </tr>`).join('');
 }
 
-async function unlockGradeEntry(offeringId, teacherName) {
-  if (!confirm(`確定要解鎖「${teacherName}」的成績？解鎖後老師可重新編輯。`)) return;
+/* 👁 檢視成績（唯讀，不可修改）*/
+async function viewGradeEntries(offeringId, courseLabel, teacherName) {
+  const { data, error } = await sb.from('grade_entries')
+    .select('score, grade_label, is_withdrawn, is_suspended, notes, students(student_code, name_zh)')
+    .eq('offering_id', offeringId).eq('grade_type','academic')
+    .order('students(student_code)');
+  if (error) { showToast('載入失敗：'+error.message,'error'); return; }
+  if (!data?.length) { showToast('此課程尚無成績記錄','error'); return; }
+
+  const rows = data.map((r,i) => {
+    const s = r.students||{};
+    const note = r.is_withdrawn ? '停修' : r.is_suspended ? '休學' : (r.notes||'');
+    const scoreDisplay = (r.is_withdrawn||r.is_suspended) ? '—' : (r.score ?? '—');
+    const labelDisplay = (r.is_withdrawn||r.is_suspended) ? '' : (r.grade_label||'');
+    return `<tr style="${(r.is_withdrawn||r.is_suspended)?'color:var(--ink3);background:var(--cr3)':''}">
+      <td style="padding:6px 10px">${i+1}</td>
+      <td style="padding:6px 10px" class="mono">${s.student_code||'—'}</td>
+      <td style="padding:6px 10px">${s.name_zh||'—'}</td>
+      <td style="padding:6px 10px;text-align:center">${scoreDisplay}</td>
+      <td style="padding:6px 10px">${labelDisplay}</td>
+      <td style="padding:6px 10px;font-size:12px;color:var(--ink3)">${note}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<div style="font-size:13px;color:var(--ink3);margin-bottom:10px">${courseLabel}　評分老師：${teacherName}（此畫面僅供檢視，如需修正請使用「退回」功能交回老師調整）</div>
+    <div style="max-height:55vh;overflow-y:auto;border:1px solid var(--cr2);border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="position:sticky;top:0;background:var(--navy);color:#fff">
+          <tr><th style="padding:6px 10px;text-align:left">序號</th><th style="padding:6px 10px;text-align:left">學號</th>
+              <th style="padding:6px 10px;text-align:left">姓名</th><th style="padding:6px 10px">成績</th>
+              <th style="padding:6px 10px;text-align:left">等第</th><th style="padding:6px 10px;text-align:left">備註</th></tr>
+        </thead><tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-sec" onclick="closeThModal()">關閉</button>
+    </div>`;
+  openThModal('📋 成績檢視（唯讀）', html);
+}
+
+/* ↩️ 退回給老師修正（即解鎖，並可選填原因供未來擴充通知用）*/
+async function rejectGradeEntry(offeringId, teacherName) {
+  const reason = prompt(`退回「${teacherName}」的成績給老師修正，可填寫原因（選填，老師暫不會收到通知，僅記錄於操作記錄）：`);
+  if (reason === null) return; // 取消
   const { error } = await sb.from('grade_entries')
     .update({ status:'draft', is_locked:false, unlocked_by: window.ADMIN_USER_ID||null, unlocked_at: new Date().toISOString() })
     .eq('offering_id', offeringId);
-  if (error) { showToast('解鎖失敗：'+error.message,'error'); return; }
-  showToast('已解鎖，老師可重新編輯');
-  writeAuditLog('成績管理','解鎖學科成績','grade_entries',offeringId,teacherName,'');
+  if (error) { showToast('退回失敗：'+error.message,'error'); return; }
+  showToast('已退回，老師可重新編輯');
+  writeAuditLog('成績管理','退回學科成績','grade_entries',offeringId,teacherName,reason||'');
   loadGradeStatus();
 }
 
