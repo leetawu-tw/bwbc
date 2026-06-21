@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v2.3 2026-06-17 -->
+<!-- BWBC Student v2.4 2026-06-21 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -18,7 +18,7 @@
   --cr2:#E8E8E8;--cr3:#F7F6F3;
   --r:10px;--sh:0 1px 4px rgba(0,0,0,.08);--sh2:0 8px 24px rgba(0,0,0,.15);
 }
-body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink);line-height:1.6;font-size:14px;height:100vh;overflow:hidden}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink);line-height:1.6;font-size:14px}
 button{cursor:pointer;font-family:inherit}
 input{font-family:inherit}
 
@@ -32,6 +32,8 @@ input{font-family:inherit}
 .finput:focus{border-color:var(--navy2)}
 .frow{margin-bottom:14px}
 .login-btn{width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;margin-top:4px;transition:background .15s}
+.btn-save{padding:9px 22px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-save:hover{background:var(--navy2)}
 .login-btn:hover{background:var(--navy2)}
 .login-btn:disabled{opacity:.6;cursor:not-allowed}
 .feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none;text-align:center}
@@ -180,18 +182,19 @@ input{font-family:inherit}
     <button class="topbar-btn" onclick="signOut()">登出</button>
   </div>
 
-  <div style="display:flex;height:calc(100vh - 52px);overflow:hidden">
+  <div style="display:flex;min-height:calc(100vh - 52px)">
     <!-- 左側導覽 -->
     <div class="side-nav">
       <div class="side-nav-label">功能選單</div>
       <div class="side-item" id="nav-ann"    onclick="showSection('ann')">📢 公佈欄</div>
       <div class="side-item" id="nav-select" onclick="showSection('select')">📚 選課</div>
+      <div class="side-item" id="nav-print-sheet" onclick="showSection('print-sheet')">🖨 選課單列印</div>
       <div class="side-item" id="nav-thesis" onclick="showSection('thesis')">📝 畢業論文</div>
       <div class="side-item" id="nav-survey" onclick="showSection('survey')">📋 意見調查</div>
     </div>
 
     <!-- 右側主內容 -->
-    <div class="main" style="flex:1;max-width:none;overflow-y:auto;height:100%">
+    <div class="main" style="flex:1;max-width:none">
       <div id="status-banner" style="display:none"></div>
 
       <!-- ── 公佈欄 ── -->
@@ -353,6 +356,15 @@ input{font-family:inherit}
       <div id="sec-survey" class="t-section">
         <div class="section-title">📋 教學意見調查</div>
         <div id="survey-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── 選課單列印 ── -->
+      <div id="sec-print-sheet" class="t-section">
+        <div class="section-title">🖨 選課單列印</div>
+        <div id="print-sheet-lock-notice" style="display:none;background:#FFF3E0;border:1px solid #C4960A;border-radius:8px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:#5A4400"></div>
+        <div id="print-sheet-wrap">
+          <div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>
+        </div>
       </div>
 
     </div><!-- end main -->
@@ -1609,6 +1621,150 @@ function showBanner(type, msg) {
   el.style.display = 'flex';
 }
 
+/* ════════════════════════════════════════
+   選課單列印（只列已確認選課，過了加退選截止才開放）
+   ════════════════════════════════════════ */
+const STU_REQ_TYPE_LABEL = { req:'必修', sel:'選修', go:'選修（二選一）' };
+
+async function loadPrintSheetView() {
+  const wrap = document.getElementById('print-sheet-wrap');
+  const noticeEl = document.getElementById('print-sheet-lock-notice');
+  noticeEl.style.display = 'none';
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+
+  if (!CURRENT_SEM_ID) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">查無現在學期資料</div>'; return; }
+
+  // 檢查加退選截止時間（行事曆系統項目 change_deadline）
+  const { data: ev } = await sb.from('semester_calendar_events')
+    .select('end_at').eq('semester_id', CURRENT_SEM_ID).eq('event_key', 'change_deadline').maybeSingle();
+  const deadline = ev?.end_at ? new Date(ev.end_at) : null;
+  const now = new Date();
+  const locked = deadline && now < deadline;
+
+  if (locked) {
+    const dt = ev.end_at.slice(0,16).replace('T',' ');
+    noticeEl.style.display = '';
+    noticeEl.innerHTML = `🔒 加退選尚未截止（截止時間：${dt}），選課可能仍會變動，暫不開放列印。請於加退選截止後再回來列印選課單，以確保內容是最終版本。`;
+    wrap.innerHTML = '';
+    return;
+  }
+
+  // 撈本學期已確認選課
+  const { data: enr, error } = await sb.from('enrollments')
+    .select('offering_id').eq('student_id', ME.id).eq('semester_id', CURRENT_SEM_ID).eq('status', 'confirmed');
+  if (error) { wrap.innerHTML = `<div style="color:#C00;padding:16px">載入失敗：${error.message}</div>`; return; }
+
+  if (!enr?.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">本學期尚無已確認的選課記錄，無法列印。</div>';
+    return;
+  }
+
+  const ids = enr.map(e=>e.offering_id);
+  const { data: courses } = await sb.from('v_course_schedule').select('*').in('offering_id', ids);
+  const { data: ot } = await sb.from('v_offering_teachers').select('*').in('offering_id', ids);
+  const teacherMap = {};
+  (ot||[]).forEach(t => {
+    if (!teacherMap[t.offering_id]) teacherMap[t.offering_id] = [];
+    teacherMap[t.offering_id].push(t);
+  });
+
+  const rows = (courses||[]).map(c => {
+    const teachers = (teacherMap[c.offering_id]||[]).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    return { code:c.code, name_zh:c.name_zh, credits:c.credits, req_type:c.req_type,
+              time_raw:c.time_raw, classroom_name:c.classroom_name,
+              teacherNames: teachers.map(t=>t.name_zh).join('、') };
+  });
+
+  wrap.innerHTML = `
+    <div style="background:#fff;border:1px solid var(--cr2,#E8E8E8);border-radius:8px;padding:16px;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--ink3,#6A5F4A);margin-bottom:10px">以下為本學期（${CURRENT_SEM_LABEL}）已確認的選課課程，共 ${rows.length} 門：</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead><tr style="background:var(--navy);color:#fff">
+          <th style="padding:6px 8px">課程代碼</th><th style="padding:6px 8px;text-align:left">課程名稱</th>
+          <th style="padding:6px 8px">授課教師</th><th style="padding:6px 8px">必/選修</th>
+          <th style="padding:6px 8px">學分</th><th style="padding:6px 8px">上課時間</th><th style="padding:6px 8px">上課地點</th>
+        </tr></thead>
+        <tbody>${rows.map(r=>`<tr style="border-top:1px solid #EEE">
+          <td style="padding:6px 8px;text-align:center">${r.code||''}</td>
+          <td style="padding:6px 8px">${r.name_zh||''}</td>
+          <td style="padding:6px 8px;text-align:center">${r.teacherNames||''}</td>
+          <td style="padding:6px 8px;text-align:center">${STU_REQ_TYPE_LABEL[r.req_type]||r.req_type||''}</td>
+          <td style="padding:6px 8px;text-align:center">${r.credits??''}</td>
+          <td style="padding:6px 8px;text-align:center">${r.time_raw||''}</td>
+          <td style="padding:6px 8px;text-align:center">${r.classroom_name||''}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <button class="btn-save" onclick="printMyCourseSheet()">🖨 列印選課單</button>
+    <div style="font-size:12px;color:var(--ink3,#6A5F4A);margin-top:8px">列印後請簽名交回系所助理存檔。</div>`;
+
+  window._myCourseSheetRows = rows; // 暫存供列印函式使用
+}
+
+const STU_SHEET_CSS = [
+  'body{font-family:"標楷體",serif;margin:20px 30px;font-size:12.5px}',
+  'h2{text-align:center;font-size:17px;margin:0 0 4px}',
+  'h3{text-align:center;font-size:14px;margin:0 0 10px;font-weight:normal}',
+  '.info-line{font-size:11.5px;margin-bottom:8px}',
+  'table{width:100%;border-collapse:collapse;margin-bottom:10px}',
+  'th,td{border:1px solid #333;padding:4px 6px;text-align:center;font-size:11.5px}',
+  'th{background:#f0f0f0;font-weight:600}',
+  '.summary-box{border:1px solid #333;padding:8px 10px;font-size:11.5px;line-height:1.7;margin-bottom:10px}',
+  '.cohort-line{font-size:12px;margin-bottom:10px}',
+  '.sign-table td{font-size:10.5px;padding:6px 4px;text-align:center}',
+  '@page{margin:1cm;size:A4 landscape}',
+  '@media print{body{margin:0}}'
+].join('');
+
+function printMyCourseSheet() {
+  const rows = window._myCourseSheetRows || [];
+  if (!rows.length) { return; }
+  const tableRows = rows.map(r => '<tr>'
+    + '<td>■是□否</td>'
+    + `<td>${r.code||''}</td>`
+    + `<td style="text-align:left">${r.name_zh||''}</td>`
+    + `<td>${r.teacherNames||''}</td>`
+    + `<td>${STU_REQ_TYPE_LABEL[r.req_type]||r.req_type||''}</td>`
+    + `<td>${r.credits??''}</td>`
+    + `<td>${r.time_raw||''}</td>`
+    + `<td>${r.classroom_name||''}</td>`
+    + '</tr>'
+  ).join('');
+
+  const bodyHtml = ''
+    + '<h2>福智佛教學院 佛法應用研究所</h2>'
+    + `<h3>${CURRENT_SEM_LABEL}學年${CURRENT_SEM_LABEL.endsWith('-1')?'上':'下'}學期 選課單（個人）</h3>`
+    + '<div class="info-line">申請日期：　　年　　月　　日　　　　　　　　　　　　　本聯由系所查存(請自行複印)</div>'
+    + '<table>'
+    + '<thead><tr>'
+    + '<th style="width:60px">選課</th><th>課程代碼</th><th style="text-align:left">課程名稱</th>'
+    + '<th>授課教師</th><th>必/選修</th><th>學分</th><th>上課時間</th><th>上課地點</th>'
+    + '</tr></thead>'
+    + `<tbody>${tableRows}</tbody>`
+    + '</table>'
+    + '<div class="summary-box">本次共修(　　)門課：含(　　)門必修課、(　　)門選修課，共(　　)學分。<br>'
+    + '符合本校修業規定、選課辦法之規定(前兩年每學期不得少於 2 學分，最多不得超過 12 學分，若需增加學分者須所長同意。)</div>'
+    + `<div class="cohort-line">□13級□14級□15級　學號：${ME.student_code||''}　姓名：${ME.name_zh||''}</div>`
+    + '<table class="sign-table"><tr>'
+    + '<td>學生簽名<br>Student Signature</td>'
+    + '<td>佛應所助理<br>Dept./Institute Administrative Assistant</td>'
+    + '<td>佛應所所長<br>Department/Institute Chair</td>'
+    + '<td>教育處承辦人<br>Education Division Staff</td>'
+    + '<td>教育長<br>Education Division Dean</td>'
+    + '</tr><tr><td style="height:50px"></td><td></td><td></td><td></td><td></td></tr></table>';
+
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">'
+    + '<title>我的選課單</title>'
+    + '<sty'+'le>' + STU_SHEET_CSS + '</sty'+'le>'
+    + '</he'+'ad><bo'+'dy>'
+    + bodyHtml
+    + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt>'
+    + '</bo'+'dy></ht'+'ml>';
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
 function showSection(id) {
   document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
   document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
@@ -1618,6 +1774,7 @@ function showSection(id) {
   if (nav) nav.classList.add('active');
   if (id === 'thesis') loadThesisView();
   if (id === 'survey') loadStudentSurveys();
+  if (id === 'print-sheet') loadPrintSheetView();
 }
 
 function switchTab(id, btn) {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v5.4 2026-06-17 -->
+<!-- BWBC Admin v5.9 2026-06-21 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -371,6 +371,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </select>
           <div id="offering-stats" style="font-size:13px;color:var(--ink3);display:flex;gap:12px;align-items:center"></div>
           <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-sec" onclick="printBlankCourseSheet()" title="列印該學期全部課程的空白選課單">🖨 空白選課單</button>
+            <button class="btn btn-sec" onclick="printCustomBlankCourseSheet()" title="可加註說明文字的空白選課單">🖨 自訂空白選課單</button>
             <button class="btn btn-sec" onclick="exportOfferingsCSV()" title="匯出本學期開課記錄">📤 匯出</button>
             <button class="btn btn-sec" onclick="openImportModal('offerings')" title="從 CSV 匯入開課記錄">📥 匯入</button>
             <button class="btn btn-pri" onclick="openNewOffering()">＋ 新增開課</button>
@@ -646,6 +648,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
                 <th style="padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;position:sticky;top:0">學期</th>
                 <th style="padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;position:sticky;top:0">開始日期</th>
                 <th style="padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;position:sticky;top:0">結束日期</th>
+                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;position:sticky;top:0">行事曆</th>
                 <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;position:sticky;top:0">現在學期</th>
                 <th style="padding:10px 14px;text-align:right;font-size:12.5px;font-weight:500;position:sticky;top:0">開課數</th>
                 <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;position:sticky;top:0">操作</th>
@@ -697,10 +700,13 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </select>
           <span style="font-size:12px;color:var(--ink3)">套用於下方所有分頁；預設為現在學期，補資料時可手動切換</span>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:16px">
+        <div style="display:flex;gap:6px;margin-bottom:16px;align-items:center">
           <button class="btn btn-pri" id="gtab-setup-btn"  onclick="switchGradeTab('setup',this)">⚙️ 期程設定</button>
           <button class="btn btn-sec" id="gtab-assign-btn" onclick="switchGradeTab('assign',this)">👤 評分老師指定</button>
           <button class="btn btn-sec" id="gtab-status-btn" onclick="switchGradeTab('status',this)">📋 成績狀態</button>
+          <span style="width:1px;height:24px;background:var(--cr2);margin:0 4px"></span>
+          <button class="btn btn-sec" onclick="openBlankGradeSheetModal()">🖨 空白評分表列印</button>
+          <button class="btn btn-sec" disabled title="規劃中" style="opacity:.5;cursor:not-allowed">📧 Email通知老師評分</button>
         </div>
 
         <!-- ── 期程設定 ── -->
@@ -1649,6 +1655,86 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeSemModal()">取消</button>
       <button class="btn-save" onclick="saveSem()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 學期行事曆事件 Modal ══ -->
+<div class="modal-bg" id="cal-events-modal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="cal-events-title">學期行事曆</div>
+      <button class="modal-close" onclick="closeCalEventsModal()">✕</button>
+    </div>
+    <div style="padding:18px 20px;max-height:60vh;overflow-y:auto">
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">
+        🔒 標示「系統」的項目會影響系統行為（如選課單列印鎖定），名稱不可更改但時間可調整；其他項目純粹顯示提醒用，可自由新增/編輯/刪除。
+      </div>
+      <div id="cal-events-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button class="btn btn-edit btn-sm" style="margin-top:12px" onclick="addCalEventRow()">＋ 新增事件</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCalEventsModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 自訂選課單：課程勾選 Modal ══ -->
+<div class="modal-bg" id="custom-sheet-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-hdr">
+      <div class="modal-title">🖨 自訂空白選課單</div>
+      <button class="modal-close" onclick="closeCustomSheetModal()">✕</button>
+    </div>
+    <div style="padding:18px 20px;max-height:65vh;overflow-y:auto">
+      <div style="margin-bottom:14px">
+        <label class="flabel">說明文字（選填，會顯示在選課單上方）</label>
+        <textarea id="custom-sheet-note" class="finput" rows="2" placeholder="例如：本次選課請留意必修課優先排課..." style="resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <label class="flabel" style="margin:0">勾選要列入選課單的課程（預設全部勾選，取消不需要的）</label>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sec btn-sm" onclick="toggleAllCustomSheetCourses(true)">全選</button>
+          <button class="btn btn-sec btn-sm" onclick="toggleAllCustomSheetCourses(false)">全不選</button>
+        </div>
+      </div>
+      <div id="custom-sheet-course-list" style="border:1px solid var(--cr2);border-radius:8px;max-height:320px;overflow-y:auto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCustomSheetModal()">取消</button>
+      <button class="btn-save" onclick="generateCustomCourseSheet()">🖨 產生選課單</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 空白評分表列印 Modal ══ -->
+<div class="modal-bg" id="blank-grade-sheet-modal">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="blank-grade-sheet-title">🖨 空白評分表列印</div>
+      <button class="modal-close" onclick="closeBlankGradeSheetModal()">✕</button>
+    </div>
+    <div style="padding:18px 20px;max-height:65vh;overflow-y:auto">
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">
+        勾選要產生空白評分表的課程，每門課各自產生一個 Excel 檔案（格式與成績登錄匯出的CSV一致），全部下載到本機。
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px">
+        <button class="btn btn-sec btn-sm" onclick="toggleAllBlankGradeCourses(true)">全選</button>
+        <button class="btn btn-sec btn-sm" onclick="toggleAllBlankGradeCourses(false)">全不選</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:40px"></th><th>課程編號</th><th style="text-align:left">課程名稱</th>
+            <th>主授教師</th><th>修課人數</th>
+          </tr></thead>
+          <tbody id="blank-grade-course-list"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeBlankGradeSheetModal()">取消</button>
+      <button class="btn-save" onclick="generateBlankGradeSheets()">📥 產生並下載</button>
     </div>
   </div>
 </div>
@@ -3913,6 +3999,303 @@ async function printMeetingNotice(meetingId) {
 }
 
 /* ── 列印簽到表 ── */
+/* ════════════════════════════════════════
+   選課單列印（共用建構函式 + admin端兩種空白表單）
+   ════════════════════════════════════════ */
+const REQ_TYPE_LABEL = { req:'必修', sel:'選修', go:'選修（二選一）' };
+
+function buildCourseSheetRows(offerings, teachersMap, checkboxMode) {
+  return offerings.map(o => {
+    const teachers = (teachersMap[o.offering_id]||[]).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    const teacherNames = teachers.map(t=>t.name_zh).join('、') || '';
+    const reqLabel = REQ_TYPE_LABEL[o.req_type] || o.req_type || '';
+    const checkboxCell = checkboxMode==='checked' ? '■是□否' : '□是□否';
+    return '<tr>'
+      + `<td>${checkboxCell}</td>`
+      + `<td>${o.code||''}</td>`
+      + `<td style="text-align:left">${o.name_zh||''}</td>`
+      + `<td>${teacherNames}</td>`
+      + `<td>${reqLabel}</td>`
+      + `<td>${o.credits ?? ''}</td>`
+      + `<td>${o.time_raw||''}</td>`
+      + `<td>${o.classroom_name||''}</td>`
+      + '</tr>';
+  }).join('');
+}
+
+function buildCourseSheetBody(opts) {
+  const { semesterLabel, cohortNote, customNote, rows, studentInfoHtml } = opts;
+  return ''
+    + `<h2>福智佛教學院 佛法應用研究所</h2>`
+    + `<h3>${semesterLabel}學年${semesterLabel.endsWith('-1')?'上':'下'}學期 選課單${cohortNote?'（'+cohortNote+'）':''}</h3>`
+    + (customNote ? `<div class="custom-note">${customNote}</div>` : '')
+    + '<div class="info-line">申請日期：　　年　　月　　日　　　　　　　　　　　　　本聯由系所查存(請自行複印)</div>'
+    + '<table>'
+    + '<thead><tr>'
+    + '<th style="width:60px">選課</th><th>課程代碼</th><th style="text-align:left">課程名稱</th>'
+    + '<th>授課教師</th><th>必/選修</th><th>學分</th><th>上課時間</th><th>上課地點</th>'
+    + '</tr></thead>'
+    + `<tbody>${rows}</tbody>`
+    + '</table>'
+    + '<div class="summary-box">本次共修(　　)門課：含(　　)門必修課、(　　)門選修課，共(　　)學分。<br>'
+    + '符合本校修業規定、選課辦法之規定(前兩年每學期不得少於 2 學分，最多不得超過 12 學分，若需增加學分者須所長同意。)</div>'
+    + (studentInfoHtml || '<div class="cohort-line">□13級□14級□15級　學號：＿＿＿＿＿＿＿＿　姓名：＿＿＿＿＿＿＿＿</div>')
+    + '<table class="sign-table"><tr>'
+    + '<td>學生簽名<br>Student Signature</td>'
+    + '<td>佛應所助理<br>Dept./Institute Administrative Assistant</td>'
+    + '<td>佛應所所長<br>Department/Institute Chair</td>'
+    + '<td>教育處承辦人<br>Education Division Staff</td>'
+    + '<td>教育長<br>Education Division Dean</td>'
+    + '</tr><tr><td style="height:50px"></td><td></td><td></td><td></td><td></td></tr></table>';
+}
+
+function buildCourseSheetCSS(orientation) {
+  return [
+    'body{font-family:"標楷體",serif;margin:20px 30px;font-size:12.5px}',
+    'h2{text-align:center;font-size:17px;margin:0 0 4px}',
+    'h3{text-align:center;font-size:14px;margin:0 0 10px;font-weight:normal}',
+    '.custom-note{background:#FFF8E1;border:1px solid #C4960A;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px}',
+    '.info-line{font-size:11.5px;margin-bottom:8px}',
+    'table{width:100%;border-collapse:collapse;margin-bottom:10px}',
+    `th,td{border:1px solid #333;padding:4px ${orientation==='portrait'?'3px':'6px'};text-align:center;font-size:${orientation==='portrait'?'10px':'11.5px'}}`,
+    'th{background:#f0f0f0;font-weight:600}',
+    '.summary-box{border:1px solid #333;padding:8px 10px;font-size:11.5px;line-height:1.7;margin-bottom:10px}',
+    '.cohort-line{font-size:12px;margin-bottom:10px}',
+    '.sign-table td{font-size:10.5px;padding:6px 4px;text-align:center}',
+    `@page{margin:1cm;size:A4 ${orientation==='portrait'?'portrait':'landscape'}}`,
+    '@media print{body{margin:0}}'
+  ].join('');
+}
+const COURSE_SHEET_CSS = buildCourseSheetCSS('landscape'); // 向下相容舊呼叫
+
+function openPrintWindow(bodyHtml, title, orientation) {
+  const css = buildCourseSheetCSS(orientation || 'landscape');
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">'
+    + `<title>${title}</title>`
+    + '<sty'+'le>' + css + '</sty'+'le>'
+    + '</he'+'ad><bo'+'dy>'
+    + bodyHtml
+    + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt>'
+    + '</bo'+'dy></ht'+'ml>';
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+function printBlankCourseSheet() {
+  const semLabel = document.getElementById('sem-filter')?.value || '';
+  if (!OFFERINGS?.length) { showToast('請先選擇有開課資料的學期','error'); return; }
+  const active = OFFERINGS.filter(o=>o.active!==false && !o.is_cancelled);
+  const rows = buildCourseSheetRows(active, TEACHERS_MAP, 'blank');
+  const body = buildCourseSheetBody({ semesterLabel: semLabel, cohortNote:'全年級', rows });
+  openPrintWindow(body, `選課單_${semLabel}`);
+}
+
+/* ── 自訂空白選課單：先勾選課程再列印 ── */
+let _customSheetCourses = [];
+
+function printCustomBlankCourseSheet() {
+  if (!OFFERINGS?.length) { showToast('請先選擇有開課資料的學期','error'); return; }
+  _customSheetCourses = OFFERINGS.filter(o=>o.active!==false && !o.is_cancelled)
+    .map(o => ({ ...o, _checked: true })); // 預設全部打勾
+  document.getElementById('custom-sheet-note').value = '';
+  renderCustomSheetCourseList();
+  document.getElementById('custom-sheet-modal').classList.add('show');
+}
+function closeCustomSheetModal() { document.getElementById('custom-sheet-modal').classList.remove('show'); }
+
+function renderCustomSheetCourseList() {
+  const el = document.getElementById('custom-sheet-course-list');
+  if (!_customSheetCourses.length) {
+    el.innerHTML = '<div style="padding:16px;color:var(--ink3);font-size:13px">此學期無開課資料</div>';
+    return;
+  }
+  el.innerHTML = _customSheetCourses.map((o,i) => `
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--cr2);cursor:pointer;font-size:13px">
+      <input type="checkbox" ${o._checked?'checked':''} onchange="_customSheetCourses[${i}]._checked=this.checked" style="width:16px;height:16px;flex-shrink:0">
+      <span style="color:var(--navy);font-weight:500;width:70px;flex-shrink:0">${o.code||''}</span>
+      <span style="flex:1">${o.name_zh||''}</span>
+      <span style="font-size:11px;color:var(--ink3)">${REQ_TYPE_LABEL[o.req_type]||''}　${o.credits??''}學分</span>
+    </label>`).join('');
+}
+
+function toggleAllCustomSheetCourses(checked) {
+  _customSheetCourses.forEach(o => o._checked = checked);
+  renderCustomSheetCourseList();
+}
+
+function generateCustomCourseSheet() {
+  const selected = _customSheetCourses.filter(o => o._checked);
+  if (!selected.length) { showToast('請至少勾選一門課程','error'); return; }
+  const noteRaw = document.getElementById('custom-sheet-note').value.trim();
+  const note = noteRaw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const semLabel = document.getElementById('sem-filter')?.value || '';
+  let rows = buildCourseSheetRows(selected, TEACHERS_MAP, 'blank');
+  // 額外加3列空白列，供學生自行手寫填寫
+  const blankRow = '<tr>' + '<td>&nbsp;</td>'.repeat(8) + '</tr>';
+  rows += blankRow.repeat(3);
+  const body = buildCourseSheetBody({ semesterLabel: semLabel, customNote: note, rows }); // 不帶cohortNote，標題不顯示（全年級）
+  closeCustomSheetModal();
+  openPrintWindow(body, `選課單_${semLabel}_自訂`, 'portrait');
+}
+
+/* ════════════════════════════════════════
+   空白評分表列印（產生Excel，格式同成績登錄CSV匯出）
+   ════════════════════════════════════════ */
+let _blankGradeCourses = [];
+
+async function openBlankGradeSheetModal() {
+  const semId = document.getElementById('g-semester')?.value;
+  const semLabel = document.getElementById('g-semester')?.selectedOptions?.[0]?.textContent || '';
+  if (!semId) { showToast('請先在上方選擇學期','error'); return; }
+
+  const { data: offerings, error } = await sb.from('course_offerings')
+    .select(`id, courses(code, name_zh), offering_teachers(sort_order, teachers(name_zh))`)
+    .eq('semester_id', semId).eq('is_active', true).order('course_id');
+  if (error) { showToast('載入失敗：'+error.message,'error'); return; }
+
+  const ids = (offerings||[]).map(o=>o.id);
+  const { data: enr } = await sb.from('enrollments')
+    .select('offering_id').in('offering_id', ids).in('status', ['confirmed','withdrawn']);
+  const countMap = {};
+  (enr||[]).forEach(e => { countMap[e.offering_id] = (countMap[e.offering_id]||0) + 1; });
+
+  _blankGradeCourses = (offerings||[]).map(o => {
+    const teachers = (o.offering_teachers||[]).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    return {
+      offering_id: o.id, code: o.courses?.code||'', name_zh: o.courses?.name_zh||'',
+      teacherNames: teachers.map(t=>t.teachers?.name_zh).filter(Boolean).join('、'),
+      studentCount: countMap[o.id]||0, _checked: true, _semLabel: semLabel,
+    };
+  });
+
+  renderBlankGradeCourseList();
+  document.getElementById('blank-grade-sheet-modal').classList.add('show');
+}
+function closeBlankGradeSheetModal() { document.getElementById('blank-grade-sheet-modal').classList.remove('show'); }
+
+function renderBlankGradeCourseList() {
+  const el = document.getElementById('blank-grade-course-list');
+  if (!_blankGradeCourses.length) {
+    el.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--ink3)">此學期無開課資料</td></tr>';
+    return;
+  }
+  el.innerHTML = _blankGradeCourses.map((o,i) => `<tr>
+    <td style="text-align:center"><input type="checkbox" ${o._checked?'checked':''} onchange="_blankGradeCourses[${i}]._checked=this.checked" style="width:16px;height:16px"></td>
+    <td style="text-align:center;font-family:monospace">${o.code}</td>
+    <td>${o.name_zh}</td>
+    <td style="text-align:center">${o.teacherNames||'—'}</td>
+    <td style="text-align:center">${o.studentCount}</td>
+  </tr>`).join('');
+}
+
+function toggleAllBlankGradeCourses(checked) {
+  _blankGradeCourses.forEach(o => o._checked = checked);
+  renderBlankGradeCourseList();
+}
+
+async function generateBlankGradeSheets() {
+  const selected = _blankGradeCourses.filter(o => o._checked);
+  if (!selected.length) { showToast('請至少勾選一門課程','error'); return; }
+
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  showToast(`開始產生 ${selected.length} 份評分表…`);
+  closeBlankGradeSheetModal();
+
+  for (const course of selected) {
+    await generateOneBlankGradeSheet(course);
+    await new Promise(r => setTimeout(r, 300)); // 間隔觸發下載，避免瀏覽器擋多檔下載
+  }
+  showToast('全部評分表已下載完成');
+}
+
+const BG_REQ_LABEL = { req:'必修', sel:'選修', go:'選修' };
+
+async function generateOneBlankGradeSheet(course) {
+  // 完整課程資訊（必選修/學分）
+  const { data: offRow } = await sb.from('course_offerings')
+    .select(`courses(req_type, credits)`).eq('id', course.offering_id).maybeSingle();
+  const reqLabel = BG_REQ_LABEL[offRow?.courses?.req_type] || '';
+  const credits = offRow?.courses?.credits ?? '';
+
+  // 修課學生（confirmed + withdrawn，邏輯與teacher.html成績登錄一致）
+  const { data: enr } = await sb.from('enrollments')
+    .select('student_id, status').eq('offering_id', course.offering_id).in('status', ['confirmed','withdrawn']);
+  const stuIds = (enr||[]).map(e=>e.student_id);
+  let students = [];
+  if (stuIds.length) {
+    const { data } = await sb.from('students').select('id, student_code, name_zh, status').in('id', stuIds);
+    students = data || [];
+  }
+  const stuMap = {}; students.forEach(s => stuMap[s.id] = s);
+
+  // 依學號排序後重新編序號（不沿用畫面上原本順序）
+  const rosterRows = (enr||[])
+    .map(e => ({ ...e, student: stuMap[e.student_id] }))
+    .filter(r => r.student)
+    .sort((a,b) => (a.student.student_code||'').localeCompare(b.student.student_code||''))
+    .map((r, idx) => {
+      const isWithdrawn = r.status === 'withdrawn';
+      const isSuspended  = r.student.status === 'leave';
+      const note = isWithdrawn ? '停修' : isSuspended ? '休學' : '';
+      const score = (isWithdrawn || isSuspended) ? '--' : '';
+      return [idx+1, r.student.student_code, r.student.name_zh, score, '', note];
+    });
+
+  const wsData = [
+    ['福智學校財團法人福智佛教學院','','','','',''],
+    ['佛法應用研究所','','','','',''],
+    [`${course._semLabel}學期成績`,'','','','',''],
+    [`課程代號：${course.code}`,'','','','',''],
+    [`課程名稱：${course.name_zh}`,'','','','',''],
+    [`必選修：${reqLabel}`,'','',`學分數：${credits}`,'',''],
+    [`授課教師：${course.teacherNames||''}`,'','',`修課學生數：${rosterRows.length}`,'',''],
+    ['','','','','',''],
+    ['序號','學號','姓名','成績','等第','備註'],
+    ...rosterRows,
+    ['','','','','',''],
+    [`修課學生數：${rosterRows.length}`,'','','','',''],
+    ['註：滿70分為及格','','','','',''],
+    ['','','','','',''],
+    ['','','','','',''],
+    ['授課教師簽名：','','','','',''],
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{wch:8},{wch:12},{wch:14},{wch:8},{wch:8},{wch:14}];
+
+  // 跨欄合併：標題類文字不被欄寬截斷
+  const N = rosterRows.length;
+  const tailStart = 9 + N; // 名單結束後第一個空白列的索引
+  ws['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c:5} }, // 福智學校財團法人福智佛教學院
+    { s:{r:1,c:0}, e:{r:1,c:5} }, // 佛法應用研究所
+    { s:{r:2,c:0}, e:{r:2,c:5} }, // {學期}學期成績
+    { s:{r:3,c:0}, e:{r:3,c:5} }, // 課程代號
+    { s:{r:4,c:0}, e:{r:4,c:5} }, // 課程名稱
+    { s:{r:5,c:0}, e:{r:5,c:2} }, // 必選修
+    { s:{r:5,c:3}, e:{r:5,c:5} }, // 學分數
+    { s:{r:6,c:0}, e:{r:6,c:2} }, // 授課教師
+    { s:{r:6,c:3}, e:{r:6,c:5} }, // 修課學生數
+    { s:{r:tailStart+1,c:0}, e:{r:tailStart+1,c:5} }, // 修課學生數（結尾）
+    { s:{r:tailStart+2,c:0}, e:{r:tailStart+2,c:5} }, // 註：滿70分為及格
+    { s:{r:tailStart+5,c:0}, e:{r:tailStart+5,c:5} }, // 授課教師簽名
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '成績表');
+  const fileName = `${course._semLabel}_${course.code}${course.name_zh}_${course.teacherNames||'未指定'}_學期成績.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
 async function printAttendanceSheet(meetingId) {
   const id = meetingId || document.getElementById('mt-id').value;
   const m = MEETINGS.find(x=>x.id===id);
@@ -4713,6 +5096,9 @@ async function loadSemesterPage() {
       </td>
       <td style="padding:11px 14px;font-size:13px;color:var(--ink3)">${s.start_date||''}</td>
       <td style="padding:11px 14px;font-size:13px;color:var(--ink3)">${s.end_date||''}</td>
+      <td style="padding:11px 14px;text-align:center">
+        <button class="btn btn-sm" style="background:var(--navy3);color:var(--navy);border:1px solid rgba(43,95,160,.2)" onclick="openCalEventsModal('${s.id}','${s.label}')">📅 行事曆</button>
+      </td>
       <td style="padding:11px 14px;text-align:center">${s.is_current?'<span style="color:var(--green);font-size:13px">✅ 是</span>':'<span style="color:var(--ink3);font-size:12px">—</span>'}</td>
       <td style="padding:11px 14px;text-align:right;font-size:13px">
         ${c.total>0?`<span style="color:var(--navy);font-weight:500">${c.total}門</span><span style="font-size:11px;color:var(--ink3);margin-left:4px">必${c.req} 選${selTotal}</span>`:'<span style="color:#CCC">0</span>'}
@@ -4758,6 +5144,106 @@ async function saveSem() {
   else ({ error }=await sb.from('semesters').insert(payload));
   if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
   showToast('✅ 學期已儲存！'); closeSemModal(); loadSemesterPage(); loadSemesters();
+}
+
+/* ════════════════════════════════════════
+   學期行事曆事件
+   ════════════════════════════════════════ */
+let _calSemId = null;
+let _calEvents = [];
+
+async function openCalEventsModal(semId, semLabel) {
+  _calSemId = semId;
+  document.getElementById('cal-events-title').textContent = `📅 學期行事曆 — ${semLabel}`;
+  document.getElementById('cal-events-modal').classList.add('show');
+  await loadCalEvents();
+}
+function closeCalEventsModal() { document.getElementById('cal-events-modal').classList.remove('show'); }
+
+async function loadCalEvents() {
+  const { data, error } = await sb.from('semester_calendar_events')
+    .select('*').eq('semester_id', _calSemId).order('sort_order');
+  if (error) { showToast('載入失敗：'+error.message,'error'); return; }
+  _calEvents = data || [];
+  renderCalEvents();
+}
+
+function renderCalEvents() {
+  const el = document.getElementById('cal-events-list');
+  if (!_calEvents.length) {
+    el.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:10px 0">尚無行事曆事件，點下方「＋新增事件」開始建立。</div>';
+    return;
+  }
+  el.innerHTML = _calEvents.map((e, i) => `
+    <div style="display:flex;gap:8px;align-items:flex-start;background:${e.is_system?'var(--navy3)':'#fff'};border:1px solid var(--cr2);border-radius:8px;padding:10px 12px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;gap:6px;align-items:center">
+          ${e.is_system ? `<span style="font-size:11px;background:var(--navy);color:#fff;padding:1px 8px;border-radius:10px;flex-shrink:0">🔒 系統</span>` : ''}
+          <input class="finput" style="flex:1;padding:6px 10px;font-size:13px" value="${(e.event_label||'').replace(/"/g,'&quot;')}"
+            ${e.is_system?'disabled':''} onchange="updateCalEvent(${i},'event_label',this.value)" placeholder="事件名稱">
+        </div>
+        <div class="frow-2" style="gap:8px">
+          <div>
+            <label class="flabel" style="font-size:11px">開始時間（可留空）</label>
+            <input class="finput" style="padding:6px 10px;font-size:12.5px" type="datetime-local"
+              value="${e.start_at?e.start_at.slice(0,16):''}" onchange="updateCalEvent(${i},'start_at',this.value)">
+          </div>
+          <div>
+            <label class="flabel" style="font-size:11px">結束/截止時間 *</label>
+            <input class="finput" style="padding:6px 10px;font-size:12.5px" type="datetime-local"
+              value="${e.end_at?e.end_at.slice(0,16):''}" onchange="updateCalEvent(${i},'end_at',this.value)">
+          </div>
+        </div>
+      </div>
+      ${e.is_system ? '' : `<button onclick="deleteCalEvent(${i})" style="border:none;background:none;cursor:pointer;color:var(--red);font-size:16px;margin-top:6px">🗑</button>`}
+    </div>`).join('');
+}
+
+function addCalEventRow() {
+  _calEvents.push({ id:null, semester_id:_calSemId, event_key:null, event_label:'', start_at:null, end_at:null,
+    sort_order:(_calEvents.length?Math.max(..._calEvents.map(e=>e.sort_order||0)):0)+1, is_system:false, _dirty:true });
+  renderCalEvents();
+}
+
+async function updateCalEvent(i, field, value) {
+  const e = _calEvents[i];
+  e[field] = value || null;
+  e._dirty = true;
+  await persistCalEvent(i);
+}
+
+async function persistCalEvent(i) {
+  const e = _calEvents[i];
+  if (!e.event_label?.trim()) return;
+  if (!e.end_at) return;
+
+  const payload = {
+    semester_id: e.semester_id, event_key: e.event_key, event_label: e.event_label.trim(),
+    start_at: e.start_at || null, end_at: e.end_at, sort_order: e.sort_order, is_system: e.is_system,
+  };
+  if (e.id) {
+    const { error } = await sb.from('semester_calendar_events').update(payload).eq('id', e.id);
+    if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  } else {
+    const { data, error } = await sb.from('semester_calendar_events').insert(payload).select().single();
+    if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+    e.id = data.id;
+  }
+  e._dirty = false;
+  showToast('已自動儲存');
+}
+
+async function deleteCalEvent(i) {
+  const e = _calEvents[i];
+  if (e.is_system) { showToast('系統項目不可刪除','error'); return; }
+  if (!confirm(`確定要刪除「${e.event_label}」這個事件嗎？`)) return;
+  if (e.id) {
+    const { error } = await sb.from('semester_calendar_events').delete().eq('id', e.id);
+    if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  }
+  _calEvents.splice(i, 1);
+  renderCalEvents();
+  showToast('已刪除');
 }
 
 /* ── 移轉（改錯學期用，原學期記錄消失） ── */

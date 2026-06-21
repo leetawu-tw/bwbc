@@ -386,6 +386,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <!-- ── 成績登錄 section ── -->
       <div id="sec-grades" class="t-section">
         <div class="section-title">📊 成績登錄</div>
+        <div id="grade-deadline-hint" style="display:none;font-size:12.5px;color:var(--ink3,#6A5F4A);background:var(--navy3,#EEF2FA);border:1px solid var(--navy2,#2B5FA0);border-radius:8px;padding:8px 12px;margin-bottom:14px"></div>
 
         <!-- 課程卡片列表 -->
         <div id="grade-course-list">
@@ -1161,11 +1162,30 @@ let _currentOffering  = null; // 目前選中的 offering
 let _gradeSubmitted   = false;
 let _gradeLocked      = false;
 
+/* 查詢「教師繳交學期成績截止」（行事曆系統項目，純參考提示，不做任何鎖定）*/
+async function loadGradeSubmitDeadlineHint() {
+  const hintEl = document.getElementById('grade-deadline-hint');
+  try {
+    const { data: sem } = await sb.from('semesters').select('id').eq('is_current', true).maybeSingle();
+    if (!sem) { hintEl.style.display = 'none'; return; }
+    const { data: ev } = await sb.from('semester_calendar_events')
+      .select('event_label, end_at').eq('semester_id', sem.id).eq('event_key', 'grade_submit_deadline').maybeSingle();
+    if (!ev?.end_at) { hintEl.style.display = 'none'; return; }
+    const dt = ev.end_at.slice(0,16).replace('T',' ');
+    hintEl.textContent = `📌 ${ev.event_label}：${dt}（僅供參考，系統不會自動鎖定，請依行政公告為準）`;
+    hintEl.style.display = '';
+  } catch (e) {
+    hintEl.style.display = 'none'; // 查詢失敗就靜默隱藏，不影響成績登錄主功能
+  }
+}
+
 async function loadGradesSection() {
   const listEl = document.getElementById('grade-course-list');
   listEl.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
   document.getElementById('grade-sheet-area').style.display  = 'none';
   document.getElementById('grade-sheet-empty').style.display = 'none';
+
+  loadGradeSubmitDeadlineHint(); // 純參考提示，不影響登錄/送出邏輯
 
   // 取得此老師負責的 grade_assignments（有啟動的 grade_period）
   const { data: assignments } = await sb
