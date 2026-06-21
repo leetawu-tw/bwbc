@@ -897,6 +897,21 @@ async function uploadPhoto(input) {
   input.value = ''; // 清空，避免重複觸發onchange選同檔案無反應
 }
 
+/* 儲存個人資料（僅中文簡介、師資介紹網址可編輯，其他欄位由admin管理） */
+async function saveProfile() {
+  if (!ME?.id) { showToast('使用者資料未載入，請重新整理','error'); return; }
+  const bio = document.getElementById('p-bio').value.trim();
+  const url = document.getElementById('p-url').value.trim();
+
+  const { error } = await sb.from('teachers')
+    .update({ bio_zh: bio || null, profile_url: url || null })
+    .eq('id', ME.id);
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+
+  ME.bio_zh = bio; ME.profile_url = url;
+  showToast('✅ 個人資料已儲存');
+}
+
 async function loadProfile() {
   if (!ME) return;
   document.getElementById('p-name').value    = ME.name_zh || '';
