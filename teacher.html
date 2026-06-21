@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v2.2 2026-06-17 -->
+<!-- BWBC Teacher v2.4 2026-06-21 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -386,7 +386,6 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <!-- ── 成績登錄 section ── -->
       <div id="sec-grades" class="t-section">
         <div class="section-title">📊 成績登錄</div>
-        <div id="grade-deadline-hint" style="display:none;font-size:12.5px;color:var(--ink3,#6A5F4A);background:var(--navy3,#EEF2FA);border:1px solid var(--navy2,#2B5FA0);border-radius:8px;padding:8px 12px;margin-bottom:14px"></div>
 
         <!-- 課程卡片列表 -->
         <div id="grade-course-list">
@@ -742,8 +741,8 @@ async function loadMyCourses() {
   const [csRes, otTeachersRes] = await Promise.all([
     sb.from('v_course_schedule').select('*').in('offering_id', ids)
       .order('semester_label',{ascending:false}).order('day'),
-    sb.from('v_offering_teachers').select('offering_id, name_zh, teacher_id, is_primary')
-      .in('offering_id', ids).order('is_primary', { ascending:false })
+    sb.from('v_offering_teachers').select('offering_id, name_zh, teacher_id, sort_order')
+      .in('offering_id', ids).order('sort_order', { ascending:true })
   ]);
 
   const teacherMap = {};
@@ -874,6 +873,30 @@ function sortMyCourses(field) {
 }
 
 /* ── 個人資料 ── */
+/* 上傳教師大頭照（teacher-photos bucket，需確認已建立且有正確RLS，見討論） */
+async function uploadPhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!ME?.id) { showToast('使用者資料未載入，請重新整理','error'); return; }
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `${ME.id}.${ext}`;
+
+  showToast('上傳中…');
+  const { error: upErr } = await sb.storage.from('teacher-photos').upload(path, file, { upsert: true });
+  if (upErr) { showToast('上傳失敗：'+upErr.message, 'error'); return; }
+
+  const { data: urlData } = sb.storage.from('teacher-photos').getPublicUrl(path);
+  const { error: dbErr } = await sb.from('teachers').update({ photo_url: urlData?.publicUrl }).eq('id', ME.id);
+  if (dbErr) { showToast('資料庫更新失敗：'+dbErr.message, 'error'); return; }
+
+  ME.photo_url = urlData?.publicUrl;
+  const avatarEl = document.getElementById('profile-avatar');
+  avatarEl.innerHTML = `<img src="${ME.photo_url}?t=${Date.now()}" class="avatar">`;
+  showToast('✅ 照片已更新');
+  input.value = ''; // 清空，避免重複觸發onchange選同檔案無反應
+}
+
 async function loadProfile() {
   if (!ME) return;
   document.getElementById('p-name').value    = ME.name_zh || '';
@@ -899,8 +922,8 @@ async function loadAllCourses() {
     sb.from('v_course_schedule').select('*')
       .order('academic_year', { ascending:false }).order('semester_num', { ascending:false })
       .order('axis_code').order('code'),
-    sb.from('v_offering_teachers').select('offering_id, name_zh, teacher_type, is_primary')
-      .order('is_primary', { ascending:false })
+    sb.from('v_offering_teachers').select('offering_id, name_zh, teacher_type, sort_order')
+      .order('sort_order', { ascending:true })
   ]);
   if (coursesRes.error) {
     document.getElementById('all-courses-grid').innerHTML = '<div style="color:var(--red);padding:20px">載入失敗</div>';
@@ -1162,30 +1185,11 @@ let _currentOffering  = null; // 目前選中的 offering
 let _gradeSubmitted   = false;
 let _gradeLocked      = false;
 
-/* 查詢「教師繳交學期成績截止」（行事曆系統項目，純參考提示，不做任何鎖定）*/
-async function loadGradeSubmitDeadlineHint() {
-  const hintEl = document.getElementById('grade-deadline-hint');
-  try {
-    const { data: sem } = await sb.from('semesters').select('id').eq('is_current', true).maybeSingle();
-    if (!sem) { hintEl.style.display = 'none'; return; }
-    const { data: ev } = await sb.from('semester_calendar_events')
-      .select('event_label, end_at').eq('semester_id', sem.id).eq('event_key', 'grade_submit_deadline').maybeSingle();
-    if (!ev?.end_at) { hintEl.style.display = 'none'; return; }
-    const dt = ev.end_at.slice(0,16).replace('T',' ');
-    hintEl.textContent = `📌 ${ev.event_label}：${dt}（僅供參考，系統不會自動鎖定，請依行政公告為準）`;
-    hintEl.style.display = '';
-  } catch (e) {
-    hintEl.style.display = 'none'; // 查詢失敗就靜默隱藏，不影響成績登錄主功能
-  }
-}
-
 async function loadGradesSection() {
   const listEl = document.getElementById('grade-course-list');
   listEl.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
   document.getElementById('grade-sheet-area').style.display  = 'none';
   document.getElementById('grade-sheet-empty').style.display = 'none';
-
-  loadGradeSubmitDeadlineHint(); // 純參考提示，不影響登錄/送出邏輯
 
   // 取得此老師負責的 grade_assignments（有啟動的 grade_period）
   const { data: assignments } = await sb
