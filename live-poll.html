@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>課堂調查即時秀 · 福智佛教學院</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --navy:#1B3A6B;--navy2:#2B5FA0;--navy3:#EEF2FA;
+  --green:#1F5C3A;--green3:#EAF4EE;
+  --gold:#C4960A;--gold3:#FFF8E1;
+  --ink:#2C2C2A;--ink2:#444;--ink3:#888;
+  --cr2:#E8E8E8;--cr3:#F7F6F3;
+  --r:10px;--sh:0 1px 4px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box}
+body{font-family:-apple-system,'PingFang TC','Noto Sans TC',Helvetica,Arial,sans-serif;background:var(--cr3);color:var(--ink);margin:0;padding:16px;display:flex;justify-content:center}
+.container{width:100%;max-width:480px}
+.topcard{background:var(--navy);color:#fff;border-radius:var(--r);padding:16px 18px;margin-bottom:14px;text-align:center}
+.topcard .t1{font-size:15px;font-weight:600}
+.topcard .t2{font-size:12px;opacity:.85;margin-top:2px}
+.q-box{background:var(--navy3);border:1.5px solid var(--navy2);border-radius:var(--r);padding:18px;font-size:17px;font-weight:600;line-height:1.5;color:var(--ink);margin-bottom:18px}
+.q-num{font-size:12px;color:var(--navy2);font-weight:600;margin-bottom:6px}
+.options{display:flex;flex-direction:column;gap:10px}
+.opt-btn{padding:14px 16px;font-size:15px;border:1.5px solid var(--cr2);border-radius:var(--r);background:#fff;cursor:pointer;text-align:left;font-weight:500;color:var(--ink);box-shadow:var(--sh);transition:all .15s;font-family:inherit}
+.opt-btn:hover:not(:disabled){border-color:var(--navy2);background:var(--navy3)}
+.opt-btn:active:not(:disabled){transform:translateY(1px)}
+.opt-btn:disabled{cursor:not-allowed;opacity:.55}
+.voted-msg{text-align:center;color:var(--green);font-weight:600;font-size:15px;margin-top:18px;background:var(--green3);padding:14px;border-radius:var(--r)}
+.idle-msg{text-align:center;color:var(--ink3);font-size:14px;padding:60px 20px;line-height:1.8}
+.idle-msg .icon{font-size:40px;display:block;margin-bottom:12px}
+.loading-mask{position:fixed;inset:0;background:rgba(247,246,243,.92);display:flex;justify-content:center;align-items:center;z-index:1000;font-size:14px;font-weight:600;color:var(--navy)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-mask">與課堂同步連線中…</div>
+
+<div class="container">
+  <div class="topcard">
+    <div class="t1">📱 福智佛教學院 · 課堂調查即時秀</div>
+    <div class="t2" id="teacher-name-line">連線中…</div>
+  </div>
+
+  <div id="quiz-area" class="hidden">
+    <div class="q-num" id="q-num-line"></div>
+    <div id="question-text" class="q-box">正在等待老師切換題目…</div>
+    <div id="options-block" class="options"></div>
+    <div id="voted-status" class="voted-msg hidden">🎉 投票成功！請等待老師切換下一題。</div>
+  </div>
+
+  <div id="idle-area" class="idle-msg hidden">
+    <span class="icon">⏳</span>
+    <div id="idle-msg-text">目前沒有進行中的調查，<br>請等待老師開始。</div>
+  </div>
+
+  <div id="error-area" class="idle-msg hidden">
+    <span class="icon">⚠️</span>
+    <div id="error-msg-text">連結無效，請確認 QR Code 或連結是否正確。</div>
+  </div>
+</div>
+
+<script>
+const SB_URL  = 'https://pjyjpcumakxevxuxwcyx.supabase.co';
+const SB_ANON = 'sb_publishable_Hxw2qfgBO5BTkX4wG4xeTQ_tEsPG3pc';
+const sb = supabase.createClient(SB_URL, SB_ANON);
+
+let teacherId = null;
+let activeSet = null;       // 目前啟用中的題組
+let questions = [];          // 題組所有題目（含選項）
+let currentQuestion = null;
+let deviceToken = null;
+let channel = null;
+
+function getDeviceToken() {
+  let t = localStorage.getItem('lp_student_device');
+  if (!t) { t = 'S-' + Math.random().toString(36).slice(2,14) + Date.now().toString(36); localStorage.setItem('lp_student_device', t); }
+  return t;
+}
+
+function showLoading(show) { document.getElementById('loading').classList.toggle('hidden', !show); }
+function showArea(name) {
+  ['quiz-area','idle-area','error-area'].forEach(id => {
+    document.getElementById(id).classList.toggle('hidden', id !== name);
+  });
+}
+
+window.onload = async function () {
+  deviceToken = getDeviceToken();
+  const params = new URLSearchParams(window.location.search);
+  teacherId = params.get('t');
+  if (!teacherId) {
+    showLoading(false);
+    showArea('error-area');
+    return;
+  }
+  await loadTeacherName();
+  await refreshActiveSet();
+  subscribeRealtime();
+  showLoading(false);
+};
+
+async function loadTeacherName() {
+  const { data } = await sb.from('teachers').select('name_zh').eq('id', teacherId).maybeSingle();
+  document.getElementById('teacher-name-line').textContent = data?.name_zh ? `${data.name_zh} 老師` : '課堂調查';
+}
+
+async function refreshActiveSet() {
+  const { data: setRow, error } = await sb.from('poll_sets')
+    .select('id, title, current_question_index, is_active')
+    .eq('teacher_id', teacherId).eq('is_active', true).maybeSingle();
+
+  if (error || !setRow) {
+    activeSet = null;
+    showArea('idle-area');
+    return;
+  }
+
+  const isNewSet = !activeSet || activeSet.id !== setRow.id;
+  activeSet = setRow;
+
+  if (isNewSet) {
+    const { data: qData } = await sb.from('poll_questions')
+      .select(`id, sort_order, question_text, poll_options(id, sort_order, option_text)`)
+      .eq('poll_set_id', setRow.id).order('sort_order');
+    questions = (qData||[]).map(q => ({ ...q, poll_options:(q.poll_options||[]).sort((a,b)=>a.sort_order-b.sort_order) }));
+  }
+
+  await renderCurrentQuestion();
+}
+
+async function renderCurrentQuestion() {
+  if (!activeSet || !questions.length) { showArea('idle-area'); return; }
+  const q = questions[activeSet.current_question_index];
+  if (!q) { showArea('idle-area'); return; }
+  currentQuestion = q;
+
+  showArea('quiz-area');
+  document.getElementById('q-num-line').textContent = `第 ${activeSet.current_question_index+1} 題 / 共 ${questions.length} 題`;
+  document.getElementById('question-text').textContent = q.question_text;
+
+  // 檢查此裝置這一題是否已投過
+  const { data: existing } = await sb.from('poll_responses')
+    .select('id').eq('question_id', q.id).eq('device_token', deviceToken).maybeSingle();
+
+  const optionsBlock = document.getElementById('options-block');
+  const votedStatus = document.getElementById('voted-status');
+
+  if (existing) {
+    optionsBlock.innerHTML = '';
+    votedStatus.classList.remove('hidden');
+  } else {
+    votedStatus.classList.add('hidden');
+    optionsBlock.innerHTML = q.poll_options.map(o =>
+      `<button class="opt-btn" onclick="sendVote('${o.id}')">${escapeHtml(o.option_text)}</button>`
+    ).join('');
+  }
+}
+
+async function sendVote(optionId) {
+  if (!currentQuestion) return;
+  document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+  const { error } = await sb.from('poll_responses').insert({
+    question_id: currentQuestion.id, option_id: optionId, device_token: deviceToken
+  });
+  if (error) {
+    if (error.code === '23505') { // UNIQUE 違反 = 已經投過
+      document.getElementById('voted-status').classList.remove('hidden');
+      document.getElementById('options-block').innerHTML = '';
+    } else {
+      alert('投票失敗，請稍後再試。');
+      document.querySelectorAll('.opt-btn').forEach(b => b.disabled = false);
+    }
+    return;
+  }
+  document.getElementById('voted-status').classList.remove('hidden');
+  document.getElementById('options-block').innerHTML = '';
+}
+
+function subscribeRealtime() {
+  if (channel) sb.removeChannel(channel);
+  channel = sb.channel('poll-student-' + teacherId)
+    .on('postgres_changes', { event:'*', schema:'public', table:'poll_sets', filter:`teacher_id=eq.${teacherId}` },
+      () => { refreshActiveSet(); })
+    .subscribe();
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML;
+}
+</script>
+</body>
+</html>

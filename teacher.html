@@ -7,6 +7,8 @@
 <title>教師入口 — 福智佛教學院</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -188,6 +190,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')">📚 我的課程</div>
       <div class="side-item" id="nav-profile"     onclick="showSection('profile')">👤 個人資料</div>
       <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')">🗂 所有課程</div>
+      <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')">🎯 課堂調查即時秀</div>
       <div class="side-item" id="nav-survey"      onclick="showSection('survey')">📊 教學意見</div>
       <div class="side-item" id="nav-grades"      onclick="showSection('grades')">📊 成績登錄</div>
     </div>
@@ -317,6 +320,61 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
         </div>
       </div>
 
+      <!-- ── 課堂調查即時秀 section ── -->
+      <div id="sec-live-poll" class="t-section">
+        <div class="section-title">🎯 課堂調查即時秀</div>
+
+        <!-- 題組列表（未啟用時顯示） -->
+        <div id="lp-set-list-area">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+            <button class="btn-save" onclick="lpOpenSetModal()">＋ 新增題組</button>
+          </div>
+          <div id="lp-set-list">
+            <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+          </div>
+        </div>
+
+        <!-- 即時控制台（某題組啟用時顯示） -->
+        <div id="lp-control-area" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+            <span style="font-size:14px;font-weight:600;color:var(--navy)" id="lp-active-title"></span>
+            <span style="font-size:12px;background:var(--green,#1A6A30);color:#fff;padding:2px 10px;border-radius:20px">🟢 啟用中</span>
+            <button class="btn-secondary" onclick="lpStopActive()" style="margin-left:auto">⏹ 停止此題組</button>
+          </div>
+
+          <!-- QR Code 區 -->
+          <div style="background:var(--cr3,#F0F0F0);border-radius:8px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <div id="lp-qrcode" style="background:#fff;padding:8px;border-radius:8px"></div>
+            <div style="font-size:13px;color:var(--ink3,#6A5F4A)">
+              <div style="margin-bottom:4px">學生掃描此 QR Code 即可參與投票（不需登入）</div>
+              <div style="font-family:monospace;font-size:11px;word-break:break-all" id="lp-link-text"></div>
+              <button class="btn-secondary" style="margin-top:6px;font-size:11px;padding:4px 10px" onclick="lpCopyLink()">📋 複製連結</button>
+            </div>
+          </div>
+
+          <!-- 控制列：上一題/下一題/直達題號/清零/匯出 -->
+          <div style="display:grid;grid-template-columns:1fr 1.6fr 1fr 1.2fr 1.2fr;gap:8px;margin-bottom:18px">
+            <button class="btn-secondary" id="lp-btn-prev" onclick="lpGoPrev()">⬅️ 上一題</button>
+            <div style="display:flex;gap:4px;align-items:center;background:var(--cr3,#F0F0F0);border-radius:6px;padding:4px 6px">
+              <input type="text" id="lp-jump-input" placeholder="題號" style="width:50px;padding:6px 4px;border:1px solid var(--cr2,#E8E8E8);border-radius:4px;text-align:center;font-weight:600">
+              <button class="btn-secondary" style="font-size:12px;padding:6px 10px" onclick="lpJump()">🎯 直達</button>
+            </div>
+            <button class="btn-secondary" id="lp-btn-next" onclick="lpGoNext()">下一題 ➡️</button>
+            <button class="btn-secondary" onclick="lpResetSingle()" style="color:#B05010">🧹 單題清零</button>
+            <button class="btn-secondary" onclick="lpResetAll()" style="color:var(--red,#C04030)">💣 全域清零</button>
+          </div>
+
+          <div style="text-align:center;margin-bottom:10px">
+            <span style="font-size:15px;font-weight:600;color:var(--navy)">第 <span id="lp-cur-num">-</span> 題 / 共 <span id="lp-total-num">-</span> 題</span>
+          </div>
+          <div style="background:var(--navy3,#EEF2FA);border:1.5px solid var(--navy2,#2B5FA0);border-radius:8px;padding:16px 20px;margin-bottom:18px;font-weight:600;font-size:17px;color:var(--ink,#1A1510)" id="lp-cur-question">載入中…</div>
+
+          <div style="background:#fff;border:1px solid var(--cr2,#E8E8E8);border-radius:8px;padding:16px;position:relative;height:280px">
+            <canvas id="lpChart"></canvas>
+          </div>
+        </div>
+      </div>
+
       <!-- ── 教學意見 section ── -->
       <div id="sec-survey" class="t-section">
         <div class="section-title">📊 教學意見調查</div>
@@ -390,6 +448,30 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 </div><!-- end app-screen -->
 
 <!-- 課程大綱編輯 Modal -->
+<!-- ══ 課堂調查即時秀：題組編輯 Modal ══ -->
+<div class="modal-bg" id="lp-set-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="lp-set-modal-title">新增題組</div>
+      <button class="modal-close" onclick="lpCloseSetModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="lp-set-id">
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:500;color:var(--ink3,#6A5F4A);margin-bottom:4px">題組名稱 *</label>
+        <input class="finput" id="lp-set-title" placeholder="例如：第一週課堂測驗" style="width:100%">
+      </div>
+      <div style="font-weight:600;font-size:13px;color:var(--ink3,#6A5F4A);margin:14px 0 8px">題目（先做單選題）</div>
+      <div id="lp-question-editor" style="display:flex;flex-direction:column;gap:14px"></div>
+      <button class="btn-secondary" style="margin-top:10px" onclick="lpAddQuestion()">＋ 新增題目</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="lpCloseSetModal()">取消</button>
+      <button class="btn-save" onclick="lpSaveSet()">💾 儲存題組</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="syl-modal">
   <div class="modal">
     <div class="modal-hdr">
@@ -1627,6 +1709,8 @@ function showSection(id) {
     document.getElementById('grade-course-list').style.display = '';
     loadGradesSection();
   }
+  if (id === 'live-poll') { lpInit(); }
+  else { lpStopPolling(); } // 離開分頁時停止輪詢計時器，避免背景持續打API
 }
 // 相容舊呼叫
 function switchTab(id, btn) {
@@ -1643,6 +1727,339 @@ function showToast(msg, isErr) {
 }
 
 function esc(str) { return (str||'').replace(/"/g,'&quot;'); }
+
+/* ════════════════════════════════════════
+   課堂調查即時秀（Live Poll）
+   ════════════════════════════════════════ */
+let _lpSets = [];          // 此老師所有題組（快取）
+let _lpActiveSet = null;   // 目前啟用中的題組
+let _lpQuestions = [];     // 啟用題組的題目（含選項、票數）
+let _lpPollTimer = null;   // 輪詢計時器
+let _lpChart = null;
+let _lpDeviceToken = null; // 編輯modal暫存的題目/選項資料結構
+
+function lpDeviceId() {
+  // 老師端不需要裝置代碼判重，但保留共用function，未來若老師端也想避免誤觸可用
+  let id = localStorage.getItem('lp_device_id');
+  if (!id) { id = 'D-' + Math.random().toString(36).slice(2,12) + Date.now().toString(36); localStorage.setItem('lp_device_id', id); }
+  return id;
+}
+
+async function lpInit() {
+  document.getElementById('lp-control-area').style.display = 'none';
+  document.getElementById('lp-set-list-area').style.display = '';
+  await lpLoadSets();
+}
+
+async function lpLoadSets() {
+  const { data, error } = await sb.from('poll_sets')
+    .select(`id, title, is_active, current_question_index,
+             poll_questions(id)`)
+    .eq('teacher_id', ME.id)
+    .order('created_at', { ascending: false });
+  if (error) { showToast('載入失敗：'+error.message, true); return; }
+  _lpSets = data || [];
+
+  const active = _lpSets.find(s => s.is_active);
+  if (active) {
+    await lpEnterControlMode(active.id);
+    return;
+  }
+
+  const listEl = document.getElementById('lp-set-list');
+  if (!_lpSets.length) {
+    listEl.innerHTML = '<div style="color:var(--ink3,#6A5F4A);font-size:13px;padding:20px;text-align:center">還沒有題組，點右上角「＋ 新增題組」開始建立。</div>';
+    return;
+  }
+  listEl.innerHTML = _lpSets.map(s => `
+    <div style="background:#fff;border:1px solid var(--cr2,#E8E8E8);border-radius:8px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${esc(s.title)}</div>
+        <div style="font-size:12px;color:var(--ink3,#6A5F4A)">${(s.poll_questions||[]).length} 題</div>
+      </div>
+      <button class="btn-secondary" onclick="lpOpenSetModal('${s.id}')">✏️ 編輯</button>
+      <button class="btn-save" onclick="lpActivateSet('${s.id}')">▶ 啟用</button>
+      <button class="btn-secondary" style="color:var(--red,#C04030)" onclick="lpDeleteSet('${s.id}','${esc(s.title)}')">🗑</button>
+    </div>`).join('');
+}
+
+async function lpActivateSet(setId) {
+  // 同一老師只能一組啟用：先全部停用，再啟用指定那組
+  const { error: e1 } = await sb.from('poll_sets').update({ is_active:false }).eq('teacher_id', ME.id);
+  if (e1) { showToast('啟用失敗：'+e1.message, true); return; }
+  const { error: e2 } = await sb.from('poll_sets').update({ is_active:true, current_question_index:0 }).eq('id', setId);
+  if (e2) { showToast('啟用失敗：'+e2.message, true); return; }
+  showToast('題組已啟用，學生可以開始投票');
+  await lpEnterControlMode(setId);
+}
+
+async function lpStopActive() {
+  if (!_lpActiveSet) return;
+  if (!confirm('確定要停止此題組嗎？學生將無法繼續投票（題目與票數資料會保留，下次可重新啟用）。')) return;
+  const { error } = await sb.from('poll_sets').update({ is_active:false }).eq('id', _lpActiveSet.id);
+  if (error) { showToast('停止失敗：'+error.message, true); return; }
+  lpStopPolling();
+  _lpActiveSet = null;
+  document.getElementById('lp-control-area').style.display = 'none';
+  document.getElementById('lp-set-list-area').style.display = '';
+  lpLoadSets();
+}
+
+async function lpDeleteSet(setId, title) {
+  if (!confirm(`確定要刪除題組「${title}」嗎？此操作無法復原，所有題目與投票記錄都會一併刪除。`)) return;
+  const { error } = await sb.from('poll_sets').delete().eq('id', setId);
+  if (error) { showToast('刪除失敗：'+error.message, true); return; }
+  showToast('已刪除');
+  lpLoadSets();
+}
+
+async function lpEnterControlMode(setId) {
+  const { data: setRow, error } = await sb.from('poll_sets').select('*').eq('id', setId).single();
+  if (error || !setRow) { showToast('載入題組失敗', true); return; }
+  _lpActiveSet = setRow;
+
+  document.getElementById('lp-set-list-area').style.display = 'none';
+  document.getElementById('lp-control-area').style.display = '';
+  document.getElementById('lp-active-title').textContent = setRow.title;
+
+  // QR code + 連結（學生端用 teacher_id 當參數，QR可重複使用）
+  const link = `${window.location.origin}${window.location.pathname.replace('teacher.html','live-poll.html')}?t=${ME.id}`;
+  document.getElementById('lp-link-text').textContent = link;
+  document.getElementById('lp-qrcode').innerHTML = '';
+  if (window.QRCode) {
+    QRCode.toCanvas(document.createElement('canvas'), link, { width:120 }, function (err, canvas) {
+      if (!err) document.getElementById('lp-qrcode').appendChild(canvas);
+    });
+  }
+
+  await lpLoadQuestionsAndVotes();
+  lpInitChart();
+  lpRenderControl();
+  lpStartPolling();
+}
+
+function lpCopyLink() {
+  const text = document.getElementById('lp-link-text').textContent;
+  navigator.clipboard.writeText(text).then(()=>showToast('連結已複製')).catch(()=>showToast('複製失敗，請手動選取', true));
+}
+
+async function lpLoadQuestionsAndVotes() {
+  const { data, error } = await sb.from('poll_questions')
+    .select(`id, sort_order, question_text,
+             poll_options(id, sort_order, option_text)`)
+    .eq('poll_set_id', _lpActiveSet.id)
+    .order('sort_order');
+  if (error) { showToast('載入題目失敗：'+error.message, true); return; }
+  _lpQuestions = (data||[]).map(q => ({
+    ...q,
+    poll_options: (q.poll_options||[]).sort((a,b)=>a.sort_order-b.sort_order)
+  }));
+
+  // 撈目前題目的票數
+  await lpRefreshVotesForCurrentQuestion();
+}
+
+async function lpRefreshVotesForCurrentQuestion() {
+  const q = _lpQuestions[_lpActiveSet.current_question_index];
+  if (!q) return;
+  const { data, error } = await sb.from('poll_responses')
+    .select('option_id').eq('question_id', q.id);
+  if (error) return;
+  const counts = {};
+  q.poll_options.forEach(o => counts[o.id] = 0);
+  (data||[]).forEach(r => { if (counts[r.option_id] !== undefined) counts[r.option_id]++; });
+  q._votes = counts;
+}
+
+function lpRenderControl() {
+  const idx = _lpActiveSet.current_question_index;
+  const q = _lpQuestions[idx];
+  document.getElementById('lp-cur-num').textContent = idx + 1;
+  document.getElementById('lp-total-num').textContent = _lpQuestions.length;
+  document.getElementById('lp-cur-question').textContent = q ? q.question_text : '（此題組尚無題目）';
+  document.getElementById('lp-btn-prev').disabled = (idx === 0);
+  document.getElementById('lp-btn-next').disabled = (idx >= _lpQuestions.length - 1);
+  lpUpdateChart();
+}
+
+function lpInitChart() {
+  const ctx = document.getElementById('lpChart').getContext('2d');
+  if (_lpChart) { _lpChart.destroy(); }
+  _lpChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: [], datasets: [{ label:'即時得票數', data:[], backgroundColor:'rgba(43,95,160,0.75)', borderColor:'rgba(27,58,107,1)', borderWidth:1.5, borderRadius:4 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      scales: { x:{ beginAtZero:true, ticks:{ stepSize:1 } }, y:{ ticks:{ font:{ size:13, weight:'600' } }, grid:{ display:false } } },
+      plugins: { legend:{ display:false } }
+    }
+  });
+}
+
+function lpUpdateChart() {
+  if (!_lpChart) return;
+  const q = _lpQuestions[_lpActiveSet.current_question_index];
+  if (!q) { _lpChart.data.labels=[]; _lpChart.data.datasets[0].data=[]; _lpChart.update(); return; }
+  _lpChart.data.labels = q.poll_options.map(o => o.option_text);
+  _lpChart.data.datasets[0].data = q.poll_options.map(o => (q._votes||{})[o.id] || 0);
+  _lpChart.update();
+}
+
+function lpStartPolling() {
+  lpStopPolling();
+  _lpPollTimer = setInterval(async () => {
+    await lpRefreshVotesForCurrentQuestion();
+    lpUpdateChart();
+  }, 2000); // 老師端每2秒刷新票數，達到接近即時效果
+}
+function lpStopPolling() {
+  if (_lpPollTimer) { clearInterval(_lpPollTimer); _lpPollTimer = null; }
+}
+
+async function lpGoPrev() {
+  if (_lpActiveSet.current_question_index <= 0) return;
+  await lpJumpToIndex(_lpActiveSet.current_question_index - 1);
+}
+async function lpGoNext() {
+  if (_lpActiveSet.current_question_index >= _lpQuestions.length - 1) return;
+  await lpJumpToIndex(_lpActiveSet.current_question_index + 1);
+}
+function lpJump() {
+  const input = document.getElementById('lp-jump-input');
+  const n = parseInt(input.value, 10);
+  input.value = '';
+  if (!n || n < 1 || n > _lpQuestions.length) { showToast('題號超出範圍', true); return; }
+  lpJumpToIndex(n - 1);
+}
+async function lpJumpToIndex(idx) {
+  const { error } = await sb.from('poll_sets').update({ current_question_index: idx }).eq('id', _lpActiveSet.id);
+  if (error) { showToast('切換題目失敗：'+error.message, true); return; }
+  _lpActiveSet.current_question_index = idx;
+  await lpRefreshVotesForCurrentQuestion();
+  lpRenderControl();
+}
+
+async function lpResetSingle() {
+  const q = _lpQuestions[_lpActiveSet.current_question_index];
+  if (!q) return;
+  if (!confirm(`確定要將第 ${_lpActiveSet.current_question_index+1} 題的得票數據全部清零嗎？`)) return;
+  const { error } = await sb.from('poll_responses').delete().eq('question_id', q.id);
+  if (error) { showToast('清零失敗：'+error.message, true); return; }
+  showToast('已清零');
+  await lpRefreshVotesForCurrentQuestion();
+  lpUpdateChart();
+}
+
+async function lpResetAll() {
+  if (!confirm('終極警告！確定要將此題組所有題目的得票全部清零嗎？此動作無法復原！')) return;
+  const ids = _lpQuestions.map(q=>q.id);
+  if (!ids.length) return;
+  const { error } = await sb.from('poll_responses').delete().in('question_id', ids);
+  if (error) { showToast('清零失敗：'+error.message, true); return; }
+  showToast('已全部清零');
+  await lpRefreshVotesForCurrentQuestion();
+  lpUpdateChart();
+}
+
+/* ── 題組編輯 Modal ── */
+let _lpEditQuestions = []; // modal內暫存的題目陣列（含選項），儲存時整批寫回DB
+
+function lpOpenSetModal(setId) {
+  document.getElementById('lp-set-id').value = setId || '';
+  document.getElementById('lp-set-modal-title').textContent = setId ? '編輯題組' : '新增題組';
+  document.getElementById('lp-set-title').value = '';
+  _lpEditQuestions = [];
+
+  if (setId) {
+    const existing = _lpSets.find(s => s.id === setId);
+    document.getElementById('lp-set-title').value = existing?.title || '';
+    sb.from('poll_questions').select(`id, sort_order, question_text, poll_options(id, sort_order, option_text)`)
+      .eq('poll_set_id', setId).order('sort_order').then(({data}) => {
+        _lpEditQuestions = (data||[]).map(q => ({
+          id: q.id, text: q.question_text,
+          options: (q.poll_options||[]).sort((a,b)=>a.sort_order-b.sort_order).map(o=>({ id:o.id, text:o.option_text }))
+        }));
+        lpRenderQuestionEditor();
+      });
+  } else {
+    lpAddQuestion(); // 新題組預設先給一題
+  }
+  document.getElementById('lp-set-modal').classList.add('open');
+}
+function lpCloseSetModal() { document.getElementById('lp-set-modal').classList.remove('open'); }
+
+function lpAddQuestion() {
+  _lpEditQuestions.push({ id:null, text:'', options:[{id:null,text:''},{id:null,text:''}] });
+  lpRenderQuestionEditor();
+}
+function lpRemoveQuestion(i) { _lpEditQuestions.splice(i,1); lpRenderQuestionEditor(); }
+function lpAddOption(qi) { _lpEditQuestions[qi].options.push({id:null,text:''}); lpRenderQuestionEditor(); }
+function lpRemoveOption(qi, oi) { _lpEditQuestions[qi].options.splice(oi,1); lpRenderQuestionEditor(); }
+function lpUpdateQText(qi, val) { _lpEditQuestions[qi].text = val; }
+function lpUpdateOText(qi, oi, val) { _lpEditQuestions[qi].options[oi].text = val; }
+
+function lpRenderQuestionEditor() {
+  const el = document.getElementById('lp-question-editor');
+  el.innerHTML = _lpEditQuestions.map((q, qi) => `
+    <div style="border:1px solid var(--cr2,#E8E8E8);border-radius:8px;padding:12px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="finput" value="${esc(q.text)}" placeholder="第${qi+1}題題目內容"
+          oninput="lpUpdateQText(${qi}, this.value)" style="flex:1">
+        <button class="btn-secondary" style="color:var(--red,#C04030)" onclick="lpRemoveQuestion(${qi})">🗑</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding-left:12px">
+        ${q.options.map((o, oi) => `
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:12px;color:var(--ink3,#6A5F4A);width:18px">${oi+1}.</span>
+            <input class="finput" value="${esc(o.text)}" placeholder="選項內容"
+              oninput="lpUpdateOText(${qi},${oi},this.value)" style="flex:1;padding:7px 10px">
+            <button onclick="lpRemoveOption(${qi},${oi})" style="border:none;background:none;cursor:pointer;color:var(--red,#C04030)">✕</button>
+          </div>`).join('')}
+        <button class="btn-secondary" style="font-size:12px;padding:4px 10px;align-self:flex-start;margin-top:2px" onclick="lpAddOption(${qi})">＋ 新增選項</button>
+      </div>
+    </div>`).join('');
+}
+
+async function lpSaveSet() {
+  const title = document.getElementById('lp-set-title').value.trim();
+  if (!title) { showToast('請輸入題組名稱', true); return; }
+  if (!_lpEditQuestions.length) { showToast('請至少新增一題', true); return; }
+  for (const q of _lpEditQuestions) {
+    if (!q.text.trim()) { showToast('題目內容不能空白', true); return; }
+    const validOpts = q.options.filter(o => o.text.trim());
+    if (validOpts.length < 2) { showToast('每題至少需要2個選項', true); return; }
+  }
+
+  const setId = document.getElementById('lp-set-id').value;
+  let savedSetId = setId;
+
+  if (setId) {
+    const { error } = await sb.from('poll_sets').update({ title, updated_at: new Date().toISOString() }).eq('id', setId);
+    if (error) { showToast('儲存失敗：'+error.message, true); return; }
+    // 簡化處理：編輯時刪除舊題目選項，整批重新寫入（題組通常題量不大，這樣最不容易出錯）
+    await sb.from('poll_questions').delete().eq('poll_set_id', setId);
+  } else {
+    const { data, error } = await sb.from('poll_sets').insert({ teacher_id: ME.id, title }).select().single();
+    if (error) { showToast('建立失敗：'+error.message, true); return; }
+    savedSetId = data.id;
+  }
+
+  for (let qi = 0; qi < _lpEditQuestions.length; qi++) {
+    const q = _lpEditQuestions[qi];
+    const { data: qRow, error: qErr } = await sb.from('poll_questions')
+      .insert({ poll_set_id: savedSetId, sort_order: qi, question_text: q.text.trim() })
+      .select().single();
+    if (qErr) { showToast('題目儲存失敗：'+qErr.message, true); return; }
+    const validOpts = q.options.filter(o => o.text.trim());
+    const optRows = validOpts.map((o, oi) => ({ question_id: qRow.id, sort_order: oi, option_text: o.text.trim() }));
+    const { error: oErr } = await sb.from('poll_options').insert(optRows);
+    if (oErr) { showToast('選項儲存失敗：'+oErr.message, true); return; }
+  }
+
+  showToast('題組已儲存');
+  lpCloseSetModal();
+  lpLoadSets();
+}
 
 // Auth state change
 sb.auth.onAuthStateChange((event, session) => {
