@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v5.9 2026-06-21 -->
+<!-- BWBC Admin v6.3 2026-06-21 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 :root{
   --navy:#1B3A6B;--navy2:#2B5FA0;--navy3:#EEF2FA;
@@ -373,6 +374,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div style="margin-left:auto;display:flex;gap:6px">
             <button class="btn btn-sec" onclick="printBlankCourseSheet()" title="列印該學期全部課程的空白選課單">🖨 空白選課單</button>
             <button class="btn btn-sec" onclick="printCustomBlankCourseSheet()" title="可加註說明文字的空白選課單">🖨 自訂空白選課單</button>
+            <button class="btn btn-sec" onclick="openSyllabusBlankModal()" title="批次下載空白課程大綱Word">📄 課程大綱列印</button>
             <button class="btn btn-sec" onclick="exportOfferingsCSV()" title="匯出本學期開課記錄">📤 匯出</button>
             <button class="btn btn-sec" onclick="openImportModal('offerings')" title="從 CSV 匯入開課記錄">📥 匯入</button>
             <button class="btn btn-pri" onclick="openNewOffering()">＋ 新增開課</button>
@@ -465,6 +467,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div class="page-title">教師管理</div>
           <div id="teacher-stats" style="font-size:13px;color:var(--ink3);display:flex;gap:12px;align-items:center"></div>
           <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-sec" onclick="openBatchPhotoModal()">📷 批次上傳照片</button>
             <button class="btn btn-sec" onclick="exportTeachersCSV()">📤 匯出</button>
             <button class="btn btn-sec" onclick="openTeacherImportModal()">📥 匯入</button>
             <button class="btn btn-pri" onclick="openTeacherModal()">＋ 新增教師</button>
@@ -1735,6 +1738,67 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeBlankGradeSheetModal()">取消</button>
       <button class="btn-save" onclick="generateBlankGradeSheets()">📥 產生並下載</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 批次上傳教師照片 Modal ══ -->
+<div class="modal-bg" id="batch-photo-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-hdr">
+      <div class="modal-title">📷 批次上傳教師照片</div>
+      <button class="modal-close" onclick="closeBatchPhotoModal()">✕</button>
+    </div>
+    <div style="padding:18px 20px;max-height:65vh;overflow-y:auto">
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">
+        檔名請用老師的中文姓名（如「張筱雯.png」），系統會自動比對。可一次選取多個檔案。
+      </div>
+      <input type="file" id="batch-photo-input" accept="image/*" multiple onchange="onBatchPhotoFilesSelected(event)" style="margin-bottom:14px">
+      <div id="batch-photo-preview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeBatchPhotoModal()">取消</button>
+      <button class="btn-save" onclick="uploadBatchPhotos()">📤 開始上傳</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 空白課程大綱列印 Modal ══ -->
+<div class="modal-bg" id="syllabus-blank-modal">
+  <div class="modal" style="max-width:740px">
+    <div class="modal-hdr">
+      <div class="modal-title">📄 課程大綱列印（空白）</div>
+      <button class="modal-close" onclick="closeSyllabusBlankModal()">✕</button>
+    </div>
+    <div style="padding:18px 20px;max-height:65vh;overflow-y:auto">
+      <div class="toolbar" style="margin-bottom:10px">
+        <select id="syl-semester" class="fselect" style="width:160px" onchange="loadSyllabusBlankCourses()">
+          <option value="">請選擇學期</option>
+        </select>
+        <select id="syl-filter" class="fselect" style="width:140px" onchange="renderSyllabusBlankList()">
+          <option value="all">所有課程</option>
+          <option value="incomplete">未完成的</option>
+        </select>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <button class="btn btn-sec btn-sm" onclick="toggleAllSyllabusCourses(true)">全選</button>
+          <button class="btn btn-sec btn-sm" onclick="toggleAllSyllabusCourses(false)">全不選</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:40px"></th><th>課程代碼</th><th style="text-align:left">課程名稱</th>
+            <th>類別</th><th>完成度</th>
+          </tr></thead>
+          <tbody id="syllabus-blank-list">
+            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeSyllabusBlankModal()">取消</button>
+      <button class="btn-save" onclick="generateBlankSyllabusDocs()">📥 產生並下載</button>
     </div>
   </div>
 </div>
@@ -4289,11 +4353,254 @@ async function generateOneBlankGradeSheet(course) {
     { s:{r:tailStart+2,c:0}, e:{r:tailStart+2,c:5} }, // 註：滿70分為及格
     { s:{r:tailStart+5,c:0}, e:{r:tailStart+5,c:5} }, // 授課教師簽名
   ];
-
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '成績表');
   const fileName = `${course._semLabel}_${course.code}${course.name_zh}_${course.teacherNames||'未指定'}_學期成績.xlsx`;
   XLSX.writeFile(wb, fileName);
+}
+
+/* ════════════════════════════════════════
+   批次上傳教師照片（依檔名比對中文姓名）
+   ════════════════════════════════════════ */
+let _batchPhotoFiles = []; // [{file, matchedTeacher, status}]
+
+function openBatchPhotoModal() {
+  _batchPhotoFiles = [];
+  document.getElementById('batch-photo-input').value = '';
+  document.getElementById('batch-photo-preview').innerHTML = '';
+  document.getElementById('batch-photo-modal').classList.add('show');
+}
+function closeBatchPhotoModal() { document.getElementById('batch-photo-modal').classList.remove('show'); }
+
+function onBatchPhotoFilesSelected(e) {
+  const files = Array.from(e.target.files || []);
+  _batchPhotoFiles = files.map(file => {
+    const baseName = file.name.replace(/\.[^.]+$/, ''); // 去掉副檔名
+    const matches = TEACHERS.filter(t => t.name_zh === baseName);
+    return {
+      file, baseName,
+      matched: matches.length === 1 ? matches[0] : null,
+      multiMatch: matches.length > 1 ? matches : null,
+      status: 'pending',
+    };
+  });
+  renderBatchPhotoPreview();
+}
+
+function renderBatchPhotoPreview() {
+  const el = document.getElementById('batch-photo-preview');
+  if (!_batchPhotoFiles.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr>'
+    + '<th>檔名</th><th>比對結果</th><th>狀態</th>'
+    + '</tr></thead><tbody>'
+    + _batchPhotoFiles.map((f,i) => {
+        let matchCell, rowStyle = '';
+        if (f.multiMatch) {
+          matchCell = `<select class="fselect" style="font-size:12px;padding:4px 8px" onchange="resolveBatchPhotoMultiMatch(${i},this.value)">
+            <option value="">⚠️ 同名多筆，請選擇</option>
+            ${f.multiMatch.map(t=>`<option value="${t.id}">${t.name_zh}（${t.email||t.title||t.id.slice(0,8)}）</option>`).join('')}
+          </select>`;
+          rowStyle = 'background:#FFF8E1';
+        } else if (f.matched) {
+          matchCell = `<span style="color:var(--green)">✅ ${f.matched.name_zh}</span>`;
+        } else {
+          matchCell = `<span style="color:var(--red)">❌ 找不到同名教師</span>`;
+          rowStyle = 'background:#FFEBEE';
+        }
+        const statusCell = { pending:'待上傳', uploading:'⏳上傳中…', done:'✅完成', error:'❌失敗' }[f.status] || '';
+        return `<tr style="${rowStyle}"><td>${f.file.name}</td><td>${matchCell}</td><td id="batch-photo-status-${i}">${statusCell}</td></tr>`;
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+function resolveBatchPhotoMultiMatch(i, teacherId) {
+  if (!teacherId) { _batchPhotoFiles[i].matched = null; return; }
+  _batchPhotoFiles[i].matched = TEACHERS.find(t => t.id === teacherId) || null;
+}
+
+async function uploadBatchPhotos() {
+  const toUpload = _batchPhotoFiles.filter(f => f.matched);
+  if (!toUpload.length) { showToast('沒有可上傳的檔案（需先成功比對到教師）','error'); return; }
+
+  for (const f of toUpload) {
+    const idx = _batchPhotoFiles.indexOf(f);
+    f.status = 'uploading';
+    document.getElementById(`batch-photo-status-${idx}`).textContent = '⏳上傳中…';
+
+    const ext = f.file.name.split('.').pop().toLowerCase();
+    const path = `${f.matched.id}.${ext}`;
+    const { error: upErr } = await sb.storage.from('teacher-photos').upload(path, f.file, { upsert: true });
+    if (upErr) {
+      f.status = 'error';
+      document.getElementById(`batch-photo-status-${idx}`).innerHTML = `<span style="color:var(--red)">❌ ${upErr.message}</span>`;
+      continue;
+    }
+    const { data: urlData } = sb.storage.from('teacher-photos').getPublicUrl(path);
+    const { error: dbErr } = await sb.from('teachers').update({ photo_url: urlData?.publicUrl }).eq('id', f.matched.id);
+    if (dbErr) {
+      f.status = 'error';
+      document.getElementById(`batch-photo-status-${idx}`).innerHTML = `<span style="color:var(--red)">❌ ${dbErr.message}</span>`;
+      continue;
+    }
+    f.status = 'done';
+    document.getElementById(`batch-photo-status-${idx}`).textContent = '✅完成';
+  }
+
+  const doneCount = toUpload.filter(f=>f.status==='done').length;
+  showToast(`完成 ${doneCount}/${toUpload.length} 張照片上傳`);
+  if (doneCount > 0) loadTeachers();
+}
+
+/* ════════════════════════════════════════
+   空白課程大綱列印（產生Word，套用整理乾淨的範本）
+   ════════════════════════════════════════ */
+let _syllabusBlankCourses = [];
+
+function openSyllabusBlankModal() {
+  const sel = document.getElementById('syl-semester');
+  if (_gradeSemesters?.length) {
+    sel.innerHTML = '<option value="">請選擇學期</option>' +
+      _gradeSemesters.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+    const cur = _gradeSemesters.find(s=>s.is_current);
+    if (cur) { sel.value = cur.id; loadSyllabusBlankCourses(); }
+  } else {
+    sb.from('semesters').select('id,label,is_current').order('label',{ascending:false}).then(({data}) => {
+      _gradeSemesters = data || [];
+      sel.innerHTML = '<option value="">請選擇學期</option>' +
+        _gradeSemesters.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+      const cur = _gradeSemesters.find(s=>s.is_current);
+      if (cur) { sel.value = cur.id; loadSyllabusBlankCourses(); }
+    });
+  }
+  document.getElementById('syl-filter').value = 'all';
+  document.getElementById('syllabus-blank-modal').classList.add('show');
+}
+function closeSyllabusBlankModal() { document.getElementById('syllabus-blank-modal').classList.remove('show'); }
+
+async function loadSyllabusBlankCourses() {
+  const semId = document.getElementById('syl-semester').value;
+  const tbody = document.getElementById('syllabus-blank-list');
+  if (!semId) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>'; return; }
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
+
+  const { data: offerings, error } = await sb.from('course_offerings')
+    .select(`id, courses(code, name_zh, name_en, credits, is_digital, req_type, is_audit)`)
+    .eq('semester_id', semId).eq('is_active', true).order('course_id');
+  if (error) { tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
+
+  const ids = (offerings||[]).map(o=>o.id);
+  const { data: syllabi } = await sb.from('syllabi').select('*').in('offering_id', ids);
+  const sylMap = {}; (syllabi||[]).forEach(s => sylMap[s.offering_id] = s);
+
+  _syllabusBlankCourses = (offerings||[]).map(o => {
+    const syl = sylMap[o.id];
+    let score = 0;
+    if (syl) {
+      if (syl.overview_zh?.trim()) score++;
+      if (syl.objectives?.length > 0) score++;
+      if (syl.methods?.length > 0) score++;
+      if (syl.assessment?.length > 0) score++;
+      if ((syl.weeks||[]).some(w=>w.title?.trim())) score++;
+      if ((syl.bibliography?.required?.length||0)+(syl.bibliography?.optional?.length||0) > 0) score++;
+    }
+    const pct = Math.round(score / 6 * 100);
+    return {
+      offering_id: o.id, code: o.courses?.code||'', name_zh: o.courses?.name_zh||'',
+      name_en: o.courses?.name_en||'', credits: o.courses?.credits, is_digital: !!o.courses?.is_digital,
+      req_type: o.courses?.req_type||'', is_audit: !!o.courses?.is_audit,
+      pct, _checked: true,
+    };
+  });
+
+  renderSyllabusBlankList();
+}
+
+function renderSyllabusBlankList() {
+  const filter = document.getElementById('syl-filter').value;
+  const tbody = document.getElementById('syllabus-blank-list');
+  const list = _syllabusBlankCourses.filter(c => filter==='incomplete' ? c.pct < 100 : true);
+
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">無符合條件的課程</td></tr>'; return; }
+
+  tbody.innerHTML = list.map(c => {
+    const idx = _syllabusBlankCourses.indexOf(c);
+    return `<tr>
+      <td style="text-align:center"><input type="checkbox" ${c._checked?'checked':''} onchange="_syllabusBlankCourses[${idx}]._checked=this.checked" style="width:16px;height:16px"></td>
+      <td style="text-align:center;font-family:monospace">${c.code}</td>
+      <td>${c.name_zh}</td>
+      <td style="text-align:center">${c.is_digital ? '<span style="color:var(--navy2)">💻 數位</span>' : '<span style="color:var(--ink3)">一般</span>'}</td>
+      <td style="text-align:center">${c.pct}%</td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleAllSyllabusCourses(checked) {
+  const filter = document.getElementById('syl-filter').value;
+  _syllabusBlankCourses.forEach(c => {
+    if (filter==='incomplete' && c.pct >= 100) return;
+    c._checked = checked;
+  });
+  renderSyllabusBlankList();
+}
+
+async function fetchSyllabusTemplate(type) {
+  // 不快取：每次都即時從Storage抓最新版本，避免admin編輯範本後忘記重新整理頁面造成抓到舊版
+  const { data, error } = await sb.storage.from('syllabus-templates').download(`${type}.docx`);
+  if (error) throw new Error(`範本下載失敗(${type}): ${error.message}`);
+  return await data.arrayBuffer();
+}
+
+async function generateBlankSyllabusDocs() {
+  const semLabel = document.getElementById('syl-semester').selectedOptions?.[0]?.textContent || '';
+  const selected = _syllabusBlankCourses.filter(c => c._checked);
+  if (!selected.length) { showToast('請至少勾選一門課程','error'); return; }
+
+  if (typeof JSZip === 'undefined') { showToast('JSZip 尚未載入，請重新整理頁面','error'); return; }
+
+  showToast(`開始產生 ${selected.length} 份課程大綱…`);
+  closeSyllabusBlankModal();
+
+  for (const c of selected) {
+    try {
+      const type = c.is_digital ? 'digital' : 'general';
+      const templateBuf = await fetchSyllabusTemplate(type);
+      const zip = await JSZip.loadAsync(templateBuf);
+      let xml = await zip.file('word/document.xml').async('string');
+
+      const hours = c.credits != null ? String(c.credits) : '';
+      const replacements = {
+        '[[COURSE_CODE]]': c.code || '',
+        '[[COURSE_NAME]]': c.name_zh || '',
+        '[[COURSE_NAME_EN]]': c.name_en || '',
+        '[[CREDITS]]': c.credits != null ? String(c.credits) : '',
+        '[[HOURS]]': hours,
+        '[[DIGITAL_CHECKBOX]]': c.is_digital ? '■是 □否' : '□是 ■否',
+        '[[REQ_TYPE]]': REQ_TYPE_LABEL[c.req_type] || '',
+        '[[AUDIT_CHECKBOX]]': c.is_audit ? '■提供□ 不提供' : '□提供■ 不提供',
+      };
+      for (const [key, val] of Object.entries(replacements)) {
+        xml = xml.split(key).join(escapeXml(val));
+      }
+      zip.file('word/document.xml', xml);
+
+      const blob = await zip.generateAsync({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const fileName = `${semLabel}_${c.code}${c.name_zh}課程大綱_空白.docx`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      await new Promise(r => setTimeout(r, 300));
+    } catch (e) {
+      showToast(`「${c.name_zh}」產生失敗：${e.message}`, 'error');
+    }
+  }
+  showToast('全部課程大綱已下載完成');
+}
+
+function escapeXml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 async function printAttendanceSheet(meetingId) {
