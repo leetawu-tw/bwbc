@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v2.4 2026-06-21 -->
+<!-- BWBC Teacher v2.8 2026-06-21 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -193,6 +193,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')">🎯 課堂調查即時秀</div>
       <div class="side-item" id="nav-survey"      onclick="showSection('survey')">📊 教學意見</div>
       <div class="side-item" id="nav-grades"      onclick="showSection('grades')">📊 成績登錄</div>
+      <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')">🧭 操行評分</div>
     </div>
     <!-- 右側主內容 -->
     <div class="main" style="flex:1;overflow-y:auto;height:100%">
@@ -440,6 +441,22 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 
         <div id="grade-sheet-empty" style="color:var(--ink3);font-size:13px;padding:20px;display:none">
           目前沒有可登錄的成績，請確認行政已啟動本學期成績登錄期程。
+        </div>
+      </div>
+
+      <!-- ── 操行評分 section ── -->
+      <div id="sec-conduct" class="t-section">
+        <div class="section-title">🧭 操行評分</div>
+        <div id="conduct-deadline-hint" style="display:none;font-size:12.5px;color:var(--ink3,#6A5F4A);background:var(--navy3,#EEF2FA);border:1px solid var(--navy2,#2B5FA0);border-radius:8px;padding:8px 12px;margin-bottom:14px"></div>
+
+        <!-- 子分頁切換（只有所長身份才看到第二個按鈕） -->
+        <div id="conduct-tab-row" style="display:none;gap:6px;margin-bottom:14px">
+          <button class="btn-secondary" id="conduct-tab-mine-btn" onclick="switchConductTeacherTab('mine')">👤 我帶的學生</button>
+          <button class="btn-secondary" id="conduct-tab-all-btn" onclick="switchConductTeacherTab('all')" style="display:none">🏛 全所學生（所長調整）</button>
+        </div>
+
+        <div id="conduct-wrap">
+          <div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>
         </div>
       </div>
 
@@ -1734,6 +1751,193 @@ async function confirmGradeImport() {
   closeGradeImportModal();
 }
 
+/* ════════════════════════════════════════
+   操行評分（導師調整 / 所長調整）
+   ════════════════════════════════════════ */
+let _isDirector = false;
+let _conductRowsMine = [];
+let _conductRowsAll = [];
+let _conductTeacherTab = 'mine';
+
+async function loadConductSection() {
+  const hintEl = document.getElementById('conduct-deadline-hint');
+  hintEl.style.display = 'none';
+  const wrap = document.getElementById('conduct-wrap');
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+
+  const { data: sem } = await sb.from('semesters').select('id,label').eq('is_current', true).maybeSingle();
+  if (!sem) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">查無現在學期資料</div>'; return; }
+
+  // 期程提示（同成績登錄的純參考模式）
+  const { data: period } = await sb.from('grade_periods')
+    .select('open_at, close_at, is_active').eq('semester_id', sem.id).eq('grade_type','conduct').maybeSingle();
+  if (period) {
+    const openTxt  = period.open_at  ? period.open_at.slice(0,16).replace('T',' ')  : '未設定';
+    const closeTxt = period.close_at ? period.close_at.slice(0,16).replace('T',' ') : '未設定';
+    hintEl.textContent = period.is_active
+      ? `📌 操行成績登錄中（${openTxt} ～ ${closeTxt}）`
+      : `📌 操行成績尚未開放登錄（行政尚未啟動）`;
+    hintEl.style.display = '';
+  }
+
+  // 判斷是否為所長
+  _isDirector = (ME.title || '').includes('所長');
+  document.getElementById('conduct-tab-row').style.display = 'flex';
+  document.getElementById('conduct-tab-all-btn').style.display = _isDirector ? '' : 'none';
+
+  await loadConductRowsMine(sem.id);
+  if (_isDirector) await loadConductRowsAll(sem.id);
+
+  switchConductTeacherTab(_conductTeacherTab);
+}
+
+async function loadConductRowsMine(semId) {
+  const { data, error } = await sb.from('conduct_grades')
+    .select(`id, base_score, advisor_adj, director_adj, merit_demerit, status, advisor_submitted_at, director_submitted_at, students(student_code, name_zh, cohort)`)
+    .eq('semester_id', semId).eq('advisor_id', ME.id);
+  if (error) { _conductRowsMine = []; return; }
+  _conductRowsMine = (data||[]).sort((a,b)=>(a.students?.student_code||'').localeCompare(b.students?.student_code||''));
+}
+
+async function loadConductRowsAll(semId) {
+  const { data, error } = await sb.from('conduct_grades')
+    .select(`id, base_score, advisor_adj, director_adj, merit_demerit, status, advisor_submitted_at, director_submitted_at, students(student_code, name_zh, cohort), teachers(name_zh)`)
+    .eq('semester_id', semId);
+  if (error) { _conductRowsAll = []; return; }
+  _conductRowsAll = (data||[]).sort((a,b)=>(a.students?.student_code||'').localeCompare(b.students?.student_code||''));
+}
+
+function conductFinal(r) {
+  return Math.min(100, (r.base_score||85) + (r.advisor_adj||0) + (r.director_adj||0) + (r.merit_demerit||0));
+}
+
+function switchConductTeacherTab(tab) {
+  _conductTeacherTab = tab;
+  document.getElementById('conduct-tab-mine-btn').style.background = tab==='mine' ? 'var(--navy)' : '';
+  document.getElementById('conduct-tab-mine-btn').style.color = tab==='mine' ? '#fff' : '';
+  document.getElementById('conduct-tab-all-btn').style.background = tab==='all' ? 'var(--navy)' : '';
+  document.getElementById('conduct-tab-all-btn').style.color = tab==='all' ? '#fff' : '';
+
+  const wrap = document.getElementById('conduct-wrap');
+  if (tab === 'mine') {
+    if (!_conductRowsMine.length) {
+      wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">本學期您沒有擔任任何學生的導師。</div>';
+      return;
+    }
+    wrap.innerHTML = renderConductTable(_conductRowsMine, 'advisor_adj', 'advisor_submitted_at', false);
+  } else {
+    if (!_conductRowsAll.length) {
+      wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">本學期尚無操行成績名單。</div>';
+      return;
+    }
+    wrap.innerHTML = renderConductTable(_conductRowsAll, 'director_adj', 'director_submitted_at', true);
+  }
+}
+
+function renderConductTable(rows, adjField, submittedField, showAdvisorCol) {
+  const allLocked = rows.length > 0 && rows.every(r => r[submittedField]);
+  const anyLocked = rows.some(r => r[submittedField]);
+  const label = adjField==='advisor_adj' ? '導師' : '所長';
+
+  return `
+    ${anyLocked ? `<div style="background:var(--green3,#EAF4EE);border:1px solid #90D090;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--green,#1F5C3A)">
+      ✅ 您已送出${label}調整，目前為唯讀狀態。如需修改請聯絡行政解鎖。
+    </div>` : ''}
+    ${allLocked ? '' : `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;background:var(--navy3,#EEF2FA);border-radius:8px;padding:10px 14px">
+      <span style="font-size:13px;color:var(--ink,#1A1510)">全部調整：</span>
+      <input type="number" id="conduct-batch-input-${adjField}" class="finput" style="width:70px;padding:5px 8px;text-align:center" min="-5" max="5" placeholder="0">
+      <button class="btn-secondary" style="font-size:12.5px;padding:6px 14px" onclick="applyConductBatchValue('${adjField}','${submittedField}')">套用到全部</button>
+      <span style="font-size:11.5px;color:var(--ink3,#6A5F4A)">填一個數字套用到下方全部學生，套用後仍可個別微調</span>
+    </div>`}
+    <div class="tbl-wrap" style="max-height:calc(100vh - 320px);overflow:auto">
+      <table id="conduct-table-${adjField}">
+        <thead><tr>
+          <th class="sortable" style="position:sticky;top:0;background:var(--navy);z-index:2" onclick="sortTable('conduct-table-${adjField}',0)">學號 <span class="sort-icon">⇅</span></th>
+          <th class="sortable" style="position:sticky;top:0;background:var(--navy);z-index:2" onclick="sortTable('conduct-table-${adjField}',1)">姓名 <span class="sort-icon">⇅</span></th>
+          <th class="sortable" style="position:sticky;top:0;background:var(--navy);z-index:2" onclick="sortTable('conduct-table-${adjField}',2)">年級 <span class="sort-icon">⇅</span></th>
+          ${showAdvisorCol ? `<th style="position:sticky;top:0;background:var(--navy);z-index:2">導師</th>` : ''}
+          <th style="position:sticky;top:0;background:var(--navy);z-index:2">${label}調整（-5～+5）</th>
+          <th class="sortable" style="position:sticky;top:0;background:var(--navy);z-index:2" onclick="sortTable('conduct-table-${adjField}',${showAdvisorCol?5:4})">目前最終分數 <span class="sort-icon">⇅</span></th>
+          <th style="position:sticky;top:0;background:var(--navy);z-index:2">狀態</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r => {
+            const locked = !!r[submittedField];
+            return `<tr style="${locked?'background:#FAFAFA':''}">
+            <td class="mono">${r.students?.student_code||''}</td>
+            <td>${r.students?.name_zh||''}</td>
+            <td style="text-align:center">${r.students?.cohort||''}級</td>
+            ${showAdvisorCol ? `<td style="font-size:12px">${r.teachers?.name_zh||'—'}</td>` : ''}
+            <td style="text-align:center">
+              <input type="number" class="finput conduct-adj-input" data-id="${r.id}" style="width:70px;padding:5px 8px;text-align:center" min="-5" max="5"
+                value="${r[adjField]}" ${locked?'disabled':''}
+                onchange="saveConductAdj('${r.id}','${adjField}',this.value)">
+            </td>
+            <td style="text-align:center;font-weight:600;color:var(--navy)" id="conduct-final-${r.id}">${conductFinal(r)}</td>
+            <td style="text-align:center;font-size:12px">${locked?'<span style="color:var(--green)">✅ 已送出</span>':'填寫中'}</td>
+          </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+      <div style="font-size:12px;color:var(--ink3)">調整範圍 -5 ～ +5，輸入後自動儲存（送出前可隨時修改）。</div>
+      ${allLocked
+        ? ''
+        : `<button class="btn-save" onclick="submitConductBatch('${adjField}','${submittedField}')">✅ 全部送出（${label}調整）</button>`
+      }
+    </div>`;
+}
+
+async function applyConductBatchValue(adjField, submittedField) {
+  const input = document.getElementById(`conduct-batch-input-${adjField}`);
+  const num = parseInt(input.value, 10);
+  if (isNaN(num) || num < -5 || num > 5) { showToast('請輸入 -5 ～ +5 之間的數字', true); return; }
+
+  const list = adjField==='advisor_adj' ? _conductRowsMine : _conductRowsAll;
+  const targets = list.filter(r => !r[submittedField]); // 已送出鎖定的列跳過
+  if (!targets.length) { showToast('沒有可套用的學生（可能全部已送出）', true); return; }
+
+  if (!confirm(`確定要把「${num}」套用到 ${targets.length} 位學生嗎？套用後仍可個別微調。`)) return;
+
+  const ids = targets.map(r=>r.id);
+  const { error } = await sb.from('conduct_grades').update({ [adjField]: num, updated_at: new Date().toISOString() }).in('id', ids);
+  if (error) { showToast('套用失敗：'+error.message, true); return; }
+
+  targets.forEach(r => r[adjField] = num);
+  showToast(`已套用到 ${targets.length} 位學生`);
+  switchConductTeacherTab(_conductTeacherTab); // 重新渲染畫面反映新值
+}
+
+async function saveConductAdj(id, field, value) {
+  const num = parseInt(value, 10);
+  if (isNaN(num) || num < -5 || num > 5) { showToast('請輸入 -5 ～ +5 之間的數字', true); return; }
+  const { error } = await sb.from('conduct_grades')
+    .update({ [field]: num, updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { showToast('儲存失敗：'+error.message, true); return; }
+
+  const list = field==='advisor_adj' ? _conductRowsMine : _conductRowsAll;
+  const row = list.find(r=>r.id===id);
+  if (row) { row[field] = num; document.getElementById('conduct-final-'+id).textContent = conductFinal(row); }
+  showToast('已自動儲存');
+}
+
+async function submitConductBatch(adjField, submittedField) {
+  const list = adjField==='advisor_adj' ? _conductRowsMine : _conductRowsAll;
+  const label = adjField==='advisor_adj' ? '導師' : '所長';
+  if (!confirm(`確定要送出全部 ${list.length} 位學生的${label}調整嗎？送出後將無法自行修改，需聯絡行政解鎖。`)) return;
+
+  const now = new Date().toISOString();
+  const ids = list.map(r=>r.id);
+  const { error } = await sb.from('conduct_grades').update({ [submittedField]: now }).in('id', ids);
+  if (error) { showToast('送出失敗：'+error.message, true); return; }
+
+  list.forEach(r => r[submittedField] = now);
+  showToast(`已送出 ${list.length} 位學生的${label}調整`);
+  switchConductTeacherTab(_conductTeacherTab);
+}
+
 function showSection(id) {
   document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
   document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
@@ -1750,6 +1954,7 @@ function showSection(id) {
   }
   if (id === 'live-poll') { lpInit(); }
   else { lpStopPolling(); } // 離開分頁時停止輪詢計時器，避免背景持續打API
+  if (id === 'conduct') { loadConductSection(); }
 }
 // 相容舊呼叫
 function switchTab(id, btn) {

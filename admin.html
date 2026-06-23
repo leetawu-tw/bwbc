@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v6.3 2026-06-21 -->
+<!-- BWBC Admin v7.2 2026-06-21 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -285,6 +285,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-label">資料管理</div>
         <div class="nav-item" data-perm="courses" onclick="showPage('courses',this)"><span class="nav-icon">📚</span>課程管理</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('teachers',this)"><span class="nav-icon">👤</span>教師管理</div>
+        <div class="nav-item" data-perm="teachers" onclick="showPage('payroll',this)"><span class="nav-icon">💰</span>兼課鐘點費核銷</div>
+        <div class="nav-item" data-perm="teachers" onclick="showPage('advisors',this)"><span class="nav-icon">🎓</span>班級導師管理</div>
         <div class="nav-item" data-perm="classrooms" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
         <div class="nav-item" data-perm="students" onclick="showPage('students',this)"><span class="nav-icon">🧑‍🎓</span>學生資料</div>
         <div class="nav-item" data-perm="__admin_only" onclick="showPage('users',this)"><span class="nav-icon">👥</span>帳號管理</div>
@@ -293,6 +295,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-label">教學評量</div>
         <div class="nav-item" data-perm="surveys" onclick="showPage('survey',this)"><span class="nav-icon">📋</span>教學意見調查</div>
         <div class="nav-item" data-perm="grades" onclick="showPage('grades',this)"><span class="nav-icon">📊</span>成績登錄</div>
+        <div class="nav-item" data-perm="grades" onclick="showPage('conduct',this)"><span class="nav-icon">🧭</span>操行成績管理</div>
       </div>
       <div class="nav-section">
         <div class="nav-label">論文管理</div>
@@ -488,6 +491,51 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <th>狀態</th><th>操作</th>
             </tr></thead>
             <tbody id="teachers-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ▌兼課鐘點費核銷 ▌-->
+      <div id="page-payroll" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">💰 兼課鐘點費及交通費核銷</div>
+          <button class="btn btn-sec" onclick="openPayRatesModal()">⚙️ 職級費率設定</button>
+        </div>
+        <div class="toolbar" style="margin-bottom:14px">
+          <label class="flabel" style="margin:0;white-space:nowrap">月份</label>
+          <input type="month" id="pr-yearmonth" class="finput" style="width:160px" onchange="loadPayroll()">
+          <button class="btn btn-sec" onclick="exportPayrollExcel()">📥 匯出本月報表</button>
+        </div>
+        <div id="payroll-section-contracted" style="margin-bottom:24px">
+          <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:var(--navy)">一、聘任兼課教師</div>
+          <div id="payroll-list-contracted"></div>
+          <div id="payroll-total-contracted" style="text-align:right;font-size:13px;font-weight:600;margin-top:8px"></div>
+        </div>
+        <div id="payroll-section-general">
+          <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:var(--navy)">二、一般兼課教師</div>
+          <div id="payroll-list-general"></div>
+          <div id="payroll-total-general" style="text-align:right;font-size:13px;font-weight:600;margin-top:8px"></div>
+        </div>
+      </div>
+
+      <!-- ▌班級導師管理 ▌-->
+      <div id="page-advisors" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">🎓 班級導師管理</div>
+          <button class="btn btn-pri" onclick="openAdvisorModal()">＋ 新增導師指派</button>
+        </div>
+        <div style="font-size:12.5px;color:var(--ink3);margin-bottom:14px">
+          一年級（現在學期入學年）的導師由此處指派，操行成績評分人會自動依此判斷。二年級以後優先以論文指導教授為導師，若該生尚無指導教授才會退回使用這裡指派的班級導師。
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>年級</th><th>導師</th><th>角色</th><th>起始學期</th><th>結束學期</th>
+              <th>現任</th><th>異動原因</th><th>操作</th>
+            </tr></thead>
+            <tbody id="advisors-body">
+              <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -789,6 +837,73 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               </tr></thead>
               <tbody id="status-tbody">
                 <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▌操行成績管理 ▌-->
+      <div id="page-conduct" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">🧭 操行成績管理</div>
+        </div>
+        <div class="toolbar" style="margin-bottom:14px">
+          <label class="flabel" style="margin:0;white-space:nowrap">設定學期</label>
+          <select id="cd-semester" class="fselect" style="width:160px" onchange="onConductSemesterChange()">
+            <option value="">請選擇學期</option>
+          </select>
+          <span style="font-size:12px;color:var(--ink3)">85基本分 + 導師調整(±5) + 所長調整(±5) + 獎懲分數，上限100</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:16px">
+          <button class="btn btn-pri" id="cdtab-setup-btn" onclick="switchConductTab('setup',this)">⚙️ 期程設定</button>
+          <button class="btn btn-sec" id="cdtab-status-btn" onclick="switchConductTab('status',this)">📋 成績狀態</button>
+        </div>
+
+        <!-- ── 期程設定 ── -->
+        <div id="cdpanel-setup" class="gpanel">
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);padding:18px;max-width:640px;box-shadow:var(--sh)">
+            <div style="font-weight:600;font-size:15px;margin-bottom:16px">操行成績登錄期程</div>
+            <div class="frow-2">
+              <div style="display:flex;align-items:center">
+                <span style="font-size:13px;color:var(--ink3)">學期：<strong id="cd-semester-label" style="color:var(--ink)">—</strong></span>
+              </div>
+              <div style="display:flex;align-items:flex-end">
+                <button class="btn btn-pri" onclick="activateConductPeriod()" id="cd-activate-btn" style="width:100%">▶ 啟動操行成績登錄</button>
+              </div>
+            </div>
+            <div class="frow-2">
+              <div><label class="flabel">開始時間</label><input type="datetime-local" id="cd-open-at" class="finput"></div>
+              <div><label class="flabel">截止時間</label><input type="datetime-local" id="cd-close-at" class="finput"></div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+              <button class="btn btn-save" onclick="saveConductPeriod()">💾 儲存設定</button>
+            </div>
+            <div id="cd-status-badge" style="margin-top:12px;font-size:13px"></div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--cr2)">
+              <button class="btn btn-sec" onclick="generateConductRoster()">🔄 產生／更新本學期名單</button>
+              <div style="font-size:11.5px;color:var(--ink3);margin-top:6px">會依目前班級導師/論文指導教授資料，為所有在學學生建立操行成績記錄（已存在的不會被覆蓋）。</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 成績狀態 ── -->
+        <div id="cdpanel-status" class="gpanel" style="display:none">
+          <div class="toolbar">
+            <select id="cd-cohort-filter" class="fselect" style="width:120px" onchange="renderConductList()">
+              <option value="">全年級</option>
+            </select>
+            <input class="search" id="cd-search" placeholder="🔍 學號或姓名…" style="width:200px" oninput="renderConductList()">
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>學號</th><th>姓名</th><th>年級</th><th>導師</th>
+                <th>導師調整</th><th>所長調整</th><th>獎懲分數</th><th>最終分數</th>
+                <th>導師送出</th><th>所長送出</th><th>操作</th>
+              </tr></thead>
+              <tbody id="conduct-tbody">
+                <tr><td colspan="11" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>
               </tbody>
             </table>
           </div>
@@ -1803,6 +1918,64 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
   </div>
 </div>
 
+<!-- ══ 班級導師指派 Modal ══ -->
+<!-- ══ 職級費率設定 Modal ══ -->
+<div class="modal-bg" id="pay-rates-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hdr">
+      <div class="modal-title">⚙️ 職級費率設定</div>
+      <button class="modal-close" onclick="closePayRatesModal()">✕</button>
+    </div>
+    <div style="padding:18px 20px" id="pay-rates-body"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closePayRatesModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="advisor-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="advisor-modal-title">新增導師指派</div>
+      <button class="modal-close" onclick="closeAdvisorModal()">✕</button>
+    </div>
+    <div style="padding:18px 20px">
+      <input type="hidden" id="adv-id">
+      <input type="hidden" id="adv-role" value="advisor">
+      <div>
+        <label class="flabel">年級 *</label>
+        <input class="finput" id="adv-cohort" placeholder="例：115">
+      </div>
+      <div>
+        <label class="flabel">導師 *</label>
+        <select class="fselect" id="adv-teacher"></select>
+      </div>
+      <div class="frow-2">
+        <div>
+          <label class="flabel">起始學期</label>
+          <select class="fselect" id="adv-start-sem"></select>
+        </div>
+        <div>
+          <label class="flabel">結束學期（留空代表現任）</label>
+          <select class="fselect" id="adv-end-sem"><option value="">（現任）</option></select>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin:10px 0">
+        <input type="checkbox" id="adv-current" style="width:15px;height:15px" checked>
+        <span>設為現任導師</span>
+      </label>
+      <div>
+        <label class="flabel">異動原因／備註</label>
+        <textarea class="finput" id="adv-reason" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeAdvisorModal()">取消</button>
+      <button class="btn-save" onclick="saveAdvisor()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ Modal: 移轉課程（改錯學期用）══ -->
 <div class="modal-bg" id="transfer-modal">
   <div class="modal" style="max-width:600px">
@@ -2294,6 +2467,30 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         </div>
       </div>
       <div class="frow"><label class="flabel">中文簡介</label><textarea class="finput" id="tm-bio" rows="3" style="resize:vertical"></textarea></div>
+
+      <div style="border-top:1px solid var(--cr2);margin-top:14px;padding-top:14px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:10px">
+          <input type="checkbox" id="tm-is-adjunct" style="width:15px;height:15px" onchange="toggleAdjunctFields()">
+          <span>兼課老師（核銷鐘點費用）</span>
+        </label>
+        <div id="tm-adjunct-fields" class="frow-2" style="display:none">
+          <div>
+            <label class="flabel">聘任類型</label>
+            <select class="fselect" id="tm-adjunct-type">
+              <option value="contracted">聘任兼課教師（有聘書）</option>
+              <option value="general">一般兼課教師</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">職級（決定鐘點費率）</label>
+            <select class="fselect" id="tm-adjunct-rank">
+              <option value="教授">教授</option>
+              <option value="副教授">副教授</option>
+              <option value="助理教授">助理教授</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-sec" onclick="closeModal('teacher-modal')">取消</button>
@@ -4545,10 +4742,16 @@ function toggleAllSyllabusCourses(checked) {
 }
 
 async function fetchSyllabusTemplate(type) {
-  // 不快取：每次都即時從Storage抓最新版本，避免admin編輯範本後忘記重新整理頁面造成抓到舊版
-  const { data, error } = await sb.storage.from('syllabus-templates').download(`${type}.docx`);
-  if (error) throw new Error(`範本下載失敗(${type}): ${error.message}`);
-  return await data.arrayBuffer();
+  // 用 signed URL + cache:'no-store' 繞開 Supabase Storage 的 CDN 快取
+  // （之前移除JS記憶體快取沒用，因為瀏覽器網路層的HTTP快取是另一層，要在fetch時明確指定不快取）
+  const { data: signed, error: signErr } = await sb.storage
+    .from('syllabus-templates').createSignedUrl(`${type}.docx`, 60);
+  if (signErr) throw new Error(`範本網址產生失敗(${type}): ${signErr.message}`);
+
+  const bustUrl = signed.signedUrl + (signed.signedUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+  const res = await fetch(bustUrl, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`範本下載失敗(${type}): HTTP ${res.status}`);
+  return await res.arrayBuffer();
 }
 
 async function generateBlankSyllabusDocs() {
@@ -6835,6 +7038,11 @@ async function executeTeacherImport() {
 
 /* ════ TEACHER MODAL ════ */
 // BUG FIX 3: 使用 tm-modal-title（div） 和 tm-title-input（input），不再衝突
+function toggleAdjunctFields() {
+  document.getElementById('tm-adjunct-fields').style.display =
+    document.getElementById('tm-is-adjunct').checked ? '' : 'none';
+}
+
 function openTeacherModal() {
   document.getElementById('tm-id').value='';
   document.getElementById('tm-modal-title').textContent='新增教師';
@@ -6842,6 +7050,10 @@ function openTeacherModal() {
     .forEach(id=>document.getElementById(id).value='');
   document.getElementById('tm-type').value='external';
   document.getElementById('tm-show').value='true';
+  document.getElementById('tm-is-adjunct').checked = false;
+  document.getElementById('tm-adjunct-type').value = 'general';
+  document.getElementById('tm-adjunct-rank').value = '教授';
+  toggleAdjunctFields();
   openModal('teacher-modal');
 }
 
@@ -6860,11 +7072,16 @@ function editTeacher(id) {
   document.getElementById('tm-show').value=t.show_profile?'true':'false';
   document.getElementById('tm-bio').value=t.bio_zh||'';
   document.getElementById('tm-cert-no').value=t.cert_no||'';
+  document.getElementById('tm-is-adjunct').checked = !!t.is_adjunct;
+  document.getElementById('tm-adjunct-type').value = t.adjunct_type || 'general';
+  document.getElementById('tm-adjunct-rank').value = t.adjunct_rank || '教授';
+  toggleAdjunctFields();
   openModal('teacher-modal');
 }
 
 async function saveTeacher() {
   const id=document.getElementById('tm-id').value;
+  const isAdjunct = document.getElementById('tm-is-adjunct').checked;
   const data={
     name_zh:      document.getElementById('tm-name-zh').value.trim(),
     name_en:      document.getElementById('tm-name-en').value.trim()||null,
@@ -6876,6 +7093,9 @@ async function saveTeacher() {
     show_profile: document.getElementById('tm-show').value==='true',
     bio_zh:       document.getElementById('tm-bio').value.trim()||null,
     cert_no:      document.getElementById('tm-cert-no').value.trim()||null,
+    is_adjunct:   isAdjunct,
+    adjunct_type: isAdjunct ? document.getElementById('tm-adjunct-type').value : null,
+    adjunct_rank: isAdjunct ? document.getElementById('tm-adjunct-rank').value : null,
     active: true
   };
   if (!data.name_zh) { showToast('請填入中文姓名','error'); return; }
@@ -6987,6 +7207,7 @@ function showPage(page, btn) {
   if (page==='todos') loadTodos();
   if (page==='survey') loadSurveyAdmin();
   if (page==='grades') loadGradesAdmin();
+  if (page==='conduct') loadConductAdmin();
   if (page==='meetings') { loadMeetings(); window.scrollTo(0,0); }
   if (page==='semester-schedule'||page==='teacher-schedule'||page==='room-schedule') {
     initScheduleSelectors();
@@ -6994,13 +7215,676 @@ function showPage(page, btn) {
   }
   if (page==='thesis') loadThesisAdmin();
   if (page==='students') loadStudents();
+  if (page==='advisors') loadAdvisors();
+  if (page==='payroll') loadPayrollPage();
   if (page==='users') loadUsers();
 }
 
 /* ════════════════════════════════════════════════════════════════════
+ * 🎓 班級導師管理
+ * ════════════════════════════════════════════════════════════════════ */
+let _advisorsAll = [];
+
+async function loadAdvisors() {
+  const tbody = document.getElementById('advisors-body');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
+
+  const { data, error } = await sb.from('class_advisors')
+    .select(`*, teachers(name_zh)`)
+    .order('cohort', { ascending:false }).order('is_current', { ascending:false });
+  if (error) { tbody.innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
+
+  const semIds = [...new Set((data||[]).flatMap(a=>[a.start_semester,a.end_semester]).filter(Boolean))];
+  let semMap = {};
+  if (semIds.length) {
+    const { data: sems } = await sb.from('semesters').select('id,label').in('id', semIds);
+    (sems||[]).forEach(s => semMap[s.id] = s.label);
+  }
+
+  _advisorsAll = data || [];
+  if (!_advisorsAll.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">尚無導師指派記錄</td></tr>'; return; }
+
+  tbody.innerHTML = _advisorsAll.map(a => `<tr>
+    <td>${a.cohort}級</td>
+    <td>${a.teachers?.name_zh||'—'}</td>
+    <td>${a.role||''}</td>
+    <td style="font-size:12px">${semMap[a.start_semester]||'—'}</td>
+    <td style="font-size:12px">${semMap[a.end_semester]||'—'}</td>
+    <td>${a.is_current ? '<span style="color:var(--green)">✅ 是</span>' : '<span style="color:var(--ink3)">—</span>'}</td>
+    <td style="font-size:12px;color:var(--ink3)">${a.reason||a.notes||''}</td>
+    <td>
+      <button class="btn btn-sec btn-sm" onclick="openAdvisorModal('${a.id}')">✏️</button>
+      <button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="deleteAdvisor('${a.id}')">🗑</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function openAdvisorModal(id) {
+  const a = id ? _advisorsAll.find(x=>x.id===id) : null;
+  document.getElementById('advisor-modal-title').textContent = a ? '編輯導師指派' : '新增導師指派';
+  document.getElementById('adv-id').value = a?.id || '';
+  document.getElementById('adv-cohort').value = a?.cohort || '';
+  document.getElementById('adv-role').value = a?.role || 'advisor';
+  document.getElementById('adv-reason').value = a?.reason || a?.notes || '';
+  document.getElementById('adv-current').checked = a ? !!a.is_current : true;
+
+  // 教師下拉
+  if (!TEACHERS?.length) await loadTeachers();
+  const teacherSel = document.getElementById('adv-teacher');
+  teacherSel.innerHTML = TEACHERS.map(t=>`<option value="${t.id}">${t.name_zh}</option>`).join('');
+  if (a?.teacher_id) teacherSel.value = a.teacher_id;
+
+  // 學期下拉
+  const { data: sems } = await sb.from('semesters').select('id,label').order('label',{ascending:false});
+  const semOpts = (sems||[]).map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+  document.getElementById('adv-start-sem').innerHTML = '<option value="">（未設定）</option>' + semOpts;
+  document.getElementById('adv-end-sem').innerHTML = '<option value="">（現任）</option>' + semOpts;
+  if (a?.start_semester) document.getElementById('adv-start-sem').value = a.start_semester;
+  if (a?.end_semester) document.getElementById('adv-end-sem').value = a.end_semester;
+
+  document.getElementById('advisor-modal').classList.add('show');
+}
+function closeAdvisorModal() { document.getElementById('advisor-modal').classList.remove('show'); }
+
+async function saveAdvisor() {
+  const id = document.getElementById('adv-id').value;
+  const cohort = document.getElementById('adv-cohort').value.trim();
+  const teacherId = document.getElementById('adv-teacher').value;
+  const role = document.getElementById('adv-role').value;
+  const startSem = document.getElementById('adv-start-sem').value || null;
+  const endSem = document.getElementById('adv-end-sem').value || null;
+  const isCurrent = document.getElementById('adv-current').checked;
+  const reason = document.getElementById('adv-reason').value.trim();
+
+  if (!cohort || !teacherId) { showToast('請填寫年級與導師','error'); return; }
+
+  // 如果設為現任，同年級其他記錄要先取消現任（一個年級同時只有一位現任導師）
+  if (isCurrent) {
+    await sb.from('class_advisors').update({ is_current:false }).eq('cohort', cohort).neq('id', id||'00000000-0000-0000-0000-000000000000');
+  }
+
+  const payload = {
+    cohort, teacher_id: teacherId, role, start_semester: startSem, end_semester: endSem,
+    is_current: isCurrent, reason: reason || null, updated_at: new Date().toISOString(),
+  };
+
+  let error;
+  if (id) ({ error } = await sb.from('class_advisors').update(payload).eq('id', id));
+  else ({ error } = await sb.from('class_advisors').insert({ ...payload, created_by: window.ADMIN_USER_ID||null }));
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+
+  showToast('✅ 已儲存'); closeAdvisorModal(); loadAdvisors();
+}
+
+async function deleteAdvisor(id) {
+  const a = _advisorsAll.find(x=>x.id===id);
+  if (!confirm(`確定要刪除「${a?.cohort}級 - ${a?.teachers?.name_zh}」這筆導師指派記錄嗎？`)) return;
+  const { error } = await sb.from('class_advisors').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  showToast('已刪除'); loadAdvisors();
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 💰 兼課鐘點費及交通費核銷
+ * ════════════════════════════════════════════════════════════════════ */
+let _payRates = [];
+let _adjunctTeachers = [];
+let _payrollMap = {}; // teacher_id -> { row: adjunct_payroll, days: [...] }
+
+function todayYearMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+async function loadPayrollPage() {
+  const ymInput = document.getElementById('pr-yearmonth');
+  if (!ymInput.value) ymInput.value = todayYearMonth();
+
+  const { data: rates } = await sb.from('adjunct_pay_rates').select('*').order('hourly_rate',{ascending:false});
+  _payRates = rates || [];
+
+  const { data: teachers } = await sb.from('teachers').select('*').eq('is_adjunct', true).eq('active', true).order('name_zh');
+  _adjunctTeachers = teachers || [];
+
+  await loadPayroll();
+}
+
+function rateForRank(rank) {
+  const r = _payRates.find(x=>x.rank_name===rank);
+  return r ? r.hourly_rate : 0;
+}
+
+async function loadPayroll() {
+  const ym = document.getElementById('pr-yearmonth').value;
+  if (!ym) return;
+  _payrollMap = {};
+
+  for (const t of _adjunctTeachers) {
+    let { data: row } = await sb.from('adjunct_payroll').select('*').eq('teacher_id', t.id).eq('year_month', ym).maybeSingle();
+    if (!row) {
+      // 自動帶入上月交通費說明（人性化：大部分老師交通方式固定）
+      const prevYm = prevYearMonth(ym);
+      const { data: prevRow } = await sb.from('adjunct_payroll').select('transport_note').eq('teacher_id', t.id).eq('year_month', prevYm).maybeSingle();
+      const { data: created } = await sb.from('adjunct_payroll').insert({
+        teacher_id: t.id, year_month: ym, hourly_rate: rateForRank(t.adjunct_rank),
+        transport_note: prevRow?.transport_note || null,
+      }).select().single();
+      row = created;
+    }
+    const { data: days } = await sb.from('adjunct_payroll_days').select('*').eq('payroll_id', row.id).order('class_date');
+    _payrollMap[t.id] = { row, days: days || [] };
+  }
+  renderPayrollLists();
+}
+
+function prevYearMonth(ym) {
+  const [y,m] = ym.split('-').map(Number);
+  const d = new Date(y, m-2, 1); // m-1是當月0-based，再-1是上月
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function renderPayrollLists() {
+  const contracted = _adjunctTeachers.filter(t=>t.adjunct_type==='contracted');
+  const general = _adjunctTeachers.filter(t=>t.adjunct_type!=='contracted');
+  document.getElementById('payroll-list-contracted').innerHTML = contracted.map(renderTeacherPayrollCard).join('') || '<div style="color:var(--ink3);font-size:13px;padding:10px">尚無聘任兼課教師（請至教師管理設定）</div>';
+  document.getElementById('payroll-list-general').innerHTML = general.map(renderTeacherPayrollCard).join('') || '<div style="color:var(--ink3);font-size:13px;padding:10px">尚無一般兼課教師</div>';
+
+  const sumFee = (list) => list.reduce((s,t)=>s+(_payrollMap[t.id]?.row.lecture_fee||0),0);
+  const sumTransport = (list) => list.reduce((s,t)=>s+(_payrollMap[t.id]?.row.transport_fee||0),0);
+  document.getElementById('payroll-total-contracted').textContent = `總計　講師費 ${sumFee(contracted).toLocaleString()}　交通費 ${sumTransport(contracted).toLocaleString()}`;
+  document.getElementById('payroll-total-general').textContent = `總計　講師費 ${sumFee(general).toLocaleString()}　交通費 ${sumTransport(general).toLocaleString()}`;
+}
+
+function renderTeacherPayrollCard(t) {
+  const { row, days } = _payrollMap[t.id];
+  const rate = row.hourly_rate || rateForRank(t.adjunct_rank);
+  return `
+  <div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:14px 16px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-weight:600;font-size:14px">${t.name_zh}</span>
+      <span style="font-size:11px;background:var(--navy3);color:var(--navy);padding:2px 10px;border-radius:10px">${t.adjunct_rank||''}　${rate}元/時</span>
+      <button class="btn btn-sec btn-sm" onclick="addPayrollDay('${t.id}')">＋ 新增上課日</button>
+      <button class="btn btn-sec btn-sm" onclick="prefillFromSchedule('${t.id}')">📅 依課表帶入</button>
+      <span style="margin-left:auto;font-size:13px">時數合計：<b id="payroll-hours-${t.id}">${row.total_hours}</b> 小時</span>
+    </div>
+    <div id="payroll-days-${t.id}">${renderPayrollDays(t.id)}</div>
+    <div class="frow-2" style="margin-top:10px">
+      <div>
+        <label class="flabel" style="font-size:11px">講師費 <label style="font-size:10px;color:var(--ink3);font-weight:400"><input type="checkbox" ${row.lecture_fee_override?'checked':''} onchange="toggleFeeOverride('${t.id}',this.checked)"> 手動覆寫</label></label>
+        <input type="number" class="finput" style="padding:6px 10px" value="${row.lecture_fee}" ${row.lecture_fee_override?'':'disabled'}
+          onchange="updatePayrollField('${t.id}','lecture_fee',this.value,true)">
+      </div>
+      <div>
+        <label class="flabel" style="font-size:11px">交通費</label>
+        <input type="number" class="finput" style="padding:6px 10px" value="${row.transport_fee}"
+          onchange="updatePayrollField('${t.id}','transport_fee',this.value,true)">
+      </div>
+    </div>
+    <div style="margin-top:8px">
+      <label class="flabel" style="font-size:11px">交通費說明</label>
+      <input class="finput" style="padding:6px 10px;font-size:12.5px" value="${(row.transport_note||'').replace(/"/g,'&quot;')}"
+        onchange="updatePayrollField('${t.id}','transport_note',this.value)">
+    </div>
+    <div style="margin-top:8px">
+      <label class="flabel" style="font-size:11px">備註</label>
+      <input class="finput" style="padding:6px 10px;font-size:12.5px" value="${(row.notes||'').replace(/"/g,'&quot;')}"
+        onchange="updatePayrollField('${t.id}','notes',this.value)">
+    </div>
+  </div>`;
+}
+
+function renderPayrollDays(teacherId) {
+  const { days } = _payrollMap[teacherId];
+  if (!days.length) return '<div style="font-size:12px;color:var(--ink3);padding:6px 0">尚無上課記錄</div>';
+  return days.map(d => `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <input type="date" class="finput" style="width:140px;padding:5px 8px;font-size:12.5px" value="${d.class_date}"
+        onchange="updatePayrollDay('${teacherId}','${d.id}','class_date',this.value)">
+      <select class="fselect" style="width:90px;padding:5px 8px;font-size:12.5px" onchange="updatePayrollDay('${teacherId}','${d.id}','mode',this.value)">
+        <option value="inperson" ${d.mode==='inperson'?'selected':''}>實體</option>
+        <option value="online" ${d.mode==='online'?'selected':''}>線上</option>
+      </select>
+      <input type="number" step="0.5" class="finput" style="width:80px;padding:5px 8px;font-size:12.5px" value="${d.hours}" placeholder="時數"
+        onchange="updatePayrollDay('${teacherId}','${d.id}','hours',this.value)">
+      <button onclick="deletePayrollDay('${teacherId}','${d.id}')" style="border:none;background:none;cursor:pointer;color:var(--red)">✕</button>
+    </div>`).join('');
+}
+
+async function addPayrollDay(teacherId) {
+  const { row } = _payrollMap[teacherId];
+  const ym = document.getElementById('pr-yearmonth').value;
+  const { data, error } = await sb.from('adjunct_payroll_days').insert({
+    payroll_id: row.id, class_date: ym+'-01', mode:'inperson', hours: 0,
+  }).select().single();
+  if (error) { showToast('新增失敗：'+error.message,'error'); return; }
+  _payrollMap[teacherId].days.push(data);
+  document.getElementById('payroll-days-'+teacherId).innerHTML = renderPayrollDays(teacherId);
+}
+
+async function updatePayrollDay(teacherId, dayId, field, value) {
+  const payload = { [field]: field==='hours' ? parseFloat(value)||0 : value };
+  const { error } = await sb.from('adjunct_payroll_days').update(payload).eq('id', dayId);
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  const day = _payrollMap[teacherId].days.find(d=>d.id===dayId);
+  if (day) day[field] = payload[field];
+  await recalcTeacherTotal(teacherId);
+}
+
+async function deletePayrollDay(teacherId, dayId) {
+  const { error } = await sb.from('adjunct_payroll_days').delete().eq('id', dayId);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  _payrollMap[teacherId].days = _payrollMap[teacherId].days.filter(d=>d.id!==dayId);
+  document.getElementById('payroll-days-'+teacherId).innerHTML = renderPayrollDays(teacherId);
+  await recalcTeacherTotal(teacherId);
+}
+
+async function recalcTeacherTotal(teacherId) {
+  const { row, days } = _payrollMap[teacherId];
+  const total = days.reduce((s,d)=>s+(parseFloat(d.hours)||0),0);
+  row.total_hours = total;
+  document.getElementById('payroll-hours-'+teacherId).textContent = total;
+
+  const updates = { total_hours: total };
+  if (!row.lecture_fee_override) {
+    row.lecture_fee = Math.round(total * row.hourly_rate);
+    updates.lecture_fee = row.lecture_fee;
+  }
+  await sb.from('adjunct_payroll').update(updates).eq('id', row.id);
+  renderPayrollLists();
+}
+
+async function toggleFeeOverride(teacherId, checked) {
+  const { row } = _payrollMap[teacherId];
+  row.lecture_fee_override = checked;
+  if (!checked) row.lecture_fee = Math.round(row.total_hours * row.hourly_rate);
+  await sb.from('adjunct_payroll').update({ lecture_fee_override: checked, lecture_fee: row.lecture_fee }).eq('id', row.id);
+  renderPayrollLists();
+}
+
+async function updatePayrollField(teacherId, field, value, isNumber) {
+  const { row } = _payrollMap[teacherId];
+  const val = isNumber ? (parseInt(value,10)||0) : (value.trim()||null);
+  row[field] = val;
+  const { error } = await sb.from('adjunct_payroll').update({ [field]: val, updated_at: new Date().toISOString() }).eq('id', row.id);
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  showToast('已自動儲存');
+  if (field==='lecture_fee' || field==='transport_fee') renderPayrollLists();
+}
+
+async function prefillFromSchedule(teacherId) {
+  const ym = document.getElementById('pr-yearmonth').value;
+  const [y, m] = ym.split('-').map(Number);
+
+  const { data: semRows } = await sb.from('semesters').select('id,start_date,end_date');
+  const sem = (semRows||[]).find(s => ym >= s.start_date.slice(0,7) && ym <= s.end_date.slice(0,7));
+  if (!sem) { showToast('找不到該月份對應的學期','error'); return; }
+
+  const { data: ot } = await sb.from('offering_teachers').select('offering_id').eq('teacher_id', teacherId);
+  const offeringIds = (ot||[]).map(o=>o.offering_id);
+  if (!offeringIds.length) { showToast('此老師本學期無開課記錄，無法自動帶入','error'); return; }
+
+  const { data: offerings } = await sb.from('course_offerings')
+    .select('id, day, start_time, end_time').eq('semester_id', sem.id).in('id', offeringIds);
+
+  const { row } = _payrollMap[teacherId];
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const toInsert = [];
+  for (const o of (offerings||[])) {
+    if (o.day == null || !o.start_time || !o.end_time) continue;
+    const hours = (toMinutes(o.end_time) - toMinutes(o.start_time)) / 60;
+    for (let d=1; d<=daysInMonth; d++) {
+      const dt = new Date(y, m-1, d);
+      if (dt.getDay() === (o.day % 7)) {
+        toInsert.push({ payroll_id: row.id, class_date: dt.toISOString().slice(0,10), mode:'inperson', hours, offering_id: o.id });
+      }
+    }
+  }
+  if (!toInsert.length) { showToast('依課表找不到符合的上課日','error'); return; }
+  const { data: inserted, error } = await sb.from('adjunct_payroll_days').insert(toInsert).select();
+  if (error) { showToast('帶入失敗：'+error.message,'error'); return; }
+  _payrollMap[teacherId].days.push(...inserted);
+  _payrollMap[teacherId].days.sort((a,b)=>a.class_date.localeCompare(b.class_date));
+  document.getElementById('payroll-days-'+teacherId).innerHTML = renderPayrollDays(teacherId);
+  showToast(`已依課表帶入 ${toInsert.length} 筆上課日，請確認並調整`);
+  await recalcTeacherTotal(teacherId);
+}
+
+function toMinutes(t) {
+  const [h,m] = t.split(':').map(Number);
+  return h*60+m;
+}
+
+/* ── 職級費率設定 Modal ── */
+function openPayRatesModal() {
+  renderPayRatesBody();
+  document.getElementById('pay-rates-modal').classList.add('show');
+}
+function closePayRatesModal() { document.getElementById('pay-rates-modal').classList.remove('show'); }
+
+function renderPayRatesBody() {
+  document.getElementById('pay-rates-body').innerHTML = _payRates.map(r => `
+    <div class="frow-2" style="align-items:center;margin-bottom:10px">
+      <label class="flabel" style="margin:0">${r.rank_name}</label>
+      <input type="number" class="finput" value="${r.hourly_rate}" onchange="updatePayRate('${r.id}',this.value)">
+    </div>`).join('') + '<div style="font-size:11px;color:var(--ink3);margin-top:8px">調整費率不會影響已建立的歷史月份核銷記錄（每筆核銷會保留當時的費率快照）。</div>';
+}
+
+async function updatePayRate(id, value) {
+  const rate = parseInt(value, 10);
+  if (isNaN(rate) || rate < 0) { showToast('請輸入有效數字','error'); return; }
+  const { error } = await sb.from('adjunct_pay_rates').update({ hourly_rate: rate, updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  const r = _payRates.find(x=>x.id===id);
+  if (r) r.hourly_rate = rate;
+  showToast('✅ 費率已更新');
+}
+
+/* ── 匯出Excel報表 ── */
+async function exportPayrollExcel() {
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  const ym = document.getElementById('pr-yearmonth').value;
+  const monthLabel = ym.split('-')[1]+'月';
+
+  // 查出該月份對應的真實學期標籤，取代任何寫死的「本學期」文字
+  const { data: semRowsForExport } = await sb.from('semesters').select('label,academic_year,semester_num,start_date,end_date');
+  const matchedSem = (semRowsForExport||[]).find(s => ym >= s.start_date.slice(0,7) && ym <= s.end_date.slice(0,7));
+  const semLabel = matchedSem ? `${matchedSem.academic_year}學年度${matchedSem.semester_num===1?'上':'下'}學期` : '';
+  const merges = [];
+
+  function buildSection(sectionTitle, list, startRowIdx) {
+    // 標題列：獨立一列，跨欄合併（橫式），不混在表頭欄位裡
+    const rows = [[sectionTitle]];
+    merges.push({ s:{r:startRowIdx,c:0}, e:{r:startRowIdx,c:9} });
+
+    rows.push(['月份','教師','實體上課日期（括號為時數）','線上上課日期（括號為時數）','a 上課時數','b 講師鐘點費','c 講師費(=b*a)','d 交通費','備註說明','']);
+    let totalFee=0, totalTransport=0;
+    list.forEach((t,i) => {
+      const { row, days } = _payrollMap[t.id];
+      const inperson = days.filter(d=>d.mode==='inperson').map(d=>`${+d.class_date.slice(5,7)}/${+d.class_date.slice(8,10)}(${d.hours}hr)`).join(', ') || '--';
+      const online = days.filter(d=>d.mode==='online').map(d=>`${+d.class_date.slice(5,7)}/${+d.class_date.slice(8,10)}(${d.hours}hr)`).join(', ') || '--';
+      rows.push([i===0?monthLabel:'', t.name_zh, inperson, online, row.total_hours, row.hourly_rate, row.lecture_fee, row.transport_fee, row.notes||row.transport_note||'', '']);
+      totalFee += row.lecture_fee; totalTransport += row.transport_fee;
+    });
+    rows.push(['','','','','','總計',totalFee,totalTransport,'','']);
+    return rows;
+  }
+
+  const contracted = _adjunctTeachers.filter(t=>t.adjunct_type==='contracted');
+  const general = _adjunctTeachers.filter(t=>t.adjunct_type!=='contracted');
+
+  // 計算每段在最終wsData裡的起始列索引，供合併標題列用
+  let rowCursor = 4; // 第0-2列是三行標題（學校/系所/月份），第3列空白，第4列開始是第一段
+  const sec1 = buildSection('一、聘任兼課教師（有正式聘書）', contracted, rowCursor);
+  rowCursor += sec1.length + 1; // +1是區段間的空白列
+  const sec2 = buildSection('二、一般兼課教師（無聘書）', general, rowCursor);
+
+  const wsData = [
+    ['福智學校財團法人福智佛教學院'],
+    ['佛法應用研究所'],
+    [`${semLabel}${monthLabel}兼課老師授課時數`],
+    [],
+    ...sec1,
+    [],
+    ...sec2,
+    [],
+    ['','承辦人簽章：','','','','','','主管核章：',''],
+    [],
+    ['鐘點費說明:'],
+    ...[...new Set(_adjunctTeachers.map(t=>t.adjunct_rank).filter(Boolean))].map(rank =>
+      [`${_adjunctTeachers.filter(t=>t.adjunct_rank===rank).map(t=>t.name_zh).join('、')}老師為${rank}級鐘點費：${rateForRank(rank)}元/時。`]),
+    [],
+    ['交通費補助說明:'],
+    ...contracted.concat(general).filter(t=>_payrollMap[t.id]?.row.transport_note).map(t=>[`${t.name_zh}老師：${_payrollMap[t.id].row.transport_note}`]),
+  ];
+
+  // 大標題也跨欄合併
+  merges.unshift(
+    { s:{r:0,c:0}, e:{r:0,c:9} },
+    { s:{r:1,c:0}, e:{r:1,c:9} },
+    { s:{r:2,c:0}, e:{r:2,c:9} },
+  );
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!merges'] = merges;
+
+  // 欄寬大幅加大，確保長文字（日期清單/備註）完整顯示不被截斷
+  ws['!cols'] = [
+    {wch:10},  // 月份
+    {wch:12},  // 教師
+    {wch:45},  // 實體上課日期（長文字，需要寬欄）
+    {wch:30},  // 線上上課日期
+    {wch:10},  // a 上課時數
+    {wch:12},  // b 講師鐘點費
+    {wch:12},  // c 講師費
+    {wch:10},  // d 交通費
+    {wch:40},  // 備註說明（長文字）
+    {wch:6},
+  ];
+
+  // 取消自動換行，確保文字不會被儲存格邊界截斷看不見（改用寬欄位完整顯示）
+  Object.keys(ws).forEach(key => {
+    if (key.startsWith('!')) return;
+    if (!ws[key].s) ws[key].s = {};
+    ws[key].s.alignment = { wrapText: false, vertical: 'center' };
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, monthLabel);
+  XLSX.writeFile(wb, `兼課老師鐘點費與交通費核銷_${ym}.xlsx`);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 🧭 操行成績管理
+ * ════════════════════════════════════════════════════════════════════ */
+let _conductSemesters = [];
+let _currentConductPeriod = null;
+let _conductRows = [];
+
+async function loadConductAdmin() {
+  if (!_conductSemesters.length) {
+    const { data } = await sb.from('semesters').select('id,label,is_current,academic_year').order('label',{ascending:false});
+    _conductSemesters = data || [];
+  }
+  const sel = document.getElementById('cd-semester');
+  sel.innerHTML = '<option value="">請選擇學期</option>' + _conductSemesters.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+  const cur = _conductSemesters.find(s=>s.is_current);
+  if (cur) sel.value = cur.id;
+  onConductSemesterChange();
+}
+
+function onConductSemesterChange() {
+  const sel = document.getElementById('cd-semester');
+  const semId = sel.value;
+  const label = sel.selectedOptions[0]?.textContent || '—';
+  document.getElementById('cd-semester-label').textContent = semId ? label : '—';
+  if (!semId) {
+    document.getElementById('conduct-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>';
+    return;
+  }
+  loadConductPeriod();
+  loadConductRoster();
+}
+
+async function loadConductPeriod() {
+  const semId = document.getElementById('cd-semester').value;
+  if (!semId) return;
+  const { data } = await sb.from('grade_periods')
+    .select('*').eq('semester_id', semId).eq('grade_type','conduct').maybeSingle();
+  _currentConductPeriod = data;
+  const btn = document.getElementById('cd-activate-btn');
+  const badge = document.getElementById('cd-status-badge');
+  if (data) {
+    document.getElementById('cd-open-at').value  = data.open_at  ? data.open_at.slice(0,16)  : '';
+    document.getElementById('cd-close-at').value = data.close_at ? data.close_at.slice(0,16) : '';
+    btn.textContent = data.is_active ? '⏹ 停止登錄' : '▶ 重新啟動';
+    badge.innerHTML = data.is_active
+      ? '<span style="color:var(--green);font-weight:600">✅ 登錄中（導師/所長可登入填寫）</span>'
+      : '<span style="color:var(--ink3)">⏸ 尚未啟動</span>';
+  } else {
+    document.getElementById('cd-open-at').value  = '';
+    document.getElementById('cd-close-at').value = '';
+    btn.textContent = '▶ 啟動操行成績登錄';
+    badge.innerHTML = '<span style="color:var(--ink3)">尚未設定此學期操行成績登錄</span>';
+  }
+}
+
+async function saveConductPeriod() {
+  const semId = document.getElementById('cd-semester').value;
+  if (!semId) { showToast('請選擇學期','error'); return; }
+  const payload = {
+    semester_id: semId, grade_type: 'conduct',
+    open_at:  document.getElementById('cd-open-at').value  || null,
+    close_at: document.getElementById('cd-close-at').value || null,
+  };
+  let error;
+  if (_currentConductPeriod) ({ error } = await sb.from('grade_periods').update(payload).eq('id', _currentConductPeriod.id));
+  else ({ error } = await sb.from('grade_periods').insert(payload));
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  showToast('✅ 設定已儲存'); loadConductPeriod();
+}
+
+async function activateConductPeriod() {
+  if (!_currentConductPeriod) { showToast('請先儲存期程設定','error'); return; }
+  const newActive = !_currentConductPeriod.is_active;
+  const { error } = await sb.from('grade_periods').update({is_active:newActive}).eq('id', _currentConductPeriod.id);
+  if (error) { showToast('操作失敗：'+error.message,'error'); return; }
+  showToast(newActive ? '操行成績登錄已啟動' : '已停止');
+  loadConductPeriod();
+}
+
+async function generateConductRoster() {
+  const semId = document.getElementById('cd-semester').value;
+  if (!semId) { showToast('請先選擇學期','error'); return; }
+
+  const { data: students, error: e1 } = await sb.from('students').select('id, cohort').eq('status','active');
+  if (e1) { showToast('載入學生失敗：'+e1.message,'error'); return; }
+
+  const { data: advisors } = await sb.from('v_student_advisors').select('student_id, advisor_teacher_id');
+  const advMap = {}; (advisors||[]).forEach(a => advMap[a.student_id] = a.advisor_teacher_id);
+
+  const { data: existing } = await sb.from('conduct_grades').select('student_id').eq('semester_id', semId);
+  const existingSet = new Set((existing||[]).map(e=>e.student_id));
+
+  const toInsert = students.filter(s=>!existingSet.has(s.id)).map(s => ({
+    student_id: s.id, semester_id: semId, advisor_id: advMap[s.id] || null,
+  }));
+
+  if (!toInsert.length) { showToast('名單已是最新，沒有需要新增的學生'); loadConductRoster(); return; }
+
+  const { error } = await sb.from('conduct_grades').insert(toInsert);
+  if (error) { showToast('產生名單失敗：'+error.message,'error'); return; }
+  showToast(`已為 ${toInsert.length} 位學生建立操行成績記錄`);
+  loadConductRoster();
+}
+
+async function loadConductRoster() {
+  const semId = document.getElementById('cd-semester').value;
+  const tbody = document.getElementById('conduct-tbody');
+  if (!semId) return;
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
+
+  const { data, error } = await sb.from('conduct_grades')
+    .select(`*, students(student_code, name_zh, cohort), teachers(name_zh)`)
+    .eq('semester_id', semId);
+  if (error) { tbody.innerHTML = `<tr><td colspan="11" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
+
+  _conductRows = data || [];
+
+  const cohorts = [...new Set(_conductRows.map(r=>r.students?.cohort).filter(Boolean))].sort((a,b)=>b-a);
+  const cohortSel = document.getElementById('cd-cohort-filter');
+  cohortSel.innerHTML = '<option value="">全年級</option>' + cohorts.map(c=>`<option value="${c}">${c}級</option>`).join('');
+
+  if (!_conductRows.length) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--ink3)">尚無名單，請先在上方「期程設定」點「產生／更新本學期名單」</td></tr>';
+    return;
+  }
+  renderConductList();
+}
+
+function conductFinalScore(r) {
+  const total = (r.base_score||85) + (r.advisor_adj||0) + (r.director_adj||0) + (r.merit_demerit||0);
+  return Math.min(100, total);
+}
+
+function renderConductList() {
+  const tbody = document.getElementById('conduct-tbody');
+  const cohort = document.getElementById('cd-cohort-filter').value;
+  const q = document.getElementById('cd-search').value.trim().toLowerCase();
+
+  let list = _conductRows.filter(r => {
+    if (cohort && String(r.students?.cohort) !== cohort) return false;
+    if (q && !r.students?.student_code?.toLowerCase().includes(q) && !r.students?.name_zh?.toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a,b)=>(a.students?.student_code||'').localeCompare(b.students?.student_code||''));
+
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--ink3)">無符合條件的資料</td></tr>'; return; }
+
+  tbody.innerHTML = list.map(r => {
+    const final = conductFinalScore(r);
+    const advisorBadge = r.advisor_submitted_at
+      ? '<span class="badge badge-ok">✅ 已送出</span>'
+      : '<span class="badge" style="background:var(--cr3);color:var(--ink3)">填寫中</span>';
+    const directorBadge = r.director_submitted_at
+      ? '<span class="badge badge-ok">✅ 已送出</span>'
+      : '<span class="badge" style="background:var(--cr3);color:var(--ink3)">填寫中</span>';
+    return `<tr>
+      <td class="mono">${r.students?.student_code||''}</td>
+      <td>${r.students?.name_zh||''}</td>
+      <td style="text-align:center">${r.students?.cohort||''}級</td>
+      <td style="font-size:12px">${r.teachers?.name_zh||'<span style=\"color:var(--red)\">未指派</span>'}</td>
+      <td style="text-align:center">${r.advisor_adj>0?'+':''}${r.advisor_adj}</td>
+      <td style="text-align:center">${r.director_adj>0?'+':''}${r.director_adj}</td>
+      <td style="text-align:center">
+        <input type="number" class="finput" style="width:70px;padding:4px 8px;text-align:center" value="${r.merit_demerit}"
+          onchange="updateConductMerit('${r.id}', this.value)">
+      </td>
+      <td style="text-align:center;font-weight:600;color:var(--navy)">${final}</td>
+      <td style="text-align:center">${advisorBadge}</td>
+      <td style="text-align:center">${directorBadge}</td>
+      <td style="white-space:nowrap">
+        ${r.advisor_submitted_at ? `<button class="btn btn-sec btn-sm" style="color:var(--red);border-color:var(--red)" onclick="unlockConductField('${r.id}','advisor_submitted_at','導師')" title="退回給導師重填">↩️導師</button>` : ''}
+        ${r.director_submitted_at ? `<button class="btn btn-sec btn-sm" style="color:var(--red);border-color:var(--red);margin-left:4px" onclick="unlockConductField('${r.id}','director_submitted_at','所長')" title="退回給所長重填">↩️所長</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function unlockConductField(id, field, label) {
+  const reason = prompt(`退回給${label}重新填寫，可填寫原因（選填）：`);
+  if (reason === null) return;
+  const { error } = await sb.from('conduct_grades').update({ [field]: null }).eq('id', id);
+  if (error) { showToast('退回失敗：'+error.message,'error'); return; }
+  const row = _conductRows.find(r=>r.id===id);
+  if (row) row[field] = null;
+  showToast(`已退回給${label}`);
+  renderConductList();
+}
+
+async function updateConductMerit(id, value) {
+  const num = parseInt(value, 10);
+  if (isNaN(num)) { showToast('請輸入數字','error'); return; }
+  const { error } = await sb.from('conduct_grades').update({ merit_demerit: num, updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  const row = _conductRows.find(r=>r.id===id);
+  if (row) row.merit_demerit = num;
+  renderConductList();
+  showToast('已自動儲存');
+}
+
+function switchConductTab(tab, btn) {
+  document.querySelectorAll('#page-conduct .gpanel').forEach(p => p.style.display='none');
+  document.querySelectorAll('#page-conduct .btn').forEach(b => { b.classList.remove('btn-pri'); b.classList.add('btn-sec'); });
+  document.getElementById('cdpanel-'+tab).style.display = '';
+  btn.classList.remove('btn-sec'); btn.classList.add('btn-pri');
+}
+
+
+
+/* ════════════════════════════════════════════════════════════════════
  * 🧑‍🎓 學生資料管理
  * ════════════════════════════════════════════════════════════════════ */
-
 let STUDENTS_ALL = [];
 let _stuSort = { field:'student_code', dir:1 };
 let _stuPhotoFile = null;  // 暫存待上傳的大頭照
