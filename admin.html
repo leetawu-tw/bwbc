@@ -2223,6 +2223,28 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <button class="btn btn-pri btn-sm" onclick="addOfferingTeacher()">＋</button>
         </div>
       </div>
+      <div class="frow">
+        <label class="flabel" style="margin-bottom:6px">課程幹部（TA／視聽／小天使／點名者）</label>
+        <div class="teacher-chips" id="om-staff-chips"></div>
+        <div class="teacher-add-row" style="margin-top:8px">
+          <select class="fselect" id="om-staff-sel" style="flex:1"></select>
+          <select class="fselect" id="om-staff-role" style="width:110px">
+            <option value="ta">TA</option>
+            <option value="av">視聽</option>
+            <option value="angel">小天使</option>
+            <option value="recorder">點名者</option>
+          </select>
+          <button class="btn btn-pri btn-sm" onclick="addOfferingStaff()">＋</button>
+        </div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:4px">可選任何學生，不限這門課的選課名單（例如找其他系所同學支援）</div>
+      </div>
+      <div class="frow">
+        <label class="flabel">出缺席記錄是否影響成績</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="om-attendance-affects-grade" style="width:15px;height:15px;cursor:pointer">
+          <span style="font-size:13px">勾選＝這門課的點名出缺席要列入成績計算（依授課教師個別決定）</span>
+        </label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-sec" onclick="closeModal('offering-modal')">取消</button>
@@ -2550,6 +2572,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
 let OFFERINGS = [], TEACHERS = [], CLASSROOMS = [], TEACHERS_MAP = {}, SYLLABUS_MAP = {}, SYLLABUS_DETAIL = {};
 let COURSES_ALL = [];  // 課程主檔
 let currentOfferingTeachers = [];
+let currentOfferingStaff = [];
+const STAFF_ROLE_LABEL = {ta:'TA', av:'視聽', angel:'小天使', recorder:'點名者'};
 
 /* ════ AUTH ════ */
 async function sendMagicLink() {
@@ -3708,7 +3732,8 @@ async function viewSurveyLinks(surveyId) {
     const rows = tokens.map(t=>{
       const c = cMap[t.offering_id]||{}; const s = sMap[t.student_id]||{};
       const url = `${base}?t=${t.token}`;
-      return { course:c.name_zh||'', code:c.code||'', name:s.name_zh||'', sc:s.student_code||'', url, used:t.used };
+      const email = s.student_code ? `${s.student_code}@bwbc.edu.tw` : '';
+      return { course:c.name_zh||'', code:c.code||'', name:s.name_zh||'', sc:s.student_code||'', url, used:t.used, email };
     }).sort((a,b)=> (a.course+a.name).localeCompare(b.course+b.name,'zh'));
 
     let html = `<div style="margin-bottom:12px;font-size:13px;color:var(--ink3)">
@@ -3740,8 +3765,9 @@ async function viewSurveyLinks(surveyId) {
 
 function copyAllLinks(surveyId) {
   const rows = window._surveyLinkRows || [];
-  const text = rows.map(r=>`${r.course}\t${r.name}(${r.sc})\t${r.url}`).join('\n');
-  navigator.clipboard.writeText(text).then(()=>showToast(`✅ 已複製 ${rows.length} 筆`));
+  const header = '課程名稱\t學生姓名\t意見調查表連結\tEmail';
+  const body = rows.map(r=>`${r.course}\t${r.name}\t${r.url}\t${r.email}`).join('\n');
+  navigator.clipboard.writeText(header+'\n'+body).then(()=>showToast(`✅ 已複製 ${rows.length} 筆`));
 }
 
 /* 批次 S4 佔位 */
@@ -5995,10 +6021,15 @@ async function editOffering(id) {
   clSel.innerHTML='<option value="">待確認</option>'+CLASSROOMS.map(cl=>`<option value="${cl.id}">${cl.name}</option>`).join('');
   if (matchCl) clSel.value=matchCl.id;
   const tSel=document.getElementById('om-teacher-sel');
-  tSel.innerHTML=TEACHERS.map(t=>`<option value="${t.id}">${t.name_zh}</option>`).join('');
+  tSel.innerHTML='<option value="">— 請選擇老師 —</option>'+TEACHERS.map(t=>`<option value="${t.id}">${t.name_zh}</option>`).join('');
   const { data:ot }=await sb.from('offering_teachers').select('*,teachers(name_zh)').eq('offering_id',id).order('sort_order');
   currentOfferingTeachers=ot?ot.map(t=>({id:t.id,teacher_id:t.teacher_id,name:t.teachers?.name_zh||'?',role:t.role,weeks:t.weeks||'',sort_order:t.sort_order})):[];
   renderOfferingTeaherChips();
+  await populateStaffStudentSelect();
+  const { data:os }=await sb.from('offering_staff').select('*,students(name_zh,student_code)').eq('offering_id',id);
+  currentOfferingStaff=os?os.map(s=>({id:s.id,student_id:s.student_id,name:`${s.students?.student_code||''} ${s.students?.name_zh||'?'}`,role:s.role})):[];
+  renderOfferingStaffChips();
+  document.getElementById('om-attendance-affects-grade').checked=!!o.attendance_affects_grade;
   ['om-day','om-start','om-end'].forEach(id=>{ document.getElementById(id).oninput=updateTimeRaw; });
   document.getElementById('om-course-sel-wrap').style.display='none';
   document.getElementById('om-title').textContent=`編輯：${o.name_zh}`;
@@ -6033,10 +6064,47 @@ function addOfferingTeacher() {
   currentOfferingTeachers.push({id:null,teacher_id:teacherId,name:teacherName,role,weeks,sort_order:currentOfferingTeachers.length+1});
   renderOfferingTeaherChips();
   document.getElementById('om-teacher-weeks').value='';
+  sel.value='';
 }
 function removeOfferingTeacher(idx) { currentOfferingTeachers.splice(idx,1); renderOfferingTeaherChips(); }
 
+function renderOfferingStaffChips() {
+  const wrap=document.getElementById('om-staff-chips');
+  wrap.innerHTML=currentOfferingStaff.map((s,i)=>
+    `<span class="tchip">${s.name}<span class="teacher-role-badge">${STAFF_ROLE_LABEL[s.role]||s.role}</span><button class="tchip-del" onclick="removeOfferingStaff(${i})">×</button></span>`
+  ).join('');
+}
+
+function addOfferingStaff() {
+  const sel=document.getElementById('om-staff-sel');
+  const studentId=sel.value, studentName=sel.options[sel.selectedIndex]?.text;
+  const role=document.getElementById('om-staff-role').value;
+  if (!studentId) { showToast('請選擇學生','error'); return; }
+  if (currentOfferingStaff.find(s=>s.student_id===studentId && s.role===role)) { showToast('此學生已是這個角色','error'); return; }
+  currentOfferingStaff.push({id:null, student_id:studentId, name:studentName, role});
+  renderOfferingStaffChips();
+  sel.value='';
+}
+function removeOfferingStaff(idx) { currentOfferingStaff.splice(idx,1); renderOfferingStaffChips(); }
+
+// 填入「課程幹部」學生下拉選單（全部學生，不限選課名單）
+async function populateStaffStudentSelect() {
+  if (!STUDENTS_ALL.length) await loadStudents();
+  const sel=document.getElementById('om-staff-sel');
+  const sorted=[...STUDENTS_ALL].sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
+  sel.innerHTML='<option value="">— 搜尋/選擇學生 —</option>'+
+    sorted.map(s=>`<option value="${s.id}">${s.student_code||''}　${s.name_zh||s.name||''}</option>`).join('');
+}
+
 async function saveOffering() {
+  // 防呆：如果下拉選單已經選了學生但忘記按＋，存檔前自動補進名單，避免整批漏存
+  const pendingStaffSel = document.getElementById('om-staff-sel');
+  if (pendingStaffSel && pendingStaffSel.value) { addOfferingStaff(); }
+  const pendingTeacherSel = document.getElementById('om-teacher-sel');
+  if (pendingTeacherSel && pendingTeacherSel.value && !currentOfferingTeachers.find(t=>t.teacher_id===pendingTeacherSel.value)) {
+    // 教師那邊也是同一套介面，同一個風險，一併防呆
+    addOfferingTeacher();
+  }
   const id=document.getElementById('om-id').value;
   const isNew=!id;
   const day=document.getElementById('om-day').value;
@@ -6060,7 +6128,8 @@ async function saveOffering() {
       course_id:courseId, semester_id:semData.id,
       day:day?parseInt(day):null, start_time:st||null, end_time:et||null,
       time_raw:raw||null, classroom_id:clId, week_pattern:pattern,
-      target_cohort:cohort?parseInt(cohort):null
+      target_cohort:cohort?parseInt(cohort):null,
+      attendance_affects_grade:document.getElementById('om-attendance-affects-grade').checked
     };
     const { data:newRow, error }=await sb.from('course_offerings').insert(payload).select('id').single();
     if (error) { showToast('❌ 新增失敗：'+error.message,'error'); return; }
@@ -6070,6 +6139,10 @@ async function saveOffering() {
     if (currentOfferingTeachers.length>0) {
       await sb.from('offering_teachers').insert(currentOfferingTeachers.map((t,i)=>({offering_id:newRow.id,teacher_id:t.teacher_id,role:t.role,weeks:t.weeks||null,sort_order:i+1})));
     }
+    // 新增課程幹部
+    if (currentOfferingStaff.length>0) {
+      await sb.from('offering_staff').insert(currentOfferingStaff.map(s=>({offering_id:newRow.id,student_id:s.student_id,role:s.role})));
+    }
     closeModal('offering-modal'); showToast('✅ 開課記錄已新增');
     await loadOfferings(); runConflictCheck(true);
     writeAuditLog('開課記錄','新增開課','course_offerings',newRow.id,`${payload.course_code||''} ${semLabel}`,`${payload.time_raw||''} ${payload.classroom_code||''}`)
@@ -6078,7 +6151,8 @@ async function saveOffering() {
     const { error }=await sb.from('course_offerings').update({
       day:day?parseInt(day):null, start_time:st||null, end_time:et||null,
       time_raw:raw||null, classroom_id:clId, week_pattern:pattern,
-      target_cohort: cohort ? parseInt(cohort) : null
+      target_cohort: cohort ? parseInt(cohort) : null,
+      attendance_affects_grade:document.getElementById('om-attendance-affects-grade').checked
     }).eq('id',id);
     if (error) { showToast('❌ 儲存失敗：'+error.message,'error'); return; }
     const courseId=OFFERINGS.find(o=>o.offering_id===id)?.course_id;
@@ -6088,6 +6162,10 @@ async function saveOffering() {
     await sb.from('offering_teachers').delete().eq('offering_id',id);
     if (currentOfferingTeachers.length>0) {
       await sb.from('offering_teachers').insert(currentOfferingTeachers.map((t,i)=>({offering_id:id,teacher_id:t.teacher_id,role:t.role,weeks:t.weeks||null,sort_order:i+1})));
+    }
+    await sb.from('offering_staff').delete().eq('offering_id',id);
+    if (currentOfferingStaff.length>0) {
+      await sb.from('offering_staff').insert(currentOfferingStaff.map(s=>({offering_id:id,student_id:s.student_id,role:s.role})));
     }
     closeModal('offering-modal'); showToast('✅ 開課資料已更新');
     await loadOfferings(); runConflictCheck(true);
@@ -6111,6 +6189,10 @@ async function openNewOffering() {
   document.getElementById('om-audit').checked=false;
   currentOfferingTeachers=[];
   renderOfferingTeaherChips();
+  currentOfferingStaff=[];
+  renderOfferingStaffChips();
+  await populateStaffStudentSelect();
+  document.getElementById('om-attendance-affects-grade').checked=false;
   // 顯示課程選擇區
   document.getElementById('om-course-sel-wrap').style.display='';
   // 載入啟用中的課程
@@ -6124,7 +6206,7 @@ async function openNewOffering() {
   const clSel=document.getElementById('om-classroom');
   clSel.innerHTML='<option value="">待確認</option>'+CLASSROOMS.map(cl=>`<option value="${cl.id}">${cl.name}</option>`).join('');
   const tSel=document.getElementById('om-teacher-sel');
-  tSel.innerHTML=TEACHERS.map(t=>`<option value="${t.id}">${t.name_zh}</option>`).join('');
+  tSel.innerHTML='<option value="">— 請選擇老師 —</option>'+TEACHERS.map(t=>`<option value="${t.id}">${t.name_zh}</option>`).join('');
   ['om-day','om-start','om-end'].forEach(id=>{ document.getElementById(id).oninput=updateTimeRaw; });
   openModal('offering-modal');
 }
@@ -7405,6 +7487,7 @@ function renderTeacherPayrollCard(t) {
       <span style="font-size:11px;background:var(--navy3);color:var(--navy);padding:2px 10px;border-radius:10px">${t.adjunct_rank||''}　${rate}元/時</span>
       <button class="btn btn-sec btn-sm" onclick="addPayrollDay('${t.id}')">＋ 新增上課日</button>
       <button class="btn btn-sec btn-sm" onclick="prefillFromSchedule('${t.id}')">📅 依課表帶入</button>
+      <button class="btn btn-sec btn-sm" onclick="prefillFromAttendance('${t.id}')">📋 從點名帶入</button>
       <span style="margin-left:auto;font-size:13px">時數合計：<b id="payroll-hours-${t.id}">${row.total_hours}</b> 小時</span>
     </div>
     <div id="payroll-days-${t.id}">${renderPayrollDays(t.id)}</div>
@@ -7511,6 +7594,77 @@ async function updatePayrollField(teacherId, field, value, isNumber) {
   if (field==='lecture_fee' || field==='transport_fee') renderPayrollLists();
 }
 
+async function prefillFromAttendance(teacherId) {
+  const ym = document.getElementById('pr-yearmonth').value;
+  const [y, m] = ym.split('-').map(Number);
+  const nextYm = m===12 ? `${y+1}-01-01` : `${y}-${String(m+1).padStart(2,'0')}-01`;
+
+  const { data: ot } = await sb.from('offering_teachers').select('offering_id').eq('teacher_id', teacherId);
+  const offeringIds = (ot||[]).map(o=>o.offering_id);
+  if (!offeringIds.length) { showToast('此老師本學期無開課記錄，無法帶入','error'); return; }
+
+  const { data: offerings } = await sb.from('course_offerings')
+    .select('id, start_time, end_time').in('id', offeringIds);
+  const offeringMap = {}; (offerings||[]).forEach(o => { offeringMap[o.id] = o; });
+
+  const { data: sessions } = await sb.from('class_sessions').select('id, offering_id, session_date')
+    .in('offering_id', offeringIds).gte('session_date', ym+'-01').lt('session_date', nextYm);
+  if (!sessions || !sessions.length) { showToast('此月份找不到任何點名場次（請確認點名者是否已經點過名）','error'); return; }
+
+  const sessionIds = sessions.map(s=>s.id);
+  const { data: tRecs } = await sb.from('teacher_attendance_records').select('*')
+    .eq('teacher_id', teacherId).in('session_id', sessionIds).in('status', ['present','online']);
+  if (!tRecs || !tRecs.length) { showToast('此月份的點名記錄中，這位老師沒有任何「出席/線上」記錄','error'); return; }
+
+  const { row } = _payrollMap[teacherId];
+  const existingMap = {}; // key: class_date_offeringId -> 該筆既有記錄
+  _payrollMap[teacherId].days.forEach(d => { existingMap[d.class_date+'_'+d.offering_id] = d; });
+  const toInsert = [];
+  const toUpdate = [];
+  tRecs.forEach(r => {
+    const session = sessions.find(s=>s.id===r.session_id);
+    if (!session) return;
+    const o = offeringMap[session.offering_id];
+    if (!o || !o.start_time || !o.end_time) return;
+    const key = session.session_date+'_'+session.offering_id;
+    const expectedMode = r.status === 'online' ? 'online' : 'inperson';
+    const existing = existingMap[key];
+    if (existing) {
+      // 日期已經在清單裡了，但檢查實體/線上跟點名記錄是否一致，不一致就修正
+      if (existing.mode !== expectedMode) toUpdate.push({ id: existing.id, mode: expectedMode });
+      return;
+    }
+    const hours = (toMinutes(o.end_time) - toMinutes(o.start_time)) / 60;
+    toInsert.push({
+      payroll_id: row.id, class_date: session.session_date,
+      mode: expectedMode,
+      hours, offering_id: session.offering_id
+    });
+  });
+  if (!toInsert.length && !toUpdate.length) { showToast('符合條件的場次都已經在清單裡了，實體/線上也都一致，沒有要調整的','error'); return; }
+
+  if (toUpdate.length) {
+    await Promise.all(toUpdate.map(u => sb.from('adjunct_payroll_days').update({ mode: u.mode }).eq('id', u.id)));
+    toUpdate.forEach(u => {
+      const d = _payrollMap[teacherId].days.find(x=>x.id===u.id);
+      if (d) d.mode = u.mode;
+    });
+  }
+
+  if (toInsert.length) {
+    const { data: inserted, error } = await sb.from('adjunct_payroll_days').insert(toInsert).select();
+    if (error) { showToast('帶入失敗：'+error.message,'error'); return; }
+    _payrollMap[teacherId].days.push(...inserted);
+  }
+  _payrollMap[teacherId].days.sort((a,b)=>a.class_date.localeCompare(b.class_date));
+  document.getElementById('payroll-days-'+teacherId).innerHTML = renderPayrollDays(teacherId);
+  const parts = [];
+  if (toInsert.length) parts.push(`新增 ${toInsert.length} 筆`);
+  if (toUpdate.length) parts.push(`修正實體/線上 ${toUpdate.length} 筆`);
+  showToast(`已從點名記錄帶入：${parts.join('、')}（已自動排除請假/缺席），請確認`);
+  await recalcTeacherTotal(teacherId);
+}
+
 async function prefillFromSchedule(teacherId) {
   const ym = document.getElementById('pr-yearmonth').value;
   const [y, m] = ym.split('-').map(Number);
@@ -7535,7 +7689,8 @@ async function prefillFromSchedule(teacherId) {
     for (let d=1; d<=daysInMonth; d++) {
       const dt = new Date(y, m-1, d);
       if (dt.getDay() === (o.day % 7)) {
-        toInsert.push({ payroll_id: row.id, class_date: dt.toISOString().slice(0,10), mode:'inperson', hours, offering_id: o.id });
+        const classDate = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        toInsert.push({ payroll_id: row.id, class_date: classDate, mode:'inperson', hours, offering_id: o.id });
       }
     }
   }

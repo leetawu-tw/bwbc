@@ -141,6 +141,11 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .t-section{display:none}
 .t-section.on{display:block}
 @media(max-width:700px){.profile-grid{grid-template-columns:1fr}}
+.tatt-table{border-collapse:collapse;font-size:12.5px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.tatt-table th{background:var(--navy3);color:var(--navy);font-weight:600;padding:6px 4px}
+.tatt-table td{padding:4px;border-top:1px solid var(--cr2)}
+.tatt-del{border:none;background:transparent;color:#C04030;cursor:pointer;font-size:12.5px;padding:2px 4px}
+.tatt-del:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -194,6 +199,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <div class="side-item" id="nav-survey"      onclick="showSection('survey')">📊 教學意見</div>
       <div class="side-item" id="nav-grades"      onclick="showSection('grades')">📊 成績登錄</div>
       <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')">🧭 操行評分</div>
+      <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')">📋 課堂點名</div>
     </div>
     <!-- 右側主內容 -->
     <div class="main" style="flex:1;overflow-y:auto;height:100%">
@@ -460,6 +466,25 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
         </div>
       </div>
 
+      <!-- ── 課堂點名（查看/下載） ── -->
+      <div id="sec-attendance" class="t-section">
+        <div class="section-title">📋 課堂點名</div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <select class="finput" id="tatt-offering-sel" style="max-width:320px" onchange="onTAttOfferingChange()"></select>
+          <label style="font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:5px;cursor:pointer">
+            <input type="checkbox" id="tatt-show-past" onchange="loadTAttOfferings()" style="width:14px;height:14px;cursor:pointer">
+            顯示過去學期的課程
+          </label>
+          <input type="month" class="finput" id="tatt-month" style="max-width:160px" onchange="loadTAttGrid()">
+          <button class="btn-secondary" onclick="downloadAttendanceXlsx('month')">⬇ 下載本月</button>
+          <button class="btn-secondary" onclick="downloadAttendanceXlsx('semester')">⬇ 下載整學期</button>
+        </div>
+        <div id="tatt-meta" style="font-size:12.5px;color:var(--ink3);margin-bottom:10px"></div>
+        <div id="tatt-wrap" style="overflow-x:auto">
+          <div style="color:var(--ink3);padding:20px;font-size:13px">請先選擇課程</div>
+        </div>
+      </div>
+
     </div><!-- end main right content -->
   </div><!-- end flex container -->
 </div><!-- end app-screen -->
@@ -593,6 +618,7 @@ const AX_BG    = {底蘊:'#EEF2FA',對話:'#EAF4EE',應用:'#FAF0EB'};
 const REQ_ZH   = {req:'必修',sel:'選修',go:'二選一'};
 
 let ME = null;        // 當前教師資料
+let CURRENT_USER_ID = null; // auth user id，用於attendance recorded_by
 let MY_COURSES = [];  // 我的開課記錄
 let SYL = {};         // 目前編輯的大綱資料
 let SYL_OFFERING_ID = null;
@@ -637,6 +663,7 @@ function showFeedback(msg, type) {
 }
 
 async function enterApp(user) {
+  CURRENT_USER_ID = user.id;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
   document.getElementById('t-user-label').textContent = user.email;
@@ -1955,6 +1982,7 @@ function showSection(id) {
   if (id === 'live-poll') { lpInit(); }
   else { lpStopPolling(); } // 離開分頁時停止輪詢計時器，避免背景持續打API
   if (id === 'conduct') { loadConductSection(); }
+  if (id === 'attendance') { loadTAttOfferings(); }
 }
 // 相容舊呼叫
 function switchTab(id, btn) {
@@ -1971,6 +1999,228 @@ function showToast(msg, isErr) {
 }
 
 function esc(str) { return (str||'').replace(/"/g,'&quot;'); }
+
+/* ════ 課堂點名（老師端：整月查看+編輯+下載） ════ */
+let TATT_OFFERINGS = [];
+let TATT_CUR = null;
+let TATT_SESSIONS = [];
+let TATT_STUDENTS = [];
+let TATT_RECORDS = {};
+const TATT_STATUS_LABEL = {present:'出席', online:'線上', absent:'未到', leave:'請假', late:'遲到'};
+const TATT_DAY_MAP = {1:'週一',2:'週二',3:'週三',4:'週四',5:'週五'};
+
+function tattLocalYMD(y, m, d) { return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function tattNextMonthStr(y, m) { let ny=y, nm=m+1; if (nm>12) { nm=1; ny++; } return tattLocalYMD(ny, nm, 1); }
+function tattTodayYM() { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`; }
+
+function loadTAttOfferings() {
+  const sel = document.getElementById('tatt-offering-sel');
+  const monthInput = document.getElementById('tatt-month');
+  if (!monthInput.value) monthInput.value = tattTodayYM();
+
+  // 直接沿用已經載入的 MY_COURSES（loadMyCourses 已經抓過這位老師教的所有開課記錄）
+  const all = (MY_COURSES||[]).slice();
+  const curOffering = all.find(o=>o.is_current);
+  const curLabel = curOffering ? curOffering.semester_label : null;
+  const showPast = document.getElementById('tatt-show-past').checked;
+
+  TATT_OFFERINGS = all.filter(o => {
+    if (!curLabel) return true; // 找不到目前學期時，不過濾，避免完全看不到任何課
+    if (o.semester_label === curLabel) return true; // 目前學期永遠顯示
+    if (o.semester_label > curLabel) return false;   // 未來學期永遠不顯示
+    return showPast; // 過去學期：依checkbox決定
+  }).sort((a,b)=>{
+    if (a.semester_label !== b.semester_label) return b.semester_label.localeCompare(a.semester_label);
+    return (a.day||0)-(b.day||0);
+  });
+
+  if (!TATT_OFFERINGS.length) {
+    sel.innerHTML = '<option value="">— 目前沒有開課記錄 —</option>';
+    document.getElementById('tatt-wrap').innerHTML = '';
+    return;
+  }
+  sel.innerHTML = TATT_OFFERINGS.map(o =>
+    `<option value="${o.offering_id}">[${o.semester_label}] ${o.name_zh}（${TATT_DAY_MAP[o.day]||''} ${(o.start_time||'').slice(0,5)}-${(o.end_time||'').slice(0,5)}）</option>`
+  ).join('');
+  // 預設選目前學期的課
+  const cur = TATT_OFFERINGS.find(o=>o.is_current) || TATT_OFFERINGS[0];
+  sel.value = cur.offering_id;
+  onTAttOfferingChange();
+}
+
+function onTAttOfferingChange() {
+  const sel = document.getElementById('tatt-offering-sel');
+  TATT_CUR = TATT_OFFERINGS.find(o => o.offering_id === sel.value);
+  loadTAttGrid();
+}
+
+async function tattEnsureSessionsForMonth(offeringId, day, ym) {
+  if (!day) return;
+  const [y, m] = ym.split('-').map(Number);
+  const { data: existing } = await sb.from('class_sessions').select('id')
+    .eq('offering_id', offeringId)
+    .gte('session_date', ym+'-01').lt('session_date', tattNextMonthStr(y, m));
+  if (existing && existing.length > 0) return;
+
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const rows = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(y, m-1, d);
+    if (dt.getDay() === day) rows.push({ offering_id: offeringId, session_date: tattLocalYMD(y, m, d) });
+  }
+  if (rows.length) await sb.from('class_sessions').insert(rows);
+}
+
+async function loadTAttGrid() {
+  const wrap = document.getElementById('tatt-wrap');
+  if (!TATT_CUR) { wrap.innerHTML=''; return; }
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  const ym = document.getElementById('tatt-month').value || tattTodayYM();
+
+  await tattEnsureSessionsForMonth(TATT_CUR.offering_id, TATT_CUR.day, ym);
+
+  const [y, m] = ym.split('-').map(Number);
+  const [{ data: sessions }, { data: enr }] = await Promise.all([
+    sb.from('class_sessions').select('*').eq('offering_id', TATT_CUR.offering_id)
+      .gte('session_date', ym+'-01').lt('session_date', tattNextMonthStr(y, m))
+      .order('session_date'),
+    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)')
+      .eq('offering_id', TATT_CUR.offering_id).eq('status', 'confirmed')
+  ]);
+  TATT_SESSIONS = sessions || [];
+  TATT_STUDENTS = (enr||[]).map(e => e.students).filter(Boolean)
+    .sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
+
+  document.getElementById('tatt-meta').textContent =
+    `本月共 ${TATT_SESSIONS.length} 場次　·　選課學生 ${TATT_STUDENTS.length} 人`;
+
+  if (!TATT_SESSIONS.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">本月尚無場次</div>';
+    return;
+  }
+  const sessionIds = TATT_SESSIONS.map(s=>s.id);
+  const { data: recs } = await sb.from('attendance_records').select('*').in('session_id', sessionIds);
+  TATT_RECORDS = {};
+  (recs||[]).forEach(r => { TATT_RECORDS[r.session_id+'_'+r.student_id] = r.status; });
+
+  renderTAttTable();
+}
+
+const TATT_STATUS_COLOR = {
+  present:{bg:'#E8F5E9',fg:'#1A6A30'}, online:{bg:'#E3F2FD',fg:'#1565C0'},
+  absent:{bg:'#FFEBEE',fg:'#C62828'}, leave:{bg:'#FFF8E1',fg:'#B05010'},
+  late:{bg:'#FFF3E0',fg:'#E65100'}, '':{bg:'#fff',fg:'#333'}
+};
+function tattSelectStyle(status) {
+  const c = TATT_STATUS_COLOR[status]||TATT_STATUS_COLOR[''];
+  return `font-size:12px;padding:3px 4px;background:${c.bg};color:${c.fg};border-color:${c.bg==='#fff'?'var(--cr2)':c.fg}`;
+}
+
+function renderTAttTable() {
+  const wrap = document.getElementById('tatt-wrap');
+  let h = '<table class="tatt-table"><thead><tr>';
+  h += '<th style="position:sticky;left:0;background:var(--navy3);text-align:left;min-width:130px">學號 - 姓名</th>';
+  TATT_SESSIONS.forEach(s => {
+    const md = s.session_date.slice(5).replace('-','/');
+    const origTxt = s.is_makeup ? `原${s.original_date?s.original_date.slice(5).replace('-','/'):'?'}${s.notes?'　'+esc(s.notes):''}` : '';
+    h += `<th style="text-align:center;min-width:80px" title="${esc(origTxt)}">
+            ${md}${s.is_makeup?`<br><span style="font-size:10px;color:#C4960A">(調課${s.original_date?'，原'+s.original_date.slice(5).replace('-','/'):''})</span>`:''}
+            <br><button class="tatt-del" onclick="deleteTAttSession('${s.id}','${s.session_date}')" title="刪除此場次">×</button>
+          </th>`;
+  });
+  h += '</tr></thead><tbody>';
+  TATT_STUDENTS.forEach(stu => {
+    h += `<tr><td style="position:sticky;left:0;background:#fff">${stu.student_code||''} - ${stu.name_zh}</td>`;
+    TATT_SESSIONS.forEach(s => {
+      const key = s.id+'_'+stu.id;
+      const cur = TATT_RECORDS[key] || '';
+      h += `<td style="text-align:center">
+              <select class="finput" id="tatt-sel-${s.id}-${stu.id}" style="${tattSelectStyle(cur)}" onchange="saveTAttRecord('${s.id}','${stu.id}',this.value)">
+                <option value="" ${cur===''?'selected':''}>—</option>
+                ${Object.entries(TATT_STATUS_LABEL).map(([v,l])=>`<option value="${v}" ${cur===v?'selected':''}>${l}</option>`).join('')}
+              </select>
+            </td>`;
+    });
+    h += '</tr>';
+  });
+  h += '</tbody></table>';
+  wrap.innerHTML = h;
+}
+
+async function saveTAttRecord(sessionId, studentId, status) {
+  if (!status) return;
+  const { error } = await sb.from('attendance_records')
+    .upsert({ session_id: sessionId, student_id: studentId, status, recorded_by: CURRENT_USER_ID, recorded_at: new Date().toISOString() },
+            { onConflict: 'session_id,student_id' });
+  if (error) { showToast('儲存失敗：'+error.message, true); return; }
+  TATT_RECORDS[sessionId+'_'+studentId] = status;
+  const selEl = document.getElementById(`tatt-sel-${sessionId}-${studentId}`);
+  if (selEl) selEl.style = tattSelectStyle(status);
+  showToast('已儲存');
+}
+
+async function deleteTAttSession(sessionId, dateStr) {
+  if (!confirm(`確定要刪除 ${dateStr} 這個場次嗎？當天已點的出缺席記錄也會一併刪除。`)) return;
+  const { data, error } = await sb.from('class_sessions').delete().eq('id', sessionId).select();
+  if (error) { showToast('刪除失敗：'+error.message, true); return; }
+  if (!data || data.length === 0) { showToast('刪除失敗：找不到這筆場次，或沒有權限刪除', true); return; }
+  showToast('已刪除場次');
+  loadTAttGrid();
+}
+
+async function ensureXlsxLib() {
+  if (window.XLSX) return;
+  await new Promise((res,rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+async function downloadAttendanceXlsx(scope) {
+  if (!TATT_CUR) { showToast('請先選擇課程', true); return; }
+  await ensureXlsxLib();
+  const ym = document.getElementById('tatt-month').value || tattTodayYM();
+  let fromDate, toDate, labelTag;
+  if (scope === 'month') {
+    const [y,m] = ym.split('-').map(Number);
+    fromDate = ym+'-01'; toDate = tattNextMonthStr(y,m); labelTag = ym;
+  } else {
+    // 整學期：用該開課記錄所屬學期的起訖日期（semesters 表）
+    const { data: sem } = await sb.from('semesters').select('start_date,end_date,label').eq('label', TATT_CUR.semester_label).maybeSingle();
+    if (!sem) { showToast('找不到學期起訖日期', true); return; }
+    fromDate = sem.start_date; toDate = sem.end_date; labelTag = sem.label;
+  }
+
+  const [{ data: sessions }, { data: enr }] = await Promise.all([
+    sb.from('class_sessions').select('*').eq('offering_id', TATT_CUR.offering_id)
+      .gte('session_date', fromDate).lte('session_date', toDate).order('session_date'),
+    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)')
+      .eq('offering_id', TATT_CUR.offering_id).eq('status', 'confirmed')
+  ]);
+  const sessionsArr = sessions || [];
+  const studentsArr = (enr||[]).map(e=>e.students).filter(Boolean).sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
+  if (!sessionsArr.length) { showToast('此區間沒有任何點名場次', true); return; }
+
+  const sessionIds = sessionsArr.map(s=>s.id);
+  const { data: recs } = await sb.from('attendance_records').select('*').in('session_id', sessionIds);
+  const recMap = {};
+  (recs||[]).forEach(r => { recMap[r.session_id+'_'+r.student_id] = r.status; });
+
+  const header = ['學號','姓名', ...sessionsArr.map(s=>s.session_date+(s.is_makeup?'(調課)':''))];
+  const rows = [header];
+  studentsArr.forEach(stu => {
+    const row = [stu.student_code||'', stu.name_zh];
+    sessionsArr.forEach(s => { row.push(TATT_STATUS_LABEL[recMap[s.id+'_'+stu.id]] || ''); });
+    rows.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '點名記錄');
+  XLSX.writeFile(wb, `點名記錄_${TATT_CUR.name_zh}_${labelTag}.xlsx`);
+}
 
 /* ════════════════════════════════════════
    課堂調查即時秀（Live Poll）

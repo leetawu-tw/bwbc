@@ -147,6 +147,31 @@ input{font-family:inherit}
 .btn-enroll.drop:hover{background:#FFCDD2}
 
 @media(max-width:600px){.main{padding:16px 12px 60px}.tabs{width:100%}.tab{flex:1;text-align:center}.course-grid{grid-template-columns:1fr}}
+.att-pill{padding:10px 16px;border-radius:20px;border:1.5px solid var(--cr2);background:#fff;font-size:13px;cursor:pointer;font-weight:500}
+.att-pill.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.att-pill .makeup-tag{font-size:10px;color:var(--gold);display:block}
+.att-pill.on .makeup-tag{color:#FFE082}
+.att-stu-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--cr2)}
+.att-stu-name{font-size:14px;flex:1;min-width:0}
+.att-status-btns{display:flex;gap:6px;flex-shrink:0}
+.att-status-btn{padding:9px 12px;border-radius:8px;border:1.5px solid var(--cr2);background:#fff;font-size:13px;font-weight:500;cursor:pointer;min-width:54px}
+.att-status-btn.sel-present{background:#E8F5E9;border-color:#66BB6A;color:#1A6A30}
+.att-status-btn.sel-online{background:#E3F2FD;border-color:#64B5F6;color:#1565C0}
+.att-status-btn.sel-absent{background:#FFEBEE;border-color:#EF9A9A;color:#C62828}
+.att-status-btn.sel-leave{background:#FFF8E1;border-color:#FFD54F;color:#B05010}
+.att-status-btn.sel-late{background:#FFF3E0;border-color:#FFB74D;color:#E65100}
+.att-status-btn.dim{opacity:.4}
+.att-teacher-section{background:var(--navy3);border-radius:10px;padding:10px 12px;margin-bottom:14px}
+.att-bulk-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:var(--cr3);border-radius:8px;flex-wrap:wrap}
+@media(max-width:500px){.att-status-btns{flex-wrap:wrap}.att-status-btn{padding:8px 9px;font-size:12px;min-width:46px}}
+.btn{padding:8px 14px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid transparent;font-family:inherit}
+.btn-sm{padding:6px 12px;font-size:12.5px}
+.btn-sec{background:#fff;color:var(--ink2);border-color:var(--cr2)}
+.btn-sec:hover{background:var(--cr3)}
+.btn-pri{background:var(--navy);color:#fff}
+.btn-pri:hover{background:var(--navy2)}
+.att-del{border:none;background:transparent;color:var(--red);cursor:pointer;font-size:12.5px;padding:4px 8px}
+.att-del:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -188,6 +213,7 @@ input{font-family:inherit}
       <div class="side-nav-label">功能選單</div>
       <div class="side-item" id="nav-ann"    onclick="showSection('ann')">📢 公佈欄</div>
       <div class="side-item" id="nav-select" onclick="showSection('select')">📚 選課</div>
+      <div class="side-item" id="nav-attendance" onclick="showSection('attendance')" style="display:none">📋 課堂點名</div>
       <div class="side-item" id="nav-print-sheet" onclick="showSection('print-sheet')">🖨 選課單列印</div>
       <div class="side-item" id="nav-thesis" onclick="showSection('thesis')">📝 畢業論文</div>
       <div class="side-item" id="nav-survey" onclick="showSection('survey')">📋 意見調查</div>
@@ -367,6 +393,18 @@ input{font-family:inherit}
         </div>
       </div>
 
+      <!-- ── 課堂點名 ── -->
+      <div id="sec-attendance" class="t-section">
+        <div class="section-title">📋 課堂點名</div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <select class="finput" id="att-offering-sel" style="max-width:320px" onchange="onAttendanceOfferingChange()"></select>
+          <input type="month" class="finput" id="att-month" style="max-width:160px" onchange="loadAttendanceSessionList()">
+          <button class="btn btn-sec btn-sm" onclick="addMakeupSession()">＋ 新建上課日（調課）</button>
+        </div>
+        <div id="att-session-pills" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"></div>
+        <div id="att-detail-wrap"></div>
+      </div>
+
     </div><!-- end main -->
   </div><!-- end flex -->
 
@@ -428,6 +466,7 @@ const STATUS_BADGE = {
 };
 
 let ME = null;           // 學生資料
+let CURRENT_USER_ID = null; // auth user id（users.id，用於attendance recorded_by）
 let SETTING = null;      // enrollment_settings
 let MY_ENROLLMENTS = {}; // { offering_id: enrollment_record }
 let CURRENT_SEM_ID = null;
@@ -485,6 +524,7 @@ async function passwordLogin() {
 }
 
 async function enterApp(user) {
+  CURRENT_USER_ID = user.id;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   document.getElementById('s-user-label').textContent = user.email;
@@ -575,7 +615,314 @@ async function enterApp(user) {
 
   await Promise.all([loadMyEnrollments(), loadAvailableCourses()]);
   loadPublicAnnouncements('student');
+  checkAttendanceRecorderStatus();
   showSection('ann');
+}
+
+// 檢查目前學生是不是任何一門課的「點名者」，是的話才顯示左側「課堂點名」入口
+async function checkAttendanceRecorderStatus() {
+  try {
+    const { data } = await sb.from('offering_staff').select('id').eq('student_id', ME.id).eq('role', 'recorder').limit(1);
+    if (data && data.length > 0) {
+      document.getElementById('nav-attendance').style.display = '';
+    }
+  } catch (e) { console.warn('checkAttendanceRecorderStatus:', e); }
+}
+
+/* ════ 課堂點名 ════ */
+let ATT_OFFERINGS = [];      // 目前學生擔任點名者的課程清單
+let ATT_CUR = null;          // 目前選中的 offering
+let ATT_SESSIONS = [];       // 目前月份的場次
+let ATT_STUDENTS = [];       // 該課選課學生
+let ATT_RECORDS = {};        // key: student_id → status
+let ATT_TEACHER_RECORDS = {}; // key: teacher_id → status
+
+const ATT_STATUS_LABEL = {present:'出席', online:'線上', absent:'未到', leave:'請假', late:'遲到'};
+const TEACHER_STATUS_LABEL = {present:'出席', online:'線上', absent:'未到', leave:'請假'}; // 老師沒有「遲到」
+
+function localYMD(y, m, d) {
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function nextMonthStr(y, m) {
+  let ny = y, nm = m + 1;
+  if (nm > 12) { nm = 1; ny++; }
+  return localYMD(ny, nm, 1);
+}
+function todayYM() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+}
+
+async function loadAttendanceOfferings() {
+  const sel = document.getElementById('att-offering-sel');
+  const monthInput = document.getElementById('att-month');
+  if (!monthInput.value) monthInput.value = todayYM();
+
+  const { data, error } = await sb.from('offering_staff')
+    .select('offering_id, course_offerings(id, day, start_time, end_time, courses(name_zh))')
+    .eq('student_id', ME.id).eq('role', 'recorder');
+  if (error) { showToast('載入課程失敗：'+error.message, 'error'); return; }
+
+  ATT_OFFERINGS = (data||[]).map(r => ({
+    offering_id: r.offering_id,
+    day: r.course_offerings?.day,
+    start_time: r.course_offerings?.start_time,
+    end_time: r.course_offerings?.end_time,
+    name_zh: r.course_offerings?.courses?.name_zh || '（課程名稱待確認）'
+  }));
+
+  if (!ATT_OFFERINGS.length) {
+    sel.innerHTML = '<option value="">— 您目前不是任何課程的點名者 —</option>';
+    document.getElementById('att-session-pills').innerHTML = '';
+    document.getElementById('att-detail-wrap').innerHTML = '';
+    return;
+  }
+  const dayMap = {1:'週一',2:'週二',3:'週三',4:'週四',5:'週五'};
+  sel.innerHTML = ATT_OFFERINGS.map(o =>
+    `<option value="${o.offering_id}">${o.name_zh}（${dayMap[o.day]||''} ${(o.start_time||'').slice(0,5)}-${(o.end_time||'').slice(0,5)}）</option>`
+  ).join('');
+  onAttendanceOfferingChange();
+}
+
+async function onAttendanceOfferingChange() {
+  const sel = document.getElementById('att-offering-sel');
+  ATT_CUR = ATT_OFFERINGS.find(o => o.offering_id === sel.value);
+  if (ATT_CUR && !ATT_CUR.teachers) {
+    const { data: ot } = await sb.from('offering_teachers').select('teacher_id, role, teachers(name_zh)').eq('offering_id', ATT_CUR.offering_id);
+    ATT_CUR.teachers = (ot||[]).map(t => ({ teacher_id: t.teacher_id, name: t.teachers?.name_zh||'?', role: t.role }));
+  }
+  loadAttendanceSessionList();
+}
+
+// 該課該月份還沒有任何場次時，依星期自動產生；已有場次（含調課調整過的）就不動，尊重使用者刪除/新增的結果
+async function ensureSessionsForMonth(offeringId, day, ym) {
+  if (!day) return;
+  const [y, m] = ym.split('-').map(Number);
+  const { data: existing } = await sb.from('class_sessions').select('id')
+    .eq('offering_id', offeringId)
+    .gte('session_date', ym+'-01').lt('session_date', nextMonthStr(y, m));
+  if (existing && existing.length > 0) return;
+
+  const daysInMonth = new Date(y, m, 0).getDate(); // 本地建構，純粹算這個月有幾天，不涉及字串轉換
+  const rows = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(y, m-1, d); // 本地建構，只用來判斷星期幾
+    if (dt.getDay() === day) {
+      rows.push({ offering_id: offeringId, session_date: localYMD(y, m, d) });
+    }
+  }
+  if (rows.length) await sb.from('class_sessions').insert(rows);
+}
+
+async function loadAttendanceSessionList() {
+  const pillsWrap = document.getElementById('att-session-pills');
+  const detailWrap = document.getElementById('att-detail-wrap');
+  if (!ATT_CUR) { pillsWrap.innerHTML=''; detailWrap.innerHTML=''; return; }
+  pillsWrap.innerHTML = '<div style="color:var(--ink3);padding:10px;font-size:13px">載入中…</div>';
+  detailWrap.innerHTML = '';
+  const ym = document.getElementById('att-month').value || todayYM();
+
+  await ensureSessionsForMonth(ATT_CUR.offering_id, ATT_CUR.day, ym);
+
+  const [y, m] = ym.split('-').map(Number);
+  const [{ data: sessions }, { data: enr }] = await Promise.all([
+    sb.from('class_sessions').select('*').eq('offering_id', ATT_CUR.offering_id)
+      .gte('session_date', ym+'-01').lt('session_date', nextMonthStr(y, m))
+      .order('session_date'),
+    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)')
+      .eq('offering_id', ATT_CUR.offering_id).eq('status', 'confirmed')
+  ]);
+  ATT_SESSIONS = sessions || [];
+  ATT_STUDENTS = (enr||[]).map(e => e.students).filter(Boolean)
+    .sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
+
+  if (!ATT_SESSIONS.length) {
+    pillsWrap.innerHTML = '<div style="color:var(--ink3);padding:10px;font-size:13px">本月尚無場次，可用上方「＋新建上課日」手動新增</div>';
+    return;
+  }
+  renderSessionPills();
+  // 預設展開最近一個場次（今天或最接近今天的）
+  const todayStr = localYMD(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
+  let defaultSession = ATT_SESSIONS.find(s=>s.session_date===todayStr) ||
+                        ATT_SESSIONS.find(s=>s.session_date>=todayStr) ||
+                        ATT_SESSIONS[ATT_SESSIONS.length-1];
+  selectSession(defaultSession.id);
+}
+
+function renderSessionPills() {
+  const pillsWrap = document.getElementById('att-session-pills');
+  pillsWrap.innerHTML = ATT_SESSIONS.map(s => {
+    const md = s.session_date.slice(5).replace('-','/');
+    const origNote = s.is_makeup ? `原訂${s.original_date ? s.original_date.slice(5).replace('-','/') : '未填'}${s.notes?'　'+s.notes:''}` : '';
+    return `<div class="att-pill${s.id===ATT_CUR_SESSION_ID?' on':''}" onclick="selectSession('${s.id}')" title="${origNote}">
+      ${md}${s.is_makeup?`<span class="makeup-tag">調課${s.original_date?'（原'+s.original_date.slice(5).replace('-','/')+'）':''}</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+let ATT_CUR_SESSION_ID = null;
+
+async function selectSession(sessionId) {
+  ATT_CUR_SESSION_ID = sessionId;
+  renderSessionPills();
+  const detailWrap = document.getElementById('att-detail-wrap');
+  detailWrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+
+  const [{ data: recs }, { data: tRecs }] = await Promise.all([
+    sb.from('attendance_records').select('*').eq('session_id', sessionId),
+    sb.from('teacher_attendance_records').select('*').eq('session_id', sessionId)
+  ]);
+  ATT_RECORDS = {};
+  (recs||[]).forEach(r => { ATT_RECORDS[r.student_id] = r.status; });
+  ATT_TEACHER_RECORDS = {};
+  (tRecs||[]).forEach(r => { ATT_TEACHER_RECORDS[r.teacher_id] = r.status; });
+
+  const session = ATT_SESSIONS.find(s=>s.id===sessionId);
+  let h = '';
+  if (ATT_CUR.teachers && ATT_CUR.teachers.length) {
+    h += `<div class="att-teacher-section">
+        <div style="font-size:12.5px;color:var(--ink3);margin-bottom:6px">授課教師出席</div>
+        ${ATT_CUR.teachers.map(t => renderTeacherRow(t, sessionId)).join('')}
+      </div>`;
+  }
+  h += `<div class="att-bulk-bar">
+      <span style="font-size:13px;color:var(--ink2)">${session.session_date}　共 ${ATT_STUDENTS.length} 人${session.is_makeup?`　<span style="color:var(--gold)">（調課場次${session.original_date?'，原訂'+session.original_date:''}${session.notes?'：'+session.notes:''}）</span>`:''}</span>
+      <button class="btn btn-sec btn-sm" onclick="editMakeupNote('${sessionId}')" style="display:${session.is_makeup?'':'none'}">✎ 編輯調課說明</button>
+      <button class="btn btn-pri btn-sm" onclick="bulkSetAllPresent('${sessionId}')">✅ 全部同學設為出席</button>
+      <button class="att-del" onclick="deleteSession('${sessionId}','${session.session_date}')">🗑 刪除此場次</button>
+    </div>`;
+  h += '<div id="att-rows-wrap">';
+  ATT_STUDENTS.forEach(stu => {
+    h += renderStudentRow(stu, sessionId);
+  });
+  h += '</div>';
+  detailWrap.innerHTML = h;
+}
+
+const TEACHER_ROLE_LABEL = {'主講':'主講','共同授課':'共同授課','週次講師':'週次講師','來賓':'來賓'};
+
+function renderTeacherRow(t, sessionId) {
+  const cur = ATT_TEACHER_RECORDS[t.teacher_id] || '';
+  const btn = (val) => {
+    const sel = cur===val;
+    return `<button class="att-status-btn${sel?' sel-'+val:''}${cur&&!sel?' dim':''}"
+              onclick="saveTeacherAttendance('${sessionId}','${t.teacher_id}','${val}')">${TEACHER_STATUS_LABEL[val]}</button>`;
+  };
+  return `<div class="att-stu-row" id="att-trow-${t.teacher_id}">
+      <div class="att-stu-name">${t.name}${t.role?`<span style="font-size:11px;color:var(--ink3);margin-left:4px">${TEACHER_ROLE_LABEL[t.role]||t.role}</span>`:''}</div>
+      <div class="att-status-btns">
+        ${btn('present')}${btn('online')}${btn('absent')}${btn('leave')}
+      </div>
+    </div>`;
+}
+
+async function saveTeacherAttendance(sessionId, teacherId, status) {
+  const { error } = await sb.from('teacher_attendance_records')
+    .upsert({ session_id: sessionId, teacher_id: teacherId, status, recorded_by: CURRENT_USER_ID, recorded_at: new Date().toISOString() },
+            { onConflict: 'session_id,teacher_id' });
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+  ATT_TEACHER_RECORDS[teacherId] = status;
+  const t = ATT_CUR.teachers.find(x=>x.teacher_id===teacherId);
+  const rowEl = document.getElementById('att-trow-'+teacherId);
+  if (rowEl && t) rowEl.outerHTML = renderTeacherRow(t, sessionId);
+  showToast('已儲存：'+TEACHER_STATUS_LABEL[status]);
+}
+
+function renderStudentRow(stu, sessionId) {
+  const cur = ATT_RECORDS[stu.id] || '';
+  const btn = (val) => {
+    const sel = cur===val;
+    return `<button class="att-status-btn${sel?' sel-'+val:''}${cur&&!sel?' dim':''}"
+              onclick="saveAttendance('${sessionId}','${stu.id}','${val}')">${ATT_STATUS_LABEL[val]}</button>`;
+  };
+  return `<div class="att-stu-row" id="att-row-${stu.id}">
+      <div class="att-stu-name">${stu.student_code||''} - ${stu.name_zh}</div>
+      <div class="att-status-btns">
+        ${btn('present')}${btn('online')}${btn('absent')}${btn('leave')}${btn('late')}
+      </div>
+    </div>`;
+}
+
+async function bulkSetAllPresent(sessionId) {
+  if (!confirm(`確定要把全部 ${ATT_STUDENTS.length} 位同學都設為出席嗎？個別需要調整的同學，存完之後再點他那一排調整即可。`)) return;
+  const rows = ATT_STUDENTS.map(stu => ({
+    session_id: sessionId, student_id: stu.id, status:'present', recorded_by: CURRENT_USER_ID, recorded_at: new Date().toISOString()
+  }));
+  const { error } = await sb.from('attendance_records').upsert(rows, { onConflict: 'session_id,student_id' });
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+  ATT_STUDENTS.forEach(stu => { ATT_RECORDS[stu.id] = 'present'; });
+  document.getElementById('att-rows-wrap').innerHTML =
+    ATT_STUDENTS.map(stu => renderStudentRow(stu, sessionId)).join('');
+  showToast('✅ 已將全部同學設為出席');
+}
+
+async function saveAttendance(sessionId, studentId, status) {
+  const { error } = await sb.from('attendance_records')
+    .upsert({ session_id: sessionId, student_id: studentId, status, recorded_by: CURRENT_USER_ID, recorded_at: new Date().toISOString() },
+            { onConflict: 'session_id,student_id' });
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+  ATT_RECORDS[studentId] = status;
+  const stu = ATT_STUDENTS.find(s=>s.id===studentId);
+  const rowEl = document.getElementById('att-row-'+studentId);
+  if (rowEl && stu) rowEl.outerHTML = renderStudentRow(stu, sessionId);
+  showToast('已儲存：'+ATT_STATUS_LABEL[status]);
+}
+
+async function editMakeupNote(sessionId) {
+  const session = ATT_SESSIONS.find(s=>s.id===sessionId);
+  if (!session) return;
+  const originalStr = prompt('原本應該上課的日期（選填）：', session.original_date||'');
+  if (originalStr === null) return;
+  const notesStr = prompt('調課說明（選填）：', session.notes||'');
+  if (notesStr === null) return;
+  const { error } = await sb.from('class_sessions').update({ original_date: originalStr||null, notes: notesStr||null }).eq('id', sessionId);
+  if (error) { showToast('更新失敗：'+error.message,'error'); return; }
+  session.original_date = originalStr||null;
+  session.notes = notesStr||null;
+  showToast('✅ 已更新調課說明');
+  selectSession(sessionId);
+}
+
+async function addMakeupSession() {
+  if (!ATT_CUR) { showToast('請先選擇課程','error'); return; }
+  const dateStr = prompt('請輸入要新增的上課日期（格式 YYYY-MM-DD）：');
+  if (!dateStr) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) { showToast('日期格式不正確','error'); return; }
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dow = new Date(y, m-1, d).getDay(); // 本地建構，只用來判斷星期幾
+  const isSameWeekday = ATT_CUR.day && dow === ATT_CUR.day;
+  let originalStr = null, notesStr = null;
+  if (isSameWeekday) {
+    // 跟這門課原本的星期幾相同 → 不算調課（例如刪掉原日期後重新補回來）
+    showToast(`${dateStr} 剛好是這門課原本的上課星期，視為一般場次，不標記調課`);
+  } else {
+    originalStr = prompt('原本應該上課的日期（選填，沒有可留空）：') || null;
+    notesStr = prompt('調課說明（選填，沒有可留空）：') || null;
+  }
+  const { error } = await sb.from('class_sessions').insert({
+    offering_id: ATT_CUR.offering_id, session_date: dateStr, is_makeup: !isSameWeekday, original_date: originalStr, notes: notesStr
+  });
+  if (error) {
+    if (error.message.includes('duplicate key') || error.message.includes('class_sessions_offering_id_session_date_key')) {
+      showToast(`新增失敗：${dateStr} 這天已經有場次了，不需要再新增。如果是想救回被刪掉的場次，這個日期應該還在膠囊清單裡，請直接點它；如果真的不在清單裡卻出現這個錯誤，請聯絡管理員查資料庫`,'error');
+    } else {
+      showToast('新增失敗：'+error.message,'error');
+    }
+    return;
+  }
+  showToast('✅ 已新增場次');
+  // 確保畫面顯示的月份對得上新場次所在月份
+  document.getElementById('att-month').value = dateStr.slice(0,7);
+  loadAttendanceSessionList();
+}
+
+async function deleteSession(sessionId, dateStr) {
+  if (!confirm(`確定要刪除 ${dateStr} 這個場次嗎？這堂課當天已點的出缺席記錄也會一併刪除。`)) return;
+  const { data, error } = await sb.from('class_sessions').delete().eq('id', sessionId).select();
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  if (!data || data.length === 0) { showToast('刪除失敗：找不到這筆場次，或沒有權限刪除（請聯絡管理員確認）','error'); return; }
+  showToast('已刪除場次');
+  loadAttendanceSessionList();
 }
 
 async function signOut() { await sb.auth.signOut(); location.reload(); }
@@ -1775,6 +2122,7 @@ function showSection(id) {
   if (id === 'thesis') loadThesisView();
   if (id === 'survey') loadStudentSurveys();
   if (id === 'print-sheet') loadPrintSheetView();
+  if (id === 'attendance') loadAttendanceOfferings();
 }
 
 function switchTab(id, btn) {
