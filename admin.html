@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <style>
 :root{
   --navy:#1B3A6B;--navy2:#2B5FA0;--navy3:#EEF2FA;
@@ -231,6 +232,20 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .oc-bot{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--cr3)}
 .oc-cred{font-size:12.5px;font-weight:500;color:var(--ink)}
 .oc-actions{display:flex;gap:4px}
+.syimp-card{background:#fff;border:1.5px solid var(--cr2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12.5px;cursor:grab;line-height:1.5;white-space:pre-wrap;max-height:140px;overflow-y:auto}
+.syimp-card.dragging{opacity:.4}
+.syimp-card.hint-obj{border-left:4px solid #FFB300}
+.syimp-card.hint-mth{border-left:4px solid #29B6F6}
+.syimp-card.hint-asmnt{border-left:4px solid #66BB6A}
+.syimp-card.hint-week{border-left:4px solid #AB47BC}
+.syimp-card.hint-bib{border-left:4px solid #8D6E63}
+.syimp-card.hint-overview{border-left:4px solid #FF7043}
+.syimp-card.hint-cohort{border-left:4px solid #26A69A}
+.syimp-card.hint-table{background:#FFF8E1}
+.syimp-target{border:2px dashed var(--cr2);border-radius:8px;padding:8px;margin-bottom:10px;min-height:46px}
+.syimp-target.dragover{border-color:var(--navy);background:var(--navy3)}
+.syimp-target-label{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px}
+.syimp-target .syimp-card{cursor:default;background:var(--navy3)}
 </style>
 </head>
 <body>
@@ -377,7 +392,10 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div style="margin-left:auto;display:flex;gap:6px">
             <button class="btn btn-sec" onclick="printBlankCourseSheet()" title="列印該學期全部課程的空白選課單">🖨 空白選課單</button>
             <button class="btn btn-sec" onclick="printCustomBlankCourseSheet()" title="可加註說明文字的空白選課單">🖨 自訂空白選課單</button>
-            <button class="btn btn-sec" onclick="openSyllabusBlankModal()" title="批次下載空白課程大綱Word">📄 課程大綱列印</button>
+            <button class="btn btn-sec" onclick="openSyllabusBlankModal()" title="批次下載空白課程大綱Word">📄 列印課程大綱(空白)</button>
+            <button class="btn btn-sec" onclick="downloadStandardSyllabusTemplate()" title="下載標準大綱輸入範本，給老師填寫用">⬇ 下載標準範本</button>
+            <button class="btn btn-sec" onclick="openSyllabusImportModal()" title="拖拉方式匯入老師的Word大綱（舊格式文件用）">📥 匯入大綱（拖拉/舊格式）</button>
+            <button class="btn btn-sec" onclick="openSyllabusAutoImportModal()" title="自動解析（老師用標準範本填寫時用這個，秒速完成）">⚡ 匯入大綱（標準範本，自動解析）</button>
             <button class="btn btn-sec" onclick="exportOfferingsCSV()" title="匯出本學期開課記錄">📤 匯出</button>
             <button class="btn btn-sec" onclick="openImportModal('offerings')" title="從 CSV 匯入開課記錄">📥 匯入</button>
             <button class="btn btn-pri" onclick="openNewOffering()">＋ 新增開課</button>
@@ -401,10 +419,10 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <th onclick="sortOfferings('name')" class="sortable">課程名稱 <span class="sort-icon" id="sort-name">⇅</span></th>
               <th onclick="sortOfferings('credits')" class="sortable" style="text-align:center">學分 <span class="sort-icon" id="sort-credits">⇅</span></th>
               <th onclick="sortOfferings('axis')" class="sortable">主軸 <span class="sort-icon" id="sort-axis">⇅</span></th>
-              <th>年級</th>
+              <th onclick="sortOfferings('cohort')" class="sortable" style="text-align:center">年級 <span class="sort-icon" id="sort-cohort">⇅</span></th>
               <th onclick="sortOfferings('time')" class="sortable">上課時間 <span class="sort-icon" id="sort-time">⇅</span></th>
               <th onclick="sortOfferings('room')" class="sortable">教室 <span class="sort-icon" id="sort-room">⇅</span></th>
-              <th>授課教師</th><th>操作</th>
+              <th onclick="sortOfferings('teacher')" class="sortable">授課教師 <span class="sort-icon" id="sort-teacher">⇅</span></th><th>操作</th>
             </tr></thead>
             <tbody id="offerings-body"></tbody>
           </table>
@@ -1277,14 +1295,14 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </select>
         </div>
       </div>
-      <div style="font-size:12px;font-weight:600;color:var(--navy)">課程幹部（選填，會印在表頭）</div>
+      <div style="font-size:12px;font-weight:600;color:var(--navy)">課程幹部（會印在表頭，請到「開課記錄→編輯→課程幹部」設定，這裡僅顯示不可編輯）</div>
       <div class="frow-3">
         <div class="frow"><label class="flabel">小天使</label>
-          <input class="finput" id="att-angel" placeholder="姓名"></div>
+          <input class="finput" id="att-angel" readonly style="background:var(--cr3);cursor:not-allowed"></div>
         <div class="frow"><label class="flabel">TA</label>
-          <input class="finput" id="att-ta" placeholder="姓名"></div>
+          <input class="finput" id="att-ta" readonly style="background:var(--cr3);cursor:not-allowed"></div>
         <div class="frow"><label class="flabel">視聽</label>
-          <input class="finput" id="att-av" placeholder="姓名"></div>
+          <input class="finput" id="att-av" readonly style="background:var(--cr3);cursor:not-allowed"></div>
       </div>
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:4px 0">
         <input type="checkbox" id="att-digital" style="width:15px;height:15px">
@@ -1882,7 +1900,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 <div class="modal-bg" id="syllabus-blank-modal">
   <div class="modal" style="max-width:740px">
     <div class="modal-hdr">
-      <div class="modal-title">📄 課程大綱列印（空白）</div>
+      <div class="modal-title">📄 列印課程大綱（空白）</div>
       <button class="modal-close" onclick="closeSyllabusBlankModal()">✕</button>
     </div>
     <div style="padding:18px 20px;max-height:65vh;overflow-y:auto">
@@ -2056,6 +2074,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div id="sy-subtitle" style="font-size:11px;opacity:.65"></div>
     </div>
     <div id="sy-save-msg" style="font-size:12px;opacity:.7"></div>
+    <button class="btn btn-sec" onclick="exportFilledSyllabus(SY.offering_id)">⬇ 下載填好的大綱(Word)</button>
     <button class="btn btn-gold" onclick="saveSyllabus()">💾 儲存大綱</button>
   </div>
   <div class="sy-body">
@@ -2074,6 +2093,15 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div class="sy-section">
       <div class="sy-section-hdr" onclick="toggleSection('ov')"><span class="sy-section-title">📝 課程概述</span><span id="ov-arrow">▼</span></div>
       <div class="sy-section-body" id="ov-body"><textarea id="sy-overview" class="finput" rows="5" placeholder="請輸入課程概述…" style="width:100%;resize:vertical"></textarea></div>
+    </div>
+    <div class="sy-section">
+      <div class="sy-section-hdr" onclick="toggleSection('cohort')"><span class="sy-section-title">🎓 課程對象</span><span id="cohort-arrow">▼</span></div>
+      <div class="sy-section-body" id="cohort-body">
+        <label class="flabel">課程對象說明（選填）</label>
+        <input class="finput" id="sy-cohort-note" placeholder="例：佛法應用研究所全體學生" style="margin-bottom:10px">
+        <label class="flabel">先備能力／知識／技能（選填）</label>
+        <textarea class="finput" id="sy-prereq-note" rows="2" placeholder="例：建議先修過XX課程，或具備XX基礎" style="width:100%;resize:vertical"></textarea>
+      </div>
     </div>
     <div class="sy-section">
       <div class="sy-section-hdr" onclick="toggleSection('obj')"><span class="sy-section-title">🎯 教學目標</span><span id="obj-arrow">▼</span></div>
@@ -2102,15 +2130,103 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div class="sy-section">
       <div class="sy-section-hdr" onclick="toggleSection('wk')"><span class="sy-section-title">📅 教學進度（週次）</span><span id="wk-arrow">▼</span></div>
       <div class="sy-section-body" id="wk-body">
-        <div style="display:grid;grid-template-columns:48px 1fr 140px 32px;gap:8px;padding:0 2px;margin-bottom:6px">
+        <div style="display:grid;grid-template-columns:48px 1fr 140px 110px 32px;gap:8px;padding:0 2px;margin-bottom:6px" id="sy-wk-header">
           <div style="font-size:11px;color:var(--ink3)">週次</div>
           <div style="font-size:11px;color:var(--ink3)">主題</div>
-          <div style="font-size:11px;color:var(--ink3)">授課教師</div><div></div>
+          <div style="font-size:11px;color:var(--ink3)">授課教師</div>
+          <div style="font-size:11px;color:var(--ink3)" id="sy-wk-mode-hdr">教學型態</div><div></div>
         </div>
         <div id="sy-wk-list"></div>
         <button class="sy-add-btn" onclick="addWeek()">＋ 新增週次</button>
+        <div id="sy-wk-mode-summary" style="margin-top:10px;font-size:12px;color:var(--ink2)"></div>
       </div>
     </div>
+    <div class="sy-section" id="sy-digital-section" style="display:none">
+      <div class="sy-section-hdr" onclick="toggleSection('digital')"><span class="sy-section-title">💻 數位課程（遠距教學）申請書資訊</span><span id="digital-arrow">▼</span></div>
+      <div class="sy-section-body" id="digital-body">
+
+        <div style="background:var(--cr3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;line-gap:6px">
+          <div>授課教師／師資來源：<span id="sy-d-teachers" style="font-weight:500"></span></div>
+          <div>預計總修課人數：<span id="sy-d-maxstudents" style="font-weight:500"></span></div>
+          <div>教學助理需求：<span id="sy-d-ta-auto" style="font-weight:500"></span>
+            <select class="fselect" id="sy-d-ta-override" style="display:inline-block;width:auto;margin-left:8px;font-size:12px">
+              <option value="">（依自動判斷）</option>
+              <option value="yes">手動覆寫為「是」</option>
+              <option value="no">手動覆寫為「否」</option>
+            </select>
+          </div>
+          <div>教學型態（自動依每週教學型態統計）：<span id="sy-d-mode-auto" style="font-weight:500"></span></div>
+        </div>
+
+        <div class="frow-2">
+          <div><label class="flabel">是否第一次申請開設遠距教學課程</label>
+            <select class="fselect" id="sy-d-first"><option value="false">否</option><option value="true">是</option></select></div>
+          <div><label class="flabel">全英語教學</label>
+            <select class="fselect" id="sy-d-english"><option value="false">否</option><option value="true">是</option></select></div>
+        </div>
+        <label class="flabel" style="margin-top:10px">課程學制（可多選）</label>
+        <div style="display:flex;gap:16px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" id="sy-d-prog-masters">碩士班</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" id="sy-d-prog-inservice">碩士在職專班</label>
+        </div>
+
+        <label class="flabel">非同步線上平台網址</label>
+        <input class="finput" id="sy-d-async-url" style="margin-bottom:10px">
+
+        <label class="flabel">同步線上教學系統</label>
+        <select class="fselect" id="sy-d-sync-platform" style="margin-bottom:10px" onchange="document.getElementById('sy-d-sync-other-wrap').style.display=this.value==='other'?'':'none'">
+          <option value="">本學期無同步遠距教學規劃</option>
+          <option value="teams">Microsoft Teams</option>
+          <option value="meet">Google Meet</option>
+          <option value="other">其他</option>
+        </select>
+        <div id="sy-d-sync-other-wrap" style="display:none;margin-bottom:10px">
+          <input class="finput" id="sy-d-sync-other" placeholder="請說明其他同步教學系統"></div>
+
+        <label class="flabel">教學計畫檔案連結網址</label>
+        <input class="finput" id="sy-d-plan-url" style="margin-bottom:10px">
+
+        <label class="flabel">師生互動討論方式</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" id="sy-d-im-board" checked>教學平臺討論區</label>
+          <input class="finput" id="sy-d-im-office" placeholder="教師辦公室時間（選填）">
+          <input class="finput" id="sy-d-im-email" placeholder="教師電子信箱（選填）">
+          <input class="finput" id="sy-d-im-ext" placeholder="教師校內分機（選填）">
+          <input class="finput" id="sy-d-im-group" placeholder="開課社群群組（選填）">
+          <input class="finput" id="sy-d-im-other" placeholder="其他（選填）">
+        </div>
+
+        <label class="flabel">作業繳交方式（可多選）</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;font-size:13px">
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-intro">線上說明作業內容</label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-realtime">線上即時作業填答</label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-upload">作業檔案上傳及下載</label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-quiz">線上測驗</label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-grade">成績查詢</label>
+          <input class="finput" id="sy-d-am-other" placeholder="其他（選填）">
+        </div>
+
+        <label class="flabel">教學時數拆分</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+          <div>
+            <div style="font-size:11.5px;color:var(--ink3);margin-bottom:4px">實體授課（週數／小時數）</div>
+            <div style="display:flex;gap:4px;align-items:center"><input type="number" class="finput" id="sy-d-h-inperson-w" placeholder="週數" style="font-size:12px"><input type="number" class="finput" id="sy-d-h-inperson-h" placeholder="小時數" style="font-size:12px"></div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;color:var(--ink3);margin-bottom:4px">非同步遠距（週數／小時數）</div>
+            <div style="display:flex;gap:4px;align-items:center"><input type="number" class="finput" id="sy-d-h-async-w" placeholder="週數" style="font-size:12px"><input type="number" class="finput" id="sy-d-h-async-h" placeholder="小時數" style="font-size:12px"></div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;color:var(--ink3);margin-bottom:4px">同步遠距（週數／小時數）</div>
+            <div style="display:flex;gap:4px;align-items:center"><input type="number" class="finput" id="sy-d-h-sync-w" placeholder="週數" style="font-size:12px"><input type="number" class="finput" id="sy-d-h-sync-h" placeholder="小時數" style="font-size:12px"></div>
+          </div>
+        </div>
+
+        <label class="flabel">修課注意事項或其他補充</label>
+        <textarea class="finput" id="sy-d-notes-supp" rows="2" style="width:100%;resize:vertical"></textarea>
+      </div>
+    </div>
+
     <div class="sy-section">
       <div class="sy-section-hdr" onclick="toggleSection('bib')"><span class="sy-section-title">📚 參考書目</span><span id="bib-arrow">▼</span></div>
       <div class="sy-section-body" id="bib-body">
@@ -2123,6 +2239,48 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div class="sy-section">
       <div class="sy-section-hdr" onclick="toggleSection('notes')"><span class="sy-section-title">💬 備註</span><span id="notes-arrow">▼</span></div>
       <div class="sy-section-body" id="notes-body"><textarea id="sy-notes" class="finput" rows="3" placeholder="其他備註…" style="width:100%;resize:vertical"></textarea></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: 大綱匯入（拖拉式） ══ -->
+<div class="modal-bg" id="syimp-modal">
+  <div class="modal" style="max-width:1100px;width:96vw">
+    <div class="modal-hdr">
+      <div class="modal-title" id="syimp-title">匯入課程大綱</div>
+      <button class="modal-close" onclick="closeModal('syimp-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div id="syimp-step-pick" style="padding:20px">
+        <div style="background:var(--cr3);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px">
+          還沒有檔案可以匯入？先下載範本給老師填寫：
+          <button class="btn btn-sec btn-sm" style="margin-left:8px" onclick="downloadStandardSyllabusTemplate()">⬇ 下載標準範本</button>
+        </div>
+        <label class="flabel">選擇要匯入的Word檔案（可多選，依檔名自動比對課程編號）</label>
+        <input type="file" id="syimp-file-input" accept=".docx" multiple style="margin:10px 0">
+        <div id="syimp-queue-list" style="margin-top:14px;font-size:13px;color:var(--ink2)"></div>
+        <button class="btn btn-save" style="margin-top:14px" onclick="startSyllabusImportQueue()">開始解析</button>
+      </div>
+      <div id="syimp-step-drag" style="display:none">
+        <div style="padding:10px 20px;background:var(--cr3);border-bottom:1px solid var(--cr2);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:13px"><b id="syimp-cur-course"></b>　<span id="syimp-progress" style="color:var(--ink3)"></span></div>
+          <button class="btn btn-secondary btn-sm" onclick="skipSyllabusImportFile()">跳過這份 →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;height:60vh">
+          <div style="overflow-y:auto;padding:14px;border-right:1px solid var(--cr2)">
+            <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">⬅ 系統要的欄位（把右邊卡片拖過來）</div>
+            <div id="syimp-targets"></div>
+          </div>
+          <div style="overflow-y:auto;padding:14px;background:var(--cr3)">
+            <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">➡ 原始文件內容（拖去左邊對應欄位）</div>
+            <div id="syimp-sources"></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid var(--cr2);display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn btn-secondary" onclick="closeModal('syimp-modal')">取消</button>
+          <button class="btn btn-save" onclick="applySyllabusImport()">✅ 套用到大綱表單</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2785,7 +2943,10 @@ function sortOfferings(field) {
   });
   const activeIcon = document.getElementById('sort-'+field);
   if (activeIcon) { activeIcon.closest('th').classList.add(sortDir===1?'sort-asc':'sort-desc'); activeIcon.textContent=sortDir===1?'↑':'↓'; }
-  const fieldMap = { code:o=>o.code||'', name:o=>o.name_zh||'', credits:o=>o.credits||0, axis:o=>o.axis_code||'', time:o=>o.time_raw||'', room:o=>o.classroom_name||'' };
+  const fieldMap = { code:o=>o.code||'', name:o=>o.name_zh||'', credits:o=>o.credits||0, axis:o=>o.axis_code||'', time:o=>o.time_raw||'', room:o=>o.classroom_name||'',
+    cohort:o=>o.target_cohort||0,
+    teacher:o=>(TEACHERS_MAP[o.offering_id]||[]).map(t=>t.name_zh).join('、')
+  };
   const getter = fieldMap[field]||(o=>'');
   OFFERINGS.sort((a,b)=>{ const va=getter(a),vb=getter(b); return (typeof va==='number'?(va-vb):va.localeCompare(vb,'zh'))*sortDir; });
   renderOfferings(OFFERINGS, TEACHERS_MAP);
@@ -4792,21 +4953,19 @@ async function generateBlankSyllabusDocs() {
 
   for (const c of selected) {
     try {
-      const type = c.is_digital ? 'digital' : 'general';
-      const templateBuf = await fetchSyllabusTemplate(type);
+      // 一般課程跟數位課程現在共用同一份「標準輸入範本」（數位專屬區塊老師自己依需要填，一般課程留空即可）
+      const templateBuf = await fetchSyllabusTemplate('standard_input');
       const zip = await JSZip.loadAsync(templateBuf);
       let xml = await zip.file('word/document.xml').async('string');
 
-      const hours = c.credits != null ? String(c.credits) : '';
       const replacements = {
-        '[[COURSE_CODE]]': c.code || '',
-        '[[COURSE_NAME]]': c.name_zh || '',
-        '[[COURSE_NAME_EN]]': c.name_en || '',
-        '[[CREDITS]]': c.credits != null ? String(c.credits) : '',
-        '[[HOURS]]': hours,
-        '[[DIGITAL_CHECKBOX]]': c.is_digital ? '■是 □否' : '□是 ■否',
-        '[[REQ_TYPE]]': REQ_TYPE_LABEL[c.req_type] || '',
-        '[[AUDIT_CHECKBOX]]': c.is_audit ? '■提供□ 不提供' : '□提供■ 不提供',
+        '{{COURSE_CODE}}': c.code || '',
+        '{{COURSE_NAME}}': c.name_zh || '',
+        '{{COURSE_NAME_EN}}': c.name_en || '',
+        '{{CREDITS}}': c.credits != null ? String(c.credits) : '',
+        '{{REQ_TYPE}}': REQ_TYPE_LABEL[c.req_type] || '',
+        '{{DIGITAL_CHECKBOX}}': c.is_digital ? '■是 □否' : '□是 ■否',
+        '{{AUDIT_CHECKBOX}}': c.is_audit ? '■提供□ 不提供' : '□提供■ 不提供',
       };
       for (const [key, val] of Object.entries(replacements)) {
         xml = xml.split(key).join(escapeXml(val));
@@ -4830,6 +4989,203 @@ async function generateBlankSyllabusDocs() {
 
 function escapeXml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ════ 課程大綱輸出（套版產生Word，含動態表格列） ════ */
+
+// 在 document.xml 的 DOM 裡，找到內含 markerText 的表格列(w:tr)，依 rowsData 動態複製/填值
+function fillDynamicTableRows(xmlDoc, markerText, rowsData, buildCells) {
+  const NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const trs = Array.from(xmlDoc.getElementsByTagName('w:tr'));
+  const templateTr = trs.find(tr => tr.textContent.includes(markerText));
+  if (!templateTr) return; // 範本裡找不到這個標記列，跳過不處理
+  const parent = templateTr.parentNode;
+
+  // 範本表格除了表頭（第一列）跟帶標記的那一列，其餘所有預留空白列全部先清掉，
+  // 不然填完資料後面會殘留一堆沒處理過的舊空白列
+  const allRowsInTable = Array.from(parent.getElementsByTagName('w:tr'));
+  const headerRow = allRowsInTable[0];
+  allRowsInTable.forEach(tr => {
+    if (tr !== headerRow && tr !== templateTr) parent.removeChild(tr);
+  });
+
+  // 把一格文字寫進儲存格，文字裡的 \n 換行符轉成真正的 Word <w:br/>，不是塞進同一個w:t裡面
+  function setCellText(tc, text) {
+    let p = tc.getElementsByTagName('w:p')[0];
+    if (!p) { p = xmlDoc.createElementNS(NS,'w:p'); tc.appendChild(p); }
+    // 清掉這個段落裡所有既有的 w:r（避免殘留原本標記文字的run）
+    Array.from(p.getElementsByTagName('w:r')).forEach(r => r.parentNode.removeChild(r));
+    const lines = String(text).split('\n');
+    lines.forEach((line, idx) => {
+      if (idx > 0) {
+        const brRun = xmlDoc.createElementNS(NS,'w:r');
+        brRun.appendChild(xmlDoc.createElementNS(NS,'w:br'));
+        p.appendChild(brRun);
+      }
+      const r = xmlDoc.createElementNS(NS,'w:r');
+      const t = xmlDoc.createElementNS(NS,'w:t');
+      t.setAttribute('xml:space','preserve');
+      t.textContent = line;
+      r.appendChild(t);
+      p.appendChild(r);
+    });
+  }
+
+  rowsData.forEach(item => {
+    const newTr = templateTr.cloneNode(true);
+    const tcs = Array.from(newTr.getElementsByTagName('w:tc'));
+    const cellTexts = buildCells(item);
+    tcs.forEach((tc, i) => { setCellText(tc, cellTexts[i] != null ? String(cellTexts[i]) : ''); });
+    parent.insertBefore(newTr, templateTr);
+  });
+  parent.removeChild(templateTr); // 移除原本帶標記的列本身
+}
+
+function buildCheckbox(checked, label) { return (checked?'■':'☐') + label; }
+
+async function exportFilledSyllabus(offeringId) {
+  const o = OFFERINGS.find(x=>x.offering_id===offeringId);
+  if (!o) { showToast('找不到這門開課記錄','error'); return; }
+  const { data: syl } = await sb.from('syllabi').select('*').eq('offering_id',offeringId).maybeSingle();
+  const d = syl || {};
+  const isDigital = !!o.is_digital;
+
+  const [{ data: ot }, { data: staff }] = await Promise.all([
+    sb.from('offering_teachers').select('teachers(name_zh,teacher_type)').eq('offering_id', offeringId),
+    sb.from('offering_staff').select('role').eq('offering_id', offeringId)
+  ]);
+  const teacherTypeLabel = { full_time:'專任', adjunct:'兼任', external:'兼任', guest:'兼任' };
+  const teacherNames = (ot||[]).map(t=>t.teachers?.name_zh||'?').join('、') || '（尚未指派）';
+  const teacherType = (ot||[])[0]?.teachers?.teacher_type;
+  const hasTA = (staff||[]).some(s=>s.role==='ta');
+
+  const templateFile = isDigital ? 'digital_output.docx' : 'general_output.docx';
+  const { data: signed, error: sErr } = await sb.storage.from('syllabus-templates').createSignedUrl(templateFile, 60);
+  if (sErr || !signed) { showToast('找不到輸出範本，請確認已上傳 '+templateFile+' 到 syllabus-templates','error'); return; }
+  const templateBuf = await (await fetch(signed.signedUrl)).arrayBuffer();
+  const zip = await JSZip.loadAsync(templateBuf);
+  const xmlStr = await zip.file('word/document.xml').async('string');
+  const xmlDoc = new DOMParser().parseFromString(xmlStr, 'application/xml');
+
+  // 動態表格：評量方式 / 教學進度
+  const assessment = d.assessment || [];
+  fillDynamicTableRows(xmlDoc, 'ASSESSMENT_ROWS', assessment, item => [item.name||'', item.pct!=null?String(item.pct):'', item.desc||'']);
+
+  const weeksWithData = (d.weeks||[]).filter(w=>w.title||w.content);
+  fillDynamicTableRows(xmlDoc, 'WEEKS_ROWS', weeksWithData, w => [String(w.week), w.title||'', w.content||'']);
+
+  // 序列化回字串，接著做一般文字置換
+  let xml = new XMLSerializer().serializeToString(xmlDoc);
+
+  // Word的文字節點裡 \n 不會變成換行，必須塞真正的 <w:br/> 標記才會換行；
+  // 這裡先把每一項分別escape，再用 <w:br/> 接起來（不能整段交給最後迴圈再escape，否則<w:br/>會被跟著轉成文字）
+  const joinBr = (items) => items.map(escapeXml).join('<w:br/>');
+
+  const objectives = joinBr((d.objectives||[]).map((o,i)=>`${i+1}. ${o.text||o}`));
+  const methods = joinBr((d.methods||[]).map((m,i)=>`${i+1}. ${m.text||m}`));
+  const bibReq = joinBr((d.bibliography?.required||[]).map((b,i)=>`${i+1}. ${b}`));
+  const bibOpt = joinBr((d.bibliography?.optional||[]).map((b,i)=>`${i+1}. ${b}`));
+
+  // raw：值本身已經escape好、可能含真正的<w:br/>標記，最後置換時不能再escape一次
+  let rawReplacements = {
+    '{{COURSE_NAME}}': escapeXml(o.name_zh||''), '{{COURSE_CODE}}': escapeXml(o.code||''), '{{COURSE_NAME_EN}}': escapeXml(o.name_en||''),
+    '{{REQ_TYPE}}': escapeXml(REQ_LABEL[o.req_type]||o.req_type||''),
+    '{{CREDITS}}': escapeXml(o.credits!=null?String(o.credits):''),
+    '{{DIGITAL_CHECKBOX}}': escapeXml(buildCheckbox(isDigital,'是')+' '+buildCheckbox(!isDigital,'否')),
+    '{{AUDIT_CHECKBOX}}': escapeXml(o.is_audit ? '■提供□ 不提供' : '□提供■ 不提供'),
+    '{{COHORT_NOTE}}': escapeXml(d.cohort_note||''), '{{PREREQUISITE_NOTE}}': escapeXml(d.prerequisite_note||''),
+    '{{OVERVIEW}}': escapeXml(d.overview_zh||''), '{{OBJECTIVES}}': objectives, '{{METHODS}}': methods,
+    '{{BIB_REQUIRED}}': bibReq, '{{BIB_OPTIONAL}}': bibOpt, '{{NOTES}}': escapeXml(d.notes||'')
+  };
+
+  if (isDigital) {
+    const di = d.digital_info || {};
+    const weekModeCount = {inperson:0,async:0,sync:0};
+    (d.weeks||[]).forEach(w=>{ if(w.mode && weekModeCount[w.mode]!==undefined) weekModeCount[w.mode]++; });
+    const autoMode = Object.entries(weekModeCount).sort((a,b)=>b[1]-a[1])[0][0];
+    const hb = di.hours_breakdown||{};
+    const weeksSummaryItems = (d.weeks||[]).filter(w=>w.title||w.content)
+      .map(w=>`第${w.week}週｜主題：${w.title||''}｜說明：${w.content||''}`);
+
+    const im = di.interaction_methods||{};
+    const interactionLines = ['教學平臺討論區'];
+    if (im.office_hours) interactionLines.push('教師辦公室時間：'+im.office_hours);
+    if (im.email) interactionLines.push('教師電子信箱：'+im.email);
+    if (im.ext) interactionLines.push('教師校內分機：'+im.ext);
+    if (im.group) interactionLines.push('開課社群群組：'+im.group);
+    if (im.other) interactionLines.push('其他：'+im.other);
+
+    const am = di.assignment_methods||{};
+    const assignmentOpts = [];
+    if (am.online_intro) assignmentOpts.push('提供線上說明作業內容');
+    if (am.online_realtime) assignmentOpts.push('線上即時作業填答');
+    if (am.file_upload) assignmentOpts.push('作業檔案上傳及下載');
+    if (am.online_quiz) assignmentOpts.push('線上測驗');
+    if (am.grade_query) assignmentOpts.push('成績查詢');
+    if (am.other) assignmentOpts.push('其他：'+am.other);
+    if (!assignmentOpts.length) assignmentOpts.push('（未勾選任何選項）');
+
+    const assessmentItems = assessment.map(a=>`${a.name||''}（${a.pct!=null?a.pct:0}%）${a.desc?'　'+a.desc:''}`);
+    const override = di.ta_needed_override;
+    const finalTA = override==='yes' ? true : override==='no' ? false : hasTA;
+
+    Object.assign(rawReplacements, {
+      '{{ACADEMIC_YEAR}}': escapeXml(o.academic_year!=null?String(o.academic_year):''),
+      '{{SEMESTER_CHECKBOX}}': escapeXml(buildCheckbox(o.semester_num===1,'上學期')+'  '+buildCheckbox(o.semester_num===2,'下學期')+'  ☐其他：'),
+      '{{FIRST_APPLICATION_CHECKBOX}}': escapeXml(buildCheckbox(!!di.is_first_application,'是')+'  '+buildCheckbox(!di.is_first_application,'否')),
+      '{{REQ_TYPE_CHECKBOX}}': escapeXml(buildCheckbox(o.req_type==='req','必修')+'  '+buildCheckbox(o.req_type==='sel'||o.req_type==='go','選修')+'  ☐其他：'),
+      '{{TEACHER_NAME}}': escapeXml(teacherNames),
+      '{{TEACHER_TYPE_CHECKBOX}}': escapeXml(buildCheckbox(teacherType==='full_time','專任')+'  '+buildCheckbox(teacherType&&teacherType!=='full_time','兼任')+'  ☐其他：'),
+      '{{TEACHING_MODE_CHECKBOX}}': joinBr([
+        buildCheckbox(autoMode==='async'||weekModeCount.inperson+weekModeCount.async+weekModeCount.sync===0,'非同步遠距教學'),
+        buildCheckbox(autoMode==='sync','同步遠距教學')
+      ]),
+      '{{PROGRAM_LEVEL_CHECKBOX}}': escapeXml(buildCheckbox((di.program_level||[]).includes('masters'),'碩士班')+'  '+buildCheckbox((di.program_level||[]).includes('masters_inservice'),'碩士在職專班')),
+      '{{MAX_STUDENTS}}': escapeXml(o.max_students!=null?String(o.max_students):''),
+      '{{FULL_ENGLISH_CHECKBOX}}': escapeXml(buildCheckbox(!!di.full_english,'是')+'  '+buildCheckbox(!di.full_english,'否')),
+      '{{ASYNC_PLATFORM_URL}}': escapeXml(di.async_platform_url||''),
+      '{{SYNC_PLATFORM_CHECKBOX}}': joinBr([
+        buildCheckbox(di.sync_platform==='teams','Microsoft Teams'),
+        buildCheckbox(di.sync_platform==='meet','Google Meet'),
+        buildCheckbox(di.sync_platform==='other','其他：'+(di.sync_platform_other||'')),
+        buildCheckbox(!di.sync_platform,'本學期無同步遠距教學規劃')
+      ]),
+      '{{PLAN_FILE_URL}}': escapeXml(di.plan_file_url||''),
+      '{{TA_NEEDED_CHECKBOX}}': escapeXml(buildCheckbox(finalTA,'是')+'  '+buildCheckbox(!finalTA,'否')),
+      '{{OVERVIEW}}': escapeXml(d.overview_zh||''),
+      '{{COHORT_AND_PREREQ}}': joinBr([d.cohort_note,d.prerequisite_note].filter(Boolean)),
+      '{{WEEKS_SUMMARY}}': joinBr(weeksSummaryItems),
+      '{{HOURS_INPERSON_CHECKBOX}}': escapeXml(buildCheckbox((hb.inperson_weeks||0)>0,'')),
+      '{{HOURS_INPERSON_WEEKS}}': escapeXml(hb.inperson_weeks?String(hb.inperson_weeks):''),
+      '{{HOURS_INPERSON_HOURS}}': escapeXml(hb.inperson_hours?String(hb.inperson_hours):''),
+      '{{HOURS_ASYNC_CHECKBOX}}': escapeXml(buildCheckbox((hb.async_weeks||0)>0,'')),
+      '{{HOURS_ASYNC_WEEKS}}': escapeXml(hb.async_weeks?String(hb.async_weeks):''),
+      '{{HOURS_ASYNC_HOURS}}': escapeXml(hb.async_hours?String(hb.async_hours):''),
+      '{{HOURS_SYNC_CHECKBOX}}': escapeXml(buildCheckbox((hb.sync_weeks||0)>0,'')),
+      '{{HOURS_SYNC_WEEKS}}': escapeXml(hb.sync_weeks?String(hb.sync_weeks):''),
+      '{{HOURS_SYNC_HOURS}}': escapeXml(hb.sync_hours?String(hb.sync_hours):''),
+      '{{HOURS_OTHER}}': '',
+      '{{BIBLIOGRAPHY}}': [bibReq,bibOpt].filter(Boolean).join('<w:br/>'),
+      '{{INTERACTION_METHODS}}': joinBr(interactionLines),
+      '{{ASSIGNMENT_METHODS}}': joinBr(assignmentOpts),
+      '{{ASSESSMENT}}': joinBr(assessmentItems),
+      '{{NOTES_SUPPLEMENT}}': escapeXml(di.notes_supplement||'')
+    });
+  }
+
+  for (const [key, val] of Object.entries(rawReplacements)) {
+    xml = xml.split(key).join(val);
+  }
+  zip.file('word/document.xml', xml);
+
+  const blob = await zip.generateAsync({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const fileName = `${o.semester_label}_${o.code}${o.name_zh}課程大綱.docx`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('✅ 已下載：'+fileName);
 }
 
 async function printAttendanceSheet(meetingId) {
@@ -5459,6 +5815,7 @@ async function openSyllabus(offeringId, name, code) {
   document.getElementById('sy-title').textContent=name;
   document.getElementById('sy-subtitle').textContent=code;
   const c = OFFERINGS.find(o=>o.offering_id===offeringId);
+  SY.is_digital = !!(c && c.is_digital);
   if (c) {
     document.getElementById('sy-code').textContent=c.code||'';
     document.getElementById('sy-name-zh').textContent=c.name_zh||'';
@@ -5466,12 +5823,34 @@ async function openSyllabus(offeringId, name, code) {
     document.getElementById('sy-credits').textContent=(c.credits||'')+' 學分';
     document.getElementById('sy-req').textContent=REQ_LABEL[c.req_type]||c.req_type||'';
   }
+  document.getElementById('sy-digital-section').style.display = SY.is_digital ? '' : 'none';
+  document.getElementById('sy-wk-mode-hdr').style.display = SY.is_digital ? '' : 'none';
+
   const { data } = await sb.from('syllabi').select('*').eq('offering_id',offeringId).maybeSingle();
   SY.data = data || { overview_zh:'', objectives:[], methods:[], assessment:[],
-    weeks:Array.from({length:16},(_,i)=>({week:i+1,title:'',teacher:'',items:[]})),
-    bibliography:{required:[],optional:[]}, notes:'' };
+    weeks:Array.from({length:16},(_,i)=>({week:i+1,title:'',teacher:'',content:'',mode:''})),
+    bibliography:{required:[],optional:[]}, notes:'', cohort_note:'', prerequisite_note:'', digital_info:{} };
   renderSyllabus();
   document.getElementById('sy-save-msg').textContent=data?'已有存檔':'尚未儲存';
+
+  if (SY.is_digital) await loadDigitalBasicInfo(offeringId);
+}
+
+// 數位課程「基礎資料」自動帶入區塊（不存進digital_info，即時讀取顯示）
+async function loadDigitalBasicInfo(offeringId) {
+  const [{ data: ot }, { data: staff }] = await Promise.all([
+    sb.from('offering_teachers').select('teachers(name_zh,teacher_type)').eq('offering_id', offeringId),
+    sb.from('offering_staff').select('role').eq('offering_id', offeringId)
+  ]);
+  const teacherTypeLabel = { full_time:'專任', adjunct:'兼任', external:'兼任', guest:'兼任' };
+  const teacherStr = (ot||[]).map(t => `${t.teachers?.name_zh||'?'}(${teacherTypeLabel[t.teachers?.teacher_type]||'兼任'})`).join('、') || '（尚未指派授課教師）';
+  document.getElementById('sy-d-teachers').textContent = teacherStr;
+
+  const o = OFFERINGS.find(x=>x.offering_id===offeringId);
+  document.getElementById('sy-d-maxstudents').textContent = (o && o.max_students) ? o.max_students+' 人' : '（未設定）';
+
+  const hasTA = (staff||[]).some(s=>s.role==='ta');
+  document.getElementById('sy-d-ta-auto').textContent = hasTA ? '是（已指派TA）' : '否';
 }
 
 function closeSyllabus() { document.getElementById('syllabus-modal').style.display='none'; document.body.style.overflow=''; }
@@ -5483,7 +5862,87 @@ function renderSyllabus() {
   const d=SY.data;
   document.getElementById('sy-overview').value=d.overview_zh||'';
   document.getElementById('sy-notes').value=d.notes||'';
+  document.getElementById('sy-cohort-note').value=d.cohort_note||'';
+  document.getElementById('sy-prereq-note').value=d.prerequisite_note||'';
   renderObjs(); renderMths(); renderAsmnt(); renderWeeks(); renderBib();
+  if (SY.is_digital) renderDigitalInfo();
+}
+
+function renderDigitalInfo() {
+  const di = SY.data.digital_info || {};
+  document.getElementById('sy-d-ta-override').value = di.ta_needed_override || '';
+  document.getElementById('sy-d-first').value = di.is_first_application ? 'true':'false';
+  document.getElementById('sy-d-english').value = di.full_english ? 'true':'false';
+  document.getElementById('sy-d-prog-masters').checked = (di.program_level||[]).includes('masters');
+  document.getElementById('sy-d-prog-inservice').checked = (di.program_level||[]).includes('masters_inservice');
+  document.getElementById('sy-d-async-url').value = di.async_platform_url || '本校遠距教學平臺：數位學習平臺（https://elearn.fgu.edu.tw/mooc/index.php）';
+  document.getElementById('sy-d-sync-platform').value = di.sync_platform || '';
+  document.getElementById('sy-d-sync-other').value = (di.sync_platform_other)||'';
+  document.getElementById('sy-d-sync-other-wrap').style.display = di.sync_platform==='other' ? '' : 'none';
+  document.getElementById('sy-d-plan-url').value = di.plan_file_url || '';
+  const im = di.interaction_methods || {};
+  document.getElementById('sy-d-im-board').checked = im.discussion_board !== false;
+  document.getElementById('sy-d-im-office').value = im.office_hours || '';
+  document.getElementById('sy-d-im-email').value = im.email || '';
+  document.getElementById('sy-d-im-ext').value = im.ext || '';
+  document.getElementById('sy-d-im-group').value = im.group || '';
+  document.getElementById('sy-d-im-other').value = im.other || '';
+  const am = di.assignment_methods || {};
+  document.getElementById('sy-d-am-intro').checked = !!am.online_intro;
+  document.getElementById('sy-d-am-realtime').checked = !!am.online_realtime;
+  document.getElementById('sy-d-am-upload').checked = !!am.file_upload;
+  document.getElementById('sy-d-am-quiz').checked = !!am.online_quiz;
+  document.getElementById('sy-d-am-grade').checked = !!am.grade_query;
+  document.getElementById('sy-d-am-other').value = am.other || '';
+  const hb = di.hours_breakdown || {};
+  document.getElementById('sy-d-h-inperson-w').value = hb.inperson_weeks || '';
+  document.getElementById('sy-d-h-inperson-h').value = hb.inperson_hours || '';
+  document.getElementById('sy-d-h-async-w').value = hb.async_weeks || '';
+  document.getElementById('sy-d-h-async-h').value = hb.async_hours || '';
+  document.getElementById('sy-d-h-sync-w').value = hb.sync_weeks || '';
+  document.getElementById('sy-d-h-sync-h').value = hb.sync_hours || '';
+  document.getElementById('sy-d-notes-supp').value = di.notes_supplement || '';
+}
+
+function collectDigitalInfo() {
+  return {
+    ta_needed_override: document.getElementById('sy-d-ta-override').value,
+    is_first_application: document.getElementById('sy-d-first').value==='true',
+    full_english: document.getElementById('sy-d-english').value==='true',
+    program_level: [
+      ...(document.getElementById('sy-d-prog-masters').checked?['masters']:[]),
+      ...(document.getElementById('sy-d-prog-inservice').checked?['masters_inservice']:[])
+    ],
+    async_platform_url: document.getElementById('sy-d-async-url').value,
+    sync_platform: document.getElementById('sy-d-sync-platform').value,
+    sync_platform_other: document.getElementById('sy-d-sync-other').value,
+    plan_file_url: document.getElementById('sy-d-plan-url').value,
+    interaction_methods: {
+      discussion_board: document.getElementById('sy-d-im-board').checked,
+      office_hours: document.getElementById('sy-d-im-office').value,
+      email: document.getElementById('sy-d-im-email').value,
+      ext: document.getElementById('sy-d-im-ext').value,
+      group: document.getElementById('sy-d-im-group').value,
+      other: document.getElementById('sy-d-im-other').value
+    },
+    assignment_methods: {
+      online_intro: document.getElementById('sy-d-am-intro').checked,
+      online_realtime: document.getElementById('sy-d-am-realtime').checked,
+      file_upload: document.getElementById('sy-d-am-upload').checked,
+      online_quiz: document.getElementById('sy-d-am-quiz').checked,
+      grade_query: document.getElementById('sy-d-am-grade').checked,
+      other: document.getElementById('sy-d-am-other').value
+    },
+    hours_breakdown: {
+      inperson_weeks: +document.getElementById('sy-d-h-inperson-w').value||0,
+      inperson_hours: +document.getElementById('sy-d-h-inperson-h').value||0,
+      async_weeks: +document.getElementById('sy-d-h-async-w').value||0,
+      async_hours: +document.getElementById('sy-d-h-async-h').value||0,
+      sync_weeks: +document.getElementById('sy-d-h-sync-w').value||0,
+      sync_hours: +document.getElementById('sy-d-h-sync-h').value||0
+    },
+    notes_supplement: document.getElementById('sy-d-notes-supp').value
+  };
 }
 function renderObjs() {
   document.getElementById('sy-obj-list').innerHTML=(SY.data.objectives||[]).map((o,i)=>
@@ -5516,21 +5975,49 @@ function updatePctTotal() {
   const el=document.getElementById('sy-pct-total');
   el.textContent=total+'%'; el.style.background=total===100?'#E8F5E9':'#FFEBEE'; el.style.color=total===100?'#1B5E20':'#B71C1C';
 }
+const WEEK_MODE_LABEL = {inperson:'實體', async:'非同步', sync:'同步'};
 function renderWeeks() {
+  const isDig = SY.is_digital;
   document.getElementById('sy-wk-list').innerHTML=(SY.data.weeks||[]).map((w,i)=>
     `<div class="week-row">
-      <div style="display:grid;grid-template-columns:48px 1fr 140px 28px;gap:8px;align-items:center">
+      <div style="display:grid;grid-template-columns:48px 1fr 140px ${isDig?'110px':'0px'} 28px;gap:8px;align-items:center">
         <div style="font-size:12px;font-weight:500;color:var(--navy);text-align:center">第${w.week}週</div>
         <input class="finput" value="${(w.title||'').replace(/"/g,'&quot;')}" placeholder="本週主題" oninput="SY.data.weeks[${i}].title=this.value" style="font-size:12.5px">
         <input class="finput" value="${(w.teacher||'').replace(/"/g,'&quot;')}" placeholder="授課教師" oninput="SY.data.weeks[${i}].teacher=this.value" style="font-size:12.5px">
+        ${isDig ? `<select class="fselect" style="font-size:12px" onchange="SY.data.weeks[${i}].mode=this.value;updateWeekModeSummary()">
+          <option value="" ${!w.mode?'selected':''}>—</option>
+          <option value="inperson" ${w.mode==='inperson'?'selected':''}>實體</option>
+          <option value="async" ${w.mode==='async'?'selected':''}>非同步</option>
+          <option value="sync" ${w.mode==='sync'?'selected':''}>同步</option>
+        </select>` : ''}
         <button class="week-expand" onclick="toggleWeekDetail(${i})">＋</button>
       </div>
       <div class="week-detail" id="wk-detail-${i}">
         <textarea class="finput" rows="2" placeholder="本週內容說明…" style="width:100%;margin-top:6px;font-size:12.5px;resize:vertical" oninput="SY.data.weeks[${i}].content=this.value">${(w.content||'')}</textarea>
       </div>
     </div>`).join('');
+  if (isDig) updateWeekModeSummary();
 }
-function addWeek() { const n=(SY.data.weeks||[]).length+1; SY.data.weeks.push({week:n,title:'',teacher:'',content:''}); renderWeeks(); }
+
+// 依每週mode統計多數決，算出整門課的教學型態歸屬（不可手動覆寫，依教育部規則：依實施週數最高者歸屬之）
+function updateWeekModeSummary() {
+  const weeks = SY.data.weeks||[];
+  const counts = {inperson:0, async:0, sync:0};
+  weeks.forEach(w => { if (w.mode && counts[w.mode]!==undefined) counts[w.mode]++; });
+  const filled = counts.inperson+counts.async+counts.sync;
+  let label = '（尚未填寫任何週次的教學型態）';
+  let autoMode = '';
+  if (filled > 0) {
+    autoMode = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+    label = `實體${counts.inperson}週／非同步${counts.async}週／同步${counts.sync}週　→　歸屬：${WEEK_MODE_LABEL[autoMode]}`;
+  }
+  SY.data._auto_teaching_mode = autoMode;
+  const summaryEl = document.getElementById('sy-wk-mode-summary');
+  if (summaryEl) summaryEl.textContent = label;
+  const dEl = document.getElementById('sy-d-mode-auto');
+  if (dEl) dEl.textContent = autoMode ? WEEK_MODE_LABEL[autoMode] : '（尚未統計出結果）';
+}
+function addWeek() { const n=(SY.data.weeks||[]).length+1; SY.data.weeks.push({week:n,title:'',teacher:'',content:'',mode:''}); renderWeeks(); }
 function toggleWeekDetail(i) {
   const el=document.getElementById('wk-detail-'+i),open=el.style.display==='block';
   el.style.display=open?'none':'block';
@@ -5559,15 +6046,413 @@ async function saveSyllabus() {
   const payload = {
     offering_id: SY.offering_id,
     overview_zh: document.getElementById('sy-overview').value,
+    cohort_note: document.getElementById('sy-cohort-note').value,
+    prerequisite_note: document.getElementById('sy-prereq-note').value,
     objectives: SY.data.objectives||[], methods: SY.data.methods||[],
     assessment: SY.data.assessment||[], weeks: SY.data.weeks||[],
     bibliography: SY.data.bibliography||{required:[],optional:[]},
     notes: document.getElementById('sy-notes').value,
+    digital_info: SY.is_digital ? collectDigitalInfo() : (SY.data.digital_info||{}),
     updated_at: new Date().toISOString()
   };
   const { error } = await sb.from('syllabi').upsert(payload,{onConflict:'offering_id'});
-  if (error) { showToast('儲存失敗：'+error.message,'error'); }
-  else { showToast('✅ 課程大綱已儲存'); document.getElementById('sy-save-msg').textContent='已儲存 '+new Date().toLocaleTimeString('zh-TW'); }
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  showToast('✅ 課程大綱已儲存');
+  document.getElementById('sy-save-msg').textContent='已儲存 '+new Date().toLocaleTimeString('zh-TW');
+  // 如果是從「匯入大綱」流程進來的，存檔成功後自動繼續處理佇列裡的下一份檔案
+  if (SYIMP.queue && SYIMP.queue.length && SYIMP.curIdx > -1 && SYIMP.curIdx < SYIMP.queue.length) {
+    closeSyllabus();
+    if (SYIMP.mode === 'auto') {
+      await advanceAutoImportQueue();
+    } else {
+      document.getElementById('syimp-modal').classList.add('show');
+      document.getElementById('syimp-step-pick').style.display='none';
+      document.getElementById('syimp-step-drag').style.display='';
+      await processNextSyllabusImportFile();
+    }
+  }
+}
+
+/* ════ 課程大綱匯入（拖拉式，從Word檔解析） ════ */
+let SYIMP = { mode:'drag', queue:[], curIdx:-1, sources:[], targets:{} };
+
+const SYIMP_TARGET_DEFS = [
+  {key:'cohort', label:'🎓 課程對象'},
+  {key:'prereq', label:'🎓 先備能力/知識/技能'},
+  {key:'overview', label:'📝 課程概述'},
+  {key:'objectives', label:'🎯 教學目標'},
+  {key:'methods', label:'🔧 教學方法'},
+  {key:'assessment', label:'📊 評量方式'},
+  ...Array.from({length:16},(_,i)=>({key:'week'+(i+1), label:`📅 第${i+1}週`})),
+  {key:'bib_req', label:'📚 參考書目（必讀）'},
+  {key:'bib_opt', label:'📚 參考書目（參考）'},
+  {key:'notes', label:'💬 備註'}
+];
+
+async function downloadStandardSyllabusTemplate() {
+  const { data, error } = await sb.storage.from('syllabus-templates').createSignedUrl('standard_input.docx', 60);
+  if (error || !data) { showToast('找不到範本檔案，請確認已上傳 standard_input.docx 到 syllabus-templates 這個Storage bucket','error'); return; }
+  const a = document.createElement('a');
+  a.href = data.signedUrl; a.download = '課程大綱標準輸入範本.docx';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+function openSyllabusAutoImportModal() {
+  SYIMP = { mode:'auto', queue:[], curIdx:-1, sources:[], targets:{} };
+  document.getElementById('syimp-title').textContent = '匯入課程大綱（標準範本，自動解析）';
+  document.getElementById('syimp-step-pick').style.display='';
+  document.getElementById('syimp-step-drag').style.display='none';
+  document.getElementById('syimp-queue-list').innerHTML='';
+  document.getElementById('syimp-file-input').value='';
+  document.getElementById('syimp-modal').classList.add('show');
+}
+
+function startSyllabusImportQueue() {
+  const files = Array.from(document.getElementById('syimp-file-input').files||[]);
+  if (!files.length) { showToast('請先選擇檔案','error'); return; }
+  SYIMP.queue = files.map(f=>{
+    const m = f.name.match(/[A-Za-z]{2}\d{4,5}/);
+    const code = m ? m[0].toUpperCase() : null;
+    const offering = code ? OFFERINGS.find(o=>o.code===code) : null;
+    return { file:f, offering };
+  }).filter(q=>q.offering);
+  if (!SYIMP.queue.length) { showToast('沒有任何檔案能比對到課程，請確認檔名','error'); return; }
+  SYIMP.curIdx = -1;
+  if (SYIMP.mode === 'auto') {
+    advanceAutoImportQueue();
+  } else {
+    document.getElementById('syimp-step-pick').style.display='none';
+    document.getElementById('syimp-step-drag').style.display='';
+    processNextSyllabusImportFile();
+  }
+}
+
+async function advanceAutoImportQueue() {
+  SYIMP.curIdx++;
+  if (SYIMP.curIdx >= SYIMP.queue.length) {
+    showToast('✅ 這批檔案都解析完了');
+    closeModal('syimp-modal');
+    return;
+  }
+  const { file, offering } = SYIMP.queue[SYIMP.curIdx];
+  SYIMP.curOffering = offering;
+  let parsed;
+  try {
+    const buf = await file.arrayBuffer();
+    parsed = await parseStandardSyllabusDocx(buf, !!offering.is_digital);
+  } catch (e) {
+    showToast(`解析「${file.name}」失敗：${e.message}，跳到下一份`,'error');
+    advanceAutoImportQueue();
+    return;
+  }
+  SY.offering_id = offering.offering_id;
+  SY.is_digital = !!offering.is_digital;
+  SY.data = parsed;
+
+  document.getElementById('syllabus-modal').style.display='block';
+  document.body.style.overflow='hidden';
+  document.getElementById('sy-title').textContent = offering.name_zh;
+  document.getElementById('sy-subtitle').textContent = offering.code;
+  document.getElementById('sy-code').textContent = offering.code||'';
+  document.getElementById('sy-name-zh').textContent = offering.name_zh||'';
+  document.getElementById('sy-name-en').textContent = offering.name_en||'—';
+  document.getElementById('sy-credits').textContent = (offering.credits||'')+' 學分';
+  document.getElementById('sy-req').textContent = REQ_LABEL[offering.req_type]||offering.req_type||'';
+  document.getElementById('sy-digital-section').style.display = SY.is_digital ? '' : 'none';
+  document.getElementById('sy-wk-mode-hdr').style.display = SY.is_digital ? '' : 'none';
+  renderSyllabus();
+  document.getElementById('sy-save-msg').textContent = `⚠️ 自動解析結果（第${SYIMP.curIdx+1}/${SYIMP.queue.length}份），請檢查後按「儲存大綱」`;
+  closeModal('syimp-modal');
+  if (SY.is_digital) await loadDigitalBasicInfo(offering.offering_id);
+}
+
+// 讀「標準範本」：靠 Heading 1 切區塊、讀表格逐列取值，準確度遠高於拖拉版
+async function parseStandardSyllabusDocx(arrayBuffer, isDigital) {
+  const result = await mammoth.convertToHtml({ arrayBuffer });
+  const wrap = document.createElement('div');
+  wrap.innerHTML = result.value;
+  // 修正：Word段落內的手動換行(Shift+Enter)被mammoth轉成<br>標籤，但.textContent抓字時<br>會直接消失、
+  // 不會補上換行符，導致前後兩行文字黏在一起。這裡先把所有<br>換成真正的換行字元，後面所有textContent判斷才會正確。
+  Array.from(wrap.querySelectorAll('br')).forEach(br => br.replaceWith(document.createTextNode('\n')));
+
+  // 依 H1 切成 {標題: [內容元素...]}
+  const sections = {};
+  let curKey = null;
+  Array.from(wrap.children).forEach(el => {
+    if (el.tagName === 'H1') {
+      curKey = el.textContent.trim().split('（')[0].trim(); // 去掉「(只有數位課程需要填寫...)」這類括號說明
+      sections[curKey] = [];
+    } else if (curKey) {
+      sections[curKey].push(el);
+    }
+  });
+
+  const getText = (key) => (sections[key]||[]).filter(el=>el.tagName!=='TABLE').map(el=>el.textContent.trim()).filter(Boolean).join('\n');
+  const getListItems = (key) => (sections[key]||[]).filter(el=>el.tagName!=='TABLE').map(el=>el.textContent.replace(/^\d+[.、]\s*/,'').trim()).filter(Boolean);
+
+  // 改成全文件掃描所有表格，依表頭內容判斷是哪張表（不依賴標題分段，更耐受文件格式差異）
+  const allTables = Array.from(wrap.querySelectorAll('table')).map(t=>
+    Array.from(t.querySelectorAll('tr')).map(tr=>Array.from(tr.querySelectorAll('td,th')).map(td=>td.textContent.trim()))
+  );
+  const findTableByHeader = (mustInclude) => allTables.find(rows => rows[0] && mustInclude.every(kw => rows[0].some(c=>c.includes(kw)))) || [];
+
+  // 課程基本資訊：用正則抓「*課程對象：xxx」「*先備能力...：xxx」
+  const basicText = getText('課程基本資訊');
+  const reField = (label) => { const m = basicText.match(new RegExp(label+'[：:]\\s*(.*)')); return m ? m[1].trim() : ''; };
+  const cohort_note = reField('課程對象');
+  const prerequisite_note = reField('先備能力[\\/／]知識[\\/／]技能').replace(/（無則留空）$/,'').trim();
+
+  // 評量方式表格（依表頭「項目」「比例」判斷，跳過表頭列）
+  const asmntRows = findTableByHeader(['項目','比例']).slice(1).filter(r=>r.some(c=>c));
+  const assessment = asmntRows.map(r=>({ name:r[0]||'', pct:parseFloat(r[1])||0, desc:r[2]||'' }));
+
+  // 教學進度表格（依表頭「週次」「主題」判斷，跳過表頭列）
+  const weekRows = findTableByHeader(['週次','主題']).slice(1);
+  const matchMode = (txt) => {
+    const t = (txt||'').trim();
+    if (!t) return '';
+    if (t === '非同步') return 'async';
+    if (t === '同步') return 'sync';
+    if (t.includes('實體')) return 'inperson';
+    return '';
+  };
+  const weeks = weekRows.map((r,i)=>{
+    const weekNum = parseInt(r[0]) || (i+1);
+    return { week:weekNum, title:r[1]||'', teacher:'', content:r[2]||'', mode: matchMode(r[3]) };
+  });
+  while (weeks.length < 16) weeks.push({week:weeks.length+1,title:'',teacher:'',content:'',mode:''});
+
+  // 參考書目：用 H3「必讀」「參考」切
+  let bibReq=[], bibOpt=[];
+  const bibSection = sections['參考書目']||[];
+  let bibMode = null;
+  bibSection.forEach(el=>{
+    if (el.tagName==='H3') { bibMode = el.textContent.trim()==='必讀'?'req':(el.textContent.trim()==='參考'?'opt':null); }
+    else if (bibMode && el.textContent.trim()) {
+      const txt = el.textContent.replace(/^\d+[.、]\s*/,'').trim();
+      if (txt.startsWith('※')) return;
+      if (bibMode==='req') bibReq.push(txt); else bibOpt.push(txt);
+    }
+  });
+
+  const data = {
+    overview_zh: getText('課程概述').replace(/^（請填寫.*）$/,'').trim(),
+    cohort_note, prerequisite_note,
+    objectives: getListItems('教學目標').map(t=>({text:t})),
+    methods: getListItems('教學方法').map(t=>({text:t})),
+    assessment, weeks,
+    bibliography: { required:bibReq, optional:bibOpt },
+    notes: getText('備註').replace(/^（選填）$/,'').trim(),
+    digital_info: {}
+  };
+
+  if (isDigital) {
+    // 數位課程申請書資訊這張表格本身沒有「欄位/內容」表頭列（第一列就是第一筆資料），
+    // 不能再靠「找表頭」去定位表格，改成把全文件所有表格的每一列都攤平掃一次，
+    // 直接比對標籤文字（其他表格如評量方式/教學進度的列，標籤對不上這12個key，不會誤蓋到）
+    const digRows = allTables.flatMap(rows => rows);
+    const map = {};
+    digRows.forEach(r=>{ if(r[0]) map[r[0].trim()] = (r[1]||'').trim(); });
+    const yn = (label) => { const v=map[label]||''; return /是/.test(v) && !/否/.test(v); };
+    const v = (label) => map[label]||'';
+    data.digital_info = {
+      is_first_application: yn('是否第一次申請開設遠距教學課程'),
+      full_english: yn('全英語教學'),
+      program_level: [
+        ...(/碩士班/.test(v('課程學制（可填多個）'))?['masters']:[]),
+        ...(/在職/.test(v('課程學制（可填多個）'))?['masters_inservice']:[])
+      ],
+      async_platform_url: v('非同步線上平台網址'),
+      sync_platform: /Teams/i.test(v('同步線上教學系統'))?'teams' : /Meet/i.test(v('同步線上教學系統'))?'meet' : (v('同步線上教學系統')&&!/本學期無/.test(v('同步線上教學系統'))?'other':''),
+      sync_platform_other: '',
+      plan_file_url: v('教學計畫檔案連結網址'),
+      interaction_methods: (() => {
+        const raw = v('師生互動討論方式');
+        const otherM = raw.match(/其他（?請說明）?[：:]\s*(.+)/);
+        return {
+          discussion_board:/討論區/.test(raw),
+          office_hours: (raw.match(/教師辦公室時間[：:]\s*([^\n]+)/)||[])[1] || '',
+          email: (raw.match(/教師電子信箱[：:]\s*([^\n]+)/)||[])[1] || '',
+          ext: (raw.match(/教師校內分機[：:]\s*([^\n]+)/)||[])[1] || '',
+          group: (raw.match(/開課社群群組[：:]\s*([^\n]+)/)||[])[1] || '',
+          other: otherM ? otherM[1].trim() : ''
+        };
+      })(),
+      assignment_methods: (() => {
+        const raw = v('作業繳交方式（可填多個）');
+        const otherM = raw.match(/其他做法\s*[（(]?請說明[）)]?\s*[：:]?\s*(.+)/);
+        return {
+          online_intro:/線上說明/.test(raw), online_realtime:/即時/.test(raw),
+          file_upload:/上傳/.test(raw), online_quiz:/測驗/.test(raw),
+          grade_query:/成績查詢/.test(raw), other: otherM ? otherM[1].trim() : ''
+        };
+      })(),
+      hours_breakdown: {
+        inperson_weeks: parseFloat((v('教學時數拆分-實體（週數/總時數）')||'').split('/')[0])||0,
+        inperson_hours: parseFloat((v('教學時數拆分-實體（週數/總時數）')||'').split('/')[1])||0,
+        async_weeks: parseFloat((v('教學時數拆分-非同步（週數/總時數）')||'').split('/')[0])||0,
+        async_hours: parseFloat((v('教學時數拆分-非同步（週數/總時數）')||'').split('/')[1])||0,
+        sync_weeks: parseFloat((v('教學時數拆分-同步（週數/總時數）')||'').split('/')[0])||0,
+        sync_hours: parseFloat((v('教學時數拆分-同步（週數/總時數）')||'').split('/')[1])||0
+      },
+      notes_supplement: v('修課注意事項或其他補充')
+    };
+  }
+  return data;
+}
+
+function openSyllabusImportModal() {
+  SYIMP = { mode:'drag', queue:[], curIdx:-1, sources:[], targets:{} };
+  document.getElementById('syimp-title').textContent = '匯入課程大綱（拖拉/舊格式）';
+  document.getElementById('syimp-step-pick').style.display='';
+  document.getElementById('syimp-step-drag').style.display='none';
+  document.getElementById('syimp-queue-list').innerHTML='';
+  document.getElementById('syimp-file-input').value='';
+  document.getElementById('syimp-modal').classList.add('show');
+}
+
+document.addEventListener('change', (e)=>{
+  if (e.target && e.target.id==='syimp-file-input') {
+    const files = Array.from(e.target.files||[]);
+    const list = files.map(f=>{
+      const m = f.name.match(/[A-Za-z]{2}\d{4,5}/);
+      const code = m ? m[0].toUpperCase() : null;
+      const matched = code ? OFFERINGS.find(o=>o.code===code) : null;
+      return `<div>${f.name} → ${matched ? `✅ 比對到「${matched.name_zh}」` : `⚠️ 無法自動比對課程編號（檔名需含類似 AD22040 的編號）`}</div>`;
+    }).join('');
+    document.getElementById('syimp-queue-list').innerHTML = list;
+  }
+});
+
+async function processNextSyllabusImportFile() {
+  SYIMP.curIdx++;
+  if (SYIMP.curIdx >= SYIMP.queue.length) {
+    showToast('✅ 這批檔案都處理完了');
+    closeModal('syimp-modal');
+    return;
+  }
+  const { file, offering } = SYIMP.queue[SYIMP.curIdx];
+  document.getElementById('syimp-cur-course').textContent = `${offering.name_zh}（${offering.code}）`;
+  document.getElementById('syimp-progress').textContent = `第 ${SYIMP.curIdx+1} / ${SYIMP.queue.length} 份`;
+  SYIMP.curOffering = offering;
+  SYIMP.targets = {};
+  SYIMP_TARGET_DEFS.forEach(t=>{ SYIMP.targets[t.key]=[]; });
+
+  const buf = await file.arrayBuffer();
+  const cards = await parseDocxToCards(buf);
+  SYIMP.sources = cards;
+  renderSyimpTargets();
+  renderSyimpSources();
+}
+
+function skipSyllabusImportFile() { processNextSyllabusImportFile(); }
+
+// 用mammoth把docx轉成段落+表格卡片，依關鍵字粗略上色提示
+async function parseDocxToCards(arrayBuffer) {
+  const result = await mammoth.convertToHtml({ arrayBuffer });
+  const html = result.value;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  const cards = [];
+  Array.from(wrap.children).forEach(el => {
+    if (el.tagName === 'TABLE') {
+      const rows = Array.from(el.querySelectorAll('tr')).map(tr=>
+        Array.from(tr.querySelectorAll('td,th')).map(td=>td.textContent.trim()).join(' | ')
+      ).join('\n');
+      if (rows.trim()) cards.push({ text: rows, isTable:true });
+    } else {
+      const txt = el.textContent.trim();
+      if (txt) cards.push({ text: txt, isTable:false });
+    }
+  });
+  // 粗略關鍵字上色提示（只是顏色提示，不會自動放進框）
+  const KW = [
+    [/教學目標|learning objective/i, 'obj'],
+    [/教學方法|teaching method/i, 'mth'],
+    [/評量方式|assessment/i, 'asmnt'],
+    [/週.*教學進度|教學進度|第\s*\d+\s*週|课程内容大纲/i, 'week'],
+    [/參考書目|教材及參考資料|bibliography/i, 'bib'],
+    [/課程概述|overview/i, 'overview'],
+    [/課程對象|適合修習對象/i, 'cohort']
+  ];
+  cards.forEach(c => {
+    c.hint = '';
+    for (const [re, tag] of KW) { if (re.test(c.text)) { c.hint = tag; break; } }
+  });
+  return cards;
+}
+
+function renderSyimpTargets() {
+  document.getElementById('syimp-targets').innerHTML = SYIMP_TARGET_DEFS.map(t => `
+    <div class="syimp-target" data-target="${t.key}" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="onSyimpDrop(event,'${t.key}')">
+      <div class="syimp-target-label">${t.label}</div>
+      ${(SYIMP.targets[t.key]||[]).map((c,i)=>`<div class="syimp-card" ondblclick="removeFromTarget('${t.key}',${i})" title="雙擊移除">${esc(c.text)}</div>`).join('')}
+    </div>`).join('');
+}
+
+function renderSyimpSources() {
+  document.getElementById('syimp-sources').innerHTML = SYIMP.sources.map((c,i) => `
+    <div class="syimp-card ${c.hint?'hint-'+c.hint:''} ${c.isTable?'hint-table':''}" draggable="true" data-idx="${i}"
+      ondragstart="onSyimpDragStart(event,${i})">${esc(c.text)}</div>`).join('');
+}
+
+let _syimpDragIdx = null;
+function onSyimpDragStart(e, idx) { _syimpDragIdx = idx; e.dataTransfer.setData('text/plain', idx); }
+function onSyimpDrop(e, targetKey) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  if (_syimpDragIdx === null) return;
+  const card = SYIMP.sources[_syimpDragIdx];
+  if (!card) return;
+  SYIMP.targets[targetKey].push(card);
+  SYIMP.sources.splice(_syimpDragIdx, 1);
+  _syimpDragIdx = null;
+  renderSyimpTargets(); renderSyimpSources();
+}
+function removeFromTarget(key, i) {
+  const card = SYIMP.targets[key][i];
+  SYIMP.targets[key].splice(i,1);
+  SYIMP.sources.push(card);
+  renderSyimpTargets(); renderSyimpSources();
+}
+
+function applySyllabusImport() {
+  const join = (key) => (SYIMP.targets[key]||[]).map(c=>c.text).join('\n');
+  const toList = (key, field) => (SYIMP.targets[key]||[]).map(c=>({[field]:c.text}));
+
+  const offering = SYIMP.curOffering;
+  SY.offering_id = offering.offering_id;
+  SY.is_digital = !!offering.is_digital;
+  SY.data = {
+    overview_zh: join('overview'),
+    cohort_note: join('cohort'),
+    prerequisite_note: join('prereq'),
+    objectives: toList('objectives','text'),
+    methods: toList('methods','text'),
+    assessment: (SYIMP.targets.assessment||[]).map(c=>({name:c.text,pct:0,desc:''})),
+    weeks: Array.from({length:16},(_,i)=>({
+      week:i+1, title: join('week'+(i+1)), teacher:'', content:'', mode:''
+    })),
+    bibliography: { required:(SYIMP.targets.bib_req||[]).map(c=>c.text), optional:(SYIMP.targets.bib_opt||[]).map(c=>c.text) },
+    notes: join('notes'),
+    digital_info: {}
+  };
+
+  document.getElementById('syllabus-modal').style.display='block';
+  document.body.style.overflow='hidden';
+  document.getElementById('sy-title').textContent = offering.name_zh;
+  document.getElementById('sy-subtitle').textContent = offering.code;
+  document.getElementById('sy-code').textContent = offering.code||'';
+  document.getElementById('sy-name-zh').textContent = offering.name_zh||'';
+  document.getElementById('sy-name-en').textContent = offering.name_en||'—';
+  document.getElementById('sy-credits').textContent = (offering.credits||'')+' 學分';
+  document.getElementById('sy-req').textContent = REQ_LABEL[offering.req_type]||offering.req_type||'';
+  document.getElementById('sy-digital-section').style.display = SY.is_digital ? '' : 'none';
+  document.getElementById('sy-wk-mode-hdr').style.display = SY.is_digital ? '' : 'none';
+  renderSyllabus();
+  document.getElementById('sy-save-msg').textContent = '⚠️ 匯入結果尚未儲存，請檢查內容後按「儲存大綱」';
+  closeModal('syimp-modal');
+  showToast('已帶入表單，請檢查內容後儲存。儲存後會自動繼續處理下一份');
 }
 
 /* ════ SORT TABLE ════ */
@@ -8329,13 +9214,15 @@ async function openAttendanceSheet(offeringId) {
     document.getElementById('att-digital').checked = cData?.is_digital || false;
   } catch(e) { document.getElementById('att-digital').checked = false; }
 
-  // 從 localStorage 讀取幹部（記住上次輸入）
-  const staffKey = 'att_staff_' + offeringId;
+  // 從 offering_staff 表讀取課程幹部（取代原本的localStorage，跟admin指派的課程幹部同一份資料）
   try {
-    const saved = JSON.parse(localStorage.getItem(staffKey) || '{}');
-    document.getElementById('att-angel').value = saved.angel || '';
-    document.getElementById('att-ta').value = saved.ta || '';
-    document.getElementById('att-av').value = saved.av || '';
+    const { data: staffData } = await sb.from('offering_staff')
+      .select('role, students(name_zh)').eq('offering_id', offeringId);
+    const byRole = { angel: [], ta: [], av: [] };
+    (staffData||[]).forEach(s => { if (byRole[s.role]) byRole[s.role].push(s.students?.name_zh||'?'); });
+    document.getElementById('att-angel').value = byRole.angel.join('、');
+    document.getElementById('att-ta').value = byRole.ta.join('、');
+    document.getElementById('att-av').value = byRole.av.join('、');
   } catch(e) {
     document.getElementById('att-angel').value = '';
     document.getElementById('att-ta').value = '';
@@ -8357,8 +9244,7 @@ async function printCourseAttendance() {
   const av    = document.getElementById('att-av').value.trim();
   const isDigital = document.getElementById('att-digital').checked;
 
-  // 儲存幹部到 localStorage
-  try { localStorage.setItem('att_staff_' + offeringId, JSON.stringify({ angel, ta, av })); } catch(e) {}
+  // 課程幹部已改為讀取 offering_staff（admin指派的課程幹部），不再寫入localStorage
 
   const teacherArr = TEACHERS_MAP[offeringId] || [];
   const REQ_LABEL = { req:'必修', sel:'選修', go:'選修(2選1)' };
@@ -8492,8 +9378,7 @@ async function exportAttendanceExcel() {
   var av    = document.getElementById('att-av').value.trim();
   var isDigital = document.getElementById('att-digital').checked;
 
-  // 儲存幹部
-  try { localStorage.setItem('att_staff_' + offeringId, JSON.stringify({ angel: angel, ta: ta, av: av })); } catch(e) {}
+  // 課程幹部已改為讀取 offering_staff（admin指派的課程幹部），不再寫入localStorage
 
   var teacherArr = TEACHERS_MAP[offeringId] || [];
   var REQ_LABEL = { req:'必修', sel:'選修', go:'選修(2選1)' };
