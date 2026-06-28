@@ -246,6 +246,24 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .syimp-target.dragover{border-color:var(--navy);background:var(--navy3)}
 .syimp-target-label{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px}
 .syimp-target .syimp-card{cursor:default;background:var(--navy3)}
+.admin-dd{position:relative;display:inline-block}
+.admin-dd-menu{display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:1px solid var(--cr2);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15);min-width:220px;z-index:80;overflow:hidden}
+.admin-dd-menu.show{display:block}
+.admin-dd-menu div{padding:11px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.admin-dd-menu div:hover{background:var(--navy3)}
+.admin-dd-menu div:not(:last-child){border-bottom:1px solid var(--cr2)}
+@media(max-width:600px){
+  .admin-dd-menu{position:fixed;left:12px;right:12px;top:auto;min-width:auto;width:auto}
+  .admin-dd-menu div{padding:14px 16px;font-size:14.5px}
+}
+.sydiff-row{border:1px solid var(--cr2);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.sydiff-label{background:var(--navy3);padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--navy)}
+.sydiff-cols{display:grid;grid-template-columns:1fr 1fr}
+.sydiff-col{padding:10px 12px;font-size:12.5px;white-space:pre-wrap;border-right:1px solid var(--cr2);cursor:pointer;min-height:40px}
+.sydiff-col:last-child{border-right:none}
+.sydiff-col.picked{background:#E8F5E9;box-shadow:inset 0 0 0 2px #66BB6A}
+.sydiff-col-hdr{font-size:11px;color:var(--ink3);margin-bottom:4px;font-weight:600}
+.sydiff-same .sydiff-cols{opacity:.55}
 </style>
 </head>
 <body>
@@ -383,21 +401,38 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 
       <!-- ▌課程開課記錄 ▌-->
       <div id="page-offerings" style="display:none">
-        <div class="page-hdr">
-          <div class="page-title">開課記錄</div>
+        <div class="page-hdr" style="flex-wrap:wrap">
+          <div class="page-title" style="flex:0 0 auto">開課記錄</div>
           <select id="sem-filter" class="fselect" style="width:130px" onchange="loadOfferings()">
             <option value="">載入中…</option>
           </select>
           <div id="offering-stats" style="font-size:13px;color:var(--ink3);display:flex;gap:12px;align-items:center"></div>
-          <div style="margin-left:auto;display:flex;gap:6px">
-            <button class="btn btn-sec" onclick="printBlankCourseSheet()" title="列印該學期全部課程的空白選課單">🖨 空白選課單</button>
-            <button class="btn btn-sec" onclick="printCustomBlankCourseSheet()" title="可加註說明文字的空白選課單">🖨 自訂空白選課單</button>
-            <button class="btn btn-sec" onclick="openSyllabusBlankModal()" title="批次下載空白課程大綱Word">📄 列印課程大綱(空白)</button>
-            <button class="btn btn-sec" onclick="downloadStandardSyllabusTemplate()" title="下載標準大綱輸入範本，給老師填寫用">⬇ 下載標準範本</button>
-            <button class="btn btn-sec" onclick="openSyllabusImportModal()" title="拖拉方式匯入老師的Word大綱（舊格式文件用）">📥 匯入大綱（拖拉/舊格式）</button>
-            <button class="btn btn-sec" onclick="openSyllabusAutoImportModal()" title="自動解析（老師用標準範本填寫時用這個，秒速完成）">⚡ 匯入大綱（標準範本，自動解析）</button>
-            <button class="btn btn-sec" onclick="exportOfferingsCSV()" title="匯出本學期開課記錄">📤 匯出</button>
-            <button class="btn btn-sec" onclick="openImportModal('offerings')" title="從 CSV 匯入開課記錄">📥 匯入</button>
+          <div style="flex:1"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;position:relative">
+            <div class="admin-dd">
+              <button class="btn btn-sec" onclick="toggleAdminDD(this)">🖨 列印/範本 ▾</button>
+              <div class="admin-dd-menu">
+                <div onclick="printBlankCourseSheet()">🖨 空白選課單</div>
+                <div onclick="printCustomBlankCourseSheet()">🖨 自訂空白選課單</div>
+                <div onclick="openSyllabusBlankModal()">📄 列印課程大綱(空白)</div>
+                <div onclick="downloadAllSyllabi()">📚 下載全部課程大綱(已填的填好，沒填的空白)</div>
+                <div onclick="downloadStandardSyllabusTemplate()">⬇ 下載標準範本</div>
+              </div>
+            </div>
+            <div class="admin-dd">
+              <button class="btn btn-sec" onclick="toggleAdminDD(this)">📋 大綱匯入 ▾</button>
+              <div class="admin-dd-menu">
+                <div onclick="openSyllabusImportModal()">📥 拖拉／非標準格式</div>
+                <div onclick="openSyllabusAutoImportModal()">⚡ 標準範本，自動解析</div>
+              </div>
+            </div>
+            <div class="admin-dd">
+              <button class="btn btn-sec" onclick="toggleAdminDD(this)">⋯ 匯入/匯出 ▾</button>
+              <div class="admin-dd-menu">
+                <div onclick="exportOfferingsCSV()">📤 匯出開課記錄(CSV)</div>
+                <div onclick="openImportModal('offerings')">📥 匯入開課記錄(CSV)</div>
+              </div>
+            </div>
             <button class="btn btn-pri" onclick="openNewOffering()">＋ 新增開課</button>
           </div>
         </div>
@@ -735,8 +770,9 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div style="display:flex;gap:8px">
             <button class="btn" id="th-tab-pending-btn" onclick="thSwitchView('pending')" style="background:var(--gold);color:#fff">⏳ 待審核 <span id="th-pending-count">0</span></button>
             <button class="btn btn-pri" id="th-tab-all-btn" onclick="thSwitchView('all')">📋 論文進度總覽</button>
+            <button class="btn" id="th-tab-events-btn" onclick="thSwitchView('events')">🎤 發表會管理</button>
           </div>
-          <div style="margin-left:auto;display:flex;gap:6px">
+          <div style="margin-left:auto;display:flex;gap:6px" id="thesis-progress-toolbar">
             <button class="btn btn-sec" onclick="openThesisExportModal()">📤 匯出</button>
             <button class="btn btn-sec" onclick="openThesisImportModal()">📥 匯入學倫結果</button>
           </div>
@@ -744,6 +780,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div id="thesis-admin-wrap">
           <div style="text-align:center;padding:60px;color:var(--ink3)">載入中…</div>
         </div>
+        <div id="thesis-events-wrap" style="display:none"></div>
       </div>
 
       <!-- ▌教學意見調查 ▌ -->
@@ -2086,6 +2123,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div class="sy-info-item">必選修 <span class="sy-info-val" id="sy-req"></span></div>
           <div class="sy-info-item">課程名稱 <span class="sy-info-val" id="sy-name-zh"></span></div>
           <div class="sy-info-item">學分 <span class="sy-info-val" id="sy-credits"></span></div>
+          <div class="sy-info-item">數位課程 <span class="sy-info-val" id="sy-digital-flag"></span></div>
+          <div class="sy-info-item">隨班附讀 <span class="sy-info-val" id="sy-audit"></span></div>
           <div class="sy-info-item" style="grid-column:1/-1">英文課程名稱 <span class="sy-info-val" id="sy-name-en"></span></div>
         </div>
       </div>
@@ -2100,7 +2139,15 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <label class="flabel">課程對象說明（選填）</label>
         <input class="finput" id="sy-cohort-note" placeholder="例：佛法應用研究所全體學生" style="margin-bottom:10px">
         <label class="flabel">先備能力／知識／技能（選填）</label>
-        <textarea class="finput" id="sy-prereq-note" rows="2" placeholder="例：建議先修過XX課程，或具備XX基礎" style="width:100%;resize:vertical"></textarea>
+        <textarea class="finput" id="sy-prereq-note" rows="2" placeholder="例：建議先修過XX課程，或具備XX基礎" style="width:100%;resize:vertical;margin-bottom:10px"></textarea>
+        <label class="flabel">是否需要教學助理（選填，一般課程跟數位課程都可填）</label>
+        <select class="fselect" id="sy-ta-needed" style="margin-bottom:10px">
+          <option value="">未指定</option>
+          <option value="true">需要</option>
+          <option value="false">不需要</option>
+        </select>
+        <label class="flabel">教學助理條件說明（選填）</label>
+        <textarea class="finput" id="sy-ta-note" rows="2" placeholder="例：需熟悉XX軟體、需有帶班經驗等" style="width:100%;resize:vertical"></textarea>
       </div>
     </div>
     <div class="sy-section">
@@ -2206,21 +2253,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <input class="finput" id="sy-d-am-other" placeholder="其他（選填）">
         </div>
 
-        <label class="flabel">教學時數拆分</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-          <div>
-            <div style="font-size:11.5px;color:var(--ink3);margin-bottom:4px">實體授課（週數／小時數）</div>
-            <div style="display:flex;gap:4px;align-items:center"><input type="number" class="finput" id="sy-d-h-inperson-w" placeholder="週數" style="font-size:12px"><input type="number" class="finput" id="sy-d-h-inperson-h" placeholder="小時數" style="font-size:12px"></div>
-          </div>
-          <div>
-            <div style="font-size:11.5px;color:var(--ink3);margin-bottom:4px">非同步遠距（週數／小時數）</div>
-            <div style="display:flex;gap:4px;align-items:center"><input type="number" class="finput" id="sy-d-h-async-w" placeholder="週數" style="font-size:12px"><input type="number" class="finput" id="sy-d-h-async-h" placeholder="小時數" style="font-size:12px"></div>
-          </div>
-          <div>
-            <div style="font-size:11.5px;color:var(--ink3);margin-bottom:4px">同步遠距（週數／小時數）</div>
-            <div style="display:flex;gap:4px;align-items:center"><input type="number" class="finput" id="sy-d-h-sync-w" placeholder="週數" style="font-size:12px"><input type="number" class="finput" id="sy-d-h-sync-h" placeholder="小時數" style="font-size:12px"></div>
-          </div>
-        </div>
+        <label class="flabel">教學時數拆分（自動依「教學進度」每週的教學型態統計，不用手動填）</label>
+        <div id="sy-d-hours-auto" style="background:var(--cr3);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12.5px"></div>
 
         <label class="flabel">修課注意事項或其他補充</label>
         <textarea class="finput" id="sy-d-notes-supp" rows="2" style="width:100%;resize:vertical"></textarea>
@@ -2230,6 +2264,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div class="sy-section">
       <div class="sy-section-hdr" onclick="toggleSection('bib')"><span class="sy-section-title">📚 參考書目</span><span id="bib-arrow">▼</span></div>
       <div class="sy-section-body" id="bib-body">
+        <div style="font-size:11.5px;color:#C04030;margin-bottom:10px">※ 請注意「遵守智慧財產權觀念」及「不得不法影印、下載及散布」※</div>
         <div style="font-size:12px;font-weight:500;color:var(--ink3);margin-bottom:6px">必讀</div>
         <div id="sy-bib-req"></div><button class="sy-add-btn" onclick="addBib('req')">＋ 新增必讀</button>
         <div style="font-size:12px;font-weight:500;color:var(--ink3);margin:14px 0 6px">參考</div>
@@ -2256,6 +2291,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           還沒有檔案可以匯入？先下載範本給老師填寫：
           <button class="btn btn-sec btn-sm" style="margin-left:8px" onclick="downloadStandardSyllabusTemplate()">⬇ 下載標準範本</button>
         </div>
+        <label class="flabel">這批檔案是哪個學期的？（優先比對這個學期的課程，比對不到才會找其他學期）</label>
+        <select id="syimp-semester" class="fselect" style="max-width:200px;margin-bottom:14px"></select>
         <label class="flabel">選擇要匯入的Word檔案（可多選，依檔名自動比對課程編號）</label>
         <input type="file" id="syimp-file-input" accept=".docx" multiple style="margin:10px 0">
         <div id="syimp-queue-list" style="margin-top:14px;font-size:13px;color:var(--ink2)"></div>
@@ -2281,6 +2318,23 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <button class="btn btn-save" onclick="applySyllabusImport()">✅ 套用到大綱表單</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: 大綱匯入 - 新舊資料比對選擇 ══ -->
+<div class="modal-bg" id="sydiff-modal">
+  <div class="modal" style="max-width:900px;width:94vw">
+    <div class="modal-hdr">
+      <div class="modal-title">這門課已經有舊大綱，請選擇每個欄位要用哪一邊</div>
+      <button class="modal-close" onclick="closeModal('sydiff-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+      <div id="sydiff-rows"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cancelSyllabusDiffMerge()">取消，不要匯入這份</button>
+      <button class="btn btn-save" onclick="confirmSyllabusDiffMerge()">套用我選的版本</button>
     </div>
   </div>
 </div>
@@ -4987,8 +5041,38 @@ async function generateBlankSyllabusDocs() {
   showToast('全部課程大綱已下載完成');
 }
 
+// 找課程：優先比對指定學期(來自匯入視窗裡的學期選單)，找不到才查全部學期，
+// 避免「檔案對應的課程剛好不在目前篩選的學期」導致誤判成「無法比對」，
+// 也避免同一課程編號跨學期重複開課時，匯入比對到錯的學期那一筆
+async function findOfferingByCode(code, preferSemesterLabel) {
+  if (!code) return null;
+  if (preferSemesterLabel) {
+    const { data } = await sb.from('v_course_schedule').select('*')
+      .eq('code', code).eq('semester_label', preferSemesterLabel).limit(1);
+    if (data && data[0]) return data[0];
+  }
+  let o = OFFERINGS.find(x=>x.code===code);
+  if (o) return o;
+  const { data } = await sb.from('v_course_schedule').select('*').eq('code', code)
+    .order('academic_year', { ascending:false }).order('semester_num', { ascending:false }).limit(1);
+  return (data && data[0]) || null;
+}
+
+function populateSyimpSemesterSelect() {
+  const src = document.getElementById('sem-filter');
+  const dst = document.getElementById('syimp-semester');
+  if (!src || !dst) return;
+  dst.innerHTML = src.innerHTML;
+  dst.value = src.value;
+}
+
 function escapeXml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// HTML escape（給 innerHTML 渲染用，跟 escapeXml 不同情境：這個不用管 docx XML，純粹避免使用者文字裡的 < > & 被當成HTML標籤）
+function esc(str) {
+  return String(str==null?'':str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 /* ════ 課程大綱輸出（套版產生Word，含動態表格列） ════ */
@@ -4997,13 +5081,16 @@ function escapeXml(str) {
 function fillDynamicTableRows(xmlDoc, markerText, rowsData, buildCells) {
   const NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
   const trs = Array.from(xmlDoc.getElementsByTagName('w:tr'));
-  const templateTr = trs.find(tr => tr.textContent.includes(markerText));
+  // 注意：如果某一列裡面藏著巢狀表格（例如數位範本「課程內容大綱及進度」那一列），
+  // 它的textContent會遞迴抓到巢狀表格內的文字，導致誤判成「這一列含有標記」，
+  // 但其實標記是在更裡面的巢狀表格列。要排除「自己裡面還有巢狀表格」的列，才能準確抓到真正的標記列。
+  const templateTr = trs.find(tr => tr.textContent.includes(markerText) && tr.getElementsByTagName('w:tbl').length === 0);
   if (!templateTr) return; // 範本裡找不到這個標記列，跳過不處理
   const parent = templateTr.parentNode;
 
   // 範本表格除了表頭（第一列）跟帶標記的那一列，其餘所有預留空白列全部先清掉，
   // 不然填完資料後面會殘留一堆沒處理過的舊空白列
-  const allRowsInTable = Array.from(parent.getElementsByTagName('w:tr'));
+  const allRowsInTable = Array.from(parent.getElementsByTagName('w:tr')).filter(tr => tr.parentNode === parent);
   const headerRow = allRowsInTable[0];
   allRowsInTable.forEach(tr => {
     if (tr !== headerRow && tr !== templateTr) parent.removeChild(tr);
@@ -5043,11 +5130,11 @@ function fillDynamicTableRows(xmlDoc, markerText, rowsData, buildCells) {
 
 function buildCheckbox(checked, label) { return (checked?'■':'☐') + label; }
 
-async function exportFilledSyllabus(offeringId) {
+async function buildFilledSyllabusBlob(offeringId) {
   const o = OFFERINGS.find(x=>x.offering_id===offeringId);
-  if (!o) { showToast('找不到這門開課記錄','error'); return; }
+  if (!o) return null;
   const { data: syl } = await sb.from('syllabi').select('*').eq('offering_id',offeringId).maybeSingle();
-  const d = syl || {};
+  const d = syl || {};  // 沒有大綱資料時 d 是空物件，後面所有欄位都會是空白，剛好就是「沒填的=空白範本」
   const isDigital = !!o.is_digital;
 
   const [{ data: ot }, { data: staff }] = await Promise.all([
@@ -5061,8 +5148,8 @@ async function exportFilledSyllabus(offeringId) {
 
   const templateFile = isDigital ? 'digital_output.docx' : 'general_output.docx';
   const { data: signed, error: sErr } = await sb.storage.from('syllabus-templates').createSignedUrl(templateFile, 60);
-  if (sErr || !signed) { showToast('找不到輸出範本，請確認已上傳 '+templateFile+' 到 syllabus-templates','error'); return; }
-  const templateBuf = await (await fetch(signed.signedUrl)).arrayBuffer();
+  if (sErr || !signed) { return { error: '找不到輸出範本，請確認已上傳 '+templateFile+' 到 syllabus-templates' }; }
+  const templateBuf = await (await fetch(signed.signedUrl, { cache: 'no-store' })).arrayBuffer();
   const zip = await JSZip.loadAsync(templateBuf);
   const xmlStr = await zip.file('word/document.xml').async('string');
   const xmlDoc = new DOMParser().parseFromString(xmlStr, 'application/xml');
@@ -5073,6 +5160,22 @@ async function exportFilledSyllabus(offeringId) {
 
   const weeksWithData = (d.weeks||[]).filter(w=>w.title||w.content);
   fillDynamicTableRows(xmlDoc, 'WEEKS_ROWS', weeksWithData, w => [String(w.week), w.title||'', w.content||'']);
+
+  // 每週教學型態統計（一般課程用不到，但先算好給數位課程的表格跟checkbox共用）
+  const weekModeCount = {inperson:0,async:0,sync:0};
+  (d.weeks||[]).forEach(w=>{ if(w.mode && weekModeCount[w.mode]!==undefined) weekModeCount[w.mode]++; });
+  const hoursPerWeek = o.credits || 0;
+
+  if (isDigital) {
+    // 數位課程申請書裡「課程內容大綱及進度」是一個巢狀表格（週次/授課內容/實體/非同步/同步時數），
+    // 依每週實際填寫的mode，把該週時數(=這門課每週學分數小時)放進對應欄位，其他欄位留空
+    fillDynamicTableRows(xmlDoc, 'DGTL_WEEK_TABLE', weeksWithData, w => [
+      String(w.week), w.content || w.title || '',
+      w.mode==='inperson' ? hoursPerWeek : '',
+      w.mode==='async' ? hoursPerWeek : '',
+      w.mode==='sync' ? hoursPerWeek : ''
+    ]);
+  }
 
   // 序列化回字串，接著做一般文字置換
   let xml = new XMLSerializer().serializeToString(xmlDoc);
@@ -5095,15 +5198,19 @@ async function exportFilledSyllabus(offeringId) {
     '{{AUDIT_CHECKBOX}}': escapeXml(o.is_audit ? '■提供□ 不提供' : '□提供■ 不提供'),
     '{{COHORT_NOTE}}': escapeXml(d.cohort_note||''), '{{PREREQUISITE_NOTE}}': escapeXml(d.prerequisite_note||''),
     '{{OVERVIEW}}': escapeXml(d.overview_zh||''), '{{OBJECTIVES}}': objectives, '{{METHODS}}': methods,
-    '{{BIB_REQUIRED}}': bibReq, '{{BIB_OPTIONAL}}': bibOpt, '{{NOTES}}': escapeXml(d.notes||'')
+    '{{BIB_REQUIRED}}': bibReq, '{{BIB_OPTIONAL}}': bibOpt,
+    '{{NOTES}}': escapeXml([d.notes, d.ta_requirement_note ? `教學助理條件：${d.ta_requirement_note}` : ''].filter(Boolean).join('\n'))
   };
 
   if (isDigital) {
     const di = d.digital_info || {};
-    const weekModeCount = {inperson:0,async:0,sync:0};
-    (d.weeks||[]).forEach(w=>{ if(w.mode && weekModeCount[w.mode]!==undefined) weekModeCount[w.mode]++; });
     const autoMode = Object.entries(weekModeCount).sort((a,b)=>b[1]-a[1])[0][0];
-    const hb = di.hours_breakdown||{};
+    // 教學時數拆分改成自動計算：週數=該模式統計出來的週數，總時數=週數×每週學分時數，不再讓admin手動輸入
+    const hb = {
+      inperson_weeks: weekModeCount.inperson, inperson_hours: weekModeCount.inperson * hoursPerWeek,
+      async_weeks: weekModeCount.async, async_hours: weekModeCount.async * hoursPerWeek,
+      sync_weeks: weekModeCount.sync, sync_hours: weekModeCount.sync * hoursPerWeek
+    };
     const weeksSummaryItems = (d.weeks||[]).filter(w=>w.title||w.content)
       .map(w=>`第${w.week}週｜主題：${w.title||''}｜說明：${w.content||''}`);
 
@@ -5126,8 +5233,10 @@ async function exportFilledSyllabus(offeringId) {
     if (!assignmentOpts.length) assignmentOpts.push('（未勾選任何選項）');
 
     const assessmentItems = assessment.map(a=>`${a.name||''}（${a.pct!=null?a.pct:0}%）${a.desc?'　'+a.desc:''}`);
+    // 教學助理需求判斷優先順序：共同欄位(d.ta_needed，admin/老師明確指定) > 數位申請書裡的舊覆寫欄位 > 自動偵測(offering_staff有沒有指派TA)
     const override = di.ta_needed_override;
-    const finalTA = override==='yes' ? true : override==='no' ? false : hasTA;
+    const finalTA = (d.ta_needed===true || d.ta_needed===false) ? d.ta_needed
+                   : (override==='yes' ? true : override==='no' ? false : hasTA);
 
     Object.assign(rawReplacements, {
       '{{ACADEMIC_YEAR}}': escapeXml(o.academic_year!=null?String(o.academic_year):''),
@@ -5169,7 +5278,7 @@ async function exportFilledSyllabus(offeringId) {
       '{{INTERACTION_METHODS}}': joinBr(interactionLines),
       '{{ASSIGNMENT_METHODS}}': joinBr(assignmentOpts),
       '{{ASSESSMENT}}': joinBr(assessmentItems),
-      '{{NOTES_SUPPLEMENT}}': escapeXml(di.notes_supplement||'')
+      '{{NOTES_SUPPLEMENT}}': escapeXml([di.notes_supplement, d.ta_requirement_note ? `教學助理條件：${d.ta_requirement_note}` : ''].filter(Boolean).join('\n'))
     });
   }
 
@@ -5180,12 +5289,47 @@ async function exportFilledSyllabus(offeringId) {
 
   const blob = await zip.generateAsync({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   const fileName = `${o.semester_label}_${o.code}${o.name_zh}課程大綱.docx`;
-  const url = URL.createObjectURL(blob);
+  return { blob, fileName };
+}
+
+// 單一課程下載（課程大綱編輯畫面裡的按鈕用這個）
+async function exportFilledSyllabus(offeringId) {
+  const result = await buildFilledSyllabusBlob(offeringId);
+  if (!result) { showToast('找不到這門開課記錄','error'); return; }
+  if (result.error) { showToast(result.error,'error'); return; }
+  const url = URL.createObjectURL(result.blob);
   const a = document.createElement('a');
-  a.href = url; a.download = fileName;
+  a.href = url; a.download = result.fileName;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  showToast('✅ 已下載：'+fileName);
+  showToast('✅ 已下載：'+result.fileName);
+}
+
+// 一鍵下載目前學期全部課程的大綱（有填的用填好的內容，沒填的就是空白範本），逐個觸發下載（不打包zip）
+async function downloadAllSyllabi() {
+  if (!OFFERINGS.length) { showToast('目前學期沒有任何開課記錄','error'); return; }
+  showToast(`開始下載 ${OFFERINGS.length} 門課的大綱，瀏覽器可能會跳出「允許多個下載」的提示，請點允許…`);
+  let okCount = 0, failDetails = [];
+  for (const o of OFFERINGS) {
+    try {
+      const result = await buildFilledSyllabusBlob(o.offering_id);
+      if (!result || result.error) { failDetails.push(`${o.name_zh}（${result?.error||'未知原因'}）`); continue; }
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = result.fileName;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      okCount++;
+    } catch (e) {
+      failDetails.push(`${o.name_zh}（程式錯誤：${e.message}）`);
+    }
+    await new Promise(r=>setTimeout(r, 350)); // 間隔一下，避免瀏覽器把太密集的下載當成異常擋掉
+  }
+  if (okCount) showToast(`✅ 已下載 ${okCount} 份大綱${failDetails.length?`，${failDetails.length}份失敗`:''}`);
+  if (failDetails.length) {
+    console.warn('下載全部課程大綱 - 失敗清單：', failDetails);
+    alert(`以下課程下載失敗：\n\n${failDetails.join('\n')}`);
+  }
 }
 
 async function printAttendanceSheet(meetingId) {
@@ -5822,6 +5966,8 @@ async function openSyllabus(offeringId, name, code) {
     document.getElementById('sy-name-en').textContent=c.name_en||'—';
     document.getElementById('sy-credits').textContent=(c.credits||'')+' 學分';
     document.getElementById('sy-req').textContent=REQ_LABEL[c.req_type]||c.req_type||'';
+    document.getElementById('sy-digital-flag').textContent = c.is_digital ? '是' : '否';
+    document.getElementById('sy-audit').textContent = c.is_audit ? '提供' : '不提供';
   }
   document.getElementById('sy-digital-section').style.display = SY.is_digital ? '' : 'none';
   document.getElementById('sy-wk-mode-hdr').style.display = SY.is_digital ? '' : 'none';
@@ -5864,6 +6010,8 @@ function renderSyllabus() {
   document.getElementById('sy-notes').value=d.notes||'';
   document.getElementById('sy-cohort-note').value=d.cohort_note||'';
   document.getElementById('sy-prereq-note').value=d.prerequisite_note||'';
+  document.getElementById('sy-ta-needed').value = d.ta_needed===true?'true':(d.ta_needed===false?'false':'');
+  document.getElementById('sy-ta-note').value=d.ta_requirement_note||'';
   renderObjs(); renderMths(); renderAsmnt(); renderWeeks(); renderBib();
   if (SY.is_digital) renderDigitalInfo();
 }
@@ -5895,12 +6043,7 @@ function renderDigitalInfo() {
   document.getElementById('sy-d-am-grade').checked = !!am.grade_query;
   document.getElementById('sy-d-am-other').value = am.other || '';
   const hb = di.hours_breakdown || {};
-  document.getElementById('sy-d-h-inperson-w').value = hb.inperson_weeks || '';
-  document.getElementById('sy-d-h-inperson-h').value = hb.inperson_hours || '';
-  document.getElementById('sy-d-h-async-w').value = hb.async_weeks || '';
-  document.getElementById('sy-d-h-async-h').value = hb.async_hours || '';
-  document.getElementById('sy-d-h-sync-w').value = hb.sync_weeks || '';
-  document.getElementById('sy-d-h-sync-h').value = hb.sync_hours || '';
+  // 教學時數拆分已改成自動統計（見 updateWeekModeSummary），這裡不再讀取/填入手動欄位
   document.getElementById('sy-d-notes-supp').value = di.notes_supplement || '';
 }
 
@@ -5934,12 +6077,7 @@ function collectDigitalInfo() {
       other: document.getElementById('sy-d-am-other').value
     },
     hours_breakdown: {
-      inperson_weeks: +document.getElementById('sy-d-h-inperson-w').value||0,
-      inperson_hours: +document.getElementById('sy-d-h-inperson-h').value||0,
-      async_weeks: +document.getElementById('sy-d-h-async-w').value||0,
-      async_hours: +document.getElementById('sy-d-h-async-h').value||0,
-      sync_weeks: +document.getElementById('sy-d-h-sync-w').value||0,
-      sync_hours: +document.getElementById('sy-d-h-sync-h').value||0
+    // hours_breakdown 不再從手動欄位收集，匯出時會自動依教學進度的每週型態統計計算
     },
     notes_supplement: document.getElementById('sy-d-notes-supp').value
   };
@@ -6016,6 +6154,14 @@ function updateWeekModeSummary() {
   if (summaryEl) summaryEl.textContent = label;
   const dEl = document.getElementById('sy-d-mode-auto');
   if (dEl) dEl.textContent = autoMode ? WEEK_MODE_LABEL[autoMode] : '（尚未統計出結果）';
+  const hoursEl = document.getElementById('sy-d-hours-auto');
+  if (hoursEl) {
+    const creditsTxt = (document.getElementById('sy-credits')?.textContent||'').match(/\d+/);
+    const hoursPerWeek = creditsTxt ? parseInt(creditsTxt[0]) : 0;
+    hoursEl.innerHTML = `實體授課：${counts.inperson}週，共${counts.inperson*hoursPerWeek}小時<br>`+
+      `非同步遠距：${counts.async}週，共${counts.async*hoursPerWeek}小時<br>`+
+      `同步遠距：${counts.sync}週，共${counts.sync*hoursPerWeek}小時`;
+  }
 }
 function addWeek() { const n=(SY.data.weeks||[]).length+1; SY.data.weeks.push({week:n,title:'',teacher:'',content:'',mode:''}); renderWeeks(); }
 function toggleWeekDetail(i) {
@@ -6048,6 +6194,8 @@ async function saveSyllabus() {
     overview_zh: document.getElementById('sy-overview').value,
     cohort_note: document.getElementById('sy-cohort-note').value,
     prerequisite_note: document.getElementById('sy-prereq-note').value,
+    ta_needed: document.getElementById('sy-ta-needed').value===''?null:(document.getElementById('sy-ta-needed').value==='true'),
+    ta_requirement_note: document.getElementById('sy-ta-note').value,
     objectives: SY.data.objectives||[], methods: SY.data.methods||[],
     assessment: SY.data.assessment||[], weeks: SY.data.weeks||[],
     bibliography: SY.data.bibliography||{required:[],optional:[]},
@@ -6097,6 +6245,94 @@ async function downloadStandardSyllabusTemplate() {
   document.body.appendChild(a); a.click(); a.remove();
 }
 
+/* ════ 大綱匯入：新舊資料比對選擇 ════ */
+const SYDIFF_FIELDS = [
+  ['cohort_note','課程對象'], ['prerequisite_note','先備能力/知識/技能'],
+  ['ta_needed','是否需要教學助理'], ['ta_requirement_note','教學助理條件說明'],
+  ['overview_zh','課程概述'],
+  ['objectives','教學目標'], ['methods','教學方法'], ['assessment','評量方式'], ['weeks','教學進度'],
+  ['bib_required','參考書目（必讀）'], ['bib_optional','參考書目（參考）'], ['notes','備註']
+];
+
+function syDiffPreview(key, d) {
+  d = d || {};
+  switch(key) {
+    case 'cohort_note': case 'prerequisite_note': case 'overview_zh': case 'notes': case 'ta_requirement_note':
+      return d[key] || '（空白）';
+    case 'ta_needed':
+      return d.ta_needed===true ? '需要' : d.ta_needed===false ? '不需要' : '（未指定）';
+    case 'objectives': case 'methods':
+      return (d[key]||[]).map((o,i)=>`${i+1}. ${o.text||o}`).join('\n') || '（空白）';
+    case 'assessment':
+      return (d.assessment||[]).map(a=>`${a.name||''}（${a.pct!=null?a.pct:0}%）${a.desc?'　'+a.desc:''}`).join('\n') || '（空白）';
+    case 'weeks': {
+      const filled = (d.weeks||[]).filter(w=>w.title||w.content);
+      return filled.length ? filled.map(w=>`第${w.week}週：${w.title||''}${w.content?'　'+w.content:''}`).join('\n') : '（空白）';
+    }
+    case 'bib_required': return (d.bibliography?.required||[]).join('\n') || '（空白）';
+    case 'bib_optional': return (d.bibliography?.optional||[]).join('\n') || '（空白）';
+    case 'digital_info': return JSON.stringify(d.digital_info||{}, null, 1);
+    default: return '';
+  }
+}
+
+let SYDIFF = null; // { old, new, isDigital, choices, resolve }
+
+function syDiffFieldList() {
+  return SYDIFF.isDigital ? SYDIFF_FIELDS.concat([['digital_info','數位課程申請書資訊']]) : SYDIFF_FIELDS;
+}
+
+function renderSyllabusDiff() {
+  document.getElementById('sydiff-rows').innerHTML = syDiffFieldList().map(([key,label])=>{
+    const oldVal = syDiffPreview(key, SYDIFF.old);
+    const newVal = syDiffPreview(key, SYDIFF.new);
+    const same = oldVal === newVal;
+    const picked = SYDIFF.choices[key] || 'new';
+    return `<div class="sydiff-row ${same?'sydiff-same':''}">
+      <div class="sydiff-label">${label}${same?'　（新舊內容一致，不用選）':''}</div>
+      <div class="sydiff-cols">
+        <div class="sydiff-col ${picked==='old'?'picked':''}" onclick="pickSyDiff('${key}','old')">
+          <div class="sydiff-col-hdr">📁 舊資料（目前資料庫裡的）</div>${esc(oldVal)}
+        </div>
+        <div class="sydiff-col ${picked==='new'?'picked':''}" onclick="pickSyDiff('${key}','new')">
+          <div class="sydiff-col-hdr">📥 新匯入（這次解析出來的）</div>${esc(newVal)}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function pickSyDiff(key, side) { SYDIFF.choices[key] = side; renderSyllabusDiff(); }
+
+// 回傳 Promise：使用者選好按確認 → resolve合併後的資料；取消 → resolve(null)
+function showSyllabusDiffModal(oldData, newData, isDigital) {
+  return new Promise(resolve => {
+    SYDIFF = { old: oldData, new: newData, isDigital, choices: {}, resolve };
+    renderSyllabusDiff();
+    document.getElementById('sydiff-modal').classList.add('show');
+  });
+}
+
+function cancelSyllabusDiffMerge() {
+  closeModal('sydiff-modal');
+  if (SYDIFF) { SYDIFF.resolve(null); SYDIFF = null; }
+}
+
+function confirmSyllabusDiffMerge() {
+  const merged = Object.assign({}, SYDIFF.new);
+  merged.bibliography = Object.assign({required:[],optional:[]}, SYDIFF.new.bibliography);
+  syDiffFieldList().forEach(([key])=>{
+    const side = SYDIFF.choices[key] || 'new';
+    const src = side==='old' ? SYDIFF.old : SYDIFF.new;
+    if (key==='bib_required') merged.bibliography.required = (src.bibliography?.required)||[];
+    else if (key==='bib_optional') merged.bibliography.optional = (src.bibliography?.optional)||[];
+    else merged[key] = src[key];
+  });
+  closeModal('sydiff-modal');
+  SYDIFF.resolve(merged);
+  SYDIFF = null;
+}
+
 function openSyllabusAutoImportModal() {
   SYIMP = { mode:'auto', queue:[], curIdx:-1, sources:[], targets:{} };
   document.getElementById('syimp-title').textContent = '匯入課程大綱（標準範本，自動解析）';
@@ -6104,18 +6340,22 @@ function openSyllabusAutoImportModal() {
   document.getElementById('syimp-step-drag').style.display='none';
   document.getElementById('syimp-queue-list').innerHTML='';
   document.getElementById('syimp-file-input').value='';
+  populateSyimpSemesterSelect();
   document.getElementById('syimp-modal').classList.add('show');
 }
 
-function startSyllabusImportQueue() {
+async function startSyllabusImportQueue() {
   const files = Array.from(document.getElementById('syimp-file-input').files||[]);
   if (!files.length) { showToast('請先選擇檔案','error'); return; }
-  SYIMP.queue = files.map(f=>{
+  const preferSem = document.getElementById('syimp-semester')?.value || '';
+  showToast('比對課程中…');
+  const queueResults = await Promise.all(files.map(async f=>{
     const m = f.name.match(/[A-Za-z]{2}\d{4,5}/);
     const code = m ? m[0].toUpperCase() : null;
-    const offering = code ? OFFERINGS.find(o=>o.code===code) : null;
+    const offering = await findOfferingByCode(code, preferSem);
     return { file:f, offering };
-  }).filter(q=>q.offering);
+  }));
+  SYIMP.queue = queueResults.filter(q=>q.offering);
   if (!SYIMP.queue.length) { showToast('沒有任何檔案能比對到課程，請確認檔名','error'); return; }
   SYIMP.curIdx = -1;
   if (SYIMP.mode === 'auto') {
@@ -6145,9 +6385,22 @@ async function advanceAutoImportQueue() {
     advanceAutoImportQueue();
     return;
   }
+
+  // 檢查這門課是否已經有舊大綱，有的話先讓admin比對選擇要用哪一邊
+  const { data: existingSyl } = await sb.from('syllabi').select('*').eq('offering_id', offering.offering_id).maybeSingle();
+  let finalData = parsed;
+  if (existingSyl) {
+    finalData = await showSyllabusDiffModal(existingSyl, parsed, !!offering.is_digital);
+    if (!finalData) {
+      showToast(`已跳過「${offering.name_zh}」這份，保留原本的舊大綱`);
+      advanceAutoImportQueue();
+      return;
+    }
+  }
+
   SY.offering_id = offering.offering_id;
   SY.is_digital = !!offering.is_digital;
-  SY.data = parsed;
+  SY.data = finalData;
 
   document.getElementById('syllabus-modal').style.display='block';
   document.body.style.overflow='hidden';
@@ -6158,6 +6411,8 @@ async function advanceAutoImportQueue() {
   document.getElementById('sy-name-en').textContent = offering.name_en||'—';
   document.getElementById('sy-credits').textContent = (offering.credits||'')+' 學分';
   document.getElementById('sy-req').textContent = REQ_LABEL[offering.req_type]||offering.req_type||'';
+  document.getElementById('sy-digital-flag').textContent = offering.is_digital ? '是' : '否';
+  document.getElementById('sy-audit').textContent = offering.is_audit ? '提供' : '不提供';
   document.getElementById('sy-digital-section').style.display = SY.is_digital ? '' : 'none';
   document.getElementById('sy-wk-mode-hdr').style.display = SY.is_digital ? '' : 'none';
   renderSyllabus();
@@ -6201,6 +6456,9 @@ async function parseStandardSyllabusDocx(arrayBuffer, isDigital) {
   const reField = (label) => { const m = basicText.match(new RegExp(label+'[：:]\\s*(.*)')); return m ? m[1].trim() : ''; };
   const cohort_note = reField('課程對象');
   const prerequisite_note = reField('先備能力[\\/／]知識[\\/／]技能').replace(/（無則留空）$/,'').trim();
+  const taNeededRaw = reField('是否需要教學助理');
+  const ta_needed = /^不需要/.test(taNeededRaw) ? false : /^需要/.test(taNeededRaw) ? true : null;
+  const ta_requirement_note = reField('教學助理條件說明').replace(/（選填，無則留空）$/,'').trim();
 
   // 評量方式表格（依表頭「項目」「比例」判斷，跳過表頭列）
   const asmntRows = findTableByHeader(['項目','比例']).slice(1).filter(r=>r.some(c=>c));
@@ -6237,7 +6495,7 @@ async function parseStandardSyllabusDocx(arrayBuffer, isDigital) {
 
   const data = {
     overview_zh: getText('課程概述').replace(/^（請填寫.*）$/,'').trim(),
-    cohort_note, prerequisite_note,
+    cohort_note, prerequisite_note, ta_needed, ta_requirement_note,
     objectives: getListItems('教學目標').map(t=>({text:t})),
     methods: getListItems('教學方法').map(t=>({text:t})),
     assessment, weeks,
@@ -6303,24 +6561,27 @@ async function parseStandardSyllabusDocx(arrayBuffer, isDigital) {
 
 function openSyllabusImportModal() {
   SYIMP = { mode:'drag', queue:[], curIdx:-1, sources:[], targets:{} };
-  document.getElementById('syimp-title').textContent = '匯入課程大綱（拖拉/舊格式）';
+  document.getElementById('syimp-title').textContent = '匯入課程大綱（拖拉/非標準格式）';
   document.getElementById('syimp-step-pick').style.display='';
   document.getElementById('syimp-step-drag').style.display='none';
   document.getElementById('syimp-queue-list').innerHTML='';
   document.getElementById('syimp-file-input').value='';
+  populateSyimpSemesterSelect();
   document.getElementById('syimp-modal').classList.add('show');
 }
 
-document.addEventListener('change', (e)=>{
+document.addEventListener('change', async (e)=>{
   if (e.target && e.target.id==='syimp-file-input') {
     const files = Array.from(e.target.files||[]);
-    const list = files.map(f=>{
+    const preferSem = document.getElementById('syimp-semester')?.value || '';
+    document.getElementById('syimp-queue-list').innerHTML = '比對課程中…';
+    const lines = await Promise.all(files.map(async f=>{
       const m = f.name.match(/[A-Za-z]{2}\d{4,5}/);
       const code = m ? m[0].toUpperCase() : null;
-      const matched = code ? OFFERINGS.find(o=>o.code===code) : null;
-      return `<div>${f.name} → ${matched ? `✅ 比對到「${matched.name_zh}」` : `⚠️ 無法自動比對課程編號（檔名需含類似 AD22040 的編號）`}</div>`;
-    }).join('');
-    document.getElementById('syimp-queue-list').innerHTML = list;
+      const matched = await findOfferingByCode(code, preferSem);
+      return `<div>${f.name} → ${matched ? `✅ 比對到「${matched.name_zh}」（${matched.semester_label}）` : `⚠️ 無法自動比對課程編號（檔名需含類似 AD22040 的編號，且該課程編號要真實存在於課程資料庫，不限學期）`}</div>`;
+    }));
+    document.getElementById('syimp-queue-list').innerHTML = lines.join('');
   }
 });
 
@@ -6338,11 +6599,21 @@ async function processNextSyllabusImportFile() {
   SYIMP.targets = {};
   SYIMP_TARGET_DEFS.forEach(t=>{ SYIMP.targets[t.key]=[]; });
 
-  const buf = await file.arrayBuffer();
-  const cards = await parseDocxToCards(buf);
+  let cards;
+  try {
+    const buf = await file.arrayBuffer();
+    cards = await parseDocxToCards(buf);
+  } catch (e) {
+    showToast(`解析「${file.name}」失敗：${e.message}`,'error');
+    document.getElementById('syimp-sources').innerHTML = `<div style="color:var(--red);padding:10px;font-size:13px">解析失敗，無法顯示原始內容：${esc(e.message)}</div>`;
+    return;
+  }
   SYIMP.sources = cards;
   renderSyimpTargets();
   renderSyimpSources();
+  if (!cards.length) {
+    showToast('這份文件解析出來沒有任何內容卡片，請確認檔案內容','error');
+  }
 }
 
 function skipSyllabusImportFile() { processNextSyllabusImportFile(); }
@@ -6353,13 +6624,21 @@ async function parseDocxToCards(arrayBuffer) {
   const html = result.value;
   const wrap = document.createElement('div');
   wrap.innerHTML = html;
+  // 跟自動解析那邊一樣，先把<br>換成真正的換行字元，避免段落內手動換行的文字黏在一起
+  Array.from(wrap.querySelectorAll('br')).forEach(br => br.replaceWith(document.createTextNode('\n')));
   const cards = [];
   Array.from(wrap.children).forEach(el => {
     if (el.tagName === 'TABLE') {
-      const rows = Array.from(el.querySelectorAll('tr')).map(tr=>
-        Array.from(tr.querySelectorAll('td,th')).map(td=>td.textContent.trim()).join(' | ')
-      ).join('\n');
-      if (rows.trim()) cards.push({ text: rows, isTable:true });
+      // 表格改成「每一列」切成一張獨立卡片（不是整張表格塞成一張卡），
+      // 這樣週次表的每一週、評量表的每一項才能分別拖到對應欄位
+      const trs = Array.from(el.querySelectorAll('tr'));
+      trs.forEach((tr, ri) => {
+        const cellTexts = Array.from(tr.querySelectorAll('td,th')).map(td=>td.textContent.trim());
+        if (!cellTexts.some(Boolean)) return; // 整列空白跳過
+        // 跳過看起來像表頭的第一列（例如「週次|主題|內容說明」「項目|比例(%)|說明」）
+        if (ri === 0 && /^(週次|項目|欄位)$/.test(cellTexts[0])) return;
+        cards.push({ text: cellTexts.join(' | '), isTable:true });
+      });
     } else {
       const txt = el.textContent.trim();
       if (txt) cards.push({ text: txt, isTable:false });
@@ -6377,6 +6656,7 @@ async function parseDocxToCards(arrayBuffer) {
   ];
   cards.forEach(c => {
     c.hint = '';
+    if (c.isTable && /^\d+\s*\|/.test(c.text)) { c.hint = 'week'; return; } // 表格列第一欄是純數字，多半是週次列
     for (const [re, tag] of KW) { if (re.test(c.text)) { c.hint = tag; break; } }
   });
   return cards;
@@ -6416,27 +6696,56 @@ function removeFromTarget(key, i) {
   renderSyimpTargets(); renderSyimpSources();
 }
 
-function applySyllabusImport() {
+async function applySyllabusImport() {
   const join = (key) => (SYIMP.targets[key]||[]).map(c=>c.text).join('\n');
   const toList = (key, field) => (SYIMP.targets[key]||[]).map(c=>({[field]:c.text}));
+  // 卡片如果是從表格列來的，文字格式是「欄位1 | 欄位2 | 欄位3...」，要拆開填進對應子欄位，不能整段塞進第一個欄位
+  const splitCard = (text) => text.split('|').map(s=>s.trim());
 
   const offering = SYIMP.curOffering;
-  SY.offering_id = offering.offering_id;
-  SY.is_digital = !!offering.is_digital;
-  SY.data = {
+  const newData = {
     overview_zh: join('overview'),
     cohort_note: join('cohort'),
     prerequisite_note: join('prereq'),
     objectives: toList('objectives','text'),
     methods: toList('methods','text'),
-    assessment: (SYIMP.targets.assessment||[]).map(c=>({name:c.text,pct:0,desc:''})),
-    weeks: Array.from({length:16},(_,i)=>({
-      week:i+1, title: join('week'+(i+1)), teacher:'', content:'', mode:''
-    })),
+    assessment: (SYIMP.targets.assessment||[]).map(c=>{
+      const parts = splitCard(c.text); // 預期格式：項目 | 比例(%) | 說明
+      return { name: parts[0]||c.text, pct: parseFloat(parts[1])||0, desc: parts[2]||'' };
+    }),
+    weeks: Array.from({length:16},(_,i)=>{
+      const cards = SYIMP.targets['week'+(i+1)]||[];
+      const titles=[], contents=[], modeMap={'實體':'inperson','非同步':'async','同步':'sync'};
+      let mode='';
+      cards.forEach(c=>{
+        const parts = splitCard(c.text); // 預期格式：週次 | 主題 | 內容說明 | 教學型態
+        if (parts.length >= 3) {
+          if (parts[1]) titles.push(parts[1]);
+          if (parts[2]) contents.push(parts[2]);
+          if (parts[3] && modeMap[parts[3]]) mode = modeMap[parts[3]];
+        } else {
+          // 不是表格列來的卡片（例如手動段落），整段當主題
+          titles.push(c.text);
+        }
+      });
+      return { week:i+1, title: titles.join('；'), teacher:'', content: contents.join('\n'), mode };
+    }),
     bibliography: { required:(SYIMP.targets.bib_req||[]).map(c=>c.text), optional:(SYIMP.targets.bib_opt||[]).map(c=>c.text) },
     notes: join('notes'),
     digital_info: {}
   };
+
+  // 檢查這門課是否已經有舊大綱，有的話先讓admin比對選擇要用哪一邊
+  const { data: existingSyl } = await sb.from('syllabi').select('*').eq('offering_id', offering.offering_id).maybeSingle();
+  let finalData = newData;
+  if (existingSyl) {
+    finalData = await showSyllabusDiffModal(existingSyl, newData, !!offering.is_digital);
+    if (!finalData) { showToast('已取消，保留原本的舊大綱'); return; }
+  }
+
+  SY.offering_id = offering.offering_id;
+  SY.is_digital = !!offering.is_digital;
+  SY.data = finalData;
 
   document.getElementById('syllabus-modal').style.display='block';
   document.body.style.overflow='hidden';
@@ -6447,6 +6756,8 @@ function applySyllabusImport() {
   document.getElementById('sy-name-en').textContent = offering.name_en||'—';
   document.getElementById('sy-credits').textContent = (offering.credits||'')+' 學分';
   document.getElementById('sy-req').textContent = REQ_LABEL[offering.req_type]||offering.req_type||'';
+  document.getElementById('sy-digital-flag').textContent = offering.is_digital ? '是' : '否';
+  document.getElementById('sy-audit').textContent = offering.is_audit ? '提供' : '不提供';
   document.getElementById('sy-digital-section').style.display = SY.is_digital ? '' : 'none';
   document.getElementById('sy-wk-mode-hdr').style.display = SY.is_digital ? '' : 'none';
   renderSyllabus();
@@ -8157,6 +8468,21 @@ async function resolveConflict(id) {
 /* ════ UTILS ════ */
 function openModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// 工具列下拉選單（取代原本一長排按鈕）
+function toggleAdminDD(btn) {
+  const menu = btn.nextElementSibling;
+  const isOpen = menu.classList.contains('show');
+  document.querySelectorAll('.admin-dd-menu.show').forEach(m=>m.classList.remove('show'));
+  if (!isOpen) menu.classList.add('show');
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.admin-dd')) {
+    document.querySelectorAll('.admin-dd-menu.show').forEach(m=>m.classList.remove('show'));
+  } else if (e.target.closest('.admin-dd-menu')) {
+    setTimeout(()=>document.querySelectorAll('.admin-dd-menu.show').forEach(m=>m.classList.remove('show')), 0);
+  }
+});
 
 // BUG FIX 4: semesters 頁面需要 display:flex
 function showPage(page, btn) {
@@ -10812,17 +11138,1215 @@ async function refreshThesisPendingBadge() {
   } catch(e) { console.warn('pending badge:', e); }
 }
 
+/* ════════════════════════════════════════════════════════
+   畢業論文 — 發表會管理（研究生論文計畫發表會 / 學習總結分享會）
+   ════════════════════════════════════════════════════════ */
+let PRES_EVENTS = [];
+let PRES_CUR_TYPE = null;
+let PRES_CUR_STATUS = 'ongoing';
+let PRES_CUR_EVENT = null;
+const PRES_TYPE_LABEL = { thesis_proposal:'研究生論文計畫發表會', summary_report:'研究生學習總結分享會' };
+
+function presComputeStatus(ev) {
+  if (ev.manual_status) return ev.manual_status;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(ev.event_date+'T00:00:00');
+  return d < today ? 'completed' : 'ongoing';
+}
+
+async function renderPresentationHome() {
+  const wrap = document.getElementById('thesis-events-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3)">載入中…</div>';
+  const { data } = await sb.from('presentation_events').select('*, presentation_participants(id)');
+  PRES_EVENTS = data || [];
+
+  const stat = (type) => {
+    const list = PRES_EVENTS.filter(e=>e.type===type);
+    const ongoing = list.filter(e=>presComputeStatus(e)==='ongoing');
+    const completed = list.filter(e=>presComputeStatus(e)==='completed');
+    const ongoingPeople = ongoing.reduce((s,e)=>s+(e.presentation_participants?.length||0),0);
+    return { ongoingCount: ongoing.length, ongoingPeople, completedCount: completed.length };
+  };
+  const s1 = stat('thesis_proposal');
+
+  wrap.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:16px">
+      <div class="pres-card" onclick="openPresentationType('thesis_proposal')" style="cursor:pointer;border:1px solid var(--cr2);border-radius:12px;padding:20px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+        <div style="font-size:15px;font-weight:600;color:var(--navy);margin-bottom:10px">🎤 研究生論文計畫發表會</div>
+        <div style="font-size:13px;color:var(--ink2);line-height:1.8">
+          進行中：${s1.ongoingCount} 場　${s1.ongoingPeople} 人<br>
+          已完成：${s1.completedCount} 場
+        </div>
+      </div>
+      <div style="border:1px dashed var(--cr2);border-radius:12px;padding:20px;background:#fafafa;color:var(--ink3)">
+        <div style="font-size:15px;font-weight:600;margin-bottom:10px">📊 研究生學習總結分享會</div>
+        <div style="font-size:13px">敬請期待</div>
+      </div>
+      <div style="border:1px dashed var(--cr2);border-radius:12px;padding:20px;background:#fafafa;color:var(--ink3)">
+        <div style="font-size:15px;font-weight:600">（保留卡片3）</div>
+        <div style="font-size:13px">敬請期待</div>
+      </div>
+      <div style="border:1px dashed var(--cr2);border-radius:12px;padding:20px;background:#fafafa;color:var(--ink3)">
+        <div style="font-size:15px;font-weight:600">（保留卡片4）</div>
+        <div style="font-size:13px">敬請期待</div>
+      </div>
+    </div>`;
+}
+
+async function openPresentationType(type) {
+  PRES_CUR_TYPE = type;
+  PRES_CUR_STATUS = 'ongoing';
+  await renderPresentationEventList();
+}
+
+async function renderPresentationEventList() {
+  const wrap = document.getElementById('thesis-events-wrap');
+  const { data } = await sb.from('presentation_events').select('*, presentation_participants(id)').eq('type', PRES_CUR_TYPE).order('event_date',{ascending:false});
+  const all = data || [];
+  const list = all.filter(e => presComputeStatus(e) === PRES_CUR_STATUS);
+
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <button class="btn btn-sec" onclick="renderPresentationHome()">← 返回</button>
+      <div style="font-size:15px;font-weight:600">${PRES_TYPE_LABEL[PRES_CUR_TYPE]}</div>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn ${PRES_CUR_STATUS==='ongoing'?'btn-pri':'btn-sec'}" onclick="presSwitchStatus('ongoing')">進行中</button>
+        <button class="btn ${PRES_CUR_STATUS==='completed'?'btn-pri':'btn-sec'}" onclick="presSwitchStatus('completed')">已完成</button>
+        <button class="btn btn-gold" onclick="openCreatePresentationEvent()">＋ 新增場次</button>
+      </div>
+    </div>
+    <div id="pres-event-list">
+      ${list.length ? list.map(e=>presEventCardHtml(e)).join('') : '<div style="padding:30px;text-align:center;color:var(--ink3)">這個分類目前沒有場次</div>'}
+    </div>`;
+}
+
+function presEventCardHtml(e) {
+  const status = presComputeStatus(e);
+  const peopleCount = e.presentation_participants?.length || 0;
+  return `<div style="border:1px solid var(--cr2);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:16px">
+    <div style="flex:1">
+      <div style="font-weight:600">${e.event_date} ${e.start_time||''} ｜ ${e.location||'（未設定地點）'}</div>
+      <div style="font-size:12.5px;color:var(--ink3)">${peopleCount} 人　${status==='ongoing'?'🟢 進行中':'⚪ 已完成'}${e.manual_status?'（手動設定）':'（自動判斷）'}</div>
+    </div>
+    <button class="btn btn-sec" onclick="openPresentationEventDetail('${e.id}')">管理 →</button>
+  </div>`;
+}
+
+function presSwitchStatus(s) { PRES_CUR_STATUS = s; renderPresentationEventList(); }
+
+async function openCreatePresentationEvent() {
+  const { data: sems } = await sb.from('semesters').select('*').order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
+  const semOptions = (sems||[]).map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+  const html = `
+    <div style="padding:4px">
+      <label class="flabel">學期</label>
+      <select class="finput" id="pres-new-sem" style="margin-bottom:10px">${semOptions}</select>
+      <label class="flabel">日期</label>
+      <input type="date" class="finput" id="pres-new-date" style="margin-bottom:10px">
+      <label class="flabel">時間（選填）</label>
+      <input type="time" class="finput" id="pres-new-time" style="margin-bottom:10px">
+      <label class="flabel">每人發表時間（分鐘，選填）</label>
+      <input type="number" class="finput" id="pres-new-duration" style="margin-bottom:10px">
+      <label class="flabel">地點（選填）</label>
+      <input class="finput" id="pres-new-location" style="margin-bottom:10px">
+    </div>`;
+  presShowSimpleModal('新增場次', html, async () => {
+    const semester_id = document.getElementById('pres-new-sem').value;
+    const event_date = document.getElementById('pres-new-date').value;
+    if (!semester_id || !event_date) { showToast('學期跟日期是必填的','error'); return false; }
+    const { error } = await sb.from('presentation_events').insert({
+      type: PRES_CUR_TYPE, semester_id, event_date,
+      start_time: document.getElementById('pres-new-time').value || null,
+      duration_minutes_per_person: +document.getElementById('pres-new-duration').value || null,
+      location: document.getElementById('pres-new-location').value || null
+    });
+    if (error) { showToast('新增失敗：'+error.message,'error'); return false; }
+    showToast('✅ 已新增場次');
+    renderPresentationEventList();
+    return true;
+  });
+}
+
+// 通用簡易modal（給場次建立/評審新增等小表單共用，避免每次都寫一個modal-bg）
+function presShowSimpleModal(title, bodyHtml, onConfirm) {
+  let modal = document.getElementById('pres-simple-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'pres-simple-modal';
+    modal.className = 'modal-bg';
+    modal.innerHTML = `<div class="modal" style="max-width:480px">
+      <div class="modal-hdr"><div class="modal-title" id="pres-simple-modal-title"></div>
+        <button class="modal-close" onclick="closeModal('pres-simple-modal')">✕</button></div>
+      <div class="modal-body" id="pres-simple-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('pres-simple-modal')">取消</button>
+        <button class="btn btn-save" id="pres-simple-modal-confirm">確定</button>
+      </div></div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('pres-simple-modal-title').textContent = title;
+  document.getElementById('pres-simple-modal-body').innerHTML = bodyHtml;
+  const btn = document.getElementById('pres-simple-modal-confirm');
+  btn.onclick = async () => { const ok = await onConfirm(); if (ok !== false) closeModal('pres-simple-modal'); };
+  modal.classList.add('show');
+}
+
+/* ── 場次詳細管理：學生／評審／分享連結／列印 ── */
+async function openPresentationEventDetail(eventId) {
+  const { data: ev } = await sb.from('presentation_events').select('*').eq('id',eventId).maybeSingle();
+  if (!ev) { showToast('找不到這個場次','error'); return; }
+  PRES_CUR_EVENT = ev;
+  await renderPresentationEventDetail();
+}
+
+async function renderPresentationEventDetail() {
+  const ev = PRES_CUR_EVENT;
+  const wrap = document.getElementById('thesis-events-wrap');
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <button class="btn btn-sec" onclick="renderPresentationEventList()">← 返回列表</button>
+      <div style="font-size:15px;font-weight:600">${PRES_TYPE_LABEL[ev.type]} — ${ev.event_date}</div>
+    </div>
+    <div style="background:var(--cr3);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+      <div>📅 ${ev.event_date} ${ev.start_time||''}</div>
+      <div>⏱ 每人 ${ev.duration_minutes_per_person||'—'} 分鐘</div>
+      <div>📍 ${ev.location||'未設定'}</div>
+      <button class="btn btn-sec" style="margin-left:auto" onclick="openEditPresentationEvent()">✎ 編輯場次資訊</button>
+      <button class="btn btn-sec" onclick="presToggleManualStatus()">${ev.manual_status?'恢復自動判斷狀態':'手動切換狀態'}</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="display:flex;align-items:center;margin-bottom:10px;gap:6px;flex-wrap:wrap">
+          <div style="font-weight:600">🧑‍🎓 參加學生</div>
+          <button class="btn btn-sec btn-sm" style="margin-left:auto" onclick="openAddParticipantsModal()">＋ 新增參加同學</button>
+          <button class="btn btn-sec btn-sm" onclick="openImportTitleCSVModal()">📥 匯入題目/簡介(Excel/CSV)</button>
+          <label class="btn btn-sec btn-sm" style="cursor:pointer">📥 批次匯入附件(多檔)
+            <input type="file" multiple style="display:none" onchange="presBatchImportAttachments(this.files)">
+          </label>
+        </div>
+        <div id="pres-participants-list">載入中…</div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;margin-bottom:10px">
+          <div style="font-weight:600">👨‍⚖️ 評審</div>
+          <button class="btn btn-sec btn-sm" style="margin-left:auto" onclick="openAddJudgeModal()">＋ 新增評審</button>
+        </div>
+        <div id="pres-judges-list">載入中…</div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;border-top:1px solid var(--cr2);padding-top:16px">
+      <div style="font-weight:600;margin-bottom:10px">🔗 對外分享連結（給委員，不用登入）</div>
+      <div id="pres-share-links-list" style="margin-bottom:10px"></div>
+      <button class="btn btn-sec" onclick="openCreateShareLinkModal()">＋ 產生分享連結</button>
+    </div>
+
+    <div style="margin-top:24px;border-top:1px solid var(--cr2);padding-top:16px">
+      <div style="font-weight:600;margin-bottom:10px">📝 評分與統計</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn btn-sec" onclick="presEditCriteria()">⚙ 設定評分項目/權重</button>
+        <button class="btn btn-sec" onclick="presOpenScoreInput()">✎ 輸入評分</button>
+        <button class="btn btn-pri" onclick="presShowStats()">📊 查看統計與排名</button>
+        <button class="btn btn-sec" onclick="presOpenImportScoresModal()">📥 匯入評分(Excel，可批次)</button>
+        <button class="btn btn-sec" onclick="presOpenImportCommentsModal()">📥 匯入評語(Excel，可批次)</button>
+        <button class="btn" style="background:#FEE;color:var(--red);border:1px solid #FCC" onclick="presOpenClearScoresModal()">🗑 清除分數</button>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;border-top:1px solid var(--cr2);padding-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-sec" onclick="printPresentationScoreSheetsByStudent()">🖨 個別同學評分表(每位同學×全部評審)</button>
+      <button class="btn btn-sec" onclick="printPresentationScoreSheetsByJudge()">🖨 個別評審評分表(每位評審×全部同學)</button>
+      <button class="btn btn-sec" onclick="printPresentationMasterSheet()">🖨 總表(含所長/教育長簽名)</button>
+      <button class="btn btn-sec" onclick="presExportMasterSheetExcel()">⬇ 總表下載Excel</button>
+      <button class="btn btn-sec" onclick="presExportRawScoresExcel()">⬇ 匯出所有評分明細(Excel)</button>
+      <button class="btn btn-sec" onclick="printPresentationSignSheet()">🖨 列印簽到表</button>
+    </div>`;
+  await Promise.all([renderPresParticipants(), renderPresJudges(), renderPresShareLinks()]);
+}
+
+async function openEditPresentationEvent() {
+  const ev = PRES_CUR_EVENT;
+  const html = `
+    <label class="flabel">日期</label>
+    <input type="date" class="finput" id="pres-edit-date" value="${ev.event_date}" style="margin-bottom:10px">
+    <label class="flabel">時間</label>
+    <input type="time" class="finput" id="pres-edit-time" value="${ev.start_time||''}" style="margin-bottom:10px">
+    <label class="flabel">每人發表時間（分鐘）</label>
+    <input type="number" class="finput" id="pres-edit-duration" value="${ev.duration_minutes_per_person||''}" style="margin-bottom:10px">
+    <label class="flabel">地點</label>
+    <input class="finput" id="pres-edit-location" value="${ev.location||''}" style="margin-bottom:10px">`;
+  presShowSimpleModal('編輯場次資訊', html, async () => {
+    const { error } = await sb.from('presentation_events').update({
+      event_date: document.getElementById('pres-edit-date').value,
+      start_time: document.getElementById('pres-edit-time').value || null,
+      duration_minutes_per_person: +document.getElementById('pres-edit-duration').value || null,
+      location: document.getElementById('pres-edit-location').value || null
+    }).eq('id', ev.id);
+    if (error) { showToast('更新失敗','error'); return false; }
+    const { data } = await sb.from('presentation_events').select('*').eq('id',ev.id).maybeSingle();
+    PRES_CUR_EVENT = data;
+    showToast('✅ 已更新');
+    renderPresentationEventDetail();
+  });
+}
+
+async function presToggleManualStatus() {
+  const ev = PRES_CUR_EVENT;
+  if (ev.manual_status) {
+    await sb.from('presentation_events').update({manual_status:null}).eq('id',ev.id);
+    showToast('已恢復自動依日期判斷');
+  } else {
+    const auto = presComputeStatus(ev);
+    const target = auto==='ongoing' ? 'completed' : 'ongoing';
+    const ok = confirm(`目前自動判斷是「${auto==='ongoing'?'進行中':'已完成'}」，要手動改成「${target==='ongoing'?'進行中':'已完成'}」嗎？`);
+    if (!ok) return;
+    await sb.from('presentation_events').update({manual_status:target}).eq('id',ev.id);
+    showToast('已手動切換狀態');
+  }
+  const { data } = await sb.from('presentation_events').select('*').eq('id',ev.id).maybeSingle();
+  PRES_CUR_EVENT = data;
+  renderPresentationEventDetail();
+}
+
+/* ── 參加學生 ── */
+async function renderPresParticipants() {
+  const el = document.getElementById('pres-participants-list');
+  const { data } = await sb.from('presentation_participants').select('*, students(student_code,name_zh,cohort), presentation_attachments(id,file_type,file_name,storage_path)')
+    .eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const list = data || [];
+  if (!list.length) { el.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:10px">尚未加入任何學生</div>'; return; }
+  el.innerHTML = list.map(p => {
+    const atts = (p.presentation_attachments||[]).map(a=>`<span class="att-chip" style="font-size:11px;background:var(--navy3);padding:2px 6px;border-radius:4px;margin-right:4px">${a.file_type}:${esc(a.file_name)}</span>`).join('') || '<span style="color:var(--ink3);font-size:11.5px">尚無附件</span>';
+    return `<div style="border:1px solid var(--cr2);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <div style="font-weight:500">${p.students?.cohort||''} ${p.students?.student_code||''} ${p.students?.name_zh||''}</div>
+          <input class="finput" value="${esc(p.title_zh||'')}" placeholder="論文題目" oninput="presUpdateParticipant('${p.id}','title_zh',this.value)" style="font-size:12.5px;margin:6px 0">
+          <input class="finput" value="${esc(p.intro_text||'')}" placeholder="一句話簡介" oninput="presUpdateParticipant('${p.id}','intro_text',this.value)" style="font-size:12.5px">
+        </div>
+        <button class="btn-del btn btn-sm" onclick="presRemoveParticipant('${p.id}')">✕</button>
+      </div>
+      <div style="margin-top:8px">${atts}
+        <label class="btn btn-sec btn-sm" style="cursor:pointer;display:inline-block;margin-left:6px">📎 上傳附件
+          <input type="file" style="display:none" onchange="presUploadAttachment('${p.id}',this.files[0])">
+        </label>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── 批次匯入：題目/簡介 (CSV) ── */
+function openImportTitleCSVModal() {
+  const html = `
+    <div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">
+      支援 Excel(.xlsx) 或 CSV，欄位名稱（第一列）：<br><b>學號,論文題目,一句話簡介</b><br>
+      學號必須是已經加進這個場次的學生，不在名單裡的學號會被跳過（請先用「＋新增參加同學」把人加進來）。
+    </div>
+    <input type="file" id="pres-title-csv-file" accept=".csv,.xlsx,.xls" style="margin-bottom:10px">`;
+  presShowSimpleModal('匯入題目/簡介', html, async () => {
+    const file = document.getElementById('pres-title-csv-file').files[0];
+    if (!file) { showToast('請先選擇檔案','error'); return false; }
+
+    let rows;
+    try {
+      if (/\.(xlsx|xls)$/i.test(file.name)) {
+        if (typeof XLSX === 'undefined') {
+          await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+        }
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        // Excel欄位讀出來的key就是表頭文字，跟CSV版本統一成一樣的物件結構，下面比對邏輯不用分兩套
+        rows = rows.map(r => ({ '學號': String(r['學號']??'').trim(), '論文題目': r['論文題目']??'', '一句話簡介': r['一句話簡介']??'' }));
+      } else {
+        const text = await file.text();
+        rows = parseCSV(text).rows;
+      }
+    } catch (e) {
+      showToast('檔案讀取失敗：'+e.message,'error'); return false;
+    }
+    if (!rows.length) { showToast('檔案沒有資料','error'); return false; }
+
+    const { data: parts } = await sb.from('presentation_participants').select('id, student_id, students(student_code)').eq('event_id', PRES_CUR_EVENT.id);
+    const byCode = {};
+    (parts||[]).forEach(p => { if (p.students?.student_code) byCode[p.students.student_code] = p.id; });
+
+    let okCount = 0, skipped = [];
+    for (const r of rows) {
+      const code = (r['學號']||'').trim();
+      const pid = byCode[code];
+      if (!pid) { skipped.push(code); continue; }
+      await sb.from('presentation_participants').update({
+        title_zh: r['論文題目']||'', intro_text: r['一句話簡介']||''
+      }).eq('id', pid);
+      okCount++;
+    }
+    showToast(`✅ 已更新 ${okCount} 筆${skipped.length?`，${skipped.length}筆學號不在名單裡被跳過`:''}`);
+    if (skipped.length) console.warn('匯入題目/簡介 - 跳過的學號：', skipped);
+    renderPresParticipants();
+  });
+}
+
+/* ── 批次匯入：附件（多檔，依檔名比對學號） ── */
+async function presBatchImportAttachments(files) {
+  files = Array.from(files);
+  if (!files.length) return;
+  if (!PRES_CUR_EVENT || !PRES_CUR_EVENT.id) { alert('找不到目前的場次資料，請重新整理頁面後再試一次'); return; }
+
+  let parts;
+  try {
+    const res = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id);
+    if (res.error) throw res.error;
+    parts = res.data;
+  } catch (e) {
+    alert('查詢參加學生名單失敗：' + e.message);
+    return;
+  }
+  const byCode = {};
+  (parts||[]).forEach(p => { if (p.students?.student_code) byCode[p.students.student_code] = p; });
+
+  showToast(`開始匯入 ${files.length} 個檔案…`);
+  let okCount = 0, failDetails = [];
+  for (const file of files) {
+    try {
+      const m = file.name.match(/\d{8}/); // 學號是固定8碼數字
+      const code = m ? m[0] : null;
+      const p = code ? byCode[code] : null;
+      if (!p) { failDetails.push(`${file.name}（檔名找不到對應的學號，請確認檔名含8碼學號）`); continue; }
+      const fileType = /ppt|pptx/i.test(file.name) ? 'PPT' : /pdf|doc|docx/i.test(file.name) ? '論文' : '其他';
+      const folderName = p.students.student_code; // 路徑只用學號，純數字最安全，姓名只放在畫面顯示用的file_name欄位
+      const extMatch = file.name.match(/\.[a-zA-Z0-9]+$/);
+      const safeFileName = `${Date.now()}${extMatch ? extMatch[0] : ''}`;
+      const path = `${PRES_CUR_EVENT.id}/${folderName}/${safeFileName}`;
+      const { error: upErr } = await sb.storage.from('presentation-files').upload(path, file);
+      if (upErr) { failDetails.push(`${file.name}（上傳失敗：${upErr.message}）`); continue; }
+      const { error } = await sb.from('presentation_attachments').insert({
+        participant_id: p.id, file_type: fileType, file_name: file.name, storage_path: path
+      });
+      if (error) { failDetails.push(`${file.name}（記錄失敗：${error.message}）`); continue; }
+      okCount++;
+    } catch (e) {
+      failDetails.push(`${file.name}（程式錯誤：${e.message}）`);
+    }
+  }
+  if (okCount) showToast(`✅ 已匯入 ${okCount} 個檔案${failDetails.length?`，${failDetails.length}個失敗`:''}`);
+  if (failDetails.length) { console.warn('批次匯入附件 - 失敗清單：', failDetails); alert(`以下檔案匯入失敗：\n\n${failDetails.join('\n')}`); }
+  renderPresParticipants();
+}
+
+let _presUpdateTimers = {};
+function presUpdateParticipant(id, field, value) {
+  clearTimeout(_presUpdateTimers[id+field]);
+  _presUpdateTimers[id+field] = setTimeout(async () => {
+    await sb.from('presentation_participants').update({[field]:value}).eq('id',id);
+  }, 500);
+}
+
+async function presRemoveParticipant(id) {
+  if (!confirm('確定移除這位同學？（連同已上傳的附件一起刪除）')) return;
+  await sb.from('presentation_participants').delete().eq('id',id);
+  renderPresParticipants();
+}
+
+async function presUploadAttachment(participantId, file) {
+  if (!file) return;
+  const { data: p } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('id',participantId).maybeSingle();
+  if (!p) return;
+  const fileType = /ppt|pptx/i.test(file.name) ? 'PPT' : /pdf|doc|docx/i.test(file.name) ? '論文' : '其他';
+  const folderName = p.students.student_code; // 路徑只用學號，純數字最安全，姓名只放在畫面顯示用的file_name欄位
+  const extMatch = file.name.match(/\.[a-zA-Z0-9]+$/);
+  const safeFileName = `${Date.now()}${extMatch ? extMatch[0] : ''}`;
+  const path = `${PRES_CUR_EVENT.id}/${folderName}/${safeFileName}`;
+  showToast('上傳中…');
+  const { error: upErr } = await sb.storage.from('presentation-files').upload(path, file);
+  if (upErr) { showToast('上傳失敗：'+upErr.message,'error'); return; }
+  const { error } = await sb.from('presentation_attachments').insert({
+    participant_id: participantId, file_type: fileType, file_name: file.name, storage_path: path
+  });
+  if (error) { showToast('記錄失敗：'+error.message,'error'); return; }
+  showToast('✅ 上傳成功');
+  renderPresParticipants();
+}
+
+async function openAddParticipantsModal() {
+  const { data: students } = await sb.from('students').select('id,student_code,name_zh,cohort').order('student_code');
+  const { data: existing } = await sb.from('presentation_participants').select('student_id').eq('event_id', PRES_CUR_EVENT.id);
+  const existingIds = new Set((existing||[]).map(e=>e.student_id));
+  const cohorts = [...new Set((students||[]).map(s=>s.cohort))].filter(Boolean).sort((a,b)=>b-a);
+  const cohortOpts = ['<option value="">全年級</option>'].concat(cohorts.map(c=>`<option value="${c}">${c}</option>`)).join('');
+  const html = `
+    <label class="flabel">篩選年級</label>
+    <select class="finput" id="pres-add-cohort-filter" style="margin-bottom:10px" onchange="presFilterAddList()">${cohortOpts}</select>
+    <div style="margin-bottom:8px">
+      <button class="btn btn-sec btn-sm" onclick="presToggleAllAddCheckbox(true)">全選</button>
+      <button class="btn btn-sec btn-sm" onclick="presToggleAllAddCheckbox(false)">取消全選</button>
+    </div>
+    <div id="pres-add-student-list" style="max-height:320px;overflow-y:auto;border:1px solid var(--cr2);border-radius:8px;padding:8px"></div>`;
+  window._presAllStudents = (students||[]).filter(s=>!existingIds.has(s.id));
+  presShowSimpleModal('新增參加同學', html, async () => {
+    const checked = Array.from(document.querySelectorAll('.pres-add-cb:checked')).map(c=>c.value);
+    if (!checked.length) { showToast('請至少勾選一位學生','error'); return false; }
+    const rows = checked.map((sid,i)=>({ event_id: PRES_CUR_EVENT.id, student_id: sid, sort_order: i }));
+    const { error } = await sb.from('presentation_participants').insert(rows);
+    if (error) { showToast('新增失敗：'+error.message,'error'); return false; }
+    showToast(`✅ 已新增 ${checked.length} 位同學`);
+    renderPresParticipants();
+  });
+  presFilterAddList();
+}
+function presFilterAddList() {
+  const cohort = document.getElementById('pres-add-cohort-filter').value;
+  const list = window._presAllStudents.filter(s => !cohort || String(s.cohort)===cohort);
+  document.getElementById('pres-add-student-list').innerHTML = list.map(s =>
+    `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px">
+      <input type="checkbox" class="pres-add-cb" value="${s.id}"> ${s.cohort||''} ${s.student_code} ${s.name_zh}
+    </label>`).join('') || '<div style="color:var(--ink3);font-size:13px">沒有符合的學生</div>';
+}
+function presToggleAllAddCheckbox(val) { document.querySelectorAll('.pres-add-cb').forEach(c=>c.checked=val); }
+
+/* ── 評審 ── */
+async function renderPresJudges() {
+  const el = document.getElementById('pres-judges-list');
+  const { data } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const list = data || [];
+  el.innerHTML = list.length ? list.map(j => `<div style="border:1px solid var(--cr2);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+    <div><span style="font-weight:500">${esc(j.name)}</span>　<span style="font-size:12px;color:var(--ink3)">${esc(j.title||'')}${j.teacher_id?'（連結教師資料）':'（外部委員）'}</span></div>
+    <button class="btn-del btn btn-sm" onclick="presRemoveJudge('${j.id}')">✕</button>
+  </div>`).join('') : '<div style="color:var(--ink3);font-size:13px;padding:10px">尚未加入評審</div>';
+}
+async function presRemoveJudge(id) {
+  if (!confirm('確定移除這位評審？')) return;
+  await sb.from('presentation_judges').delete().eq('id',id);
+  renderPresJudges();
+}
+async function openAddJudgeModal() {
+  const { data: teachers } = await sb.from('teachers').select('id,name_zh,title').order('name_zh');
+  const tOpts = ['<option value="">— 外部委員（自行輸入姓名）—</option>'].concat((teachers||[]).map(t=>`<option value="${t.id}" data-name="${esc(t.name_zh)}" data-title="${esc(t.title||'')}">${t.name_zh}</option>`)).join('');
+  const html = `
+    <label class="flabel">選擇校內教師（或留空自行輸入外部委員）</label>
+    <select class="finput" id="pres-judge-teacher" style="margin-bottom:10px" onchange="presJudgeTeacherChange()">${tOpts}</select>
+    <label class="flabel">姓名</label>
+    <input class="finput" id="pres-judge-name" style="margin-bottom:10px">
+    <label class="flabel">職稱</label>
+    <input class="finput" id="pres-judge-title" style="margin-bottom:10px">
+    <label class="flabel">用餐</label>
+    <input class="finput" id="pres-judge-meal" placeholder="例：1 / 特殊餐 / 不用餐" style="margin-bottom:10px">`;
+  presShowSimpleModal('新增評審', html, async () => {
+    const name = document.getElementById('pres-judge-name').value.trim();
+    if (!name) { showToast('請填姓名','error'); return false; }
+    const teacherSel = document.getElementById('pres-judge-teacher');
+    const { error } = await sb.from('presentation_judges').insert({
+      event_id: PRES_CUR_EVENT.id,
+      teacher_id: teacherSel.value || null,
+      name, title: document.getElementById('pres-judge-title').value || null,
+      meal_pref: document.getElementById('pres-judge-meal').value || null
+    });
+    if (error) { showToast('新增失敗：'+error.message,'error'); return false; }
+    showToast('✅ 已新增評審');
+    renderPresJudges();
+  });
+}
+function presJudgeTeacherChange() {
+  const sel = document.getElementById('pres-judge-teacher');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('pres-judge-name').value = opt.dataset.name || '';
+  document.getElementById('pres-judge-title').value = opt.dataset.title || '';
+}
+
+/* ── 對外分享連結 ── */
+async function renderPresShareLinks() {
+  const el = document.getElementById('pres-share-links-list');
+  const { data } = await sb.from('presentation_share_links').select('*').eq('event_id', PRES_CUR_EVENT.id).order('created_at',{ascending:false});
+  const list = data || [];
+  const baseUrl = location.origin + location.pathname.replace('admin.html','presentation_view.html');
+  el.innerHTML = list.length ? list.map(l => {
+    const url = `${baseUrl}?token=${l.token}`;
+    return `<div style="border:1px solid var(--cr2);border-radius:8px;padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1">
+        <div style="font-size:12.5px;font-weight:500">${esc(l.label||'（未命名）')} ${l.participant_scope?`（限定${l.participant_scope.length}位學生）`:'（全部學生）'}</div>
+        <div style="font-size:11.5px;color:var(--ink3);word-break:break-all">${url}</div>
+      </div>
+      <button class="btn btn-sec btn-sm" onclick="navigator.clipboard.writeText('${url}');showToast('已複製連結')">📋 複製</button>
+      <button class="btn-del btn btn-sm" onclick="presDeleteShareLink('${l.id}')">✕</button>
+    </div>`;
+  }).join('') : '<div style="color:var(--ink3);font-size:13px">尚未產生任何連結</div>';
+}
+async function presDeleteShareLink(id) {
+  if (!confirm('確定刪除這條連結？（連結失效後，已經拿到的人就無法再開啟）')) return;
+  await sb.from('presentation_share_links').delete().eq('id',id);
+  renderPresShareLinks();
+}
+async function openCreateShareLinkModal() {
+  const { data: parts } = await sb.from('presentation_participants').select('id, students(name_zh)').eq('event_id', PRES_CUR_EVENT.id);
+  const list = parts || [];
+  const html = `
+    <label class="flabel">連結備註（給自己看，例如「全體委員共用」）</label>
+    <input class="finput" id="pres-link-label" style="margin-bottom:10px">
+    <label class="flabel">範圍</label>
+    <select class="finput" id="pres-link-scope" style="margin-bottom:10px" onchange="document.getElementById('pres-link-students').style.display=this.value==='all'?'none':''">
+      <option value="all">全部學生</option>
+      <option value="some">只限定特定學生</option>
+    </select>
+    <div id="pres-link-students" style="display:none;max-height:240px;overflow-y:auto;border:1px solid var(--cr2);border-radius:8px;padding:8px">
+      ${list.map(p=>`<label style="display:flex;gap:8px;padding:3px 0;font-size:13px"><input type="checkbox" class="pres-link-cb" value="${p.id}"> ${p.students?.name_zh||''}</label>`).join('')}
+    </div>`;
+  presShowSimpleModal('產生分享連結', html, async () => {
+    const scope = document.getElementById('pres-link-scope').value;
+    let participant_scope = null;
+    if (scope === 'some') {
+      participant_scope = Array.from(document.querySelectorAll('.pres-link-cb:checked')).map(c=>c.value);
+      if (!participant_scope.length) { showToast('請至少勾選一位學生','error'); return false; }
+    }
+    const { error } = await sb.from('presentation_share_links').insert({
+      event_id: PRES_CUR_EVENT.id,
+      label: document.getElementById('pres-link-label').value || null,
+      participant_scope
+    });
+    if (error) { showToast('產生失敗：'+error.message,'error'); return false; }
+    showToast('✅ 已產生連結');
+    renderPresShareLinks();
+  });
+}
+
+/* ── 列印：評分表 / 簽到表 ── */
+/* ── 評分項目/權重設定 ── */
+function presEditCriteria() {
+  const criteria = PRES_CUR_EVENT.score_criteria || [];
+  const rowHtml = (c,i) => `<div class="pres-crit-row" data-i="${i}" style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
+    <input class="finput pres-crit-name" value="${esc(c.name||'')}" placeholder="評分項目名稱" style="flex:1">
+    <input class="finput pres-crit-weight" type="number" value="${c.weight||0}" placeholder="權重%" style="width:90px">
+    <button class="btn-del btn btn-sm" onclick="this.parentElement.remove()">✕</button>
+  </div>`;
+  const html = `
+    <div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">權重總和建議是100，存檔前會幫你檢查加總。</div>
+    <div id="pres-crit-rows">${criteria.map(rowHtml).join('')}</div>
+    <button class="btn btn-sec btn-sm" style="margin-top:6px" onclick="document.getElementById('pres-crit-rows').insertAdjacentHTML('beforeend','<div class=\\'pres-crit-row\\' style=\\'display:flex;gap:8px;margin-bottom:6px\\'><input class=\\'finput pres-crit-name\\' placeholder=\\'評分項目名稱\\' style=\\'flex:1\\'><input class=\\'finput pres-crit-weight\\' type=\\'number\\' placeholder=\\'權重%\\' style=\\'width:90px\\'><button class=\\'btn-del btn btn-sm\\' onclick=\\'this.parentElement.remove()\\'>✕</button></div>')">＋ 新增項目</button>`;
+  presShowSimpleModal('設定評分項目/權重', html, async () => {
+    const names = Array.from(document.querySelectorAll('.pres-crit-name')).map(i=>i.value.trim());
+    const weights = Array.from(document.querySelectorAll('.pres-crit-weight')).map(i=>+i.value||0);
+    const newCriteria = names.map((n,i)=>({name:n, weight:weights[i]})).filter(c=>c.name);
+    if (!newCriteria.length) { showToast('至少要有一個評分項目','error'); return false; }
+    const total = newCriteria.reduce((s,c)=>s+c.weight,0);
+    if (total !== 100) { if (!confirm(`目前權重加總是${total}，不是100，要繼續存嗎？`)) return false; }
+    const { error } = await sb.from('presentation_events').update({score_criteria:newCriteria}).eq('id', PRES_CUR_EVENT.id);
+    if (error) { showToast('儲存失敗：'+error.message,'error'); return false; }
+    const { data } = await sb.from('presentation_events').select('*').eq('id', PRES_CUR_EVENT.id).maybeSingle();
+    PRES_CUR_EVENT = data;
+    showToast('✅ 已更新評分項目');
+  });
+}
+
+/* ── 評分輸入 ── */
+async function presOpenScoreInput() {
+  const { data: judges } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  if (!judges?.length) { showToast('要先加評審才能輸入評分','error'); return; }
+  const wrap = document.getElementById('thesis-events-wrap');
+  const judgeOpts = judges.map(j=>`<option value="${j.id}">${esc(j.name)}${j.title?'（'+esc(j.title)+'）':''}</option>`).join('');
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <button class="btn btn-sec" onclick="renderPresentationEventDetail()">← 返回場次管理</button>
+      <div style="font-size:15px;font-weight:600">輸入評分</div>
+      <select class="finput" id="pres-score-judge-sel" style="margin-left:auto;max-width:240px" onchange="presLoadScoreTable()">${judgeOpts}</select>
+      <button class="btn btn-save" onclick="presSaveScores()">💾 儲存這位評審的評分</button>
+    </div>
+    <div id="pres-score-table-wrap">載入中…</div>`;
+  await presLoadScoreTable();
+}
+
+async function presLoadScoreTable() {
+  const judgeId = document.getElementById('pres-score-judge-sel').value;
+  const criteria = PRES_CUR_EVENT.score_criteria || [];
+  const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const { data: existing } = await sb.from('presentation_scores').select('*').eq('judge_id', judgeId);
+  const byParticipant = {};
+  (existing||[]).forEach(s => { byParticipant[s.participant_id] = s; });
+
+  const head = criteria.map(c=>`<th>${esc(c.name)}<br><span style="font-size:11px;color:var(--ink3)">(${c.weight}%)</span></th>`).join('');
+  const rows = (parts||[]).map(p => {
+    const old = byParticipant[p.id];
+    const oldScores = old?.criteria_scores || [];
+    const cells = criteria.map((c,ci) => {
+      const v = oldScores[ci]?.score ?? '';
+      return `<td><input type="number" min="0" max="100" class="finput pres-score-input" data-pid="${p.id}" data-ci="${ci}" value="${v}" style="width:64px;text-align:center" oninput="presRecalcSubtotal('${p.id}')"></td>`;
+    }).join('');
+    return `<tr>
+      <td style="text-align:left;white-space:nowrap">${p.students?.student_code||''} ${p.students?.name_zh||''}</td>
+      ${cells}
+      <td id="pres-subtotal-${p.id}" style="font-weight:600">${old?.total_score!=null?old.total_score:'—'}</td>
+      <td><input class="finput pres-score-comment" data-pid="${p.id}" value="${esc(old?.comment||'')}" placeholder="評語/鼓勵的話" style="width:160px;font-size:12px"></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('pres-score-table-wrap').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:var(--cr3)"><th style="text-align:left">學生</th>${head}<th>加權小計</th><th>評語/鼓勵的話</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <style>#pres-score-table-wrap th,#pres-score-table-wrap td{border:1px solid var(--cr2);padding:8px}</style>`;
+  (parts||[]).forEach(p => presRecalcSubtotal(p.id));
+}
+
+function presRecalcSubtotal(participantId) {
+  const criteria = PRES_CUR_EVENT.score_criteria || [];
+  let total = 0;
+  criteria.forEach((c,ci) => {
+    const input = document.querySelector(`.pres-score-input[data-pid="${participantId}"][data-ci="${ci}"]`);
+    const score = +input?.value || 0;
+    total += score * (c.weight/100);
+  });
+  const el = document.getElementById(`pres-subtotal-${participantId}`);
+  if (el) el.textContent = total.toFixed(1);
+}
+
+async function presSaveScores() {
+  const judgeId = document.getElementById('pres-score-judge-sel').value;
+  const criteria = PRES_CUR_EVENT.score_criteria || [];
+  const participantIds = [...new Set(Array.from(document.querySelectorAll('.pres-score-input')).map(i=>i.dataset.pid))];
+  const rows = participantIds.map(pid => {
+    const criteria_scores = criteria.map((c,ci) => {
+      const input = document.querySelector(`.pres-score-input[data-pid="${pid}"][data-ci="${ci}"]`);
+      return { name: c.name, max: c.weight, score: +input?.value || 0 };
+    });
+    const total_score = criteria_scores.reduce((s,c)=>s+c.score*(c.max/100),0);
+    const commentInput = document.querySelector(`.pres-score-comment[data-pid="${pid}"]`);
+    return { participant_id: pid, judge_id: judgeId, criteria_scores, total_score, comment: commentInput?.value || '' };
+  });
+  const { error } = await sb.from('presentation_scores').upsert(rows, { onConflict: 'participant_id,judge_id' });
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  showToast('✅ 已儲存評分');
+}
+
+/* ── 統計與排名 ── */
+async function presShowStats() {
+  const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const { data: scores } = await sb.from('presentation_scores').select('*').in('participant_id', (parts||[]).map(p=>p.id));
+  const criteria = PRES_CUR_EVENT.score_criteria || [];
+
+  const stats = (parts||[]).map(p => {
+    const myScores = (scores||[]).filter(s=>s.participant_id===p.id);
+    const judgeCount = myScores.length;
+    const critAvgs = criteria.map((c,ci) => {
+      if (!judgeCount) return 0;
+      const sum = myScores.reduce((s,sc)=> s + (sc.criteria_scores[ci]?.score||0), 0);
+      return sum / judgeCount;
+    });
+    const totalAvg = judgeCount ? myScores.reduce((s,sc)=>s+(sc.total_score||0),0) / judgeCount : 0;
+    return { p, judgeCount, critAvgs, totalAvg };
+  });
+  stats.sort((a,b) => b.totalAvg - a.totalAvg);
+  stats.forEach((s,i) => { s.rank = i+1; });
+
+  const head = criteria.map(c=>`<th>${esc(c.name)}</th>`).join('');
+  const rows = stats.map(s => `<tr>
+    <td>${s.rank}</td>
+    <td style="text-align:left">${s.p.students?.student_code||''} ${s.p.students?.name_zh||''}</td>
+    ${s.critAvgs.map(v=>`<td>${v.toFixed(1)}</td>`).join('')}
+    <td style="font-weight:600">${s.totalAvg.toFixed(2)}</td>
+    <td style="font-size:11.5px;color:var(--ink3)">${s.judgeCount}位評審</td>
+  </tr>`).join('');
+
+  const wrap = document.getElementById('thesis-events-wrap');
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <button class="btn btn-sec" onclick="renderPresentationEventDetail()">← 返回場次管理</button>
+      <div style="font-size:15px;font-weight:600">統計與排名（共${stats.length}位）</div>
+      <button class="btn btn-sec" style="margin-left:auto" onclick="presPrintStats()">🖨 列印</button>
+      <button class="btn btn-sec" onclick="presExportStatsExcel()">⬇ 下載Excel</button>
+    </div>
+    <table id="pres-stats-table" style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:var(--cr3)"><th>排名</th><th style="text-align:left">學生</th>${head}<th>總平均</th><th>備註</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <style>#pres-stats-table th,#pres-stats-table td{border:1px solid var(--cr2);padding:8px;text-align:center}</style>`;
+}
+
+function presPrintStats() {
+  const table = document.getElementById('pres-stats-table').outerHTML;
+  const css = 'body{font-family:"Noto Sans TC",sans-serif;margin:30px}h2{text-align:center}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #333;padding:6px 10px;text-align:center}@page{margin:1.5cm;size:A4 landscape}';
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>統計排名</title><sty'+'le>'+css+'</sty'+'le></he'+'ad><bo'+'dy>'
+    + `<h2>${PRES_TYPE_LABEL[PRES_CUR_EVENT.type]} 評分統計與排名（${PRES_CUR_EVENT.event_date}）</h2>` + table
+    + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt></bo'+'dy></ht'+'ml>';
+  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+/* ── 清除分數（危險操作，要小心：單一評審 或 全部評審 兩種選擇，刪除前都會先顯示確切筆數再二次確認） ── */
+async function presOpenClearScoresModal() {
+  const { data: judges } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  if (!judges?.length) { showToast('這個場次還沒有評審','error'); return; }
+  const jOpts = judges.map(j=>`<option value="${j.id}">${esc(j.name)}${j.title?'（'+esc(j.title)+'）':''}</option>`).join('');
+  const html = `
+    <div style="background:#FEF3F2;border:1px solid #FCC;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--red)">
+      ⚠️ 這是刪除操作，清除後無法復原，請小心選擇範圍。
+    </div>
+    <label class="flabel">要清除的範圍</label>
+    <div style="margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><input type="radio" name="pres-clear-scope" value="one" checked onchange="presToggleClearScopeUI()"> 只清除某一位評審的分數</label>
+      <label style="display:flex;align-items:center;gap:6px"><input type="radio" name="pres-clear-scope" value="all" onchange="presToggleClearScopeUI()"> 清除這個場次<b style="color:var(--red)">全部評審</b>的分數</label>
+    </div>
+    <div id="pres-clear-judge-wrap">
+      <label class="flabel">選擇評審</label>
+      <select class="finput" id="pres-clear-judge-sel">${jOpts}</select>
+    </div>`;
+  presShowSimpleModal('🗑 清除分數', html, async () => {
+    const scope = document.querySelector('input[name="pres-clear-scope"]:checked').value;
+    const { data: parts } = await sb.from('presentation_participants').select('id').eq('event_id', PRES_CUR_EVENT.id);
+    const participantIds = (parts||[]).map(p=>p.id);
+    if (!participantIds.length) { showToast('這個場次還沒有任何學生','error'); return false; }
+
+    if (scope === 'one') {
+      const sel = document.getElementById('pres-clear-judge-sel');
+      const judgeId = sel.value;
+      const judgeName = sel.options[sel.selectedIndex].text;
+      const { count } = await sb.from('presentation_scores').select('id', { count:'exact', head:true }).eq('judge_id', judgeId).in('participant_id', participantIds);
+      if (!count) { showToast(`「${judgeName}」目前沒有任何分數紀錄，不用清除`,'error'); return false; }
+      const ok = confirm(`即將清除「${judgeName}」對這個場次共 ${count} 筆分數紀錄，這個動作無法復原，確定要清除嗎？`);
+      if (!ok) return false;
+      const { error } = await sb.from('presentation_scores').delete().eq('judge_id', judgeId).in('participant_id', participantIds);
+      if (error) { showToast('清除失敗：'+error.message,'error'); return false; }
+      showToast(`✅ 已清除「${judgeName}」共 ${count} 筆分數`);
+    } else {
+      const { count } = await sb.from('presentation_scores').select('id', { count:'exact', head:true }).in('participant_id', participantIds);
+      if (!count) { showToast('這個場次目前沒有任何分數紀錄，不用清除','error'); return false; }
+      const ok1 = confirm(`即將清除這個場次「全部評審」共 ${count} 筆分數紀錄，這個動作無法復原，確定要清除嗎？`);
+      if (!ok1) return false;
+      const ok2 = confirm(`再次確認：真的要清除全部 ${count} 筆分數嗎？清除後所有評審的分數、評語都會不見，要重新輸入或匯入才能恢復。`);
+      if (!ok2) return false;
+      const { error } = await sb.from('presentation_scores').delete().in('participant_id', participantIds);
+      if (error) { showToast('清除失敗：'+error.message,'error'); return false; }
+      showToast(`✅ 已清除全部評審共 ${count} 筆分數`);
+    }
+  });
+}
+function presToggleClearScopeUI() {
+  const scope = document.querySelector('input[name="pres-clear-scope"]:checked').value;
+  document.getElementById('pres-clear-judge-wrap').style.display = scope === 'one' ? '' : 'none';
+}
+
+async function presEnsureXLSX() {
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+}
+
+// 統計與排名 → 下載Excel
+async function presExportStatsExcel() {
+  const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const { data: scores } = await sb.from('presentation_scores').select('*').in('participant_id', (parts||[]).map(p=>p.id));
+  const criteria = PRES_CUR_EVENT.score_criteria || [];
+  const stats = (parts||[]).map(p => {
+    const my = (scores||[]).filter(s=>s.participant_id===p.id);
+    const n = my.length;
+    const critAvgs = criteria.map((c,ci) => n ? my.reduce((s,sc)=>s+(sc.criteria_scores[ci]?.score||0),0)/n : 0);
+    const totalAvg = n ? my.reduce((s,sc)=>s+(sc.total_score||0),0)/n : 0;
+    return { p, n, critAvgs, totalAvg };
+  });
+  stats.sort((a,b)=>b.totalAvg-a.totalAvg);
+  stats.forEach((s,i)=>s.rank=i+1);
+
+  await presEnsureXLSX();
+  const header = ['排名','學號','姓名', ...criteria.map(c=>c.name), '總平均','幾位評審'];
+  const rows = [
+    [`${PRES_TYPE_LABEL[PRES_CUR_EVENT.type]} 評分統計與排名（${PRES_CUR_EVENT.event_date}）`],
+    header,
+    ...stats.map(s => [s.rank, s.p.students?.student_code||'', s.p.students?.name_zh||'', ...s.critAvgs.map(v=>+v.toFixed(1)), +s.totalAvg.toFixed(2), s.n])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '統計排名');
+  XLSX.writeFile(wb, `${PRES_CUR_EVENT.event_date}_評分統計與排名.xlsx`);
+}
+
+// 總表 → 下載Excel（含所長/教育長簽名留白列）
+async function presExportMasterSheetExcel() {
+  const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const { data: scores } = await sb.from('presentation_scores').select('*').in('participant_id', (parts||[]).map(p=>p.id));
+  const criteria = PRES_CUR_EVENT.score_criteria || [];
+  const stats = (parts||[]).map(p => {
+    const my = (scores||[]).filter(s=>s.participant_id===p.id);
+    const n = my.length;
+    const critAvgs = criteria.map((c,ci) => n ? my.reduce((s,sc)=>s+(sc.criteria_scores[ci]?.score||0),0)/n : 0);
+    const totalAvg = n ? my.reduce((s,sc)=>s+(sc.total_score||0),0)/n : 0;
+    return { p, critAvgs, totalAvg };
+  });
+  stats.sort((a,b)=>b.totalAvg-a.totalAvg);
+  stats.forEach((s,i)=>s.rank=i+1);
+
+  await presEnsureXLSX();
+  const header = ['學號','姓名', ...criteria.map(c=>c.name), '總分','名次'];
+  const rows = [
+    [`${PRES_TYPE_LABEL[PRES_CUR_EVENT.type]} 評分總表（${PRES_CUR_EVENT.event_date}）`],
+    header,
+    ...stats.map(s => [s.p.students?.student_code||'', s.p.students?.name_zh||'', ...s.critAvgs.map(v=>+v.toFixed(1)), +s.totalAvg.toFixed(2), s.rank]),
+    [],
+    ['所長簽名：', '', '', '', '', '教育長簽名：']
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '評分總表');
+  XLSX.writeFile(wb, `${PRES_CUR_EVENT.event_date}_評分總表.xlsx`);
+}
+
+// 匯出所有評分明細(Excel)：每一列是一位學生×一位評審的完整紀錄，含各項分數+小計+評語，供留存/分析用
+async function presExportRawScoresExcel() {
+  const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const { data: judges } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const { data: scores } = await sb.from('presentation_scores').select('*').in('participant_id', (parts||[]).map(p=>p.id));
+  const criteria = PRES_CUR_EVENT.score_criteria || [];
+  const scoresByKey = {};
+  (scores||[]).forEach(s => { scoresByKey[`${s.participant_id}_${s.judge_id}`] = s; });
+
+  await presEnsureXLSX();
+  const header = ['學號','姓名','論文題目','評審', ...criteria.map(c=>c.name), '加權小計','評語/鼓勵的話'];
+  const rows = [header];
+  (parts||[]).forEach(p => (judges||[]).forEach(j => {
+    const s = scoresByKey[`${p.id}_${j.id}`];
+    if (!s) return; // 這位評審還沒打這位同學的分，不列空白列
+    rows.push([
+      p.students?.student_code||'', p.students?.name_zh||'', p.title_zh||'', j.name,
+      ...criteria.map((c,ci)=>s.criteria_scores[ci]?.score??''),
+      s.total_score!=null?+s.total_score.toFixed(1):'', s.comment||''
+    ]);
+  }));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '評分明細');
+  XLSX.writeFile(wb, `${PRES_CUR_EVENT.event_date}_評分明細.xlsx`);
+}
+
+// 共用：產生評分表的列印HTML（一份是一位學生×一位評審），評語預先帶入已存的分數紀錄（如果有）
+function presBuildScoreSheetsHtml(parts, judges, scoresByKey, pairs) {
+  const criteria = (PRES_CUR_EVENT.score_criteria||[]).map(c=>[c.name, c.weight]);
+  const totalWeight = criteria.reduce((s,c)=>s+c[1],0);
+  const sheetHtml = (p, j) => {
+    const existing = scoresByKey[`${p.id}_${j.id}`];
+    const crit_scores = existing?.criteria_scores || [];
+    const critRows = criteria.map(([n,w],ci)=>`<tr><td>${n}</td><td>${w}</td><td>${crit_scores[ci]?.score ?? ''}</td><td></td></tr>`).join('');
+    return `
+    <div class="score-sheet">
+      <h2>佛法應用研究所研究生論文計畫發表會評分表</h2>
+      <div class="info">學號：${p.students?.student_code||''}　學生姓名：${p.students?.name_zh||''}　評審：${esc(j.name)}　日期：${PRES_CUR_EVENT.event_date}</div>
+      <div class="info2">論文題目：${esc(p.title_zh||'')}</div>
+      <table><thead><tr><th>評分項目</th><th>配分</th><th>得分</th><th>備註</th></tr></thead>
+      <tbody>${critRows}<tr><td>合計</td><td>${totalWeight}</td><td>${existing?.total_score!=null?existing.total_score.toFixed(1):'總分'}</td><td></td></tr></tbody></table>
+      <div class="comment">評審老師評語／給同學的鼓勵的話：<div class="comment-text">${esc(existing?.comment||'')}</div></div>
+      <div class="sign">　　　　　　　　　　　　　　　　　　　　　　　簽名（日期）</div>
+    </div>`;
+  };
+  const sheets = pairs.map(([p,j])=>sheetHtml(p,j));
+  const css = [
+    'body{font-family:"標楷體",serif;margin:20px 30px;font-size:13px}',
+    '.score-sheet{page-break-after:always;padding:20px 0}',
+    'h2{text-align:center;font-size:17px;margin-bottom:14px}',
+    '.info,.info2{margin-bottom:10px;line-height:1.8}',
+    'table{width:100%;border-collapse:collapse;margin:14px 0}',
+    'th,td{border:1px solid #333;padding:6px 10px;text-align:center}',
+    'th{background:#f0f0f0}',
+    '.comment{margin-top:16px;border:1px solid #333;min-height:80px;padding:6px}',
+    '.comment-text{margin-top:6px;white-space:pre-wrap}',
+    '.sign{margin-top:30px;text-align:right}',
+    '@page{margin:1.5cm;size:A4}'
+  ].join('');
+  return '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>評分表</title><sty'+'le>'+css+'</sty'+'le></he'+'ad><bo'+'dy>'
+    + sheets.join('') + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt></bo'+'dy></ht'+'ml>';
+}
+
+async function presFetchScoreSheetData() {
+  const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const { data: judges } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  if (!parts?.length || !judges?.length) { showToast('要先加學生跟評審才能列印評分表','error'); return null; }
+  const { data: scores } = await sb.from('presentation_scores').select('*').in('participant_id', parts.map(p=>p.id));
+  const scoresByKey = {};
+  (scores||[]).forEach(s => { scoresByKey[`${s.participant_id}_${s.judge_id}`] = s; });
+  return { parts, judges, scoresByKey };
+}
+
+// 個別同學評分表：以「同學」為主軸，每位同學底下排出全部評審各自一張
+async function printPresentationScoreSheetsByStudent() {
+  const d = await presFetchScoreSheetData(); if (!d) return;
+  const pairs = [];
+  d.parts.forEach(p => d.judges.forEach(j => pairs.push([p,j])));
+  const html = presBuildScoreSheetsHtml(d.parts, d.judges, d.scoresByKey, pairs);
+  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+// 個別評審評分表：以「評審」為主軸，每位評審底下排出全部同學各自一張
+async function printPresentationScoreSheetsByJudge() {
+  const d = await presFetchScoreSheetData(); if (!d) return;
+  const pairs = [];
+  d.judges.forEach(j => d.parts.forEach(p => pairs.push([p,j])));
+  const html = presBuildScoreSheetsHtml(d.parts, d.judges, d.scoresByKey, pairs);
+  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+// 總表：每位同學一列，各評分項目平均分+總分+名次，下方留所長/教育長簽名
+async function printPresentationMasterSheet() {
+  const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const { data: scores } = await sb.from('presentation_scores').select('*').in('participant_id', (parts||[]).map(p=>p.id));
+  const criteria = PRES_CUR_EVENT.score_criteria || [];
+  const stats = (parts||[]).map(p => {
+    const my = (scores||[]).filter(s=>s.participant_id===p.id);
+    const n = my.length;
+    const critAvgs = criteria.map((c,ci) => n ? my.reduce((s,sc)=>s+(sc.criteria_scores[ci]?.score||0),0)/n : 0);
+    const totalAvg = n ? my.reduce((s,sc)=>s+(sc.total_score||0),0)/n : 0;
+    return { p, critAvgs, totalAvg };
+  });
+  stats.sort((a,b)=>b.totalAvg-a.totalAvg);
+  stats.forEach((s,i)=>s.rank=i+1);
+
+  const head = criteria.map(c=>`<th>${esc(c.name)}</th>`).join('');
+  const rows = stats.map(s => `<tr>
+    <td>${s.p.students?.student_code||''}</td><td>${s.p.students?.name_zh||''}</td>
+    ${s.critAvgs.map(v=>`<td>${v.toFixed(1)}</td>`).join('')}
+    <td>${s.totalAvg.toFixed(2)}</td><td>${s.rank}</td>
+  </tr>`).join('');
+
+  const css = [
+    'body{font-family:"標楷體",serif;margin:25px 30px;font-size:13px}',
+    'h2{text-align:center;font-size:17px;margin-bottom:14px}',
+    'table{width:100%;border-collapse:collapse;margin-bottom:30px}',
+    'th,td{border:1px solid #333;padding:7px 10px;text-align:center}',
+    'th{background:#f0f0f0}',
+    '.sign-row{display:flex;justify-content:space-around;margin-top:60px;font-size:14px}',
+    '@page{margin:1.5cm;size:A4 landscape}'
+  ].join('');
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>評分總表</title><sty'+'le>'+css+'</sty'+'le></he'+'ad><bo'+'dy>'
+    + `<h2>${PRES_TYPE_LABEL[PRES_CUR_EVENT.type]} 評分總表（${PRES_CUR_EVENT.event_date}）</h2>`
+    + `<table><thead><tr><th>學號</th><th>姓名</th>${head}<th>總分</th><th>名次</th></tr></thead><tbody>${rows}</tbody></table>`
+    + `<div class="sign-row"><div>所長簽名：＿＿＿＿＿＿＿＿＿＿</div><div>教育長簽名：＿＿＿＿＿＿＿＿＿＿</div></div>`
+    + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt></bo'+'dy></ht'+'ml>';
+  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+/* ── 評分匯入（Excel，依評審，每位評審一份檔，含對每位同學的評語） ── */
+async function presDownloadScoreTemplate() {
+  const { data: judges } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  if (!judges?.length) { showToast('要先新增評審才能下載範本','error'); return; }
+  const jOpts = judges.map(j=>`<option value="${j.id}" data-name="${esc(j.name)}">${esc(j.name)}${j.title?'（'+esc(j.title)+'）':''}</option>`).join('');
+  presShowSimpleModal('下載評分範本', `
+    <label class="flabel">這份範本要給哪位評審用？（範本裡會自動標明是這位評審的，匯入時系統能自動辨認，不用擔心拿錯）</label>
+    <select class="finput" id="pres-template-judge">${jOpts}</select>`, async () => {
+    const sel = document.getElementById('pres-template-judge');
+    const judgeName = sel.options[sel.selectedIndex].dataset.name;
+    if (typeof XLSX === 'undefined') {
+      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+    }
+    const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+    const criteria = PRES_CUR_EVENT.score_criteria || [];
+    const header = ['學號','姓名', ...criteria.map(c=>`${c.name}(${c.weight}%)`), '評語/鼓勵的話'];
+    const rows = [
+      [`評審：${judgeName}　（請勿刪除或修改這一列，匯入時系統靠這列自動辨認評審）`],
+      header,
+      ...(parts||[]).map(p => [p.students?.student_code||'', p.students?.name_zh||'', ...criteria.map(()=>''), ''])
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '評分');
+    XLSX.writeFile(wb, `${PRES_CUR_EVENT.event_date}_評分範本_${judgeName}.xlsx`);
+    showToast('已下載範本');
+  });
+}
+
+// 共用：解析評分Excel，自動辨認第一列是不是「評審：xxx」標記列，回傳{judgeNameHint, headerRowIdx}
+function presParseScoreAoa(aoa) {
+  let judgeNameHint = null, headerRowIdx = 0;
+  const firstCell = String(aoa[0]?.[0] || '');
+  const m = firstCell.match(/評審[：:]\s*([^\s（(]+)/);
+  if (m) { judgeNameHint = m[1]; headerRowIdx = 1; }
+  const dataRows = aoa.slice(headerRowIdx + 1).filter(r=>r[0]);
+  return { judgeNameHint, dataRows };
+}
+
+function presOpenImportScoresModal() {
+  presOpenAddJudgeOrSelectForImport();
+}
+// 共用：先檔名比對評審姓名，比對不到再退而用檔案內的「評審：」標記
+function presDetectJudgeFromFilename(filename, judges) {
+  return judges.find(j => filename.includes(j.name)) || null;
+}
+
+async function presOpenAddJudgeOrSelectForImport() {
+  const { data: judges } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  if (!judges?.length) { showToast('要先新增評審才能匯入評分','error'); return; }
+  const html = `
+    <div style="background:var(--cr3,#f0f2f5);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px">
+      還沒有檔案可以匯入？先下載範本：
+      <button class="btn btn-sec btn-sm" style="margin-left:6px" onclick="presDownloadScoreTemplate()">⬇ 下載評分範本</button>
+    </div>
+    <label class="flabel">選擇Excel檔案（可一次選多個，系統會依檔名自動比對是哪位評審，檔名裡只要有評審姓名就能比對到）</label>
+    <input type="file" id="pres-import-score-file" accept=".xlsx,.xls" multiple style="margin-bottom:10px">
+    <div style="font-size:12px;color:var(--ink3)">學號要對得上這個場次的學生名單。檔名比對不到評審的話，會退而用檔案內第一列的「評審：xxx」標記再試一次。</div>`;
+  presShowSimpleModal('匯入評分(Excel，可批次)', html, async () => {
+    const files = Array.from(document.getElementById('pres-import-score-file').files || []);
+    if (!files.length) { showToast('請選擇檔案','error'); return false; }
+    if (typeof XLSX === 'undefined') {
+      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+    }
+    const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id);
+    const byCode = {};
+    (parts||[]).forEach(p => { if (p.students?.student_code) byCode[p.students.student_code] = p; });
+    const criteria = PRES_CUR_EVENT.score_criteria || [];
+
+    let totalOk = 0;
+    const fileReports = [];
+    for (const file of files) {
+      try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type:'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const aoa = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+        const { judgeNameHint, dataRows } = presParseScoreAoa(aoa);
+
+        let judge = presDetectJudgeFromFilename(file.name, judges);
+        if (!judge && judgeNameHint) judge = judges.find(j => j.name === judgeNameHint || j.name.includes(judgeNameHint));
+        if (!judge) { fileReports.push(`❌ ${file.name}（找不到對應的評審，檔名跟檔案內都比對不到，請確認檔名或內容含評審姓名）`); continue; }
+
+        let okCount = 0, skipped = [];
+        const upsertRows = [];
+        const matchedParticipants = [];
+        for (const r of dataRows) {
+          const code = String(r[0]).trim();
+          const p = byCode[code];
+          if (!p) { skipped.push(code); continue; }
+          const criteria_scores = criteria.map((c,ci) => ({ name:c.name, max:c.weight, score: +r[2+ci]||0 }));
+          const total_score = criteria_scores.reduce((s,c)=>s+c.score*(c.max/100),0);
+          const comment = r[2+criteria.length] || '';
+          upsertRows.push({ participant_id:p.id, judge_id:judge.id, criteria_scores, total_score, comment });
+          matchedParticipants.push(p);
+          okCount++;
+        }
+        if (!upsertRows.length) { fileReports.push(`❌ ${file.name}（評審：${judge.name}，但沒有任何一筆學號比對成功）`); continue; }
+
+        const { data: existingScores } = await sb.from('presentation_scores').select('participant_id').eq('judge_id', judge.id).in('participant_id', matchedParticipants.map(p=>p.id));
+        const existingIds = new Set((existingScores||[]).map(s=>s.participant_id));
+        if (existingIds.size) {
+          const ok = confirm(`「${judge.name}」已經對${existingIds.size}位同學打過分數了，檔案「${file.name}」這次匯入會直接覆蓋這幾位的分數，確定要繼續嗎？`);
+          if (!ok) { fileReports.push(`⏭ ${file.name}（評審：${judge.name}，使用者取消，未寫入）`); continue; }
+        }
+
+        const { error } = await sb.from('presentation_scores').upsert(upsertRows, { onConflict:'participant_id,judge_id' });
+        if (error) { fileReports.push(`❌ ${file.name}（評審：${judge.name}，寫入失敗：${error.message}）`); continue; }
+        totalOk += okCount;
+        fileReports.push(`✅ ${file.name}（評審：${judge.name}，成功${okCount}筆${skipped.length?`，${skipped.length}筆學號比對不到`:''}）`);
+      } catch (e) {
+        fileReports.push(`❌ ${file.name}（程式錯誤：${e.message}）`);
+      }
+    }
+    alert(`匯入完成，共成功 ${totalOk} 筆評分：\n\n${fileReports.join('\n')}`);
+  });
+}
+
+/* ── 評語匯入（獨立於分數匯入，評審可能事後才補評語） ── */
+function presOpenImportCommentsModal() {
+  presOpenImportCommentsModalInner();
+}
+async function presOpenImportCommentsModalInner() {
+  const { data: judges } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  if (!judges?.length) { showToast('要先新增評審才能匯入評語','error'); return; }
+  const html = `
+    <div style="background:var(--cr3,#f0f2f5);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px">
+      還沒有檔案可以匯入？先下載範本（跟評分用的是同一份）：
+      <button class="btn btn-sec btn-sm" style="margin-left:6px" onclick="presDownloadScoreTemplate()">⬇ 下載評分範本</button>
+    </div>
+    <label class="flabel">選擇Excel檔案（可一次選多個，系統會依檔名自動比對是哪位評審）</label>
+    <input type="file" id="pres-import-comment-file" accept=".xlsx,.xls" multiple style="margin-bottom:10px">
+    <div style="font-size:12px;color:var(--ink3)">這份檔案跟「匯入評分」用同一份完整表格即可——這個動作只會挑最後一欄「評語/鼓勵的話」寫入，不會動到分數欄位（就算這份檔案裡已經填了分數，這次匯入也完全不會碰）。</div>`;
+  presShowSimpleModal('匯入評語(Excel，可批次)', html, async () => {
+    const files = Array.from(document.getElementById('pres-import-comment-file').files || []);
+    if (!files.length) { showToast('請選擇檔案','error'); return false; }
+    if (typeof XLSX === 'undefined') {
+      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+    }
+    const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id);
+    const byCode = {};
+    (parts||[]).forEach(p => { if (p.students?.student_code) byCode[p.students.student_code] = p; });
+    const criteria = PRES_CUR_EVENT.score_criteria || [];
+    const commentColIdx = 2 + criteria.length; // 學號(0)、姓名(1)、各評分項目(2..2+n-1)，評語在最後一欄
+
+    let totalOk = 0;
+    const fileReports = [];
+    for (const file of files) {
+      try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type:'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const aoa = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+        const { judgeNameHint, dataRows } = presParseScoreAoa(aoa);
+
+        let judge = presDetectJudgeFromFilename(file.name, judges);
+        if (!judge && judgeNameHint) judge = judges.find(j => j.name === judgeNameHint || j.name.includes(judgeNameHint));
+        if (!judge) { fileReports.push(`❌ ${file.name}（找不到對應的評審，檔名跟檔案內都比對不到）`); continue; }
+
+        let okCount = 0, skipped = [];
+        for (const r of dataRows) {
+          const code = String(r[0]).trim();
+          const p = byCode[code];
+          if (!p) { skipped.push(code); continue; }
+          const comment = r[commentColIdx] || '';
+          const { error } = await sb.from('presentation_scores').upsert(
+            { participant_id:p.id, judge_id:judge.id, comment },
+            { onConflict:'participant_id,judge_id' }
+          );
+          if (!error) okCount++;
+        }
+        totalOk += okCount;
+        fileReports.push(`✅ ${file.name}（評審：${judge.name}，成功${okCount}筆${skipped.length?`，${skipped.length}筆學號比對不到`:''}）`);
+      } catch (e) {
+        fileReports.push(`❌ ${file.name}（程式錯誤：${e.message}）`);
+      }
+    }
+    alert(`匯入完成，共成功 ${totalOk} 筆評語：\n\n${fileReports.join('\n')}`);
+  });
+}
+
+async function printPresentationSignSheet() {
+  const { data: judges } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
+  const padRows = (rows, total, cols) => {
+    const out = rows.slice();
+    while (out.length < total) out.push(cols.map(()=>'')); // 補空白列
+    return out;
+  };
+  const tableHtml = (title, rows, withMeal) => {
+    const header = withMeal ? '<tr><th>序號</th><th>姓名</th><th>職稱</th><th>簽到</th><th>用餐</th></tr>' : '<tr><th>序號</th><th>姓名</th><th>職稱</th><th>簽到</th></tr>';
+    const body = rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r[0]}</td><td>${r[1]}</td><td></td>${withMeal?`<td>${r[2]||''}</td>`:''}</tr>`).join('');
+    return `<h3>${title}</h3><table><thead>${header}</thead><tbody>${body}</tbody></table>`;
+  };
+  const judgeRows = padRows((judges||[]).map(j=>[esc(j.name),esc(j.title||''),esc(j.meal_pref||'')]), 17, [1,2,3]);
+  const studentRows = padRows((parts||[]).map(p=>[esc(p.students?.name_zh||''),'研究生','1']), 17, [1,2,3]);
+  const blankRows = padRows([], 17, [1,2]);
+  const css = [
+    'body{font-family:"標楷體",serif;margin:20px 30px;font-size:13px}',
+    'h2{text-align:center;font-size:17px;margin-bottom:4px}',
+    'h3{margin-top:18px;font-size:14px}',
+    '.info{text-align:center;margin-bottom:10px}',
+    'table{width:100%;border-collapse:collapse;margin-bottom:10px}',
+    'th,td{border:1px solid #333;padding:5px 8px;text-align:center}',
+    'th{background:#f0f0f0}',
+    '@page{margin:1.5cm;size:A4}'
+  ].join('');
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>簽到表</title><sty'+'le>'+css+'</sty'+'le></he'+'ad><bo'+'dy>'
+    + `<h2>福智學校財團法人福智佛教學院</h2><div class="info">${PRES_TYPE_LABEL[PRES_CUR_EVENT.type]} 簽到表<br>日期：${PRES_CUR_EVENT.event_date} ${PRES_CUR_EVENT.start_time?'時間：'+PRES_CUR_EVENT.start_time:''}</div>`
+    + tableHtml('教師評審', judgeRows, true)
+    + tableHtml('發表學生', studentRows, true)
+    + tableHtml('來賓（空白）', blankRows, false)
+    + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt></bo'+'dy></ht'+'ml>';
+  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+}
 function thSwitchView(view) {
   TH_VIEW = view;
   const pBtn = document.getElementById('th-tab-pending-btn');
   const aBtn = document.getElementById('th-tab-all-btn');
-  if (view==='pending') {
-    pBtn.classList.add('btn-pri'); aBtn.classList.remove('btn-pri');
-  } else {
-    aBtn.classList.add('btn-pri'); pBtn.classList.remove('btn-pri');
-  }
+  const eBtn = document.getElementById('th-tab-events-btn');
+  [pBtn,aBtn,eBtn].forEach(b=>b.classList.remove('btn-pri'));
+  (view==='pending'?pBtn:view==='all'?aBtn:eBtn).classList.add('btn-pri');
+  document.getElementById('thesis-admin-wrap').style.display = view==='events' ? 'none' : '';
+  document.getElementById('thesis-events-wrap').style.display = view==='events' ? '' : 'none';
+  document.getElementById('thesis-progress-toolbar').style.display = view==='events' ? 'none' : '';
   if (view==='pending') renderThesisPending();
-  else renderThesisAll();
+  else if (view==='all') renderThesisAll();
+  else renderPresentationHome();
 }
 
 /* ── 待審核列表 ── */

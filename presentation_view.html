@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>研究生論文計畫發表會 — 資料瀏覽</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Noto Sans TC",sans-serif;margin:0;background:#f5f6f8;color:#222}
+  .hdr{background:#1b2a4a;color:#fff;padding:20px 24px}
+  .hdr h1{margin:0;font-size:18px}
+  .hdr .sub{font-size:13px;opacity:.85;margin-top:4px}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+  .toolbar{display:flex;justify-content:flex-end;margin-bottom:16px}
+  .btn-zip{background:#1b2a4a;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer}
+  .card{background:#fff;border-radius:10px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .card .name{font-weight:600;font-size:15px;margin-bottom:4px}
+  .card .title{font-size:14px;color:#333;margin-bottom:4px}
+  .card .intro{font-size:13px;color:#666;margin-bottom:10px}
+  .att{display:inline-block;background:#eef1f7;border-radius:6px;padding:6px 10px;font-size:12.5px;margin:3px 4px 0 0;text-decoration:none;color:#1b2a4a}
+  .empty{text-align:center;color:#999;padding:60px 20px}
+  .loading{text-align:center;color:#999;padding:60px 20px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1 id="hdr-title">研究生論文計畫發表會</h1>
+  <div class="sub" id="hdr-sub"></div>
+</div>
+<div class="wrap">
+  <div class="toolbar"><button class="btn-zip" id="zip-btn" onclick="downloadAllZip()" style="display:none">⬇ 下載全部附件（ZIP）</button></div>
+  <div id="content"><div class="loading">載入中…</div></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://pjyjpcumakxevxuxwcyx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Hxw2qfgBO5BTkX4wG4xeTQ_tEsPG3pc';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let EVENT = null, PARTICIPANTS = [];
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function init() {
+  try {
+  const params = new URLSearchParams(location.search);
+  const token = (params.get('token')||'').trim();
+  if (!token) { document.getElementById('content').innerHTML = '<div class="empty">缺少連結參數，請確認您收到的網址是否完整。</div>'; return; }
+
+  const { data: link, error: linkErr } = await sb.from('presentation_share_links').select('*').eq('token', token).maybeSingle();
+  if (linkErr) {
+    console.error('查詢分享連結失敗:', linkErr);
+    document.getElementById('content').innerHTML = `<div class="empty">查詢時發生錯誤：${esc(linkErr.message)}<br><span style="font-size:11.5px">(錯誤代碼：${esc(linkErr.code||'')}，請把這段文字截圖給承辦人)</span></div>`;
+    return;
+  }
+  if (!link) {
+    console.warn('查無此token對應的分享連結：', token);
+    document.getElementById('content').innerHTML = '<div class="empty">這個連結無效或已被刪除，請聯絡承辦人重新取得連結。</div>';
+    return;
+  }
+
+  const { data: ev, error: evErr } = await sb.from('presentation_events').select('*').eq('id', link.event_id).maybeSingle();
+  if (evErr || !ev) {
+    console.error('查詢場次資料失敗:', evErr);
+    document.getElementById('content').innerHTML = `<div class="empty">找不到對應的場次資料${evErr?'：'+esc(evErr.message):''}</div>`;
+    return;
+  }
+  EVENT = ev;
+  document.getElementById('hdr-title').textContent = ev.type === 'thesis_proposal' ? '研究生論文計畫發表會' : '研究生學習總結分享會';
+  document.getElementById('hdr-sub').textContent = `日期：${ev.event_date} ${ev.start_time||''}　地點：${ev.location||''}`;
+
+  let query = sb.from('v_presentation_participants_public')
+    .select('*')
+    .eq('event_id', link.event_id).order('sort_order');
+  const { data: parts, error: partsErr } = await query;
+  if (partsErr) {
+    console.error('查詢參加學生失敗:', partsErr);
+    document.getElementById('content').innerHTML = `<div class="empty">查詢學生資料時發生錯誤：${esc(partsErr.message)}<br><span style="font-size:11.5px">(錯誤代碼：${esc(partsErr.code||'')}，請把這段文字截圖給承辦人)</span></div>`;
+    return;
+  }
+  let list = parts || [];
+  if (link.participant_scope) {
+    const scopeSet = new Set(link.participant_scope);
+    list = list.filter(p => scopeSet.has(p.id));
+  }
+  // 附件另外查（view裡沒有附件，因為是一對多關係，這裡用participant_id清單一次撈出對應的附件）
+  if (list.length) {
+    const { data: atts } = await sb.from('presentation_attachments').select('*').in('participant_id', list.map(p=>p.id));
+    const attsByParticipant = {};
+    (atts||[]).forEach(a => { (attsByParticipant[a.participant_id] = attsByParticipant[a.participant_id]||[]).push(a); });
+    list.forEach(p => { p.presentation_attachments = attsByParticipant[p.id] || []; });
+  }
+  PARTICIPANTS = list;
+
+  if (!list.length) { document.getElementById('content').innerHTML = '<div class="empty">目前沒有可顯示的資料。</div>'; return; }
+
+  document.getElementById('zip-btn').style.display = '';
+  document.getElementById('content').innerHTML = list.map(p => {
+    const atts = (p.presentation_attachments||[]).map(a => {
+      const url = sb.storage.from('presentation-files').getPublicUrl(a.storage_path).data.publicUrl;
+      return `<a class="att" href="${url}" target="_blank">📎 ${esc(a.file_type)}：${esc(a.file_name)}</a>`;
+    }).join('') || '<span style="color:#999;font-size:12.5px">尚無附件</span>';
+    return `<div class="card">
+      <div class="name">${esc(p.name_zh||'')}</div>
+      <div class="title">${esc(p.title_zh||'（尚未填寫論文題目）')}</div>
+      ${p.intro_text ? `<div class="intro">${esc(p.intro_text)}</div>` : ''}
+      <div>${atts}</div>
+    </div>`;
+  }).join('');
+  } catch (e) {
+    console.error('頁面載入發生未預期的錯誤:', e);
+    document.getElementById('content').innerHTML = `<div class="empty">頁面載入失敗：${esc(e.message)}<br><span style="font-size:11.5px">請按F12打開Console查看詳細錯誤，並截圖給承辦人</span></div>`;
+  }
+}
+
+async function downloadAllZip() {
+  const zip = new JSZip();
+  let fileCount = 0;
+  for (const p of PARTICIPANTS) {
+    const folder = `${p.student_code||''}_${p.name_zh||''}`;
+    for (const a of (p.presentation_attachments||[])) {
+      try {
+        const url = sb.storage.from('presentation-files').getPublicUrl(a.storage_path).data.publicUrl;
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        zip.folder(folder).file(a.file_name, blob);
+        fileCount++;
+      } catch(e) { console.warn('下載失敗', a.file_name, e); }
+    }
+  }
+  if (!fileCount) { alert('目前沒有任何附件可以下載'); return; }
+  const content = await zip.generateAsync({ type:'blob' });
+  const url = URL.createObjectURL(content);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${EVENT.event_date}_發表會附件.zip`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+init();
+</script>
+</body>
+</html>
