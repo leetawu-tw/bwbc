@@ -4007,23 +4007,32 @@ async function viewSurveyStats(surveyId) {
       return;
     }
 
-    // 取課程與教師名稱
+    // 取課程與教師名稱（含協同授課，不只是回答記錄裡剛好存到的那一位）
     const offIds = [...new Set(responses.map(r=>r.offering_id))];
     const { data:courses } = await sb.from('v_course_schedule')
       .select('offering_id, name_zh, code').in('offering_id', offIds);
     const cMap = {}; (courses||[]).forEach(c=>cMap[c.offering_id]=c);
-    const teaIds = [...new Set(responses.map(r=>r.teacher_id).filter(Boolean))];
-    const { data:teachers } = await sb.from('teachers').select('id,name_zh').in('id', teaIds);
-    const tMap = {}; (teachers||[]).forEach(t=>tMap[t.id]=t.name_zh);
+    const { data:offTeachers } = await sb.from('offering_teachers')
+      .select('offering_id, teachers(name_zh)').in('offering_id', offIds);
+    const teacherNamesMap = {};
+    (offTeachers||[]).forEach(ot => {
+      (teacherNamesMap[ot.offering_id] = teacherNamesMap[ot.offering_id]||[]).push(ot.teachers?.name_zh);
+    });
+    // 修課人數（confirmed），跟填答人數做對照
+    const { data:enrolls } = await sb.from('enrollments')
+      .select('offering_id').eq('status','confirmed').in('offering_id', offIds);
+    const enrollCountMap = {};
+    (enrolls||[]).forEach(e => { enrollCountMap[e.offering_id] = (enrollCountMap[e.offering_id]||0) + 1; });
 
     // 依課程分組統計
     const byCourse = {};
     responses.forEach(r => {
       if (!byCourse[r.offering_id]) byCourse[r.offering_id] = {
-        offering_id:r.offering_id, teacher_id:r.teacher_id,
+        offering_id:r.offering_id,
         course: cMap[r.offering_id]?.name_zh || '未知課程',
         code: cMap[r.offering_id]?.code || '',
-        teacher: tMap[r.teacher_id] || '—',
+        teacherNames: teacherNamesMap[r.offering_id] || [],
+        enrollCount: enrollCountMap[r.offering_id] || 0,
         answers:{}, respondents:new Set()
       };
       const c = byCourse[r.offering_id];
@@ -4032,7 +4041,7 @@ async function viewSurveyStats(surveyId) {
       c.answers[r.question_id].push(r.answer);
     });
 
-    STAT_DATA = { survey, questions, byCourse, tMap, cMap };
+    STAT_DATA = { survey, questions, byCourse };
 
     const SCALE = ['非常同意','同意','普通','不同意','非常不同意'];
     const SCORE = {'非常同意':5,'同意':4,'普通':3,'不同意':2,'非常不同意':1};
@@ -4044,7 +4053,8 @@ async function viewSurveyStats(surveyId) {
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn" onclick="surveyMailTeachers('${surveyId}')">📧 寄給主授教師</button>
         <button class="btn" onclick="surveyAIAnalysis('${surveyId}')">🤖 AI 分析</button>
-        <button class="btn btn-pri" onclick="surveyPrintReport()">🖨 列印/下載報告</button>
+        <button class="btn btn-pri" onclick="surveyPrintReport()">🖨 列印/下載報告(全部合併)</button>
+        <button class="btn btn-pri" onclick="surveyDownloadByCourseZip()">⬇ 依課程分別下載(ZIP)</button>
       </div>
     </div>`;
 
@@ -4052,49 +4062,7 @@ async function viewSurveyStats(surveyId) {
     const courseList = Object.values(byCourse).sort((a,b)=>a.course.localeCompare(b.course,'zh'));
 
     courseList.forEach(c => {
-      const n = c.respondents.size;
-      html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:18px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-          <strong style="font-size:15px;color:var(--navy)">${c.course}</strong>
-          <span style="font-size:12px;color:var(--ink3)">${c.code}　授課：${c.teacher}　填答 ${n} 人</span>
-        </div>`;
-
-      questions.forEach((q,qi) => {
-        const ans = c.answers[q.id] || [];
-        html += `<div style="margin-bottom:14px">
-          <div style="font-size:13.5px;font-weight:500;margin-bottom:8px">${qi+1}. ${q.question_text}</div>`;
-
-        if (q.type === 'single') {
-          // 計數 + 平均分
-          const cnt = {}; SCALE.forEach(s=>cnt[s]=0);
-          let sum=0, valid=0;
-          ans.forEach(a=>{ if(a in cnt){cnt[a]++; sum+=SCORE[a]||0; valid++;} });
-          const avg = valid ? (sum/valid).toFixed(2) : '—';
-          html += `<div style="display:flex;flex-direction:column;gap:4px">`;
-          SCALE.forEach(s=>{
-            const v = cnt[s]; const pct = valid ? Math.round(v/valid*100) : 0;
-            html += `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
-              <span style="width:70px;color:var(--ink2)">${s}</span>
-              <div style="flex:1;background:var(--cr2);border-radius:4px;height:16px;overflow:hidden">
-                <div style="width:${pct}%;height:100%;background:var(--navy)"></div></div>
-              <span style="width:60px;text-align:right;color:var(--ink3)">${v} 人 ${pct}%</span>
-            </div>`;
-          });
-          html += `<div style="font-size:12.5px;color:var(--navy);font-weight:500;margin-top:4px">平均分：${avg} / 5.0</div></div>`;
-        } else {
-          // 開放題：列出所有文字（匿名）
-          const texts = ans.filter(a=>a && a.trim());
-          if (texts.length) {
-            html += `<div style="display:flex;flex-direction:column;gap:6px">${
-              texts.map(t=>`<div style="font-size:13px;color:var(--ink2);background:var(--cr3);border-radius:6px;padding:8px 12px;line-height:1.6">${t.replace(/</g,'&lt;')}</div>`).join('')
-            }</div>`;
-          } else {
-            html += `<div style="font-size:12.5px;color:var(--ink3)">（無文字回饋）</div>`;
-          }
-        }
-        html += `</div>`;
-      });
-      html += `</div>`;
+      html += buildSurveyCourseBlockHtml(c, questions, SCALE, SCORE, true);
     });
     html += '</div>';
     wrap.innerHTML = html;
@@ -4102,6 +4070,118 @@ async function viewSurveyStats(surveyId) {
     wrap.innerHTML = `<div style="color:var(--red);padding:20px">統計失敗：${e.message}<br><button class="btn" onclick="loadSurveyAdmin()">← 返回</button></div>`;
     console.warn('viewSurveyStats:', e);
   }
+}
+
+// 單一課程的統計區塊HTML（admin畫面顯示、單檔下載、ZIP打包三處共用，避免邏輯重複維護兩三份）
+function buildSurveyCourseBlockHtml(c, questions, SCALE, SCORE, withDownloadBtn) {
+  const n = c.respondents.size;
+  const enrollCount = c.enrollCount || 0;
+  const ratePct = enrollCount ? Math.round(n/enrollCount*100) : 0;
+  const teacherStr = c.teacherNames.filter(Boolean).join('、') || '—';
+  const bodyId = 'survey-course-body-' + c.offering_id;
+  let html = `<div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:18px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      ${withDownloadBtn ? `<button onclick="document.getElementById('${bodyId}').style.display=document.getElementById('${bodyId}').style.display==='none'?'':'none';this.textContent=this.textContent==='▾'?'▸':'▾'" style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--navy)">▾</button>` : ''}
+      <strong style="font-size:15px;color:var(--navy)">${c.course}</strong>
+      <span style="font-size:12px;color:var(--ink3)">${c.code}　授課：${teacherStr}　修課 ${enrollCount} 人　填答 ${n} 人（${ratePct}%）</span>
+      ${withDownloadBtn ? `<button class="btn btn-sec btn-sm" style="margin-left:auto" onclick="surveyDownloadOneCourse('${c.offering_id}')">⬇ 單獨下載這科</button>` : ''}
+    </div>
+    <div id="${bodyId}">`;
+
+  questions.forEach((q,qi) => {
+    const ans = c.answers[q.id] || [];
+    html += `<div style="margin-bottom:14px">
+      <div style="font-size:13.5px;font-weight:500;margin-bottom:8px">${qi+1}. ${q.question_text}</div>`;
+
+    if (q.type === 'single') {
+      const SCALE_COLOR = {'非常同意':'#2E9E5B','同意':'#8BC34A','普通':'#F0C419','不同意':'#F2994A','非常不同意':'#E5544D'};
+      const cnt = {}; SCALE.forEach(s=>cnt[s]=0);
+      let sum=0, valid=0;
+      ans.forEach(a=>{ if(a in cnt){cnt[a]++; sum+=SCORE[a]||0; valid++;} });
+      const avg = valid ? (sum/valid).toFixed(2) : '—';
+      html += `<div style="display:flex;flex-direction:column;gap:4px">`;
+      SCALE.forEach(s=>{
+        const v = cnt[s]; const pct = valid ? Math.round(v/valid*100) : 0;
+        const color = SCALE_COLOR[s];
+        html += `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span style="width:70px;color:${color};font-weight:500">${s}</span>
+          <div style="flex:1;background:var(--cr2);border-radius:4px;height:16px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${color}"></div></div>
+          <span style="width:60px;text-align:right;color:var(--ink3)">${v} 人 ${pct}%</span>
+        </div>`;
+      });
+      html += `<div style="font-size:12.5px;color:var(--navy);font-weight:500;margin-top:4px">平均分：${avg} / 5.0</div></div>`;
+    } else {
+      const texts = ans.filter(a=>a && a.trim());
+      if (texts.length) {
+        html += `<div style="display:flex;flex-direction:column;gap:6px">${
+          texts.map(t=>`<div style="font-size:13px;color:var(--ink2);background:var(--cr3);border-radius:6px;padding:8px 12px;line-height:1.6">${t.replace(/</g,'&lt;')}</div>`).join('')
+        }</div>`;
+      } else {
+        html += `<div style="font-size:12.5px;color:var(--ink3)">（無文字回饋）</div>`;
+      }
+    }
+    html += `</div>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+
+function buildSurveyReportPageHtml(title, bodyHtml) {
+  const css3 = '@page{size:A4;margin:1.5cm}'
+    + 'body{font-family:"Microsoft JhengHei",sans-serif;color:#222;line-height:1.7;font-size:13px}'
+    + 'h1{text-align:center;font-size:18px;margin:0 0 4px}'
+    + 'h2{text-align:center;font-size:14px;font-weight:normal;color:#666;margin:0 0 20px}';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8">'
+    + `<title>${title}</title>`
+    + '<sty'+'le>' + css3 + '</sty'+'le>'
+    + '</he'+'ad><bo'+'dy>'
+    + '<h1>福智佛教學院 佛法應用研究所</h1>'
+    + `<h2>${title}</h2>`
+    + bodyHtml
+    + '</bo'+'dy></ht'+'ml>';
+}
+
+// 單獨下載某一科的報告（給單一課程的「單獨下載這科」按鈕用，直接下載成獨立html檔，老師端可直接開啟列印）
+function surveyDownloadOneCourse(offeringId) {
+  if (!STAT_DATA) { showToast('無統計資料','error'); return; }
+  const { survey, questions, byCourse } = STAT_DATA;
+  const c = byCourse[offeringId];
+  if (!c) { showToast('找不到這門課的統計資料','error'); return; }
+  const SCALE = ['非常同意','同意','普通','不同意','非常不同意'];
+  const SCORE = {'非常同意':5,'同意':4,'普通':3,'不同意':2,'非常不同意':1};
+  const body = buildSurveyCourseBlockHtml(c, questions, SCALE, SCORE, false);
+  const html = buildSurveyReportPageHtml(`${survey.title}　統計結果 — ${c.course}`, body);
+  const blob = new Blob([html], { type:'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${c.code}_${c.course}.html`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// 全部課程一次依各科分別產生檔案，打包成一個ZIP，資料夾名稱=調查名稱，檔名=課程編號_課程名稱
+async function surveyDownloadByCourseZip() {
+  if (!STAT_DATA) { showToast('無統計資料','error'); return; }
+  const { survey, questions, byCourse } = STAT_DATA;
+  if (typeof JSZip === 'undefined') { showToast('打包功能缺少JSZip函式庫','error'); return; }
+  const SCALE = ['非常同意','同意','普通','不同意','非常不同意'];
+  const SCORE = {'非常同意':5,'同意':4,'普通':3,'不同意':2,'非常不同意':1};
+  const zip = new JSZip();
+  const folder = zip.folder(survey.title);
+  Object.values(byCourse).forEach(c => {
+    const body = buildSurveyCourseBlockHtml(c, questions, SCALE, SCORE, false);
+    const html = buildSurveyReportPageHtml(`${survey.title}　統計結果 — ${c.course}`, body);
+    folder.file(`${c.code}_${c.course}.html`, html);
+  });
+  showToast('打包中…');
+  const blob = await zip.generateAsync({ type:'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${survey.title}.zip`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast(`✅ 已打包 ${Object.keys(byCourse).length} 科的報告`);
 }
 
 /* 列印/下載報告：開新視窗（拆 body 標籤避免 Live Server 注入）*/
@@ -11417,7 +11497,7 @@ async function renderPresParticipants() {
   const list = data || [];
   if (!list.length) { el.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:10px">尚未加入任何學生</div>'; return; }
   el.innerHTML = list.map(p => {
-    const atts = (p.presentation_attachments||[]).map(a=>`<span class="att-chip" style="font-size:11px;background:var(--navy3);padding:2px 6px;border-radius:4px;margin-right:4px">${a.file_type}:${esc(a.file_name)}</span>`).join('') || '<span style="color:var(--ink3);font-size:11.5px">尚無附件</span>';
+    const atts = (p.presentation_attachments||[]).map(a=>`<span class="att-chip" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--navy3);padding:2px 4px 2px 6px;border-radius:4px;margin-right:4px">${a.file_type}:${esc(a.file_name)}<button onclick="presDeleteAttachment('${a.id}','${a.storage_path}')" title="刪除此附件（刪除後可重新上傳替換）" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:12px;padding:0 2px">🗑</button></span>`).join('') || '<span style="color:var(--ink3);font-size:11.5px">尚無附件</span>';
     return `<div style="border:1px solid var(--cr2);border-radius:8px;padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:start">
         <div>
@@ -11547,6 +11627,16 @@ function presUpdateParticipant(id, field, value) {
 async function presRemoveParticipant(id) {
   if (!confirm('確定移除這位同學？（連同已上傳的附件一起刪除）')) return;
   await sb.from('presentation_participants').delete().eq('id',id);
+  renderPresParticipants();
+}
+
+async function presDeleteAttachment(attId, storagePath) {
+  if (!confirm('確定刪除此附件？此動作會立即生效，無法復原（刪除後可以重新上傳新檔案替換）。')) return;
+  const { error: se } = await sb.storage.from('presentation-files').remove([storagePath]);
+  if (se) console.warn('Storage 刪除失敗：', se.message);
+  const { error } = await sb.from('presentation_attachments').delete().eq('id', attId);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  showToast('✅ 附件已刪除，可以重新上傳');
   renderPresParticipants();
 }
 
