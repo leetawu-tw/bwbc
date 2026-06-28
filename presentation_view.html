@@ -20,8 +20,16 @@
   .card .title{font-size:14px;color:#333;margin-bottom:4px}
   .card .intro{font-size:13px;color:#666;margin-bottom:10px}
   .att{display:inline-block;background:#eef1f7;border-radius:6px;padding:6px 10px;font-size:12.5px;margin:3px 4px 0 0;text-decoration:none;color:#1b2a4a}
+  .att-group{display:inline-flex;margin:3px 4px 0 0}
+  .att-group .att{margin:0;border-radius:0 6px 6px 0}
+  .view-btn{display:inline-block;background:#1b2a4a;color:#fff;border-radius:6px 0 0 6px;padding:6px 10px;font-size:12.5px;text-decoration:none}
   .empty{text-align:center;color:#999;padding:60px 20px}
   .loading{text-align:center;color:#999;padding:60px 20px}
+  .viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px}
+  .viewer-box{background:#fff;border-radius:10px;width:100%;max-width:960px;height:90vh;display:flex;flex-direction:column;overflow:hidden}
+  .viewer-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#1b2a4a;color:#fff;font-size:13px}
+  .viewer-hdr button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+  .viewer-frame{flex:1;border:none;width:100%}
 </style>
 </head>
 <body>
@@ -100,7 +108,12 @@ async function init() {
   document.getElementById('content').innerHTML = list.map(p => {
     const atts = (p.presentation_attachments||[]).map(a => {
       const url = sb.storage.from('presentation-files').getPublicUrl(a.storage_path).data.publicUrl;
-      return `<a class="att" href="${url}" target="_blank">📎 ${esc(a.file_type)}：${esc(a.file_name)}</a>`;
+      const ext = (a.file_name.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+      const canPreview = ['pdf','ppt','pptx','doc','docx','xls','xlsx'].includes(ext);
+      const downloadLink = `<a class="att" href="${url}" target="_blank">⬇ ${esc(a.file_type)}：${esc(a.file_name)}</a>`;
+      if (!canPreview) return downloadLink;
+      const viewBtn = `<a class="att view-btn" href="javascript:void(0)" onclick="openViewer('${encodeURIComponent(url)}','${ext}','${esc(a.file_name).replace(/'/g,"\\'")}')">👁 線上看</a>`;
+      return `<span class="att-group">${viewBtn}${downloadLink}</span>`;
     }).join('') || '<span style="color:#999;font-size:12.5px">尚無附件</span>';
     return `<div class="card">
       <div class="name">${esc(p.name_zh||'')}</div>
@@ -113,6 +126,23 @@ async function init() {
     console.error('頁面載入發生未預期的錯誤:', e);
     document.getElementById('content').innerHTML = `<div class="empty">頁面載入失敗：${esc(e.message)}<br><span style="font-size:11.5px">請按F12打開Console查看詳細錯誤，並截圖給承辦人</span></div>`;
   }
+}
+
+function openViewer(encodedUrl, ext, fileName) {
+  const url = decodeURIComponent(encodedUrl);
+  const isPdf = ext === 'pdf';
+  const src = isPdf ? url : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+  const overlay = document.createElement('div');
+  overlay.className = 'viewer-overlay';
+  overlay.innerHTML = `
+    <div class="viewer-box">
+      <div class="viewer-hdr">
+        <span>${esc(fileName)}</span>
+        <button onclick="this.closest('.viewer-overlay').remove()">✕ 關閉</button>
+      </div>
+      <iframe src="${src}" class="viewer-frame"></iframe>
+    </div>`;
+  document.body.appendChild(overlay);
 }
 
 async function downloadAllZip() {

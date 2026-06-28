@@ -2158,6 +2158,8 @@ GRANT INSERT, UPDATE, DELETE ON 新表 TO authenticated;
 
 **這個頁面完全是匿名訪客身份**，跟開著admin.html的人是不是已經登入完全無關——即使是admin自己打開這條連結，也是用匿名身份在查資料，這是刻意設計，不是bug。
 
+**附件「線上看」**：每個附件除了下載連結，還有「👁線上看」按鈕，PDF用瀏覽器原生顯示，PPT/Word/Excel用微軟線上檢視器（`view.officeapps.live.com`）嵌入顯示，前提是檔案網址要公開可存取（Storage bucket本身是Public，符合條件）。這是外部服務，不是自己架的，下載連結永遠保留當備援，萬一線上看臨時不穩定還是能下載。
+
 ### 37.4 附件Storage路徑——中文字踩過的坑
 
 `sb.storage.from(...).upload(path, file)`的`path`參數絕對不能放中文，連`encodeURIComponent()`編碼後的`%`符號都不行，會從`Invalid key`變成`400 Bad Request`。正確做法是路徑只用學號(純數字)+時間戳記+副檔名，原始中文檔名/姓名只存資料庫欄位給畫面顯示用（詳見skill conventions.md規則23）。這個坑其實公佈欄附件上傳很早就踩過、修好過，但當時沒記錄下來，這次重新踩了一次才補上文件。
