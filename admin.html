@@ -11227,6 +11227,11 @@ let PRES_CUR_STATUS = 'ongoing';
 let PRES_CUR_EVENT = null;
 const PRES_TYPE_LABEL = { thesis_proposal:'研究生論文計畫發表會', summary_report:'研究生學習總結分享會' };
 
+// 一般 .toFixed(2) 在某些剛好卡在中間值的數字上，因為浮點數誤差會四捨五入錯，這裡加一個修正版
+function presRound2(n) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
 function presComputeStatus(ev) {
   if (ev.manual_status) return ev.manual_status;
   const today = new Date(); today.setHours(0,0,0,0);
@@ -11426,6 +11431,7 @@ async function renderPresentationEventDetail() {
       <div style="font-weight:600;margin-bottom:10px">📝 評分與統計</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <button class="btn btn-sec" onclick="presEditCriteria()">⚙ 設定評分項目/權重</button>
+        <button class="btn btn-sec" onclick="presEditGradeLevels()">⚙ 設定等第標準</button>
         <button class="btn btn-sec" onclick="presOpenScoreInput()">✎ 輸入評分</button>
         <button class="btn btn-pri" onclick="presShowStats()">📊 查看統計與排名</button>
         <button class="btn btn-sec" onclick="presOpenImportScoresModal()">📥 匯入評分(Excel，可批次)</button>
@@ -11828,6 +11834,63 @@ function presEditCriteria() {
   });
 }
 
+// 依分數查出對應等第標籤（grade_levels要先依min由大到小排序好，這裡找第一個「分數>=該級門檻」的）
+function presGetGradeLabel(score, gradeLevels) {
+  const sorted = (gradeLevels||[]).slice().sort((a,b)=>b.min-a.min);
+  for (const g of sorted) { if (score >= g.min) return g.label; }
+  return '';
+}
+
+async function presEditGradeLevels() {
+  const levels = (PRES_CUR_EVENT.grade_levels||[]).slice().sort((a,b)=>b.min-a.min);
+  const { data: otherEvents } = await sb.from('presentation_events').select('id,event_date,type,grade_levels')
+    .neq('id', PRES_CUR_EVENT.id).order('event_date',{ascending:false});
+  const otherOpts = (otherEvents||[]).map(e=>`<option value="${e.id}">${PRES_TYPE_LABEL[e.type]}　${e.event_date}</option>`).join('');
+  const rowHtml = (g) => `<div class="pres-grade-row" style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
+    <input class="finput pres-grade-min" type="number" value="${g.min}" placeholder="達到幾分(含)" style="width:120px">
+    <span style="font-size:12px;color:var(--ink3)">分以上 →</span>
+    <input class="finput pres-grade-label" value="${esc(g.label||'')}" placeholder="等第名稱" style="flex:1">
+    <button class="btn-del btn btn-sm" onclick="this.parentElement.remove()">✕</button>
+  </div>`;
+  const html = `
+    ${otherOpts ? `<div style="background:var(--cr3,#f0f2f5);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px">
+      從其他場次複製等第標準：
+      <select class="finput" id="pres-grade-copy-from" style="display:inline-block;width:auto;margin-left:6px">
+        <option value="">— 不複製，自己設定 —</option>${otherOpts}
+      </select>
+      <button class="btn btn-sec btn-sm" style="margin-left:6px" onclick="presCopyGradeLevelsFrom()">套用</button>
+    </div>` : ''}
+    <div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">由高到低設定，例如「98分以上→特優」「90分以上→優良」，沒有列到的最低區段建議設成0分。</div>
+    <div id="pres-grade-rows">${levels.map(rowHtml).join('')}</div>
+    <button class="btn btn-sec btn-sm" style="margin-top:6px" onclick="document.getElementById('pres-grade-rows').insertAdjacentHTML('beforeend','<div class=\\'pres-grade-row\\' style=\\'display:flex;gap:8px;margin-bottom:6px;align-items:center\\'><input class=\\'finput pres-grade-min\\' type=\\'number\\' placeholder=\\'達到幾分(含)\\' style=\\'width:120px\\'><span style=\\'font-size:12px;color:var(--ink3)\\'>分以上 →</span><input class=\\'finput pres-grade-label\\' placeholder=\\'等第名稱\\' style=\\'flex:1\\'><button class=\\'btn-del btn btn-sm\\' onclick=\\'this.parentElement.remove()\\'>✕</button></div>')">＋ 新增等第</button>`;
+  presShowSimpleModal('設定等第標準', html, async () => {
+    const mins = Array.from(document.querySelectorAll('.pres-grade-min')).map(i=>+i.value||0);
+    const labels = Array.from(document.querySelectorAll('.pres-grade-label')).map(i=>i.value.trim());
+    const newLevels = mins.map((min,i)=>({min, label:labels[i]})).filter(g=>g.label);
+    if (!newLevels.length) { showToast('至少要設定一個等第','error'); return false; }
+    const { error } = await sb.from('presentation_events').update({grade_levels:newLevels}).eq('id', PRES_CUR_EVENT.id);
+    if (error) { showToast('儲存失敗：'+error.message,'error'); return false; }
+    const { data } = await sb.from('presentation_events').select('*').eq('id', PRES_CUR_EVENT.id).maybeSingle();
+    PRES_CUR_EVENT = data;
+    showToast('✅ 已更新等第標準');
+  });
+}
+function presCopyGradeLevelsFrom() {
+  const sel = document.getElementById('pres-grade-copy-from');
+  const eventId = sel.value;
+  if (!eventId) return;
+  sb.from('presentation_events').select('grade_levels').eq('id',eventId).maybeSingle().then(({data}) => {
+    const levels = (data?.grade_levels||[]).slice().sort((a,b)=>b.min-a.min);
+    document.getElementById('pres-grade-rows').innerHTML = levels.map(g => `<div class="pres-grade-row" style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
+      <input class="finput pres-grade-min" type="number" value="${g.min}" placeholder="達到幾分(含)" style="width:120px">
+      <span style="font-size:12px;color:var(--ink3)">分以上 →</span>
+      <input class="finput pres-grade-label" value="${esc(g.label||'')}" placeholder="等第名稱" style="flex:1">
+      <button class="btn-del btn btn-sm" onclick="this.parentElement.remove()">✕</button>
+    </div>`).join('');
+    showToast('已套用，記得確認沒問題後按「確定」存檔');
+  });
+}
+
 /* ── 評分輸入 ── */
 async function presOpenScoreInput() {
   const { data: judges } = await sb.from('presentation_judges').select('*').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
@@ -11894,18 +11957,22 @@ async function presSaveScores() {
   const judgeId = document.getElementById('pres-score-judge-sel').value;
   const criteria = PRES_CUR_EVENT.score_criteria || [];
   const participantIds = [...new Set(Array.from(document.querySelectorAll('.pres-score-input')).map(i=>i.dataset.pid))];
-  const rows = participantIds.map(pid => {
-    const criteria_scores = criteria.map((c,ci) => {
-      const input = document.querySelector(`.pres-score-input[data-pid="${pid}"][data-ci="${ci}"]`);
-      return { name: c.name, max: c.weight, score: +input?.value || 0 };
-    });
+  const rows = [];
+  const skippedIds = [];
+  participantIds.forEach(pid => {
+    const inputs = criteria.map((c,ci) => document.querySelector(`.pres-score-input[data-pid="${pid}"][data-ci="${ci}"]`));
+    const allBlank = inputs.every(inp => !inp || inp.value.trim()==='');
+    if (allBlank) { skippedIds.push(pid); return; } // 整列空白＝這位評審還沒評這位學生，不存假的0分
+    const criteria_scores = inputs.map((inp,ci) => ({ name: criteria[ci].name, max: criteria[ci].weight, score: +inp?.value || 0 }));
     const total_score = criteria_scores.reduce((s,c)=>s+c.score*(c.max/100),0);
     const commentInput = document.querySelector(`.pres-score-comment[data-pid="${pid}"]`);
-    return { participant_id: pid, judge_id: judgeId, criteria_scores, total_score, comment: commentInput?.value || '' };
+    rows.push({ participant_id: pid, judge_id: judgeId, criteria_scores, total_score, comment: commentInput?.value || '' });
   });
-  const { error } = await sb.from('presentation_scores').upsert(rows, { onConflict: 'participant_id,judge_id' });
-  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
-  showToast('✅ 已儲存評分');
+  if (rows.length) {
+    const { error } = await sb.from('presentation_scores').upsert(rows, { onConflict: 'participant_id,judge_id' });
+    if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  }
+  showToast(`✅ 已儲存 ${rows.length} 位學生的評分${skippedIds.length?`，${skippedIds.length}位整列空白沒填，視為尚未評分（不會用0分計入統計）`:''}`);
 }
 
 /* ── 統計與排名 ── */
@@ -11932,8 +11999,9 @@ async function presShowStats() {
   const rows = stats.map(s => `<tr>
     <td>${s.rank}</td>
     <td style="text-align:left">${s.p.students?.student_code||''} ${s.p.students?.name_zh||''}</td>
-    ${s.critAvgs.map(v=>`<td>${v.toFixed(1)}</td>`).join('')}
-    <td style="font-weight:600">${s.totalAvg.toFixed(2)}</td>
+    ${s.critAvgs.map(v=>`<td>${presRound2(v)}</td>`).join('')}
+    <td style="font-weight:600">${presRound2(s.totalAvg)}</td>
+    <td>${presGetGradeLabel(s.totalAvg, PRES_CUR_EVENT.grade_levels)}</td>
     <td style="font-size:11.5px;color:var(--ink3)">${s.judgeCount}位評審</td>
   </tr>`).join('');
 
@@ -11946,7 +12014,7 @@ async function presShowStats() {
       <button class="btn btn-sec" onclick="presExportStatsExcel()">⬇ 下載Excel</button>
     </div>
     <table id="pres-stats-table" style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="background:var(--cr3)"><th>排名</th><th style="text-align:left">學生</th>${head}<th>總平均</th><th>備註</th></tr></thead>
+      <thead><tr style="background:var(--cr3)"><th>排名</th><th style="text-align:left">學生</th>${head}<th>總平均</th><th>等第</th><th>備註</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <style>#pres-stats-table th,#pres-stats-table td{border:1px solid var(--cr2);padding:8px;text-align:center}</style>`;
@@ -12036,11 +12104,11 @@ async function presExportStatsExcel() {
   stats.forEach((s,i)=>s.rank=i+1);
 
   await presEnsureXLSX();
-  const header = ['排名','學號','姓名', ...criteria.map(c=>c.name), '總平均','幾位評審'];
+  const header = ['排名','學號','姓名', ...criteria.map(c=>c.name), '總平均','等第','幾位評審'];
   const rows = [
     [`${PRES_TYPE_LABEL[PRES_CUR_EVENT.type]} 評分統計與排名（${PRES_CUR_EVENT.event_date}）`],
     header,
-    ...stats.map(s => [s.rank, s.p.students?.student_code||'', s.p.students?.name_zh||'', ...s.critAvgs.map(v=>+v.toFixed(1)), +s.totalAvg.toFixed(2), s.n])
+    ...stats.map(s => [s.rank, s.p.students?.student_code||'', s.p.students?.name_zh||'', ...s.critAvgs.map(v=>presRound2(v)), presRound2(s.totalAvg), presGetGradeLabel(s.totalAvg, PRES_CUR_EVENT.grade_levels), s.n])
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
@@ -12064,11 +12132,11 @@ async function presExportMasterSheetExcel() {
   stats.forEach((s,i)=>s.rank=i+1);
 
   await presEnsureXLSX();
-  const header = ['學號','姓名', ...criteria.map(c=>c.name), '總分','名次'];
+  const header = ['學號','姓名', ...criteria.map(c=>c.name), '總分','等第','名次'];
   const rows = [
     [`${PRES_TYPE_LABEL[PRES_CUR_EVENT.type]} 評分總表（${PRES_CUR_EVENT.event_date}）`],
     header,
-    ...stats.map(s => [s.p.students?.student_code||'', s.p.students?.name_zh||'', ...s.critAvgs.map(v=>+v.toFixed(1)), +s.totalAvg.toFixed(2), s.rank]),
+    ...stats.map(s => [s.p.students?.student_code||'', s.p.students?.name_zh||'', ...s.critAvgs.map(v=>presRound2(v)), presRound2(s.totalAvg), presGetGradeLabel(s.totalAvg, PRES_CUR_EVENT.grade_levels), s.rank]),
     [],
     ['所長簽名：', '', '', '', '', '教育長簽名：']
   ];
@@ -12188,8 +12256,8 @@ async function printPresentationMasterSheet() {
   const head = criteria.map(c=>`<th>${esc(c.name)}</th>`).join('');
   const rows = stats.map(s => `<tr>
     <td>${s.p.students?.student_code||''}</td><td>${s.p.students?.name_zh||''}</td>
-    ${s.critAvgs.map(v=>`<td>${v.toFixed(1)}</td>`).join('')}
-    <td>${s.totalAvg.toFixed(2)}</td><td>${s.rank}</td>
+    ${s.critAvgs.map(v=>`<td>${presRound2(v)}</td>`).join('')}
+    <td>${presRound2(s.totalAvg)}</td><td>${presGetGradeLabel(s.totalAvg, PRES_CUR_EVENT.grade_levels)}</td><td>${s.rank}</td>
   </tr>`).join('');
 
   const css = [
@@ -12203,7 +12271,7 @@ async function printPresentationMasterSheet() {
   ].join('');
   const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>評分總表</title><sty'+'le>'+css+'</sty'+'le></he'+'ad><bo'+'dy>'
     + `<h2>${PRES_TYPE_LABEL[PRES_CUR_EVENT.type]} 評分總表（${PRES_CUR_EVENT.event_date}）</h2>`
-    + `<table><thead><tr><th>學號</th><th>姓名</th>${head}<th>總分</th><th>名次</th></tr></thead><tbody>${rows}</tbody></table>`
+    + `<table><thead><tr><th>學號</th><th>姓名</th>${head}<th>總分</th><th>等第</th><th>名次</th></tr></thead><tbody>${rows}</tbody></table>`
     + `<div class="sign-row"><div>所長簽名：＿＿＿＿＿＿＿＿＿＿</div><div>教育長簽名：＿＿＿＿＿＿＿＿＿＿</div></div>`
     + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt></bo'+'dy></ht'+'ml>';
   const w = window.open('','_blank'); w.document.write(html); w.document.close();
@@ -12292,13 +12360,16 @@ async function presOpenAddJudgeOrSelectForImport() {
         if (!judge && judgeNameHint) judge = judges.find(j => j.name === judgeNameHint || j.name.includes(judgeNameHint));
         if (!judge) { fileReports.push(`❌ ${file.name}（找不到對應的評審，檔名跟檔案內都比對不到，請確認檔名或內容含評審姓名）`); continue; }
 
-        let okCount = 0, skipped = [];
+        let okCount = 0, skipped = [], blankSkipped = [];
         const upsertRows = [];
         const matchedParticipants = [];
         for (const r of dataRows) {
           const code = String(r[0]).trim();
           const p = byCode[code];
           if (!p) { skipped.push(code); continue; }
+          const scoreCells = criteria.map((c,ci) => r[2+ci]);
+          const allBlank = scoreCells.every(v => v===''||v==null);
+          if (allBlank) { blankSkipped.push(p.students?.name_zh||code); continue; } // 整列空白＝這位評審還沒評這位學生，不存假的0分
           const criteria_scores = criteria.map((c,ci) => ({ name:c.name, max:c.weight, score: +r[2+ci]||0 }));
           const total_score = criteria_scores.reduce((s,c)=>s+c.score*(c.max/100),0);
           const comment = r[2+criteria.length] || '';
@@ -12318,7 +12389,7 @@ async function presOpenAddJudgeOrSelectForImport() {
         const { error } = await sb.from('presentation_scores').upsert(upsertRows, { onConflict:'participant_id,judge_id' });
         if (error) { fileReports.push(`❌ ${file.name}（評審：${judge.name}，寫入失敗：${error.message}）`); continue; }
         totalOk += okCount;
-        fileReports.push(`✅ ${file.name}（評審：${judge.name}，成功${okCount}筆${skipped.length?`，${skipped.length}筆學號比對不到`:''}）`);
+        fileReports.push(`✅ ${file.name}（評審：${judge.name}，成功${okCount}筆${skipped.length?`，${skipped.length}筆學號比對不到`:''}${blankSkipped.length?`，${blankSkipped.length}位整列空白視為尚未評分（${blankSkipped.join('、')}）`:''}）`);
       } catch (e) {
         fileReports.push(`❌ ${file.name}（程式錯誤：${e.message}）`);
       }

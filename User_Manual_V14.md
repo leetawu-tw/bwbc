@@ -2217,6 +2217,54 @@ GRANT INSERT, UPDATE, DELETE ON 新表 TO authenticated;
 
 **附件可以刪除**：每個附件旁邊有🗑按鈕，跟公佈欄附件同一套做法——刪除後同一個位置重新上傳新檔案，等同「抽換」，不需要額外做「更新」功能。
 
+### 37.7a 重要bug修正：空白評分被當成0分計入統計（2026-06-30）
+
+**問題**：評審來不及評某位學生時留空，系統卻把空白當成0分存進去，拖累該學生的總平均跟排名。
+
+**根本原因**：手動輸入跟Excel匯入都用`+input.value || 0`這種寫法——空字串轉數字會變成`NaN`，`||0`接著把它換成`0`，所以「沒填」跟「真的打0分」存出來的資料一模一樣，統計時當然分不出來。
+
+**修法**：存檔前先檢查「這位學生的所有評分欄位是不是整列都空白」，整列空白就**直接不存這筆紀錄**（不是存成0），統計時查不到記錄自然會排除，不會拿0分去稀釋平均。手動輸入跟Excel匯入兩個入口都修了。
+
+**⚠️ 這個修法只能防止「以後」發生，沒辦法自動清理「修bug之前」已經存進去的舊幽靈紀錄**——如果發現某位學生的總平均明顯異常偏低，可以用這個方法排查：
+```sql
+SELECT s.student_code, s.name_zh, pj.name AS judge_name, ps.total_score, ps.criteria_scores
+FROM presentation_scores ps
+JOIN presentation_judges pj ON pj.id = ps.judge_id
+JOIN presentation_participants pp ON pp.id = ps.participant_id
+JOIN students s ON s.id = pp.student_id
+WHERE ps.total_score = 0
+ORDER BY s.student_code;
+```
+找出`total_score=0`但其實是幽靈紀錄的那一筆（其他評審分數正常、只有這一筆全部是0且沒有評語），確認後手動`DELETE`掉那一筆即可，不用整批重算。
+
+### 37.7b 小數位四捨五入問題（2026-06-30）
+
+JavaScript原生`.toFixed(2)`在某些剛好卡在中間值的數字上，因為浮點數二進位表示法的誤差，會跟數學上該有的四捨五入結果不一致（例如`(1.005).toFixed(2)`會得到`"1.00"`而不是`"1.01"`）。已經換成修正版的`presRound2()`：
+```js
+function presRound2(n) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+```
+套用在統計畫面、總表、所有Excel匯出的地方，這個問題之後不會再出現。**這個寫法是JS的已知通用解法，以後任何地方需要精確的小數四捨五入都可以直接拿來用，不要再用原生`.toFixed()`。**
+
+### 37.7c 等第欄位（2026-06-30）
+
+新增`presentation_events.grade_levels`(JSONB)，每場次可以自己設定幾個等第（達到幾分以上對應哪個等第名稱），預設值是：98分以上特優／90分以上優良／80分以上良好／70分以下待改進。
+
+設定畫面（⚙設定等第標準）可以：
+- 直接編輯這場次的等第門檻/名稱
+- **從其他場次複製**——下拉選一個之前設定過的場次，套用它的等第標準再微調
+
+等第欄位已經加進統計畫面、統計Excel、總表（列印+Excel）這4個地方，依`presGetGradeLabel(分數, 該場次的grade_levels)`算出對應等第，不是寫死的標準。
+
+### 37.7d teacher.html 功能補齊（2026-06-29）
+
+比對admin.html跟teacher.html的課程大綱功能，補齊2項真正的落差：
+- **匯入覆蓋保護升級成完整版**：teacher.html原本只有簡單`confirm()`，現在跟admin.html同一套「逐欄位新舊比對選擇」畫面
+- **新增「📚下載我教的全部課程大綱」批次功能**：跟admin.html的批次下載同一套邏輯（逐個觸發下載、不打包zip、失敗會列出具體原因）
+
+「拖拉/非標準格式」匯入**刻意不補進teacher.html**（之前已經明確決定老師只需要標準格式那一款）。
+
 ### 37.7 列印/匯出總覽
 
 | 功能 | 列印 | Excel |
@@ -2233,4 +2281,4 @@ GRANT INSERT, UPDATE, DELETE ON 新表 TO authenticated;
 ---
 
 *本手冊持續更新。每次系統功能變更時同步更新本文件。*
-*系統版本：admin v8.0 / teacher v2.10 / student v2.5 / live-poll v1.0　最後更新：2026-06-29*
+*系統版本：admin v8.1 / teacher v2.11 / student v2.5 / live-poll v1.0　最後更新：2026-06-30*
