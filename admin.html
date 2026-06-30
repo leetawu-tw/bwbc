@@ -327,6 +327,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div class="nav-section">
         <div class="nav-label">教學評量</div>
         <div class="nav-item" data-perm="surveys" onclick="showPage('survey',this)"><span class="nav-icon">📋</span>教學意見調查</div>
+        <div class="nav-item" data-perm="scholarship" onclick="showPage('scholarship',this)"><span class="nav-icon">🏆</span>獎學金推薦</div>
         <div class="nav-item" data-perm="grades" onclick="showPage('grades',this)"><span class="nav-icon">📊</span>成績登錄</div>
         <div class="nav-item" data-perm="grades" onclick="showPage('conduct',this)"><span class="nav-icon">🧭</span>操行成績管理</div>
       </div>
@@ -790,6 +791,16 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <button class="btn btn-pri" onclick="openSurveyCreate()">＋ 建立新調查</button>
         </div>
         <div id="survey-admin-wrap">
+          <div style="text-align:center;padding:60px;color:var(--ink3)">載入中…</div>
+        </div>
+      </div>
+
+      <!-- ▌獎學金推薦（三層卡片：主辦單位→子項目→實際功能）▌ -->
+      <div id="page-scholarship" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">🏆 獎學金推薦</div>
+        </div>
+        <div id="scholarship-wrap">
           <div style="text-align:center;padding:60px;color:var(--ink3)">載入中…</div>
         </div>
       </div>
@@ -8579,6 +8590,7 @@ function showPage(page, btn) {
   if (page==='announcements') loadAnnouncements();
   if (page==='todos') loadTodos();
   if (page==='survey') loadSurveyAdmin();
+  if (page==='scholarship') renderScholarshipHome();
   if (page==='grades') loadGradesAdmin();
   if (page==='conduct') loadConductAdmin();
   if (page==='meetings') { loadMeetings(); window.scrollTo(0,0); }
@@ -10486,7 +10498,7 @@ let _allUsers = [];
 let _usrSort = { field:'email', dir:1 };
 
 const PERM_KEYS = ['announcements','todos','meetings','courses','open_courses',
-                   'classrooms','teachers','thesis','students','semesters','surveys','grades','logs'];
+                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','logs'];
 
 const PERM_LABELS = {
   announcements: '📢 公佈欄',
@@ -10497,6 +10509,7 @@ const PERM_LABELS = {
   classrooms:    '🏛 教室管理',
   teachers:      '👤 教師管理',
   thesis:        '📝 畢業論文',
+  scholarship:   '🏆 獎學金推薦',
   students:      '🧑‍🎓 學生資料',
   semesters:     '📆 學期管理',
   surveys:       '📊 意見調查',
@@ -12495,6 +12508,442 @@ async function printPresentationSignSheet() {
     + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt></bo'+'dy></ht'+'ml>';
   const w = window.open('','_blank'); w.document.write(html); w.document.close();
 }
+/* ════════════════════════════════════════════════════════
+   🏆 獎學金推薦 — 三層卡片導覽：主辦單位 → 子項目 → 實際功能
+   ════════════════════════════════════════════════════════ */
+let SCH_CUR_CATEGORY = null;
+let SCH_CUR_TYPE = null;
+let SCH_CUR_PERIOD = null;
+
+async function renderScholarshipHome() {
+  const wrap = document.getElementById('scholarship-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3)">載入中…</div>';
+  const { data: cats } = await sb.from('scholarship_categories').select('*').order('sort_order');
+  wrap.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:10px">
+    ${(cats||[]).map(c=>`<div onclick="openScholarshipCategory('${c.id}')" style="cursor:pointer;border:1px solid var(--cr2);border-radius:12px;padding:20px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+      <div style="font-size:15px;font-weight:600;color:var(--navy)">🏆 ${esc(c.name)}</div>
+      <div style="font-size:12.5px;color:var(--ink3);margin-top:6px">點進去查看子項目 →</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+async function openScholarshipCategory(catId) {
+  const { data: cat } = await sb.from('scholarship_categories').select('*').eq('id',catId).maybeSingle();
+  SCH_CUR_CATEGORY = cat;
+  const { data: types } = await sb.from('scholarship_types').select('*').eq('category_id',catId).order('sort_order');
+  const wrap = document.getElementById('scholarship-wrap');
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <button class="btn btn-sec" onclick="renderScholarshipHome()">← 返回</button>
+      <div style="font-size:15px;font-weight:600">${esc(cat.name)}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+      ${(types||[]).map(t=>{
+        const isLink = t.type_kind==='link_external';
+        const isComing = t.type_kind==='coming_soon';
+        const style = isLink ? 'border:1px solid #B3D4F0;background:#EFF7FF' : isComing ? 'border:1px dashed var(--cr2);background:#fafafa;color:var(--ink3)' : 'border:1px solid var(--cr2);background:#fff';
+        const action = isComing ? '' : `onclick="${isLink ? `openScholarshipExternalLink('${t.external_link}')` : `openScholarshipType('${t.id}')`}" style="cursor:pointer;${style};box-shadow:0 1px 4px rgba(0,0,0,.06)"`;
+        return `<div ${action || `style="${style}"`} style="border-radius:12px;padding:20px;${isComing?'':'box-shadow:0 1px 4px rgba(0,0,0,.06)'}">
+          <div style="font-size:15px;font-weight:600;${isLink?'color:#1976D2':isComing?'':'color:var(--navy)'}">${isLink?'🔗':''} ${esc(t.name)}</div>
+          <div style="font-size:12.5px;${isComing?'':'color:var(--ink3)'};margin-top:6px">${isComing?'敬請期待':isLink?'前往畢業論文模組查看 →':'點進去管理 →'}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function openScholarshipExternalLink(target) {
+  if (target === 'presentation_events') {
+    document.querySelector('[data-perm="thesis"]')?.click();
+    setTimeout(()=>{ TH_VIEW='events'; thSwitchView('events'); }, 50);
+  }
+}
+
+/* ── 子項目（學科學習優異）：期間管理 + 進入功能 ── */
+async function openScholarshipType(typeId) {
+  const { data: type } = await sb.from('scholarship_types').select('*').eq('id',typeId).maybeSingle();
+  SCH_CUR_TYPE = type;
+  await renderScholarshipPeriodList();
+}
+
+function schComputeStatus(period) {
+  if (period.manual_closed) return 'closed';
+  const now = new Date();
+  return now < new Date(period.start_at) ? 'pending' : now > new Date(period.end_at) ? 'closed' : 'open';
+}
+const SCH_STATUS_LABEL = { pending:'⏳ 尚未開始', open:'🟢 開放推薦中', closed:'⚪ 已截止' };
+
+async function renderScholarshipPeriodList() {
+  const wrap = document.getElementById('scholarship-wrap');
+  const { data: periods } = await sb.from('scholarship_periods').select('*, semesters(label)').eq('type_id', SCH_CUR_TYPE.id).order('start_at',{ascending:false});
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <button class="btn btn-sec" onclick="openScholarshipCategory('${SCH_CUR_CATEGORY.id}')">← 返回</button>
+      <div style="font-size:15px;font-weight:600">${esc(SCH_CUR_TYPE.name)}</div>
+      <button class="btn btn-gold" style="margin-left:auto" onclick="openCreateScholarshipPeriod()">＋ 新增推薦期間</button>
+    </div>
+    <div id="sch-period-list">
+      ${(periods||[]).length ? periods.map(p=>schPeriodCardHtml(p)).join('') : '<div style="padding:30px;text-align:center;color:var(--ink3)">尚未設定任何推薦期間</div>'}
+    </div>`;
+}
+
+function schPeriodCardHtml(p) {
+  const status = schComputeStatus(p);
+  return `<div style="border:1px solid var(--cr2);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:16px">
+    <div style="flex:1">
+      <div style="font-weight:600">${p.semesters?.label||''}</div>
+      <div style="font-size:12.5px;color:var(--ink3)">
+        📅 ${new Date(p.start_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+        ～ ${new Date(p.end_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+        　${SCH_STATUS_LABEL[status]}${p.manual_closed?'（手動）':''}
+      </div>
+    </div>
+    <button class="btn btn-sec" onclick="openScholarshipPeriodDetail('${p.id}')">管理 →</button>
+  </div>`;
+}
+
+async function openCreateScholarshipPeriod() {
+  const { data: sems } = await sb.from('semesters').select('*').order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
+  const semOptions = (sems||[]).map(s=>`<option value="${s.id}" ${s.is_current?'selected':''}>${s.label}</option>`).join('');
+  const html = `
+    <label class="flabel">學期</label>
+    <select class="finput" id="sch-new-sem" style="margin-bottom:10px">${semOptions}</select>
+    <label class="flabel">開始推薦時間</label>
+    <input type="datetime-local" class="finput" id="sch-new-start" style="margin-bottom:10px">
+    <label class="flabel">截止推薦時間</label>
+    <input type="datetime-local" class="finput" id="sch-new-end" style="margin-bottom:10px">`;
+  presShowSimpleModal('新增推薦期間', html, async () => {
+    const semester_id = document.getElementById('sch-new-sem').value;
+    const start_at = document.getElementById('sch-new-start').value;
+    const end_at = document.getElementById('sch-new-end').value;
+    if (!semester_id || !start_at || !end_at) { showToast('學期、起訖時間都是必填的','error'); return false; }
+    const { error } = await sb.from('scholarship_periods').insert({ type_id: SCH_CUR_TYPE.id, semester_id, start_at, end_at });
+    if (error) { showToast('新增失敗：'+error.message,'error'); return false; }
+    showToast('✅ 已新增推薦期間');
+    renderScholarshipPeriodList();
+  });
+}
+
+/* ── 期間詳細管理：設定/匯入/手動編輯/統計/匯出 ── */
+async function openScholarshipPeriodDetail(periodId) {
+  const { data: period } = await sb.from('scholarship_periods').select('*, semesters(label,id)').eq('id',periodId).maybeSingle();
+  SCH_CUR_PERIOD = period;
+  await renderScholarshipPeriodDetail();
+}
+
+async function renderScholarshipPeriodDetail() {
+  const p = SCH_CUR_PERIOD;
+  const status = schComputeStatus(p);
+  const wrap = document.getElementById('scholarship-wrap');
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <button class="btn btn-sec" onclick="renderScholarshipPeriodList()">← 返回列表</button>
+      <div style="font-size:15px;font-weight:600">${esc(SCH_CUR_TYPE.name)} — ${p.semesters?.label}</div>
+    </div>
+    <div style="background:var(--cr3);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+      <div>📅 ${new Date(p.start_at).toLocaleString('zh-TW')} ～ ${new Date(p.end_at).toLocaleString('zh-TW')}</div>
+      <div>${SCH_STATUS_LABEL[status]}${p.manual_closed?'（手動截止）':''}</div>
+      <button class="btn btn-sec" style="margin-left:auto" onclick="openEditScholarshipPeriod()">✎ 編輯期間</button>
+      <button class="btn btn-sec" onclick="schToggleManualClose()">${p.manual_closed?'恢復自動判斷':'手動提早截止'}</button>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      <button class="btn btn-sec" onclick="schOpenImportModal()">📥 匯入推薦名單(Excel，依科目)</button>
+      <button class="btn btn-pri" onclick="schShowStats()">📊 查看統計總表</button>
+    </div>
+    <div id="sch-rec-list">載入中…</div>`;
+  await schRenderRecommendationsList();
+}
+
+async function openEditScholarshipPeriod() {
+  const p = SCH_CUR_PERIOD;
+  const toLocalInput = (iso) => { const d = new Date(iso); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); };
+  const html = `
+    <label class="flabel">開始推薦時間</label>
+    <input type="datetime-local" class="finput" id="sch-edit-start" value="${toLocalInput(p.start_at)}" style="margin-bottom:10px">
+    <label class="flabel">截止推薦時間</label>
+    <input type="datetime-local" class="finput" id="sch-edit-end" value="${toLocalInput(p.end_at)}" style="margin-bottom:10px">`;
+  presShowSimpleModal('編輯推薦期間', html, async () => {
+    const { error } = await sb.from('scholarship_periods').update({
+      start_at: document.getElementById('sch-edit-start').value,
+      end_at: document.getElementById('sch-edit-end').value
+    }).eq('id', p.id);
+    if (error) { showToast('更新失敗','error'); return false; }
+    const { data } = await sb.from('scholarship_periods').select('*, semesters(label,id)').eq('id',p.id).maybeSingle();
+    SCH_CUR_PERIOD = data;
+    showToast('✅ 已更新');
+    renderScholarshipPeriodDetail();
+  });
+}
+
+async function schToggleManualClose() {
+  const p = SCH_CUR_PERIOD;
+  if (p.manual_closed) {
+    await sb.from('scholarship_periods').update({manual_closed:false}).eq('id',p.id);
+    showToast('已恢復自動依時間判斷');
+  } else {
+    if (!confirm('確定要手動提早截止這個推薦期間嗎？截止後老師就不能再修改推薦名單。')) return;
+    await sb.from('scholarship_periods').update({manual_closed:true}).eq('id',p.id);
+    showToast('已手動截止');
+  }
+  const { data } = await sb.from('scholarship_periods').select('*, semesters(label,id)').eq('id',p.id).maybeSingle();
+  SCH_CUR_PERIOD = data;
+  renderScholarshipPeriodDetail();
+}
+
+/* ── 推薦名單顯示（依科目分組，admin可直接編輯） ── */
+async function schRenderRecommendationsList() {
+  const el = document.getElementById('sch-rec-list');
+  const { data: offerings } = await sb.from('v_course_schedule').select('offering_id,code,name_zh')
+    .eq('semester_id', SCH_CUR_PERIOD.semesters.id).order('code');
+  const offIds = (offerings||[]).map(o=>o.offering_id);
+  const { data: recs } = await sb.from('scholarship_recommendations').select('*, students(student_code,name_zh)')
+    .eq('period_id', SCH_CUR_PERIOD.id).in('offering_id', offIds.length?offIds:['00000000-0000-0000-0000-000000000000']);
+  const { data: offTeachers } = await sb.from('offering_teachers').select('offering_id,role,teachers(name_zh)').in('offering_id', offIds.length?offIds:['00000000-0000-0000-0000-000000000000']);
+  const { data: confirms } = await sb.from('scholarship_confirmations').select('offering_id').eq('period_id', SCH_CUR_PERIOD.id);
+  const confirmedSet = new Set((confirms||[]).map(c=>c.offering_id));
+  const mainTeacherMap = {};
+  (offTeachers||[]).forEach(ot => { if (ot.role==='主講') mainTeacherMap[ot.offering_id] = ot.teachers?.name_zh; });
+
+  const recsByOffering = {};
+  (recs||[]).forEach(r => { (recsByOffering[r.offering_id] = recsByOffering[r.offering_id]||[]).push(r); });
+
+  const courseBlockHtml = (o) => {
+    const list = (recsByOffering[o.offering_id]||[]).sort((a,b)=>a.sort_order-b.sort_order);
+    const teacherName = mainTeacherMap[o.offering_id] || '（尚未指派主授教師）';
+    const isFull = list.length >= 3;
+    const isConfirmed = confirmedSet.has(o.offering_id);
+    return `<div style="border:1px solid var(--cr2);border-radius:10px;padding:14px 16px;margin-bottom:10px;${isConfirmed?'background:#F4FBF6':''}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+        <strong>${o.code} ${o.name_zh}</strong>
+        <span style="font-size:12px;color:var(--ink3)">主授：${esc(teacherName)}　已推薦 ${list.length}/3 位</span>
+        ${isConfirmed?'<span style="font-size:11.5px;background:#2E9E5B;color:#fff;border-radius:10px;padding:2px 8px">✅ 已確認完成</span>':''}
+        <button class="btn btn-sec btn-sm" style="margin-left:auto" onclick="schToggleConfirm('${o.offering_id}',${isConfirmed})">${isConfirmed?'↺ 取消確認':isFull?'✅ 確定完成':'✅ 確定做不足額的推薦（完成）'}</button>
+      </div>
+      ${list.length ? list.map(r=>`<div style="font-size:13px;padding:4px 0;display:flex;gap:8px;align-items:start">
+        <span style="color:var(--navy);font-weight:600">${r.sort_order}.</span>
+        <span style="min-width:120px">${r.students?.student_code||''} ${r.students?.name_zh||''}</span>
+        <span style="flex:1;color:var(--ink2)">${esc(r.reason)}</span>
+        <button class="btn-del btn btn-sm" onclick="schDeleteRecommendation('${r.id}')">✕</button>
+      </div>`).join('') : '<div style="font-size:12.5px;color:var(--ink3)">尚未推薦</div>'}
+    </div>`;
+  };
+
+  const completed = (offerings||[]).filter(o => confirmedSet.has(o.offering_id) || (recsByOffering[o.offering_id]||[]).length>=3);
+  const incomplete = (offerings||[]).filter(o => !confirmedSet.has(o.offering_id) && (recsByOffering[o.offering_id]||[]).length<3);
+
+  el.innerHTML = `
+    ${incomplete.length ? `<div style="font-weight:600;margin:10px 0 8px;color:#C04030">⏳ 未完成推薦（${incomplete.length}）</div>${incomplete.map(courseBlockHtml).join('')}` : ''}
+    ${completed.length ? `<div style="font-weight:600;margin:18px 0 8px;color:#2E9E5B">✅ 已完成推薦（${completed.length}）</div>${completed.map(courseBlockHtml).join('')}` : ''}
+    ${!offerings?.length ? '<div style="padding:30px;text-align:center;color:var(--ink3)">這個學期沒有開課中的課程</div>' : ''}
+  `;
+}
+
+async function schToggleConfirm(offeringId, isCurrentlyConfirmed) {
+  if (isCurrentlyConfirmed) {
+    await sb.from('scholarship_confirmations').delete().eq('period_id', SCH_CUR_PERIOD.id).eq('offering_id', offeringId);
+    showToast('已取消確認');
+  } else {
+    const { error } = await sb.from('scholarship_confirmations').upsert(
+      { period_id: SCH_CUR_PERIOD.id, offering_id: offeringId },
+      { onConflict: 'period_id,offering_id' }
+    );
+    if (error) { showToast('確認失敗：'+error.message,'error'); return; }
+    showToast('✅ 已標記完成');
+  }
+  schRenderRecommendationsList();
+}
+
+async function schDeleteRecommendation(id) {
+  if (!confirm('確定刪除這筆推薦？')) return;
+  await sb.from('scholarship_recommendations').delete().eq('id',id);
+  schRenderRecommendationsList();
+}
+
+/* ── 匯入推薦名單（Excel） ── */
+async function schDownloadImportTemplate() {
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  const { data: offerings } = await sb.from('v_course_schedule').select('code,name_zh')
+    .eq('semester_id', SCH_CUR_PERIOD.semesters.id).order('code');
+  const header = ['課程編號','課程名稱','推薦順位(1-3)','學生姓名或學號','推薦理由'];
+  const rows = [header];
+  (offerings||[]).forEach(o => { for (let i=1;i<=3;i++) rows.push([o.code, o.name_zh, i, '', '']); });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '推薦名單');
+  XLSX.writeFile(wb, `${SCH_CUR_PERIOD.semesters.label}${SCH_CUR_TYPE.name}匯入範本.xlsx`);
+  showToast('已下載範本');
+}
+
+function schOpenImportModal() {
+  const html = `
+    <div style="background:var(--cr3,#f0f2f5);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px">
+      還沒有檔案可以匯入？先下載範本：
+      <button class="btn btn-sec btn-sm" style="margin-left:6px" onclick="schDownloadImportTemplate()">⬇ 下載匯入範本</button>
+    </div>
+    <label class="flabel">選擇Excel檔案</label>
+    <input type="file" id="sch-import-file" accept=".xlsx,.xls" style="margin-bottom:10px">
+    <div style="font-size:12px;color:var(--ink3)">同一科最多3位，超過第3筆會跳過並提示；學生用學號或姓名比對都可以；匯入後admin還能再手動調整。</div>`;
+  presShowSimpleModal('匯入推薦名單(Excel)', html, async () => {
+    const file = document.getElementById('sch-import-file').files[0];
+    if (!file) { showToast('請選擇檔案','error'); return false; }
+    if (typeof XLSX === 'undefined') {
+      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+    }
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type:'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+
+    const { data: offerings } = await sb.from('v_course_schedule').select('offering_id,code')
+      .eq('semester_id', SCH_CUR_PERIOD.semesters.id);
+    const offByCode = {}; (offerings||[]).forEach(o=>offByCode[o.code]=o.offering_id);
+    const { data: offTeachers } = await sb.from('offering_teachers').select('offering_id,role,teacher_id').eq('role','主講');
+    const mainTeacherByOffering = {}; (offTeachers||[]).forEach(ot=>mainTeacherByOffering[ot.offering_id]=ot.teacher_id);
+
+    const { data: students } = await sb.from('students').select('id,student_code,name_zh');
+    const byCode = {}, byName = {};
+    (students||[]).forEach(s => { byCode[s.student_code]=s; (byName[s.name_zh]=byName[s.name_zh]||[]).push(s); });
+
+    // 依課程分組，每組最多取前3筆（依「推薦順位」排序後取前3）
+    const grouped = {};
+    rows.forEach(r => {
+      const code = String(r['課程編號']||'').trim();
+      if (!code) return;
+      (grouped[code] = grouped[code]||[]).push(r);
+    });
+
+    let okCount = 0;
+    const skippedRows = [], overflowRows = [], noMainTeacher = [];
+    const upsertRows = [];
+
+    for (const [code, list] of Object.entries(grouped)) {
+      const offeringId = offByCode[code];
+      if (!offeringId) { skippedRows.push(`${code}（找不到這個課程編號，或這學期沒開）`); continue; }
+      const teacherId = mainTeacherByOffering[offeringId];
+      if (!teacherId) {
+        // teacher_id 欄位是 NOT NULL，找不到主授教師就整科跳過，不要傳null進去（之前在這裡撞過400錯誤）
+        noMainTeacher.push(code);
+        continue;
+      }
+      const sorted = list.filter(r=>r['學生姓名或學號']).sort((a,b)=>(+a['推薦順位(1-3)']||99)-(+b['推薦順位(1-3)']||99));
+      sorted.forEach((r,i) => {
+        if (i >= 3) { overflowRows.push(`${code} 第${i+1}筆（${r['學生姓名或學號']}）`); return; }
+        const key = String(r['學生姓名或學號']).trim();
+        let student = byCode[key] || (byName[key]?.length===1 ? byName[key][0] : null);
+        if (!student) { skippedRows.push(`${code}：「${key}」找不到對應學生（學號不對，或姓名重複/找不到）`); return; }
+        if (!r['推薦理由'] || !String(r['推薦理由']).trim()) { skippedRows.push(`${code}：「${key}」缺推薦理由，未匯入`); return; }
+        upsertRows.push({
+          period_id: SCH_CUR_PERIOD.id, offering_id: offeringId, teacher_id: teacherId,
+          student_id: student.id, reason: String(r['推薦理由']).trim(), sort_order: i+1
+        });
+        okCount++;
+      });
+    }
+
+    if (upsertRows.length) {
+      const { error } = await sb.from('scholarship_recommendations').upsert(upsertRows, { onConflict:'period_id,offering_id,sort_order' });
+      if (error) { showToast('匯入失敗：'+error.message,'error'); return false; }
+    }
+    showToast(`✅ 已匯入 ${okCount} 筆推薦`);
+    if (skippedRows.length || overflowRows.length || noMainTeacher.length) {
+      const msgs = [];
+      if (skippedRows.length) msgs.push(`跳過的列：\n${skippedRows.join('\n')}`);
+      if (overflowRows.length) msgs.push(`超過3筆被跳過：\n${overflowRows.join('\n')}`);
+      if (noMainTeacher.length) msgs.push(`以下科目找不到主授教師(role='主講')，整科都未匯入，請先到開課記錄設定主授教師再重新匯入：\n${noMainTeacher.join('、')}`);
+      alert(msgs.join('\n\n'));
+    }
+    schRenderRecommendationsList();
+  });
+}
+
+/* ── 統計總表：依學生彙整(排名) + 依科目列表(追蹤進度) ── */
+async function schShowStats() {
+  const { data: offerings } = await sb.from('v_course_schedule').select('offering_id,code,name_zh')
+    .eq('semester_id', SCH_CUR_PERIOD.semesters.id).order('code');
+  const offIds = (offerings||[]).map(o=>o.offering_id);
+  const { data: recs } = await sb.from('scholarship_recommendations').select('*, students(student_code,name_zh)')
+    .eq('period_id', SCH_CUR_PERIOD.id).in('offering_id', offIds.length?offIds:['00000000-0000-0000-0000-000000000000']);
+  const { data: offTeachers } = await sb.from('offering_teachers').select('offering_id,role,teachers(name_zh)').eq('role','主講').in('offering_id', offIds.length?offIds:['00000000-0000-0000-0000-000000000000']);
+  const mainTeacherMap = {}; (offTeachers||[]).forEach(ot=>mainTeacherMap[ot.offering_id]=ot.teachers?.name_zh);
+  const courseMap = {}; (offerings||[]).forEach(o=>courseMap[o.offering_id]=o);
+
+  // 依學生彙整
+  const byStudent = {};
+  (recs||[]).forEach(r => {
+    const sid = r.student_id;
+    if (!byStudent[sid]) byStudent[sid] = { student: r.students, count:0, details:[] };
+    byStudent[sid].count++;
+    byStudent[sid].details.push({ course: courseMap[r.offering_id], reason: r.reason });
+  });
+  const studentList = Object.values(byStudent).sort((a,b)=>b.count-a.count);
+
+  // 依科目列表(追蹤進度)
+  const { data: confirms } = await sb.from('scholarship_confirmations').select('offering_id').eq('period_id', SCH_CUR_PERIOD.id);
+  const confirmedSet = new Set((confirms||[]).map(c=>c.offering_id));
+  const recsByOffering = {}; (recs||[]).forEach(r => { (recsByOffering[r.offering_id]=recsByOffering[r.offering_id]||[]).push(r); });
+  const courseList = (offerings||[]).map(o => {
+    const list = (recsByOffering[o.offering_id]||[]).slice().sort((a,b)=>a.sort_order-b.sort_order);
+    const isConfirmed = confirmedSet.has(o.offering_id);
+    return { course:o, count:list.length, teacher: mainTeacherMap[o.offering_id]||'（未指派）', names: list, isComplete: isConfirmed || list.length>=3, isConfirmed };
+  });
+
+  SCH_STAT_DATA = { period: SCH_CUR_PERIOD, type: SCH_CUR_TYPE, studentList, courseList };
+
+  const wrap = document.getElementById('scholarship-wrap');
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0;flex-wrap:wrap">
+      <button class="btn btn-sec" onclick="renderScholarshipPeriodDetail()">← 返回</button>
+      <div style="font-size:15px;font-weight:600">${esc(SCH_CUR_TYPE.name)} — ${SCH_CUR_PERIOD.semesters.label} 統計總表</div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-sec" onclick="schExportExcel()">⬇ 下載Excel彙總表</button>
+      </div>
+    </div>
+
+    <div style="font-weight:600;margin:14px 0 8px">🏅 依學生彙整（被推薦次數排序）</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px">
+      <thead><tr style="background:var(--cr3)"><th>學號</th><th>姓名</th><th>被推薦次數</th><th style="text-align:left">逐科推薦理由</th></tr></thead>
+      <tbody>${studentList.map(s=>`<tr>
+        <td>${s.student?.student_code||''}</td><td>${s.student?.name_zh||''}</td><td>${s.count}</td>
+        <td style="text-align:left">${s.details.map(d=>`<div>${d.course?.code||''} ${d.course?.name_zh||''}：${esc(d.reason)}</div>`).join('')}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+
+    <div style="font-weight:600;margin:14px 0 8px">📋 依科目列表（推薦進度追蹤）</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:var(--cr3)"><th>課程編號</th><th>課程名稱</th><th>主授教師</th><th>已推薦</th><th>狀態</th><th style="text-align:left">推薦名單</th></tr></thead>
+      <tbody>${courseList.map(c=>`<tr ${!c.isComplete?'style="background:#FFF8E1"':''}>
+        <td>${c.course.code}</td><td>${c.course.name_zh}</td><td>${esc(c.teacher)}</td><td>${c.count}/3</td>
+        <td>${c.isComplete?(c.isConfirmed?'✅ 已確認':'✅ 已滿額'):'⚠️ 未完成'}</td>
+        <td style="text-align:left">${c.names.map(r=>`${r.sort_order}.${r.students?.name_zh||''}`).join('　')}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <style>#scholarship-wrap th,#scholarship-wrap td{border:1px solid var(--cr2);padding:8px;text-align:center}</style>`;
+}
+let SCH_STAT_DATA = null;
+
+async function schExportExcel() {
+  if (!SCH_STAT_DATA) return;
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  const { period, type, studentList, courseList } = SCH_STAT_DATA;
+  const wb = XLSX.utils.book_new();
+  const rows1 = [
+    [`${period.semesters.label}${type.name}推薦彙總表`],
+    ['學號','姓名','被推薦次數','逐科推薦理由'],
+    ...studentList.map(s=>[s.student?.student_code||'', s.student?.name_zh||'', s.count, s.details.map(d=>`${d.course?.code||''} ${d.course?.name_zh||''}：${d.reason}`).join('；')])
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows1), '依學生彙整');
+  const rows2 = [
+    ['課程編號','課程名稱','主授教師','已推薦人數','狀態','推薦名單'],
+    ...courseList.map(c=>[c.course.code, c.course.name_zh, c.teacher, c.count, c.isComplete?(c.isConfirmed?'已確認':'已滿額'):'未完成', c.names.map(r=>`${r.sort_order}.${r.students?.name_zh||''}`).join('、')])
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows2), '依科目進度');
+  XLSX.writeFile(wb, `${period.semesters.label}${type.name}推薦彙總表.xlsx`);
+}
+
 function thSwitchView(view) {
   TH_VIEW = view;
   const pBtn = document.getElementById('th-tab-pending-btn');

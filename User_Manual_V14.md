@@ -2280,5 +2280,48 @@ function presRound2(n) {
 
 ---
 
+## 38. 獎學金推薦（2026-06-30，跟「教學意見調查」同一層級的左側選單）
+
+### 38.1 三層導覽架構
+
+左側「🏆 獎學金推薦」→ 主辦單位卡片（如「龍山寺獎學金」）→ 子項目卡片（學科學習優異獎學金/公益服務獎學金佔位/論文計畫發表會🔗連結卡）。這個架構是為了「未來還會有很多獎學金」設計的，新增主辦單位或子項目只是新增資料，不用改程式架構。
+
+**資料表**：`scholarship_categories`（主辦單位）→ `scholarship_types`（子項目，`type_kind`區分`subject_excellence`真正功能/`coming_soon`佔位/`link_external`連結卡）→ `scholarship_periods`（每學期一個推薦期間）→ `scholarship_recommendations`（推薦記錄）→ `scholarship_confirmations`（完成確認記錄）。
+
+### 38.2 推薦規則（學科學習優異獎學金）
+
+- 每個**開課班次**（不是課程，是某學期某班）算一科，只有該科**主授教師**（`offering_teachers.role='主講'`）能填，協同授課老師看不到
+- 每科最多推薦3位，**理由必填**，截止前隨時可修改
+- 推薦期間有開始/截止時間，admin可隨時手動提早截止（`manual_closed`）
+- 新增推薦期間時，學期下拉預設帶出目前學期（`is_current=true`）
+
+### 38.3 Excel匯入/匯出（這次刻意全部用Excel，不用Word）
+
+匯入格式：課程編號／課程名稱／推薦順位(1-3)／學生姓名或學號／推薦理由。比對規則：
+- 課程編號比對不到（這學期沒開）→ 整科跳過
+- **找不到主授教師（`role='主講'`）→ 整科跳過，不會把`teacher_id`設成null去撞資料庫的NOT NULL限制**（這是修過的真實bug，詳見skill conventions.md規則28）
+- 同科超過3筆只取前3筆（依推薦順位排序），其餘列出提醒但不擋住其他成功的部分
+- 缺推薦理由的那一列不會匯入
+
+匯出三種：依學生彙整＋依科目進度（Excel兩個分頁）、評分明細風格的完整總表，全部都是`.xlsx`格式，方便直接寄給老師或主管。
+
+### 38.4 完成確認機制（2026-06-30新增）
+
+不是每科都一定要推滿3位，admin可以對「不滿3位但確實已經處理完」的科目按「✅確定做不足額的推薦（完成）」標記完成，這筆記錄存進`scholarship_confirmations`。
+
+推薦名單列表、統計總表都會依「已完成（滿3位 或 已手動確認）」/「未完成（不滿3位且未確認）」分區顯示，未完成的維持黃底提醒，方便admin一眼看出還剩哪幾科要催繳，不會被「本來就只推薦得出1-2位」的正常情況誤判成漏填。
+
+### 38.5 權限設計
+
+獎學金推薦有自己獨立的staff權限key：`scholarship`（一開始不小心借用了`surveys`的key，後來發現「主辦單位可能跟教學意見調查的負責人不同」才獨立出來，詳見skill troubleshooting記錄）。RLS用`current_user_can_write('scholarship')`／`current_user_can_read('scholarship')`，admin/director永遠有完整權限；主授教師對自己負責的科目有讀寫權；其他人（含協同授課老師、學生）完全看不到推薦內容，避免名單提早外洩。
+
+### 38.6 已知踩過的bug（修正記錄）
+
+1. **`v_course_schedule`這個VIEW本身內部已經用`WHERE co.is_active=true`篩選過，輸出欄位裡沒有`is_active`這一欄**——查詢時多加`.eq('is_active',true)`會直接查詢失敗（欄位不存在），且因為沒檢查error，靜默變成空陣列，顯示「沒有開課中的課程」。admin.html跟teacher.html都中過這個坑，已全部移除多餘的篩選。
+2. **多層巢狀select（`scholarship_types(name, scholarship_categories(name))`）在teacher.html抓不到資料**——改成分開查、JS自己組，不依賴PostgREST猜複雜外鍵關聯。
+3. **匯入時找不到主授教師，把`teacher_id`設成null撞NOT NULL限制，回傳`400`**——改成整科直接跳過並在報告中明確說明原因。
+
+---
+
 *本手冊持續更新。每次系統功能變更時同步更新本文件。*
-*系統版本：admin v8.1 / teacher v2.11 / student v2.5 / live-poll v1.0　最後更新：2026-06-30*
+*系統版本：admin v8.2 / teacher v2.11 / student v2.5 / live-poll v1.0　最後更新：2026-06-30*

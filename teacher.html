@@ -208,6 +208,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')">🗂 所有課程</div>
       <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')">🎯 課堂調查即時秀</div>
       <div class="side-item" id="nav-survey"      onclick="showSection('survey')">📊 教學意見</div>
+      <div class="side-item" id="nav-scholarship" onclick="showSection('scholarship')">🏆 獎學金推薦</div>
       <div class="side-item" id="nav-grades"      onclick="showSection('grades')">📊 成績登錄</div>
       <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')">🧭 操行評分</div>
       <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')">📋 課堂點名</div>
@@ -399,6 +400,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <div id="sec-survey" class="t-section">
         <div class="section-title">📊 教學意見調查</div>
         <div id="survey-list">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+      </div>
+
+      <!-- ── 獎學金推薦 section（只有主授教師看得到自己負責的科目） ── -->
+      <div id="sec-scholarship" class="t-section">
+        <div class="section-title">🏆 獎學金推薦</div>
+        <div id="scholarship-list">
           <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
         </div>
       </div>
@@ -2754,6 +2763,117 @@ async function submitConductBatch(adjField, submittedField) {
   switchConductTeacherTab(_conductTeacherTab);
 }
 
+/* ════ 🏆 獎學金推薦（只有主授教師能填，截止前可隨時修改） ════ */
+async function loadScholarshipSection() {
+  const wrap = document.getElementById('scholarship-list');
+  wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
+
+  // 找出我主授(role='主講')的所有開課班次
+  const { data: myMain } = await sb.from('offering_teachers').select('offering_id').eq('teacher_id', ME.id).eq('role','主講');
+  const myOfferingIds = (myMain||[]).map(o=>o.offering_id);
+  if (!myOfferingIds.length) { wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">目前沒有您擔任主授教師的課程。</div>'; return; }
+
+  const { data: offerings } = await sb.from('v_course_schedule').select('offering_id,code,name_zh,semester_id,semester_label').in('offering_id', myOfferingIds);
+  if (!offerings?.length) { wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">目前沒有開課中的課程。</div>'; return; }
+
+  // 找所有跟這些課程相關、目前開放中的推薦期間
+  const semIds = [...new Set(offerings.map(o=>o.semester_id))];
+  const { data: periods, error: periodsErr } = await sb.from('scholarship_periods').select('*').in('semester_id', semIds);
+  if (periodsErr) { wrap.innerHTML = `<div style="color:var(--red);font-size:13px;padding:20px">查詢推薦期間失敗：${periodsErr.message}</div>`; console.error(periodsErr); return; }
+  if (!periods?.length) { wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">目前沒有設定中的獎學金推薦期間。</div>'; return; }
+
+  // 分開查 types/categories 名稱，不用巢狀select，避免PostgREST抓錯外鍵關聯
+  const typeIds = [...new Set(periods.map(p=>p.type_id))];
+  const { data: types } = await sb.from('scholarship_types').select('id,name,category_id').in('id', typeIds);
+  const catIds = [...new Set((types||[]).map(t=>t.category_id))];
+  const { data: cats } = await sb.from('scholarship_categories').select('id,name').in('id', catIds);
+  const typeMap = {}; (types||[]).forEach(t=>typeMap[t.id]=t);
+  const catMap = {}; (cats||[]).forEach(c=>catMap[c.id]=c);
+
+  wrap.innerHTML = periods.map(p => {
+    const status = schStatusForTeacher(p);
+    const offeringsInThisSem = offerings.filter(o=>o.semester_id===p.semester_id);
+    if (!offeringsInThisSem.length) return '';
+    const typeName = typeMap[p.type_id]?.name || '';
+    const catName = catMap[typeMap[p.type_id]?.category_id]?.name || '';
+    return `<div style="border:1px solid var(--cr2);border-radius:10px;padding:16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <strong>${esc(catName)} - ${esc(typeName)}</strong>
+        <span style="font-size:12px;color:var(--ink3)">${offeringsInThisSem[0]?.semester_label||''}</span>
+        <span style="font-size:12px;color:${status==='open'?'#2E9E5B':'var(--ink3)'}">${status==='open'?'🟢 開放推薦中':status==='pending'?'⏳ 尚未開始':'⚪ 已截止'}</span>
+      </div>
+      ${offeringsInThisSem.map(o=>`<button class="btn-secondary" style="margin:4px 6px 4px 0;padding:6px 12px;font-size:12.5px" onclick="openSchRecForm('${p.id}','${o.offering_id}','${esc(o.code)} ${esc(o.name_zh)}',${status==='open'})">${o.code} ${o.name_zh} →</button>`).join('')}
+    </div>`;
+  }).join('') || '<div style="color:var(--ink3);font-size:13px;padding:20px">目前沒有相關的推薦期間。</div>';
+}
+
+function schStatusForTeacher(p) {
+  if (p.manual_closed) return 'closed';
+  const now = new Date();
+  return now < new Date(p.start_at) ? 'pending' : now > new Date(p.end_at) ? 'closed' : 'open';
+}
+
+async function openSchRecForm(periodId, offeringId, courseLabel, isOpen) {
+  const { data: enrolls } = await sb.from('enrollments').select('student_id, students(student_code,name_zh)').eq('offering_id', offeringId).eq('status','confirmed');
+  const { data: existing } = await sb.from('scholarship_recommendations').select('*').eq('period_id', periodId).eq('offering_id', offeringId).order('sort_order');
+
+  const studentOptions = (enrolls||[]).map(e=>`<option value="${e.student_id}">${e.students?.student_code||''} ${e.students?.name_zh||''}</option>`).join('');
+  const slots = [1,2,3].map(i => {
+    const ex = (existing||[]).find(r=>r.sort_order===i);
+    return `<div style="border:1px solid var(--cr2);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:12.5px;color:var(--ink3);margin-bottom:6px">推薦第${i}位（可留空）</div>
+      <select class="finput" id="sch-form-student-${i}" style="margin-bottom:6px" ${isOpen?'':'disabled'}>
+        <option value="">— 不推薦 —</option>${studentOptions}
+      </select>
+      <textarea class="finput" id="sch-form-reason-${i}" rows="2" placeholder="推薦理由（有選學生就一定要填）" style="width:100%;resize:vertical" ${isOpen?'':'disabled'}>${ex?esc(ex.reason):''}</textarea>
+    </div>`;
+  }).join('');
+
+  let modal = document.getElementById('sch-form-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'sch-form-modal';
+    modal.className = 'modal-bg';
+    modal.innerHTML = `<div class="modal" style="max-width:560px">
+      <div class="modal-hdr"><div class="modal-title" id="sch-form-modal-title"></div>
+        <button class="modal-close" onclick="document.getElementById('sch-form-modal').classList.remove('open')">✕</button></div>
+      <div class="modal-body" id="sch-form-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="document.getElementById('sch-form-modal').classList.remove('open')">取消</button>
+        <button class="btn-save" id="sch-form-confirm">💾 儲存推薦</button>
+      </div></div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('sch-form-modal-title').textContent = courseLabel + '（最多推薦3位）';
+  document.getElementById('sch-form-modal-body').innerHTML = isOpen ? slots : `<div style="background:#FFF3E0;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#E65100">這個推薦期間已截止，無法再修改，以下僅供查看。</div>` + slots;
+  // 預填已存在的學生選項（select是動態產生的，存檔前才set value，避免innerHTML覆寫後選不到）
+  (existing||[]).forEach(r => { const sel = document.getElementById(`sch-form-student-${r.sort_order}`); if (sel) sel.value = r.student_id; });
+
+  const confirmBtn = document.getElementById('sch-form-confirm');
+  confirmBtn.style.display = isOpen ? '' : 'none';
+  confirmBtn.onclick = async () => {
+    const rows = [];
+    const toDelete = [];
+    for (let i=1;i<=3;i++) {
+      const sid = document.getElementById(`sch-form-student-${i}`).value;
+      const reason = document.getElementById(`sch-form-reason-${i}`).value.trim();
+      if (!sid) { toDelete.push(i); continue; }
+      if (!reason) { showToast(`第${i}位有選學生，推薦理由必填`, true); return; }
+      rows.push({ period_id: periodId, offering_id: offeringId, teacher_id: ME.id, student_id: sid, reason, sort_order: i });
+    }
+    if (rows.length) {
+      const { error } = await sb.from('scholarship_recommendations').upsert(rows, { onConflict:'period_id,offering_id,sort_order' });
+      if (error) { showToast('儲存失敗：'+error.message, true); return; }
+    }
+    if (toDelete.length) {
+      await sb.from('scholarship_recommendations').delete().eq('period_id',periodId).eq('offering_id',offeringId).in('sort_order', toDelete);
+    }
+    showToast('✅ 已儲存推薦');
+    document.getElementById('sch-form-modal').classList.remove('open');
+  };
+  modal.classList.add('open');
+}
+
 function showSection(id) {
   document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
   document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
@@ -2772,6 +2892,7 @@ function showSection(id) {
   else { lpStopPolling(); } // 離開分頁時停止輪詢計時器，避免背景持續打API
   if (id === 'conduct') { loadConductSection(); }
   if (id === 'attendance') { loadTAttOfferings(); }
+  if (id === 'scholarship') { loadScholarshipSection(); }
 }
 // 相容舊呼叫
 function switchTab(id, btn) {
