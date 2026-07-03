@@ -1394,15 +1394,23 @@ async function loadMyEnrollments() {
   // 已選課程頁顯示本學期（ACTIVE_SEM_ID = 114-2）的選課
   const activeSemForEnrolled = ACTIVE_SEM_ID || CURRENT_SEM_ID;
   if (activeSemForEnrolled === CURRENT_SEM_ID) {
-    // 同一學期，直接用 data
-    renderEnrolled(data||[]);
+    // 同一學期，直接用已算好的 CAN_ENROLL/CAN_DROP
+    renderEnrolled(data||[], CAN_ENROLL, CAN_DROP);
   } else {
+    // 不同學期：另外查ACTIVE_SEM的enrollment_settings，算出正確的退選權限
     const { data:activeData } = await sb.from('enrollments')
       .select('*')
       .eq('student_id', ME.id)
       .eq('semester_id', activeSemForEnrolled)
       .in('status',['confirmed','pending','waitlist','withdrawn']);
-    renderEnrolled(activeData||[]);
+    const { data:activeSetting } = await sb.from('enrollment_settings')
+      .select('*').eq('semester_id', activeSemForEnrolled).maybeSingle();
+    const now = new Date();
+    const isLeave = ME.status === 'leave';
+    const activeCanEnroll = !isLeave && activeSetting
+      && now >= new Date(activeSetting.open_at) && now <= new Date(activeSetting.close_at);
+    const activeCanDrop = !isLeave && activeSetting && now <= new Date(activeSetting.close_at);
+    renderEnrolled(activeData||[], activeCanEnroll, activeCanDrop);
   }
 
   // 畢業進度非同步載入，不阻塞主流程
@@ -1649,7 +1657,7 @@ function sortEnrolled(field) {
   if (window._lastEnrolledData) renderEnrolled(window._lastEnrolledData);
 }
 
-async function renderEnrolled(list) {
+async function renderEnrolled(list, canEnroll = CAN_ENROLL, canDrop = CAN_DROP) {
   window._lastEnrolledData = list; // 供排序重用
   const active = list.filter(e=>e.status!=='dropped');
   document.getElementById('enrolled-count').textContent = active.length + ' 門';
@@ -1716,7 +1724,7 @@ async function renderEnrolled(list) {
         ${th('time','上課時間')}
         ${th('room','教室')}
         ${th('status','狀態','text-align:center')}
-        ${CAN_ENROLL?'<th style="text-align:center">操作</th>':''}
+        ${canEnroll?'<th style="text-align:center">操作</th>':''}
       </tr></thead>
       <tbody>
         ${sorted.map(e=>{
@@ -1727,7 +1735,7 @@ async function renderEnrolled(list) {
           const reqBadge = c.req_type
             ? `<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:${c.req_type==='req'?'#FFF3E0':c.req_type==='go'?'#E8EAF6':'#E8F5E9'};color:${c.req_type==='req'?'#B05010':c.req_type==='go'?'#3949AB':'#1A6A30'}">${REQ_LABEL_SHORT[c.req_type]||''}</span>`
             : '';
-          const dropBtn = (e.status==='confirmed' && CAN_ENROLL)
+          const dropBtn = (e.status==='confirmed' && canEnroll)
             ? `<button onclick="dropCourse('${e.offering_id}')" style="padding:3px 10px;border-radius:5px;font-size:12px;background:#FEE;color:var(--red);border:1px solid #FCC;cursor:pointer">退選</button>`
             : '—';
           return `<tr>
@@ -1744,7 +1752,7 @@ async function renderEnrolled(list) {
               <span class="badge ${STATUS_BADGE[e.status]||''}">${STATUS_LABEL[e.status]||e.status}</span>
               ${e.over_credit_request?'<br><span style="font-size:10px;color:#B05010">超修中</span>':''}
             </td>
-            ${CAN_ENROLL?`<td style="text-align:center">${dropBtn}</td>`:''}
+            ${canEnroll?`<td style="text-align:center">${dropBtn}</td>`:''}
           </tr>`;
         }).join('')}
       </tbody>
@@ -1752,7 +1760,7 @@ async function renderEnrolled(list) {
         <tr style="background:var(--cr3);border-top:2px solid var(--cr2)">
           <td colspan="3" style="padding:8px 12px;font-weight:500;color:var(--ink3)">已確認學分合計</td>
           <td style="text-align:center;font-weight:600;color:var(--navy);font-size:15px">${totalCredits}</td>
-          <td colspan="${CAN_ENROLL?4:3}"></td>
+          <td colspan="${canEnroll?4:3}"></td>
         </tr>
       </tfoot>
     </table>`;
@@ -1817,6 +1825,8 @@ async function openSyllabus(offeringId, name) {
     section('🔧 教學方法', listItems(data.methods)),
     section('📊 評量方式', data.assessment?.length ? `<div style="border:1px solid var(--cr2);border-radius:6px;overflow:hidden;padding:4px 10px">${asmntItems(data.assessment)}</div>` : ''),
     section('📅 教學進度', data.weeks?.some(w=>w.title) ? `<div style="border:1px solid var(--cr2);border-radius:6px;overflow:hidden;padding:4px 10px">${weekItems(data.weeks)}</div>` : ''),
+    ((data.bibliography?.required?.length||0)+(data.bibliography?.optional?.length||0)>0)
+      ? `<div style="font-size:11.5px;color:#C04030;margin:10px 0 4px">※ 請注意「遵守智慧財產權觀念」及「不得不法影印、下載及散布」※</div>` : '',
     section('📚 必讀書目', bibItems(data.bibliography?.required)),
     section('📚 參考書目', bibItems(data.bibliography?.optional)),
     data.notes ? section('💬 備註', `<div style="color:var(--ink3)">${data.notes}</div>`) : '',
