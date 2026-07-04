@@ -57,6 +57,17 @@ input,select,textarea{font-family:inherit;font-size:14px}
 /* ── CARDS ── */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .stat-card{background:#fff;border-radius:var(--r);padding:14px 16px;border:1px solid var(--cr2);box-shadow:var(--sh)}
+.tl-section-label{font-size:11px;color:var(--ink3);font-weight:600;letter-spacing:.05em;margin:10px 0 6px;border-bottom:1px solid var(--cr2);padding-bottom:4px}
+.tl-section-label:first-child{margin-top:0}
+.tl-item{padding:4px 0;font-size:13px;line-height:1.5}
+.tl-done{color:var(--ink3)}
+.tl-done strong{color:var(--ink2);font-weight:500}
+.tl-now{background:var(--navy3);color:var(--navy);font-weight:600;padding:8px 10px;border-radius:6px;margin:2px 0}
+.tl-soon{color:var(--orange)}
+.tl-soon strong{color:var(--ink);font-weight:600}
+.tl-done-wrap summary::-webkit-details-marker{display:none}
+.tl-done-wrap summary{list-style:none}
+.tl-done-wrap[open] summary{margin-bottom:2px}
 .stat-num{font-family:'Noto Serif TC',serif;font-size:28px;font-weight:600;color:var(--navy)}
 .stat-lbl{font-size:11.5px;color:var(--ink3);margin-top:2px}
 
@@ -754,7 +765,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
                 <th style="padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;position:sticky;top:0">開始日期</th>
                 <th style="padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;position:sticky;top:0">結束日期</th>
                 <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;position:sticky;top:0">行事曆</th>
-                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;position:sticky;top:0">現在學期</th>
+                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;position:sticky;top:0;cursor:help" title="只決定排課功能的可編輯範圍，不影響學生/教師看到的學期或時程提醒（那些依日期自動判斷）">排課用現在學期 ⓘ</th>
                 <th style="padding:10px 14px;text-align:right;font-size:12.5px;font-weight:500;position:sticky;top:0">開課數</th>
                 <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;position:sticky;top:0">操作</th>
               </tr>
@@ -1833,8 +1844,11 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
         <input type="checkbox" id="sem-current" style="width:15px;height:15px">
-        <span>設為現在學期</span>
+        <span>設為排課用現在學期</span>
       </label>
+      <div style="font-size:11.5px;color:var(--ink3);margin-top:4px;line-height:1.5;padding-left:23px">
+        此設定只決定「排課功能」的可編輯範圍——設為排課用現在學期後，這個學期跟未來學期在排課頁可編輯，之前學期自動鎖成唯讀。不影響學生/教師登入後看到的學期或時程提醒（那些依實際日期自動判斷）。
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeSemModal()">取消</button>
@@ -2793,6 +2807,25 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
 
 /* ════ GLOBAL STATE ════ */
 let OFFERINGS = [], TEACHERS = [], CLASSROOMS = [], TEACHERS_MAP = {}, SYLLABUS_MAP = {}, SYLLABUS_DETAIL = {};
+
+/* ════ 共用：依日期判斷現在學期（不依賴 is_current，那個欄位只給排課可編輯範圍用） ════ */
+let _dateCurrentSemCache = null;
+async function getCurrentSemesterByDate() {
+  if (_dateCurrentSemCache) return _dateCurrentSemCache;
+  const { data: sems } = await sb.from('semesters')
+    .select('id,label,start_date,end_date').order('start_date');
+  if (!sems?.length) return null;
+  const now = new Date();
+  let idx = sems.findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
+  if (idx === -1) {
+    idx = sems.reduce((best, s, i) => {
+      const d = Math.abs(new Date(s.start_date) - now);
+      return d < best.d ? {i, d} : best;
+    }, {i: 0, d: Infinity}).i;
+  }
+  _dateCurrentSemCache = sems[idx];
+  return _dateCurrentSemCache;
+}
 let COURSES_ALL = [];  // 課程主檔
 let currentOfferingTeachers = [];
 let currentOfferingStaff = [];
@@ -3181,13 +3214,17 @@ async function updateDashboard() {
     .select('id,label,academic_year,semester_num,is_current,start_date,end_date')
     .order('academic_year').order('semester_num');
 
-  // 找 CURRENT_SEM（is_current=true）
-  const curSem = (allSems||[]).find(s=>s.is_current);
-  const curOrder = curSem ? curSem.academic_year*10+curSem.semester_num : 99999;
-  const semOrders = (allSems||[]).map(s=>s.academic_year*10+s.semester_num).sort((a,b)=>a-b);
-  const curIdx = semOrders.indexOf(curOrder);
-  const prevOrder = curIdx>0 ? semOrders[curIdx-1] : -1;
-  const prevSem = (allSems||[]).find(s=>s.academic_year*10+s.semester_num===prevOrder);
+  // 找 CURRENT_SEM（依日期判斷，不依賴 is_current——那個欄位只給排課可編輯範圍用）
+  const now = new Date();
+  let curIdx2 = (allSems||[]).findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
+  if (curIdx2 === -1 && allSems?.length) {
+    curIdx2 = allSems.reduce((best, s, i) => {
+      const d = Math.abs(new Date(s.start_date) - now);
+      return d < best.d ? {i, d} : best;
+    }, {i: 0, d: Infinity}).i;
+  }
+  const curSem = curIdx2 > -1 ? allSems[curIdx2] : null;
+  const prevSem = curIdx2 > 0 ? allSems[curIdx2 - 1] : null;
 
   // 更新標籤和連結
   const s1Label = prevSem?.label || '本學期';
@@ -3225,18 +3262,79 @@ async function updateDashboard() {
   document.getElementById('d-cl-used').textContent=usedCodes.length;
   document.getElementById('d-cl-total').textContent=totalCl;
 
-  // 動態時程提醒
+  // 動態時程提醒（過去/現在/未來三段式，依今天日期算，不依賴 is_current）
   const timeline = document.getElementById('d-timeline');
-  if (timeline && curSem) {
-    const fmt = d => d ? new Date(d).toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'}) : '—';
-    const items = [];
-    if (prevSem?.label) items.push(`📌 本學期（${prevSem.label}）結束：<strong style="color:var(--navy)">${fmt(prevSem.end_date)}</strong>`);
-    if (curSem?.label)  items.push(`📌 新學期（${curSem.label}）開始：<strong style="color:var(--navy)">${fmt(curSem.start_date)}</strong>`);
-    // 取選課設定
-    const { data:es } = await sb.from('enrollment_settings').select('open_at,close_at,semester_id').eq('semester_id',curSem.id).maybeSingle();
-    if (es?.open_at)  items.push(`📌 ${curSem.label} 選課開放：<strong style="color:var(--navy)">${fmt(es.open_at)}</strong>`);
-    if (es?.close_at) items.push(`📌 ${curSem.label} 選課截止：<strong style="color:var(--navy)">${fmt(es.close_at)}</strong>`);
-    timeline.innerHTML = items.map(i=>`<div>${i}</div>`).join('') || '<div style="color:var(--ink3)">無時程資料</div>';
+  if (timeline) {
+    const now = new Date();
+    let tlIdx = allSems.findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
+    if (tlIdx === -1) {
+      tlIdx = allSems.reduce((best, s, i) => {
+        const d = Math.abs(new Date(s.start_date) - now);
+        return d < best.d ? {i, d} : best;
+      }, {i: 0, d: Infinity}).i;
+    }
+    const tlPrev = allSems[tlIdx - 1] || null;
+    const tlCur  = allSems[tlIdx] || null;
+    const tlNext = allSems[tlIdx + 1] || null;
+    const tlSemIds = [tlPrev, tlCur, tlNext].filter(Boolean).map(s => s.id);
+
+    const { data: tlEvents } = await sb.from('semester_calendar_events')
+      .select('semester_id,event_key,event_label,start_at,end_at,is_system')
+      .in('semester_id', tlSemIds);
+    const tlEvBySem = {};
+    (tlEvents || []).forEach(e => { (tlEvBySem[e.semester_id] ||= []).push(e); });
+
+    const tlFmt   = d => d ? new Date(d).toLocaleDateString('zh-TW', {year:'numeric', month:'long', day:'numeric'}) : '—';
+    const tlFmtDT = d => d ? new Date(d).toLocaleString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}) : '—';
+    const tlDaysLeft = d => Math.ceil((new Date(d) - now) / 86400000);
+
+    function tlSemItems(sem) {
+      const items = [{ date: sem.start_date, label: `${sem.label} 學期開始`, useDT: false }];
+      (tlEvBySem[sem.id] || []).forEach(e => {
+        const d = e.end_at || e.start_at;
+        if (!d) return;
+        const isRange = e.start_at && e.end_at && e.start_at !== e.end_at;
+        const label = isRange
+          ? `${sem.label} ${e.event_label}：${tlFmt(e.start_at)}－${tlFmt(e.end_at)}`
+          : `${sem.label} ${e.event_label}`;
+        items.push({ date: d, label, useDT: !isRange && !!e.is_system, skipDateSuffix: isRange });
+      });
+      return items;
+    }
+
+    const tlDone = [];
+    const tlSoon = [];
+    if (tlPrev) tlDone.push({ date: new Date(tlPrev.end_date), label: `${tlPrev.label} 學期結束`, useDT: false });
+    if (tlCur) {
+      tlSemItems(tlCur).forEach(it => {
+        const d = new Date(it.date);
+        (d < now ? tlDone : tlSoon).push(it);
+      });
+    }
+    if (tlNext) tlSemItems(tlNext).forEach(it => tlSoon.push(it));
+    tlDone.sort((a, b) => new Date(a.date) - new Date(b.date));
+    tlSoon.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const tlRenderLine = it => it.skipDateSuffix
+      ? it.label
+      : `${it.label}：<strong>${it.useDT ? tlFmtDT(it.date) : tlFmt(it.date)}</strong>`;
+
+    let tlHtml = '';
+    if (tlDone.length) {
+      tlHtml += `<details class="tl-done-wrap">
+        <summary class="tl-section-label" style="cursor:pointer;user-select:none">── 已完成（${tlDone.length}）── ▾</summary>
+        ${tlDone.map(it => `<div class="tl-item tl-done">✅ ${tlRenderLine(it)}</div>`).join('')}
+      </details>`;
+    }
+    if (tlCur) {
+      tlHtml += `<div class="tl-section-label">── 本學期進行中 ──</div>`;
+      tlHtml += `<div class="tl-item tl-now">📍 ${tlCur.label} 學期進行中（結束：${tlFmt(tlCur.end_date)}，還有${tlDaysLeft(tlCur.end_date)}天）</div>`;
+    }
+    if (tlSoon.length) {
+      tlHtml += `<div class="tl-section-label">── 即將到來 ──</div>`;
+      tlHtml += tlSoon.map(it => `<div class="tl-item tl-soon">🔜 ${tlRenderLine(it)}（還有${tlDaysLeft(it.date)}天）</div>`).join('');
+    }
+    timeline.innerHTML = tlHtml || '<div style="color:var(--ink3)">無時程資料</div>';
   }
 }
 
@@ -4991,15 +5089,17 @@ function openSyllabusBlankModal() {
   if (_gradeSemesters?.length) {
     sel.innerHTML = '<option value="">請選擇學期</option>' +
       _gradeSemesters.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
-    const cur = _gradeSemesters.find(s=>s.is_current);
-    if (cur) { sel.value = cur.id; loadSyllabusBlankCourses(); }
+    getCurrentSemesterByDate().then(cur => {
+      if (cur && _gradeSemesters.find(s=>s.id===cur.id)) { sel.value = cur.id; loadSyllabusBlankCourses(); }
+    });
   } else {
-    sb.from('semesters').select('id,label,is_current').order('label',{ascending:false}).then(({data}) => {
+    sb.from('semesters').select('id,label,is_current,start_date,end_date').order('label',{ascending:false}).then(({data}) => {
       _gradeSemesters = data || [];
       sel.innerHTML = '<option value="">請選擇學期</option>' +
         _gradeSemesters.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
-      const cur = _gradeSemesters.find(s=>s.is_current);
-      if (cur) { sel.value = cur.id; loadSyllabusBlankCourses(); }
+      getCurrentSemesterByDate().then(cur => {
+        if (cur && _gradeSemesters.find(s=>s.id===cur.id)) { sel.value = cur.id; loadSyllabusBlankCourses(); }
+      });
     });
   }
   document.getElementById('syl-filter').value = 'all';
@@ -5576,8 +5676,8 @@ const EXPIRE_OPTS = {
   '2week':   () => { const d=new Date(); d.setDate(d.getDate()+14); return d; },
   '1mon':    () => { const d=new Date(); d.setMonth(d.getMonth()+1); return d; },
   '2mon':    () => { const d=new Date(); d.setMonth(d.getMonth()+2); return d; },
-  'semester':() => {
-    const cur=(SEMESTERS||[]).find(s=>s.is_current);
+  'semester': async () => {
+    const cur = await getCurrentSemesterByDate();
     return cur?.end_date ? new Date(cur.end_date) : new Date(new Date().setMonth(new Date().getMonth()+6));
   },
   'forever': () => null,
@@ -5586,15 +5686,15 @@ const EXPIRE_OPTS = {
 const TARGET_LABEL = {admin:'行政公開',teacher:'教師公開',student:'學生公開',all:'全體公開'};
 const TARGET_COLOR = {admin:'var(--navy)',teacher:'#1A6A30',student:'#B05010',all:'#6D28D9'};
 
-function calcExpiry(type, inputId) {
+async function calcExpiry(type, inputId) {
   const fn = EXPIRE_OPTS[type];
   if (!fn) return;
-  const d = fn();
+  const d = await fn();
   const el = document.getElementById(inputId);
   if (el) el.value = d ? d.toISOString().slice(0,16) : '';
 }
-function calcAnnExpiry() { calcExpiry(document.getElementById('ann-expire-type').value, 'ann-expires-at'); }
-function calcTodoExpiry() { calcExpiry(document.getElementById('todo-expire-type').value, 'todo-expires-at'); }
+async function calcAnnExpiry() { await calcExpiry(document.getElementById('ann-expire-type').value, 'ann-expires-at'); }
+async function calcTodoExpiry() { await calcExpiry(document.getElementById('todo-expire-type').value, 'todo-expires-at'); }
 
 async function loadAnnouncements() {
   const { data } = await sb.from('announcements')
@@ -9142,13 +9242,13 @@ let _conductRows = [];
 
 async function loadConductAdmin() {
   if (!_conductSemesters.length) {
-    const { data } = await sb.from('semesters').select('id,label,is_current,academic_year').order('label',{ascending:false});
+    const { data } = await sb.from('semesters').select('id,label,is_current,academic_year,start_date,end_date').order('label',{ascending:false});
     _conductSemesters = data || [];
   }
   const sel = document.getElementById('cd-semester');
   sel.innerHTML = '<option value="">請選擇學期</option>' + _conductSemesters.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
-  const cur = _conductSemesters.find(s=>s.is_current);
-  if (cur) sel.value = cur.id;
+  const cur = await getCurrentSemesterByDate();
+  if (cur && _conductSemesters.find(s=>s.id===cur.id)) sel.value = cur.id;
   onConductSemesterChange();
 }
 
@@ -12603,7 +12703,8 @@ function schPeriodCardHtml(p) {
 
 async function openCreateScholarshipPeriod() {
   const { data: sems } = await sb.from('semesters').select('*').order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
-  const semOptions = (sems||[]).map(s=>`<option value="${s.id}" ${s.is_current?'selected':''}>${s.label}</option>`).join('');
+  const curSem = await getCurrentSemesterByDate();
+  const semOptions = (sems||[]).map(s=>`<option value="${s.id}" ${curSem&&s.id===curSem.id?'selected':''}>${s.label}</option>`).join('');
   const html = `
     <label class="flabel">學期</label>
     <select class="finput" id="sch-new-sem" style="margin-bottom:10px">${semOptions}</select>
@@ -13532,14 +13633,14 @@ function switchGradeTab(tab, btn) {
 
 async function loadGradesAdmin() {
   if (!_gradeSemesters.length) {
-    const { data } = await sb.from('semesters').select('id,label,is_current').order('label', {ascending:false});
+    const { data } = await sb.from('semesters').select('id,label,is_current,start_date,end_date').order('label', {ascending:false});
     _gradeSemesters = data || [];
   }
   const opts = _gradeSemesters.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
   const sel = document.getElementById('g-semester');
   sel.innerHTML = '<option value="">請選擇學期</option>' + opts;
-  const currentSem = _gradeSemesters.find(s => s.is_current);
-  if (currentSem) sel.value = currentSem.id; // 預設帶入現在學期，需要時可手動切換補資料
+  const cur = await getCurrentSemesterByDate();
+  if (cur && _gradeSemesters.find(s=>s.id===cur.id)) sel.value = cur.id; // 預設帶入現在學期（依日期判斷），需要時可手動切換補資料
   onGradeSemesterChange();
 }
 
