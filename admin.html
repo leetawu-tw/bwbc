@@ -3809,6 +3809,8 @@ async function loadSurveyAdmin() {
           ${s.status==='draft' && tokenCount>0 ? `<button class="btn btn-pri" onclick="setSurveyStatus('${s.id}','open')">▶ 開放調查</button>` : ''}
           ${s.status==='open' ? `<button class="btn" onclick="setSurveyStatus('${s.id}','closed')" style="background:#FFF3E0;color:#B05010">⏹ 截止調查</button>` : ''}
           ${s.status==='open' ? `<button class="btn" onclick="viewSurveyLinks('${s.id}')">🔗 查看連結</button>` : ''}
+          ${(s.status==='open'||s.status==='closed') ? `<button class="btn" onclick="viewSurveyIncomplete('${s.id}')">📋 未填名單－依學科</button>` : ''}
+          ${(s.status==='open'||s.status==='closed') ? `<button class="btn" onclick="viewSurveyIncompleteByStudent('${s.id}')">📋 未填名單－依學生</button>` : ''}
           ${isClosed ? `<button class="btn btn-pri" onclick="viewSurveyStats('${s.id}')">📊 統計結果</button>` : ''}
           <button class="btn" onclick="editSurveyModal('${s.id}')">✏️ 編輯</button>
           ${s.status==='draft' ? `<button class="btn" onclick="deleteSurvey('${s.id}','${s.title.replace(/'/g,'')}')" style="background:#FEE;color:var(--red)">🗑 刪除</button>` : ''}
@@ -4092,6 +4094,94 @@ function copyAllLinks(surveyId) {
   const header = '課程名稱\t學生姓名\t意見調查表連結\tEmail';
   const body = rows.map(r=>`${r.course}\t${r.name}\t${r.url}\t${r.email}`).join('\n');
   navigator.clipboard.writeText(header+'\n'+body).then(()=>showToast(`✅ 已複製 ${rows.length} 筆`));
+}
+
+/* 尚未完成填答名單（只看「有沒有填」，不涉及填答內容，維持問卷匿名性；僅admin可見，不開放給授課教師，避免對學生造成壓力） */
+async function _fetchSurveyIncompleteRows(surveyId) {
+  const { data:tokens } = await sb.from('survey_tokens')
+    .select('offering_id, student_id')
+    .eq('survey_id', surveyId).eq('used', false);
+  if (!tokens?.length) return [];
+
+  const offIds = [...new Set(tokens.map(t=>t.offering_id))];
+  const stuIds = [...new Set(tokens.map(t=>t.student_id))];
+  const { data:courses } = await sb.from('v_course_schedule')
+    .select('offering_id, name_zh, code').in('offering_id', offIds);
+  const { data:students } = await sb.from('students')
+    .select('id, name_zh, student_code').in('id', stuIds);
+  const cMap = {}; (courses||[]).forEach(c=>cMap[c.offering_id]=c);
+  const sMap = {}; (students||[]).forEach(s=>sMap[s.id]=s);
+
+  return tokens.map(t=>{
+    const c = cMap[t.offering_id]||{}; const s = sMap[t.student_id]||{};
+    return { course:c.name_zh||'', code:c.code||'', name:s.name_zh||'', sc:s.student_code||'' };
+  });
+}
+
+/* 未填名單－依學科：同一門課還缺哪些學生 */
+async function viewSurveyIncomplete(surveyId) {
+  try {
+    const rows0 = await _fetchSurveyIncompleteRows(surveyId);
+    if (!rows0.length) {
+      openThModal('尚未完成填答名單－依學科', '<div style="padding:20px;text-align:center;color:var(--green)">🎉 目前全部已完成填答</div>');
+      return;
+    }
+    const rows = rows0.sort((a,b)=> (a.course+a.name).localeCompare(b.course+b.name,'zh'));
+
+    // 依課程分組，方便一次看某一門課還缺誰
+    const byCourse = {};
+    rows.forEach(r => { (byCourse[r.course] ||= []).push(r); });
+
+    let html = `<div style="margin-bottom:12px;font-size:13px;color:var(--ink3)">
+      共 ${rows.length} 位尚未完成填答，依課程分組列出。此名單僅供追蹤填答進度，不涉及任何填答內容。</div>
+      <div style="max-height:60vh;overflow-y:auto">`;
+    Object.keys(byCourse).sort((a,b)=>a.localeCompare(b,'zh')).forEach(course => {
+      const list = byCourse[course];
+      html += `<div style="margin-bottom:14px">
+        <div style="font-weight:600;font-size:13.5px;margin-bottom:6px;color:var(--navy)">${course}（${list.length}人）</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${list.map(r=>`<span style="font-size:12.5px;background:var(--cr3);padding:4px 10px;border-radius:14px">${r.name} <span style="color:var(--ink3)">${r.sc}</span></span>`).join('')}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    openThModal('尚未完成填答名單－依學科', html);
+  } catch(e) { showToast('載入失敗：'+e.message,'error'); console.warn(e); }
+}
+
+/* 未填名單－依學生：同一位學生還有哪幾門課沒填 */
+async function viewSurveyIncompleteByStudent(surveyId) {
+  try {
+    const rows0 = await _fetchSurveyIncompleteRows(surveyId);
+    if (!rows0.length) {
+      openThModal('尚未完成填答名單－依學生', '<div style="padding:20px;text-align:center;color:var(--green)">🎉 目前全部已完成填答</div>');
+      return;
+    }
+    const rows = rows0.sort((a,b)=> (a.name+a.course).localeCompare(b.name+b.course,'zh'));
+
+    // 依學生分組，方便一次看某位同學還缺哪幾科
+    const byStudent = {};
+    rows.forEach(r => {
+      const key = `${r.name}｜${r.sc}`;
+      (byStudent[key] ||= []).push(r);
+    });
+
+    let html = `<div style="margin-bottom:12px;font-size:13px;color:var(--ink3)">
+      共 ${Object.keys(byStudent).length} 位同學尚未完成填答，依學生分組列出。此名單僅供追蹤填答進度，不涉及任何填答內容。</div>
+      <div style="max-height:60vh;overflow-y:auto">`;
+    Object.keys(byStudent).sort((a,b)=>a.localeCompare(b,'zh')).forEach(key => {
+      const [name, sc] = key.split('｜');
+      const list = byStudent[key];
+      html += `<div style="margin-bottom:14px">
+        <div style="font-weight:600;font-size:13.5px;margin-bottom:6px;color:var(--navy)">${name} <span style="color:var(--ink3);font-weight:400">${sc}</span>（尚缺${list.length}科）</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${list.map(r=>`<span style="font-size:12.5px;background:var(--cr3);padding:4px 10px;border-radius:14px">${r.course}</span>`).join('')}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    openThModal('尚未完成填答名單－依學生', html);
+  } catch(e) { showToast('載入失敗：'+e.message,'error'); console.warn(e); }
 }
 
 /* 批次 S4 佔位 */
