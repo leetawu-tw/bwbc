@@ -343,6 +343,21 @@ teacher.html 採用**左側導覽 + 右側內容**的 SPA 佈局，一次只顯�
 - 每科可以**單獨下載成一個檔案**（給單一老師），也可以**一次依全部課程打包成ZIP**（資料夾＝調查名稱，檔名＝課程編號_課程名稱），三處共用同一套HTML產生邏輯，不會三份不同步
 - 每科統計區塊可以收合/展開，畫面資料多時更簡潔（只在admin畫面有效，下載出去的靜態檔案維持全部展開）
 
+### 未填名單（2026-07-05 新增）
+
+調查卡片（開放中／已截止狀態）新增兩個按鈕，讓admin追蹤填答進度，不用等統計結果出爐才知道還有誰沒填：
+
+- **📋 未填名單－依學科**：依課程分組，列出每門課還缺哪些學生
+- **📋 未填名單－依學生**：依學生分組，列出每位學生還有哪幾科沒填（同一位學生修了多門課、多科都還沒填，會一次列在他名字底下）
+
+兩個按鈕共用同一套底層查詢（`_fetchSurveyIncompleteRows`），只從`survey_tokens`表查`used=false`的記錄，**完全不碰`survey_responses`（實際填答內容）**——維持「記名但匿名呈現」的既有設計原則（見上方「設計重點」），只是把系統本來就知道的「誰填了/誰沒填」攤開顯示成好操作的名單，沒有多洩漏任何填答內容。
+
+**刻意的限制（避免對學生造成壓力）**：
+- 這個功能**只存在於`admin.html`**，`teacher.html`沒有對應入口——不開放給授課教師看到「誰沒填」，避免老師在課堂上追問或造成壓力（尤其如果某學生是刻意不填、可能想給負評）
+- 用詞刻意用中性字眼「尚未完成填答名單」，不用「催繳」「未達標」等帶壓力感的詞；全部填完時顯示「🎉 目前全部已完成填答」正面訊息
+- 這次**沒有**做「發送提醒信」功能（那個需要SMTP，卡在S4b同樣的外部條件，見上方說明）——目前只做名單查詢
+
+
 ---
 
 ## 9c. 課堂調查即時秀（2026-06-20 新增）
@@ -995,12 +1010,14 @@ OOO會議 簽到表
 
 ---
 
-## 20b. 公佈欄功能（v12 更新）
+## 20b. 公佈欄功能（v12 更新，2026-07-06 補充）
 
 三個 HTML（admin / student / teacher）的公佈欄統一有：
 - **收合/展開**：點擊標題列可收合單則公告
 - **⊟ 全部收合**：一鍵收合所有展開的公告（只收合不展開）
 - **附件**：支援 admin-assets Storage 的 signed URL 安全附件
+- **附件「👁 線上看」**（2026-07-06新增，僅admin.html）：PDF/PPT/Word/Excel附件多一個線上檢視按鈕，PDF用瀏覽器原生顯示，PPT/Word/Excel用微軟線上檢視器（`view.officeapps.live.com`）嵌入顯示——沿用畢業論文計畫發表會對外分享頁（`presentation_view.html`）已驗證可用的同一套寫法。因為`admin-assets`是private bucket、用signed URL（不像`presentation-files`是public bucket），實測結果PDF/PPT都正常
+- **附件下載檔名修正**（2026-07-06）：原本點「⬇下載」抓到的檔名是Storage裡的系統路徑（一串數字），不是原始上傳檔名。原因是`<a download="...">`屬性對跨網域網址（signed URL跟`admin.html`不同網域）不一定會被瀏覽器遵守。修法：改用JS `fetch`抓成blob再用`URL.createObjectURL`觸發下載，強制使用`attachments.filename`欄位當下載檔名，不受網址跨網域影響
 
 ---
 
@@ -1207,6 +1224,13 @@ USING (id IN (SELECT student_id FROM conduct_grades WHERE advisor_id = current_t
 3. 講師費自動算（時數×費率），**可勾選手動覆寫**應付特殊狀況
 4. 交通費＋說明手動輸入，**交通費說明會自動帶入上月同一位老師的文字**（大部分老師交通方式固定，省去重複輸入）
 5. 「📥 匯出本月報表」：產生Excel，格式比照原本人工填寫的範本（兩區塊「聘任／一般」+ 各自總計 + 簽章欄 + 自動依當月實際資料生成的鐘點費說明/交通費補助說明），標題自動帶入真實學期（如「114學年度下學期06月兼課老師授課時數」），不會有寫死的「本學期」字眼
+
+### 收合/展開（2026-07-06新增）
+兼課老師人數多時畫面會很長，這次加了兩層收合：
+- **「一、聘任兼課教師」／「二、一般兼課教師」**兩個大分類標題可以點擊收合/展開
+- **每位老師的卡片**也可以個別收合/展開（姓名/職級/時數合計永遠看得到，收合的是底下的上課日明細跟費用編輯欄位）
+- 工具列新增「⬇ 全部展開」「⬆ 全部收合」，一次控制所有老師卡片
+- 兩個大分類底下的**小計金額特意放在收合區塊外面**，收合起來還是看得到總金額，不用展開才能看摘要
 
 ---
 
@@ -2091,7 +2115,9 @@ PostgREST的DELETE即使實際刪除0筆也不會回傳error，造成「假裝�
 
 ⚠️ **明確排除**：`surveys`/`survey_tokens`/`survey_questions`/`survey_responses` 經使用者確認**刻意保留不開RLS**（教學意見調查信任學生填答環境、已測試完成準備7月發送，不要動）。
 
-**尚待處理（風險中低，已記錄排隊）**：`academic_years`/`course_axes`/`course_series`/`course_groups`/`course_prerequisites`/`conflict_log`/`graduation_requirements`/`enrollment_settings` 8張表完全沒有policy，多為設定性主檔資料。
+**B3權限測試（原本待補測，2026-07-06補測完成）**：用SQL模擬6種身份（admin/staff有寫入權限/staff只有read/staff無permissions/teacher/student）直接呼叫`current_user_can_write('courses')`、`current_user_can_write('teachers')`、`current_user_can_write('open_courses')`、`current_user_can_write('classrooms')`，確認沒有寫入權限的身份全部正確被擋下，結果完全符合預期。測試方法：用`set_config('request.jwt.claims', '{"sub":"<uid>"}', true)`模擬指定帳號的`auth.uid()`，不用實際登入多個帳號切換，也不會寫入任何測試資料。
+
+**8張表RLS補強（2026-07-06完成）**：`academic_years`/`course_axes`/`course_series`/`course_groups`/`course_prerequisites`/`graduation_requirements` 沿用`courses`權限key；`enrollment_settings`/`conflict_log` 沿用`open_courses`權限key。除`conflict_log`（內部排課工具，不公開讀取）外，其餘7張皆為`public_read:true`（參考/設定資料，學生教師端功能需要讀取，如選課頁判斷`CAN_ENROLL`）。同樣用B3的模擬身份測試法驗證，全部符合預期。至此全資料庫RLS盤查的已知缺口全部補齊。
 
 ---
 
@@ -2323,5 +2349,75 @@ function presRound2(n) {
 
 ---
 
+## 39. 重大事故記錄：admin.html 專案檔案嚴重落後 GitHub 正式版（2026-07-04）
+
+### 39.1 事故經過
+
+2026-07-04 的開發對話中，Claude 一開始拿到的 `admin.html`（Claude Project裡存的檔案）只有約7800行，實際 GitHub `main` 分支上的正式版有 **13955行**——落差近6000行，缺了以下五大模組整個不見：
+
+- 🎓 班級導師管理
+- 💰 兼課鐘點費核銷
+- 🧭 操行成績管理（admin端期程設定）
+- 📝 畢業論文計畫發表會
+- 🏆 獎學金推薦
+
+在此之前，同一次對話裡已經先發現「課程幹部指派」（`offering_staff`）這一個較小的功能區塊消失，靠翻對話記錄復原；但真正的問題規模在後續盤點才浮現——**整份`admin.html`檔案版本落後，不是單一功能被刪**。
+
+### 39.2 根本原因
+
+Claude 每次開新對話，是從 **Claude Project 裡存的檔案**（不是即時讀取 GitHub 或 Netlify）當作工作起點。這份 Project 檔案**不會自動跟 GitHub / Netlify 上的實際版本同步**——如果某次開發完成、confirm沒問題、push到GitHub之後，沒有同時把同一份檔案也更新進 Claude Project，下一次新對話開始時，Claude 拿到的還是舊版本，那次做的東西在「Claude的認知裡」等於消失，後續修改都疊加在舊版本上，越晚發現、救援範圍越大。
+
+這是同一類問題**第三次**在這個專案發生（第一次是`schema.sql`缺20張表沒同步；第二次是這次`admin.html`缺6000行）。
+
+### 39.3 修復方式
+
+`leetawu-tw/bwbc` 是公開（public）GitHub repo，Claude 可以直接用 `curl` 抓 `raw.githubusercontent.com` 的內容，不需要token或額外授權。修復做法：
+1. 直接抓 GitHub `main` 分支最新的 `admin.html`
+2. 跟 Claude Project 裡的版本用 `diff` + `wc -l` 比對，確認落差規模
+3. 改用 GitHub 版本當新的工作基底，把當天已經做好、還沒進GitHub的修改（時程提醒卡片、學期判斷邏輯統一等）重新套用上去
+4. 順便比對 `teacher.html`／`student.html`，確認這兩個檔案**沒有**同樣問題（逐行diff結果完全一致，沒有分岔）
+
+整個修復過程比「逐個功能翻對話記錄」快非常多，因為一次diff就能看出完整落差範圍，不會像「課程幹部」那次一樣，修好一個才發現還有更多。
+
+### 39.4 新增的防範機制
+
+**已寫入 `bwbc-dev-knowledge` skill（`SKILL.md`核心提醒第0條、`conventions.md`第20條、`troubleshooting.md`症狀1）：**
+
+> 任何一次對話，只要任務涉及要修改 `admin.html`/`teacher.html`/`student.html`，動手前第一步一律先執行 GitHub diff 檢查（`curl` 抓 `raw.githubusercontent.com/leetawu-tw/bwbc/main/{檔案名}`，跟 Project 裡的版本 `diff`），確認一致才開始工作；不一致就改用 GitHub 版本當基底。
+
+**這是 Claude 端可以主動執行的檢查，不需要依賴使用者每次記得手動同步。** 但使用者這邊仍建議養成習慣：**每完成一輪修改、確認測試通過、push到GitHub之後，同一時間也把該檔案重新上傳更新進這個Claude Project**，讓兩邊盡量保持一致，降低下次對話一開始就要做大範圍diff修復的機會。
+
+### 39.5 同一輪順便完成：「現在學期」判斷邏輯全面統一（2026-07-04）
+
+在救回缺失模組的同一輪，也把整個系統對「現在是哪個學期」的判斷方式做了全面統一，過程中額外發現並修正了以下問題：
+
+**設計原則確立：**
+- `semesters.is_current`（手動勾選）**只**用來決定「排課功能」的可編輯範圍——admin後台的checkbox跟表頭文字都改成「**設為排課用現在學期**」，並加上說明文字，避免誤會這個設定會影響其他頁面。
+- 其他所有「預設顯示哪個學期」的地方，全部改用**日期判斷**（`getCurrentSemesterByDate()`共用函式：拿今天日期比對`semesters.start_date`/`end_date`，找不到落在範圍內的就找最接近的），不依賴`is_current`。
+
+**逐一盤點後修正的地方（總共6處，同一個anti-pattern被複製貼上很多次，修的時候要全檔案搜一次`is_current`才會抓全）：**
+1. 儀表板課程數統計卡片（本學期/新學期開課數）
+2. 「重要時程提醒」三段式卡片（admin/teacher/student三個portal都有）
+3. 操行成績管理（admin端期程設定預設學期）
+4. 成績登錄（admin端預設學期）
+5. 空白課程大綱列印（預設學期）
+6. 獎學金推薦「新增推薦期間」（預設學期）
+
+**額外修好兩個獨立小bug（跟is_current無關，是順手發現的）：**
+- 公告到期日「至本學期為止」選項引用了一個從未宣告過的變數`SEMESTERS`，會直接丟出`ReferenceError`（見skill troubleshooting症狀11相鄰段落）
+- 同一個功能即使變數名稱修對了，如果使用者沒先去過「學期管理」頁面，快取是空的，還是會算錯到期日——改成不依賴快取、每次都重新查詢
+
+**時區顯示統一**：所有「單一截止時間點」的系統事件（初選/加退選/停修/成績截止），時程提醒卡片、列印選課單鎖定訊息、操行成績期程提示，三處顯示格式跟實際時間全部核對一致，修掉了之前直接裸切UTC字串沒轉時區的bug。
+
+### 39.6 隔天驗證：GitHub diff 防範機制第一次實戰生效（2026-07-05）
+
+隔天開新對話處理儀表板「本學期/新學期」開課數顯示對調的bug，一開始就照第39.4節新增的規則先做GitHub diff檢查，馬上發現：**Project裡的`admin.html`還是還沒合併五大模組之前的v4.0舊版（7693行）**，代表7/4那次修完push之後，沒有把最終版本重新上傳更新進Project。因為有先做這個檢查，直接改用GitHub上的最新版本（14056行）當基底繼續工作，完全沒有走冤枉路、也沒有把舊版本的問題誤認為新bug。**這證實新流程真的有效**，之後每次都會先做這個檢查。
+
+**這次順便修好的bug**：儀表板「本學期/新學期」開課數卡片顯示對調。原因是7/4把`curSem`的計算方式從「`is_current`手動標記」改成「日期判斷」時，只改了`curSem`怎麼算出來，沒有檢查`s1Label`（本學期）／`s2Label`（新學期）這兩個標籤原本是根據**舊語意**去對應的（`is_current`手動標記原本代表「admin提前設定準備中的新學期」，所以原本`curSem`＝新學期、`prevSem`＝本學期；換成日期判斷後`curSem`變成「真正的本學期」，但標籤位置沒有跟著調整，導致本學期/新學期的開課數對調）。已修正為：`curSem`（本學期）配`s1`，新增`nextSem`（新學期，即`curSem`在排序陣列裡的下一個）配`s2`。
+
+這個案例已寫入skill（`conventions.md`第21條）：**改變一個變數的意義時，要往下追蹤所有引用這個變數的地方，不能只改算出這個值的那一行。**
+
+---
+
 *本手冊持續更新。每次系統功能變更時同步更新本文件。*
-*系統版本：admin v8.2 / teacher v2.11 / student v2.5 / live-poll v1.0　最後更新：2026-06-30*
+*系統版本：admin v8.7 / teacher v2.12 / student v2.6 / live-poll v1.0　最後更新：2026-07-06*

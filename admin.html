@@ -68,6 +68,17 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .tl-done-wrap summary::-webkit-details-marker{display:none}
 .tl-done-wrap summary{list-style:none}
 .tl-done-wrap[open] summary{margin-bottom:2px}
+.payroll-toggle-summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--navy);list-style:none;user-select:none;display:flex;align-items:center;gap:6px}
+.payroll-toggle-summary::-webkit-details-marker{display:none}
+.payroll-toggle-arrow{display:inline-block;transition:transform .15s}
+details:not([open]) .payroll-toggle-arrow{transform:rotate(-90deg)}
+.payroll-card-summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;user-select:none}
+.payroll-card-summary::-webkit-details-marker{display:none}
+.viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
+.viewer-box{background:#fff;border-radius:10px;width:100%;max-width:960px;height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.viewer-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--navy);color:#fff;font-size:13px}
+.viewer-hdr button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+.viewer-frame{flex:1;border:none;width:100%}
 .stat-num{font-family:'Noto Serif TC',serif;font-size:28px;font-weight:600;color:var(--navy)}
 .stat-lbl{font-size:11.5px;color:var(--ink3);margin-top:2px}
 
@@ -570,17 +581,23 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <label class="flabel" style="margin:0;white-space:nowrap">月份</label>
           <input type="month" id="pr-yearmonth" class="finput" style="width:160px" onchange="loadPayroll()">
           <button class="btn btn-sec" onclick="exportPayrollExcel()">📥 匯出本月報表</button>
+          <button class="btn btn-sec" onclick="togglePayrollCards(true)">⬇ 全部展開</button>
+          <button class="btn btn-sec" onclick="togglePayrollCards(false)">⬆ 全部收合</button>
         </div>
-        <div id="payroll-section-contracted" style="margin-bottom:24px">
-          <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:var(--navy)">一、聘任兼課教師</div>
-          <div id="payroll-list-contracted"></div>
-          <div id="payroll-total-contracted" style="text-align:right;font-size:13px;font-weight:600;margin-top:8px"></div>
-        </div>
-        <div id="payroll-section-general">
-          <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:var(--navy)">二、一般兼課教師</div>
-          <div id="payroll-list-general"></div>
-          <div id="payroll-total-general" style="text-align:right;font-size:13px;font-weight:600;margin-top:8px"></div>
-        </div>
+        <details id="payroll-section-contracted" open style="margin-bottom:24px">
+          <summary class="payroll-toggle-summary">
+            <span class="payroll-toggle-arrow">▾</span> 一、聘任兼課教師
+          </summary>
+          <div id="payroll-list-contracted" style="margin-top:8px"></div>
+        </details>
+        <div id="payroll-total-contracted" style="text-align:right;font-size:13px;font-weight:600;margin-top:4px;margin-bottom:24px"></div>
+        <details id="payroll-section-general" open>
+          <summary class="payroll-toggle-summary">
+            <span class="payroll-toggle-arrow">▾</span> 二、一般兼課教師
+          </summary>
+          <div id="payroll-list-general" style="margin-top:8px"></div>
+        </details>
+        <div id="payroll-total-general" style="text-align:right;font-size:13px;font-weight:600;margin-top:4px"></div>
       </div>
 
       <!-- ▌班級導師管理 ▌-->
@@ -5808,6 +5825,39 @@ async function filterAnnouncements() {
   await renderAnnouncements(list, now);
 }
 
+// 附件線上看（PDF瀏覽器原生顯示，PPT/Word/Excel用微軟線上檢視器嵌入）
+// 沿用畢業論文計畫發表會對外分享頁(presentation_view.html)已驗證可用的寫法
+// 強制用原始檔名下載（signed URL跟admin.html不同網域，<a download>屬性瀏覽器不一定遵守，改用blob方式保證檔名正確）
+async function downloadAnnAttachment(encodedUrl, filename) {
+  const url = decodeURIComponent(encodedUrl);
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch(e) { showToast('下載失敗：'+e.message,'error'); }
+}
+
+function openViewer(encodedUrl, ext, fileName) {
+  const url = decodeURIComponent(encodedUrl);
+  const isPdf = ext === 'pdf';
+  const src = isPdf ? url : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+  const overlay = document.createElement('div');
+  overlay.className = 'viewer-overlay';
+  overlay.innerHTML = `
+    <div class="viewer-box">
+      <div class="viewer-hdr">
+        <span>${fileName.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+        <button onclick="this.closest('.viewer-overlay').remove()">✕ 關閉</button>
+      </div>
+      <iframe src="${src}" class="viewer-frame"></iframe>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
 async function renderAnnouncements(list, now) {
   const el = document.getElementById('ann-list');
   if (!el) return;
@@ -5838,7 +5888,13 @@ async function renderAnnouncements(list, now) {
     const atts = attMap[a.id]||[];
     const attHtml = atts.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${atts.map(att=>{
       const url = signedUrls[att.id]||'#';
-      return `<a href="${url}" target="_blank" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:3px 10px;border-radius:20px;background:var(--cr3);color:var(--ink);text-decoration:none;border:1px solid var(--cr2)">${getIcon(att.mime_type||'')} ${att.filename}</a>`;
+      const ext = (att.filename.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+      const canPreview = ['pdf','ppt','pptx','doc','docx','xls','xlsx'].includes(ext);
+      const safeFn = att.filename.replace(/'/g,"\\'");
+      const downloadLink = `<a href="javascript:void(0)" onclick="downloadAnnAttachment('${encodeURIComponent(url)}','${safeFn}')" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:3px 10px;border-radius:20px;background:var(--cr3);color:var(--ink);text-decoration:none;border:1px solid var(--cr2)">${getIcon(att.mime_type||'')} ${att.filename}</a>`;
+      if (!canPreview) return downloadLink;
+      const viewBtn = `<a href="javascript:void(0)" onclick="openViewer('${encodeURIComponent(url)}','${ext}','${att.filename.replace(/'/g,"\\'")}')" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:3px 10px;border-radius:20px;background:var(--navy3);color:var(--navy);text-decoration:none;border:1px solid rgba(43,95,160,.2)">👁 線上看</a>`;
+      return viewBtn + downloadLink;
     }).join('')}</div>` : '';
     const bodyId = `ann-body-${a.id}`;
     return `<div style="background:#fff;border-radius:10px;border:1px solid var(--cr2);overflow:hidden;opacity:${expired?'.6':'1'}">
@@ -8970,43 +9026,53 @@ function renderPayrollLists() {
   document.getElementById('payroll-total-general').textContent = `總計　講師費 ${sumFee(general).toLocaleString()}　交通費 ${sumTransport(general).toLocaleString()}`;
 }
 
+// 全部展開/收合每一位老師的卡片（不影響「聘任/一般」這兩個大分類本身的開合狀態）
+function togglePayrollCards(expand) {
+  document.querySelectorAll('.payroll-teacher-card').forEach(d => { d.open = expand; });
+}
+
 function renderTeacherPayrollCard(t) {
   const { row, days } = _payrollMap[t.id];
   const rate = row.hourly_rate || rateForRank(t.adjunct_rank);
   return `
-  <div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:14px 16px;margin-bottom:10px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+  <details class="payroll-teacher-card" open style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:14px 16px;margin-bottom:10px">
+    <summary class="payroll-card-summary">
+      <span class="payroll-toggle-arrow">▾</span>
       <span style="font-weight:600;font-size:14px">${t.name_zh}</span>
       <span style="font-size:11px;background:var(--navy3);color:var(--navy);padding:2px 10px;border-radius:10px">${t.adjunct_rank||''}　${rate}元/時</span>
-      <button class="btn btn-sec btn-sm" onclick="addPayrollDay('${t.id}')">＋ 新增上課日</button>
-      <button class="btn btn-sec btn-sm" onclick="prefillFromSchedule('${t.id}')">📅 依課表帶入</button>
-      <button class="btn btn-sec btn-sm" onclick="prefillFromAttendance('${t.id}')">📋 從點名帶入</button>
       <span style="margin-left:auto;font-size:13px">時數合計：<b id="payroll-hours-${t.id}">${row.total_hours}</b> 小時</span>
-    </div>
-    <div id="payroll-days-${t.id}">${renderPayrollDays(t.id)}</div>
-    <div class="frow-2" style="margin-top:10px">
-      <div>
-        <label class="flabel" style="font-size:11px">講師費 <label style="font-size:10px;color:var(--ink3);font-weight:400"><input type="checkbox" ${row.lecture_fee_override?'checked':''} onchange="toggleFeeOverride('${t.id}',this.checked)"> 手動覆寫</label></label>
-        <input type="number" class="finput" style="padding:6px 10px" value="${row.lecture_fee}" ${row.lecture_fee_override?'':'disabled'}
-          onchange="updatePayrollField('${t.id}','lecture_fee',this.value,true)">
+    </summary>
+    <div style="margin-top:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn btn-sec btn-sm" onclick="addPayrollDay('${t.id}')">＋ 新增上課日</button>
+        <button class="btn btn-sec btn-sm" onclick="prefillFromSchedule('${t.id}')">📅 依課表帶入</button>
+        <button class="btn btn-sec btn-sm" onclick="prefillFromAttendance('${t.id}')">📋 從點名帶入</button>
       </div>
-      <div>
-        <label class="flabel" style="font-size:11px">交通費</label>
-        <input type="number" class="finput" style="padding:6px 10px" value="${row.transport_fee}"
-          onchange="updatePayrollField('${t.id}','transport_fee',this.value,true)">
+      <div id="payroll-days-${t.id}">${renderPayrollDays(t.id)}</div>
+      <div class="frow-2" style="margin-top:10px">
+        <div>
+          <label class="flabel" style="font-size:11px">講師費 <label style="font-size:10px;color:var(--ink3);font-weight:400"><input type="checkbox" ${row.lecture_fee_override?'checked':''} onchange="toggleFeeOverride('${t.id}',this.checked)"> 手動覆寫</label></label>
+          <input type="number" class="finput" style="padding:6px 10px" value="${row.lecture_fee}" ${row.lecture_fee_override?'':'disabled'}
+            onchange="updatePayrollField('${t.id}','lecture_fee',this.value,true)">
+        </div>
+        <div>
+          <label class="flabel" style="font-size:11px">交通費</label>
+          <input type="number" class="finput" style="padding:6px 10px" value="${row.transport_fee}"
+            onchange="updatePayrollField('${t.id}','transport_fee',this.value,true)">
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <label class="flabel" style="font-size:11px">交通費說明</label>
+        <input class="finput" style="padding:6px 10px;font-size:12.5px" value="${(row.transport_note||'').replace(/"/g,'&quot;')}"
+          onchange="updatePayrollField('${t.id}','transport_note',this.value)">
+      </div>
+      <div style="margin-top:8px">
+        <label class="flabel" style="font-size:11px">備註</label>
+        <input class="finput" style="padding:6px 10px;font-size:12.5px" value="${(row.notes||'').replace(/"/g,'&quot;')}"
+          onchange="updatePayrollField('${t.id}','notes',this.value)">
       </div>
     </div>
-    <div style="margin-top:8px">
-      <label class="flabel" style="font-size:11px">交通費說明</label>
-      <input class="finput" style="padding:6px 10px;font-size:12.5px" value="${(row.transport_note||'').replace(/"/g,'&quot;')}"
-        onchange="updatePayrollField('${t.id}','transport_note',this.value)">
-    </div>
-    <div style="margin-top:8px">
-      <label class="flabel" style="font-size:11px">備註</label>
-      <input class="finput" style="padding:6px 10px;font-size:12.5px" value="${(row.notes||'').replace(/"/g,'&quot;')}"
-        onchange="updatePayrollField('${t.id}','notes',this.value)">
-    </div>
-  </div>`;
+  </details>`;
 }
 
 function renderPayrollDays(teacherId) {
