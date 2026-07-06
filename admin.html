@@ -3224,11 +3224,11 @@ async function updateDashboard() {
     }, {i: 0, d: Infinity}).i;
   }
   const curSem = curIdx2 > -1 ? allSems[curIdx2] : null;
-  const prevSem = curIdx2 > 0 ? allSems[curIdx2 - 1] : null;
+  const nextSem = curIdx2 > -1 && curIdx2 < (allSems?.length||0) - 1 ? allSems[curIdx2 + 1] : null;
 
-  // 更新標籤和連結
-  const s1Label = prevSem?.label || '本學期';
-  const s2Label = curSem?.label  || '新學期';
+  // 更新標籤和連結（s1＝本學期＝curSem；s2＝新學期＝nextSem，之前這裡誤用prevSem/curSem，語意跟日期判斷後的變數對不起來）
+  const s1Label = curSem?.label  || '本學期';
+  const s2Label = nextSem?.label || '新學期';
   document.getElementById('d-s1-lbl')?.setAttribute && (document.getElementById('d-s1-lbl').textContent = s1Label+' ↗');
   document.getElementById('d-s2-lbl')?.setAttribute && (document.getElementById('d-s2-lbl').textContent = s2Label+' ↗');
   document.getElementById('d-s1-btn')?.setAttribute('onclick', `goToOfferings('${s1Label}')`);
@@ -3237,12 +3237,12 @@ async function updateDashboard() {
 
   // 查各學期開課數
   let c1=0, c2=0;
-  if (prevSem?.id) {
-    const {count} = await sb.from('v_course_schedule').select('offering_id',{count:'exact',head:true}).eq('semester_id',prevSem.id);
-    c1 = count||0;
-  }
   if (curSem?.id) {
     const {count} = await sb.from('v_course_schedule').select('offering_id',{count:'exact',head:true}).eq('semester_id',curSem.id);
+    c1 = count||0;
+  }
+  if (nextSem?.id) {
+    const {count} = await sb.from('v_course_schedule').select('offering_id',{count:'exact',head:true}).eq('semester_id',nextSem.id);
     c2 = count||0;
   }
   document.getElementById('d-s1').textContent = c1;
