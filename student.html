@@ -172,6 +172,17 @@ input{font-family:inherit}
 .btn-pri:hover{background:var(--navy2)}
 .att-del{border:none;background:transparent;color:var(--red);cursor:pointer;font-size:12.5px;padding:4px 8px}
 .att-del:hover{text-decoration:underline}
+.tl-section-label{font-size:11px;color:var(--ink3);font-weight:600;letter-spacing:.05em;margin:10px 0 6px;border-bottom:1px solid var(--cr2);padding-bottom:4px}
+.tl-section-label:first-child{margin-top:0}
+.tl-item{padding:4px 0;font-size:13px;line-height:1.5}
+.tl-done{color:var(--ink3)}
+.tl-done strong{color:var(--ink2);font-weight:500}
+.tl-now{background:var(--navy3);color:var(--navy);font-weight:600;padding:8px 10px;border-radius:6px;margin:2px 0}
+.tl-soon{color:#B05010}
+.tl-soon strong{color:var(--ink);font-weight:600}
+.tl-done-wrap summary::-webkit-details-marker{display:none}
+.tl-done-wrap summary{list-style:none}
+.tl-done-wrap[open] summary{margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -225,6 +236,12 @@ input{font-family:inherit}
 
       <!-- ── 公佈欄 ── -->
       <div id="sec-ann" class="t-section">
+        <div style="background:#fff;border-radius:var(--r);padding:16px;border:1px solid var(--cr2);font-size:13px;color:var(--ink3);margin-bottom:16px">
+          <div style="font-weight:500;color:var(--ink);margin-bottom:8px">⏰ 重要時程提醒</div>
+          <div id="s-timeline" style="display:flex;flex-direction:column;gap:5px">
+            <div style="color:var(--ink3)">載入中…</div>
+          </div>
+        </div>
         <div class="section-title" style="display:flex;align-items:center;gap:12px">
           📢 公佈欄
           <button onclick="collapseAllAnn()"
@@ -574,9 +591,18 @@ async function enterApp(user) {
   CURRENT_SEM_ID    = sem.id;
   CURRENT_SEM_LABEL = sem.label;
 
-  // 找本學期（is_current=true）
-  const { data:activeSem } = await sb.from('semesters')
-    .select('id, label').eq('is_current', true).maybeSingle();
+  // 找本學期（依日期判斷，不依賴 is_current——那個欄位只給admin排課範圍用，不保證跟今天日期同步）
+  const { data:allSemsForActive } = await sb.from('semesters')
+    .select('id,label,start_date,end_date').order('start_date');
+  const nowForActive = new Date();
+  let activeIdx = (allSemsForActive||[]).findIndex(s => new Date(s.start_date) <= nowForActive && nowForActive <= new Date(s.end_date + 'T23:59:59'));
+  if (activeIdx === -1 && allSemsForActive?.length) {
+    activeIdx = allSemsForActive.reduce((best, s, i) => {
+      const d = Math.abs(new Date(s.start_date) - nowForActive);
+      return d < best.d ? {i, d} : best;
+    }, {i: 0, d: Infinity}).i;
+  }
+  const activeSem = activeIdx > -1 ? allSemsForActive[activeIdx] : null;
   ACTIVE_SEM_ID    = activeSem?.id    || CURRENT_SEM_ID;
   ACTIVE_SEM_LABEL = activeSem?.label || CURRENT_SEM_LABEL;
 
@@ -616,7 +642,89 @@ async function enterApp(user) {
   await Promise.all([loadMyEnrollments(), loadAvailableCourses()]);
   loadPublicAnnouncements('student');
   checkAttendanceRecorderStatus();
+  loadStudentTimeline();
   showSection('ann');
+}
+
+/* ════ 時程提醒（過去/現在/未來三段式） ════ */
+async function loadStudentTimeline() {
+  const el = document.getElementById('s-timeline');
+  if (!el) return;
+  const HIDDEN_KEYS = ['grade_submit_deadline']; // 學生視角不需顯示的事件
+  const { data: sems } = await sb.from('semesters')
+    .select('id,label,start_date,end_date').order('start_date');
+  if (!sems?.length) { el.innerHTML = '<div style="color:var(--ink3)">無時程資料</div>'; return; }
+
+  const now = new Date();
+  let idx = sems.findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
+  if (idx === -1) {
+    idx = sems.reduce((best, s, i) => {
+      const d = Math.abs(new Date(s.start_date) - now);
+      return d < best.d ? {i, d} : best;
+    }, {i: 0, d: Infinity}).i;
+  }
+  const prev = sems[idx - 1] || null;
+  const cur  = sems[idx] || null;
+  const next = sems[idx + 1] || null;
+  const semIds = [prev, cur, next].filter(Boolean).map(s => s.id);
+
+  const { data: events } = await sb.from('semester_calendar_events')
+    .select('semester_id,event_key,event_label,start_at,end_at,is_system').in('semester_id', semIds);
+  const evBySem = {};
+  (events || []).forEach(e => {
+    if (HIDDEN_KEYS.includes(e.event_key)) return;
+    (evBySem[e.semester_id] ||= []).push(e);
+  });
+
+  const fmt   = d => d ? new Date(d).toLocaleDateString('zh-TW', {year:'numeric', month:'long', day:'numeric'}) : '—';
+  const fmtDT = d => d ? new Date(d).toLocaleString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}) : '—';
+  const daysLeft = d => Math.ceil((new Date(d) - now) / 86400000);
+
+  function semItems(sem) {
+    const items = [{ date: sem.start_date, label: `${sem.label} 學期開始`, useDT: false }];
+    (evBySem[sem.id] || []).forEach(e => {
+      const d = e.end_at || e.start_at;
+      if (!d) return;
+      const isRange = e.start_at && e.end_at && e.start_at !== e.end_at;
+      const label = isRange
+        ? `${sem.label} ${e.event_label}：${fmt(e.start_at)}－${fmt(e.end_at)}`
+        : `${sem.label} ${e.event_label}`;
+      // 系統截止事件（初選/加退選/停修/成績截止）顯示到分鐘，跟其他功能頁的鎖定訊息一致；範圍事件已把日期寫進 label，尾巴不再重複附加
+      items.push({ date: d, label, useDT: !isRange && !!e.is_system, skipDateSuffix: isRange });
+    });
+    return items;
+  }
+
+  const done = [], soon = [];
+  if (prev) done.push({ date: new Date(prev.end_date), label: `${prev.label} 學期結束`, useDT: false });
+  if (cur) semItems(cur).forEach(it => {
+    const d = new Date(it.date);
+    (d < now ? done : soon).push(it);
+  });
+  if (next) semItems(next).forEach(it => soon.push(it));
+  done.sort((a, b) => new Date(a.date) - new Date(b.date));
+  soon.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const renderLine = it => it.skipDateSuffix
+    ? it.label
+    : `${it.label}：<strong>${it.useDT ? fmtDT(it.date) : fmt(it.date)}</strong>`;
+
+  let html = '';
+  if (done.length) {
+    html += `<details class="tl-done-wrap">
+      <summary class="tl-section-label" style="cursor:pointer;user-select:none">── 已完成（${done.length}）── ▾</summary>
+      ${done.map(it => `<div class="tl-item tl-done">✅ ${renderLine(it)}</div>`).join('')}
+    </details>`;
+  }
+  if (cur) {
+    html += `<div class="tl-section-label">── 本學期進行中 ──</div>`;
+    html += `<div class="tl-item tl-now">📍 ${cur.label} 學期進行中（結束：${fmt(cur.end_date)}，還有${daysLeft(cur.end_date)}天）</div>`;
+  }
+  if (soon.length) {
+    html += `<div class="tl-section-label">── 即將到來 ──</div>`;
+    html += soon.map(it => `<div class="tl-item tl-soon">🔜 ${renderLine(it)}（還有${daysLeft(it.date)}天）</div>`).join('');
+  }
+  el.innerHTML = html || '<div style="color:var(--ink3)">無時程資料</div>';
 }
 
 // 檢查目前學生是不是任何一門課的「點名者」，是的話才顯示左側「課堂點名」入口
@@ -817,15 +925,23 @@ function renderTeacherRow(t, sessionId) {
 }
 
 async function saveTeacherAttendance(sessionId, teacherId, status) {
-  const { error } = await sb.from('teacher_attendance_records')
-    .upsert({ session_id: sessionId, teacher_id: teacherId, status, recorded_by: CURRENT_USER_ID, recorded_at: new Date().toISOString() },
-            { onConflict: 'session_id,teacher_id' });
-  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
-  ATT_TEACHER_RECORDS[teacherId] = status;
+  const isCancel = ATT_TEACHER_RECORDS[teacherId] === status;
+  if (isCancel) {
+    const { error } = await sb.from('teacher_attendance_records')
+      .delete().eq('session_id', sessionId).eq('teacher_id', teacherId);
+    if (error) { showToast('取消失敗：'+error.message, 'error'); return; }
+    delete ATT_TEACHER_RECORDS[teacherId];
+  } else {
+    const { error } = await sb.from('teacher_attendance_records')
+      .upsert({ session_id: sessionId, teacher_id: teacherId, status, recorded_by: CURRENT_USER_ID, recorded_at: new Date().toISOString() },
+              { onConflict: 'session_id,teacher_id' });
+    if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+    ATT_TEACHER_RECORDS[teacherId] = status;
+  }
   const t = ATT_CUR.teachers.find(x=>x.teacher_id===teacherId);
   const rowEl = document.getElementById('att-trow-'+teacherId);
   if (rowEl && t) rowEl.outerHTML = renderTeacherRow(t, sessionId);
-  showToast('已儲存：'+TEACHER_STATUS_LABEL[status]);
+  showToast(isCancel ? '已取消選擇' : '已儲存：'+TEACHER_STATUS_LABEL[status]);
 }
 
 function renderStudentRow(stu, sessionId) {
@@ -857,15 +973,23 @@ async function bulkSetAllPresent(sessionId) {
 }
 
 async function saveAttendance(sessionId, studentId, status) {
-  const { error } = await sb.from('attendance_records')
-    .upsert({ session_id: sessionId, student_id: studentId, status, recorded_by: CURRENT_USER_ID, recorded_at: new Date().toISOString() },
-            { onConflict: 'session_id,student_id' });
-  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
-  ATT_RECORDS[studentId] = status;
+  const isCancel = ATT_RECORDS[studentId] === status;
+  if (isCancel) {
+    const { error } = await sb.from('attendance_records')
+      .delete().eq('session_id', sessionId).eq('student_id', studentId);
+    if (error) { showToast('取消失敗：'+error.message, 'error'); return; }
+    delete ATT_RECORDS[studentId];
+  } else {
+    const { error } = await sb.from('attendance_records')
+      .upsert({ session_id: sessionId, student_id: studentId, status, recorded_by: CURRENT_USER_ID, recorded_at: new Date().toISOString() },
+              { onConflict: 'session_id,student_id' });
+    if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+    ATT_RECORDS[studentId] = status;
+  }
   const stu = ATT_STUDENTS.find(s=>s.id===studentId);
   const rowEl = document.getElementById('att-row-'+studentId);
   if (rowEl && stu) rowEl.outerHTML = renderStudentRow(stu, sessionId);
-  showToast('已儲存：'+ATT_STATUS_LABEL[status]);
+  showToast(isCancel ? '已取消選擇' : '已儲存：'+ATT_STATUS_LABEL[status]);
 }
 
 async function editMakeupNote(sessionId) {
@@ -1999,7 +2123,7 @@ async function loadPrintSheetView() {
   const locked = deadline && now < deadline;
 
   if (locked) {
-    const dt = ev.end_at.slice(0,16).replace('T',' ');
+    const dt = new Date(ev.end_at).toLocaleString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
     noticeEl.style.display = '';
     noticeEl.innerHTML = `🔒 加退選尚未截止（截止時間：${dt}），選課可能仍會變動，暫不開放列印。請於加退選截止後再回來列印選課單，以確保內容是最終版本。`;
     wrap.innerHTML = '';

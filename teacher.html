@@ -156,7 +156,17 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .tatt-table th{background:var(--navy3);color:var(--navy);font-weight:600;padding:6px 4px}
 .tatt-table td{padding:4px;border-top:1px solid var(--cr2)}
 .tatt-del{border:none;background:transparent;color:#C04030;cursor:pointer;font-size:12.5px;padding:2px 4px}
-.tatt-del:hover{text-decoration:underline}
+.tatt-del:hover{text-decoration:underline}.tl-section-label{font-size:11px;color:var(--ink3);font-weight:600;letter-spacing:.05em;margin:10px 0 6px;border-bottom:1px solid var(--cr2);padding-bottom:4px}
+.tl-section-label:first-child{margin-top:0}
+.tl-item{padding:4px 0;font-size:13px;line-height:1.5}
+.tl-done{color:var(--ink3)}
+.tl-done strong{color:var(--ink2);font-weight:500}
+.tl-now{background:var(--navy3);color:var(--navy);font-weight:600;padding:8px 10px;border-radius:6px;margin:2px 0}
+.tl-soon{color:#B05010}
+.tl-soon strong{color:var(--ink);font-weight:600}
+.tl-done-wrap summary::-webkit-details-marker{display:none}
+.tl-done-wrap summary{list-style:none}
+.tl-done-wrap[open] summary{margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -218,6 +228,12 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 
       <!-- ── 公佈欄 section ── -->
       <div id="sec-ann" class="t-section">
+        <div style="background:#fff;border-radius:var(--r);padding:16px;border:1px solid var(--cr2);font-size:13px;color:var(--ink3);margin-bottom:16px">
+          <div style="font-weight:500;color:var(--ink);margin-bottom:8px">⏰ 重要時程提醒</div>
+          <div id="t-timeline" style="display:flex;flex-direction:column;gap:5px">
+            <div style="color:var(--ink3)">載入中…</div>
+          </div>
+        </div>
         <div class="section-title" style="display:flex;align-items:center;gap:12px">
           📢 公佈欄
           <button onclick="collapseAllAnn()"
@@ -839,7 +855,104 @@ async function enterApp(user) {
   await Promise.all([loadMyCourses(), loadProfile(), loadAllCourses()]);
   loadPublicAnnouncements('teacher');
   loadGradesSection();
+  loadTeacherTimeline();
   showSection('ann');
+}
+
+/* ════ 共用：依日期判斷現在學期（不依賴 is_current，那個欄位只給admin排課範圍用） ════ */
+let _currentSemCache = null;
+async function getCurrentSemester() {
+  if (_currentSemCache) return _currentSemCache;
+  const { data: sems } = await sb.from('semesters')
+    .select('id,label,start_date,end_date').order('start_date');
+  if (!sems?.length) return null;
+  const now = new Date();
+  let idx = sems.findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
+  if (idx === -1) {
+    idx = sems.reduce((best, s, i) => {
+      const d = Math.abs(new Date(s.start_date) - now);
+      return d < best.d ? {i, d} : best;
+    }, {i: 0, d: Infinity}).i;
+  }
+  _currentSemCache = sems[idx];
+  return _currentSemCache;
+}
+
+/* ════ 時程提醒（過去/現在/未來三段式） ════ */
+async function loadTeacherTimeline() {
+  const el = document.getElementById('t-timeline');
+  if (!el) return;
+  const { data: sems } = await sb.from('semesters')
+    .select('id,label,start_date,end_date').order('start_date');
+  if (!sems?.length) { el.innerHTML = '<div style="color:var(--ink3)">無時程資料</div>'; return; }
+
+  const now = new Date();
+  let idx = sems.findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
+  if (idx === -1) {
+    idx = sems.reduce((best, s, i) => {
+      const d = Math.abs(new Date(s.start_date) - now);
+      return d < best.d ? {i, d} : best;
+    }, {i: 0, d: Infinity}).i;
+  }
+  const prev = sems[idx - 1] || null;
+  const cur  = sems[idx] || null;
+  const next = sems[idx + 1] || null;
+  const semIds = [prev, cur, next].filter(Boolean).map(s => s.id);
+
+  const { data: events } = await sb.from('semester_calendar_events')
+    .select('semester_id,event_key,event_label,start_at,end_at,is_system').in('semester_id', semIds);
+  const evBySem = {};
+  (events || []).forEach(e => { (evBySem[e.semester_id] ||= []).push(e); });
+
+  const fmt   = d => d ? new Date(d).toLocaleDateString('zh-TW', {year:'numeric', month:'long', day:'numeric'}) : '—';
+  const fmtDT = d => d ? new Date(d).toLocaleString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}) : '—';
+  const daysLeft = d => Math.ceil((new Date(d) - now) / 86400000);
+
+  function semItems(sem) {
+    const items = [{ date: sem.start_date, label: `${sem.label} 學期開始`, useDT: false }];
+    (evBySem[sem.id] || []).forEach(e => {
+      const d = e.end_at || e.start_at;
+      if (!d) return;
+      const isRange = e.start_at && e.end_at && e.start_at !== e.end_at;
+      const label = isRange
+        ? `${sem.label} ${e.event_label}：${fmt(e.start_at)}－${fmt(e.end_at)}`
+        : `${sem.label} ${e.event_label}`;
+      // 系統截止事件顯示到分鐘，跟其他功能頁的鎖定訊息一致；範圍事件已把日期寫進 label
+      items.push({ date: d, label, useDT: !isRange && !!e.is_system, skipDateSuffix: isRange });
+    });
+    return items;
+  }
+
+  const done = [], soon = [];
+  if (prev) done.push({ date: new Date(prev.end_date), label: `${prev.label} 學期結束`, useDT: false });
+  if (cur) semItems(cur).forEach(it => {
+    const d = new Date(it.date);
+    (d < now ? done : soon).push(it);
+  });
+  if (next) semItems(next).forEach(it => soon.push(it));
+  done.sort((a, b) => new Date(a.date) - new Date(b.date));
+  soon.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const renderLine = it => it.skipDateSuffix
+    ? it.label
+    : `${it.label}：<strong>${it.useDT ? fmtDT(it.date) : fmt(it.date)}</strong>`;
+
+  let html = '';
+  if (done.length) {
+    html += `<details class="tl-done-wrap">
+      <summary class="tl-section-label" style="cursor:pointer;user-select:none">── 已完成（${done.length}）── ▾</summary>
+      ${done.map(it => `<div class="tl-item tl-done">✅ ${renderLine(it)}</div>`).join('')}
+    </details>`;
+  }
+  if (cur) {
+    html += `<div class="tl-section-label">── 本學期進行中 ──</div>`;
+    html += `<div class="tl-item tl-now">📍 ${cur.label} 學期進行中（結束：${fmt(cur.end_date)}，還有${daysLeft(cur.end_date)}天）</div>`;
+  }
+  if (soon.length) {
+    html += `<div class="tl-section-label">── 即將到來 ──</div>`;
+    html += soon.map(it => `<div class="tl-item tl-soon">🔜 ${renderLine(it)}（還有${daysLeft(it.date)}天）</div>`).join('');
+  }
+  el.innerHTML = html || '<div style="color:var(--ink3)">無時程資料</div>';
 }
 
 async function signOut() {
@@ -965,8 +1078,8 @@ async function loadMyCourses() {
   const sel = document.getElementById('my-sem-filter');
   if (sel) {
     sel.innerHTML = '<option value="">全部學期</option>' + sems.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
-    const cur = MY_COURSES.find(c => c.is_current);
-    if (cur) sel.value = cur.semester_label;
+    const curSem = await getCurrentSemester();
+    if (curSem && sems.includes(curSem.label)) sel.value = curSem.label;
     else if (sems.length > 0) sel.value = sems[0];
   }
 
@@ -1159,8 +1272,8 @@ async function loadAllCourses() {
   const sems = [];
   ALL_COURSES.forEach(c => { if (c.semester_label && !sems.includes(c.semester_label)) sems.push(c.semester_label); });
   let defaultSem = '';
-  const cur = ALL_COURSES.find(c => c.is_current);
-  if (cur) defaultSem = cur.semester_label;
+  const curSem = await getCurrentSemester();
+  if (curSem && sems.includes(curSem.label)) defaultSem = curSem.label;
   else if (sems.length) defaultSem = sems[0];
 
   const sel = document.getElementById('all-sem-filter');
@@ -2590,15 +2703,16 @@ async function loadConductSection() {
   const wrap = document.getElementById('conduct-wrap');
   wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
 
-  const { data: sem } = await sb.from('semesters').select('id,label').eq('is_current', true).maybeSingle();
+  const sem = await getCurrentSemester();
   if (!sem) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">查無現在學期資料</div>'; return; }
 
   // 期程提示（同成績登錄的純參考模式）
   const { data: period } = await sb.from('grade_periods')
     .select('open_at, close_at, is_active').eq('semester_id', sem.id).eq('grade_type','conduct').maybeSingle();
   if (period) {
-    const openTxt  = period.open_at  ? period.open_at.slice(0,16).replace('T',' ')  : '未設定';
-    const closeTxt = period.close_at ? period.close_at.slice(0,16).replace('T',' ') : '未設定';
+    const fmtDT = d => d ? new Date(d).toLocaleString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}) : '未設定';
+    const openTxt  = fmtDT(period.open_at);
+    const closeTxt = fmtDT(period.close_at);
     hintEl.textContent = period.is_active
       ? `📌 操行成績登錄中（${openTxt} ～ ${closeTxt}）`
       : `📌 操行成績尚未開放登錄（行政尚未啟動）`;
@@ -2923,15 +3037,15 @@ function tattLocalYMD(y, m, d) { return `${y}-${String(m).padStart(2,'0')}-${Str
 function tattNextMonthStr(y, m) { let ny=y, nm=m+1; if (nm>12) { nm=1; ny++; } return tattLocalYMD(ny, nm, 1); }
 function tattTodayYM() { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`; }
 
-function loadTAttOfferings() {
+async function loadTAttOfferings() {
   const sel = document.getElementById('tatt-offering-sel');
   const monthInput = document.getElementById('tatt-month');
   if (!monthInput.value) monthInput.value = tattTodayYM();
 
   // 直接沿用已經載入的 MY_COURSES（loadMyCourses 已經抓過這位老師教的所有開課記錄）
   const all = (MY_COURSES||[]).slice();
-  const curOffering = all.find(o=>o.is_current);
-  const curLabel = curOffering ? curOffering.semester_label : null;
+  const curSem = await getCurrentSemester();
+  const curLabel = curSem ? curSem.label : null;
   const showPast = document.getElementById('tatt-show-past').checked;
 
   TATT_OFFERINGS = all.filter(o => {
@@ -2953,7 +3067,7 @@ function loadTAttOfferings() {
     `<option value="${o.offering_id}">[${o.semester_label}] ${o.name_zh}（${TATT_DAY_MAP[o.day]||''} ${(o.start_time||'').slice(0,5)}-${(o.end_time||'').slice(0,5)}）</option>`
   ).join('');
   // 預設選目前學期的課
-  const cur = TATT_OFFERINGS.find(o=>o.is_current) || TATT_OFFERINGS[0];
+  const cur = TATT_OFFERINGS.find(o=>o.semester_label===curLabel) || TATT_OFFERINGS[0];
   sel.value = cur.offering_id;
   onTAttOfferingChange();
 }
