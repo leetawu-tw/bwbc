@@ -351,6 +351,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="surveys" onclick="showPage('survey',this)"><span class="nav-icon">📋</span>教學意見調查</div>
         <div class="nav-item" data-perm="scholarship" onclick="showPage('scholarship',this)"><span class="nav-icon">🏆</span>獎學金推薦</div>
         <div class="nav-item" data-perm="grades" onclick="showPage('grades',this)"><span class="nav-icon">📊</span>成績登錄</div>
+        <div class="nav-item" data-perm="grades" onclick="showPage('grade-summary',this)"><span class="nav-icon">🏆</span>成績彙總</div>
         <div class="nav-item" data-perm="grades" onclick="showPage('conduct',this)"><span class="nav-icon">🧭</span>操行成績管理</div>
       </div>
       <div class="nav-section">
@@ -935,6 +936,27 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             </table>
           </div>
         </div>
+      </div>
+
+      <!-- ▌成績彙總 ▌-->
+      <div id="page-grade-summary" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">🏆 成績彙總</div>
+        </div>
+        <div class="toolbar" style="margin-bottom:14px">
+          <label class="flabel" style="margin:0;white-space:nowrap">年級</label>
+          <select id="gsum-cohort" class="fselect" style="width:120px" onchange="loadGradeSummaryTable()"></select>
+          <label class="flabel" style="margin:0;white-space:nowrap">學期範圍</label>
+          <select id="gsum-sem-range" class="fselect" style="width:180px" onchange="loadGradeSummaryTable()">
+            <option value="all">累計至今（全部學期）</option>
+          </select>
+          <button class="btn btn-sec" onclick="exportGradeSummaryExcel()">📥 匯出Excel</button>
+          <button class="btn btn-sec" onclick="downloadAllTranscriptsPDF()">📦 產出全部成績單PDF</button>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">
+          只計算已由老師「確認送出」的學科成績（不含草稿），排除停修/休學的課程。加權平均＝Σ(分數×該課學分)÷Σ學分。論文學分不計入此彙總。
+        </div>
+        <div id="gsum-summary-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">請選擇年級</div></div>
       </div>
 
       <!-- ▌操行成績管理 ▌-->
@@ -8838,6 +8860,7 @@ function showPage(page, btn) {
   if (page==='survey') loadSurveyAdmin();
   if (page==='scholarship') renderScholarshipHome();
   if (page==='grades') loadGradesAdmin();
+  if (page==='grade-summary') loadGradeSummary();
   if (page==='conduct') loadConductAdmin();
   if (page==='meetings') { loadMeetings(); window.scrollTo(0,0); }
   if (page==='semester-schedule'||page==='teacher-schedule'||page==='room-schedule') {
@@ -10770,6 +10793,7 @@ const PERM_LABELS = {
   semesters:     '📆 學期管理',
   surveys:       '📊 意見調查',
   grades:        '📊 成績登錄',
+  'grade-summary': '🏆 成績彙總',
   logs:          '📜 操作記錄',
 };
 
@@ -13785,6 +13809,317 @@ function switchGradeTab(tab, btn) {
   document.querySelectorAll('#page-grades .btn').forEach(b => { b.classList.remove('btn-pri'); b.classList.add('btn-sec'); });
   document.getElementById('gpanel-' + tab).style.display = '';
   btn.classList.remove('btn-sec'); btn.classList.add('btn-pri');
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 🏆 成績彙總（依年級加權平均排名，不驅動任何其他模組，純統計顯示）
+ * ════════════════════════════════════════════════════════════════════ */
+let _gsumStudents = [];
+let _gsumRows = [];      // 計算完成的彙總結果（含rank），供匯出使用
+
+async function loadGradeSummary() {
+  // 年級下拉：從students表抓所有不重複的cohort
+  const { data: students } = await sb.from('students').select('cohort').not('cohort','is',null);
+  const cohorts = [...new Set((students||[]).map(s=>s.cohort))].sort((a,b)=>b-a);
+  const cohortSel = document.getElementById('gsum-cohort');
+  cohortSel.innerHTML = cohorts.map(c=>`<option value="${c}">${c}級</option>`).join('');
+
+  // 學期範圍下拉：全部學期 + 累計選項
+  const { data: sems } = await sb.from('semesters').select('id,label').order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
+  const semSel = document.getElementById('gsum-sem-range');
+  semSel.innerHTML = '<option value="all">累計至今（全部學期）</option>' +
+    (sems||[]).map(s=>`<option value="${s.id}">僅 ${s.label}</option>`).join('');
+
+  if (cohorts.length) loadGradeSummaryTable();
+}
+
+async function loadGradeSummaryTable() {
+  const wrap = document.getElementById('gsum-summary-wrap');
+  const cohort = document.getElementById('gsum-cohort').value;
+  const semRange = document.getElementById('gsum-sem-range').value;
+  if (!cohort) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">請選擇年級</div>'; return; }
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">計算中…</div>';
+
+  try {
+    // 1) 該年級所有學生
+    const { data: students } = await sb.from('students')
+      .select('id,student_code,name_zh').eq('cohort', parseInt(cohort)).order('student_code');
+    _gsumStudents = students || [];
+    if (!_gsumStudents.length) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">此年級查無學生</div>'; return; }
+    const studentIds = _gsumStudents.map(s=>s.id);
+
+    // 2) 這些學生「已送出、未停修/休學、有分數」的學科成績
+    const { data: entries } = await sb.from('grade_entries')
+      .select('student_id, offering_id, score, grade_label')
+      .eq('grade_type','academic').eq('status','submitted')
+      .eq('is_withdrawn', false).eq('is_suspended', false)
+      .not('score','is',null)
+      .in('student_id', studentIds);
+
+    // 3) 這些成績涉及的開課記錄 → 課程(學分) + 學期
+    const offeringIds = [...new Set((entries||[]).map(e=>e.offering_id))];
+    let offMap = {};
+    if (offeringIds.length) {
+      const { data: offs } = await sb.from('course_offerings').select('id,course_id,semester_id').in('id', offeringIds);
+      const courseIds = [...new Set((offs||[]).map(o=>o.course_id))];
+      const { data: courses } = await sb.from('courses').select('id,name_zh,code,credits,req_type').in('id', courseIds);
+      const cMap = {}; (courses||[]).forEach(c=>cMap[c.id]=c);
+      (offs||[]).forEach(o => { offMap[o.id] = { ...o, course: cMap[o.course_id] }; });
+    }
+
+    // 4) 依學期範圍篩選
+    const filtered = (entries||[]).filter(e => {
+      const off = offMap[e.offering_id];
+      if (!off) return false;
+      if (semRange !== 'all' && off.semester_id !== semRange) return false;
+      return true;
+    });
+
+    // 5) 依學生分組，算加權平均
+    const byStudent = {};
+    filtered.forEach(e => {
+      const off = offMap[e.offering_id];
+      const credits = off?.course?.credits || 0;
+      if (credits <= 0) return; // 沒有學分的課不計入加權（理論上不該發生，防呆）
+      (byStudent[e.student_id] ||= { totalScoreCredits:0, totalCredits:0, pass:0, fail:0, courses:[] });
+      const b = byStudent[e.student_id];
+      b.totalScoreCredits += e.score * credits;
+      b.totalCredits += credits;
+      if (e.score >= 60) b.pass++; else b.fail++;
+      b.courses.push({ name: off.course?.name_zh||'', code: off.course?.code||'', reqType: off.course?.req_type||'', credits, score: e.score, grade_label: e.grade_label });
+    });
+
+    const rows = _gsumStudents.map(s => {
+      const b = byStudent[s.id];
+      const avg = b && b.totalCredits > 0 ? (b.totalScoreCredits / b.totalCredits) : null;
+      const courses = (b?.courses || []).slice().sort((a,c) => (a.code||'').localeCompare(c.code||''));
+      return {
+        student: s,
+        avg: avg!=null ? Math.round((avg + Number.EPSILON) * 100) / 100 : null,
+        totalCredits: b?.totalCredits || 0,
+        pass: b?.pass || 0, fail: b?.fail || 0,
+        courses
+      };
+    });
+
+    // 有成績的排前面、依平均降冪；沒有任何成績的排最後、不參與排名
+    const withGrades = rows.filter(r => r.avg != null).sort((a,b) => b.avg - a.avg);
+    const withoutGrades = rows.filter(r => r.avg == null);
+    withGrades.forEach((r,i) => r.rank = i+1);
+    _gsumRows = [...withGrades, ...withoutGrades];
+
+    renderGradeSummaryTable();
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px;font-size:13px">計算失敗：${e.message}</div>`;
+  }
+}
+
+function renderGradeSummaryTable() {
+  const wrap = document.getElementById('gsum-summary-wrap');
+  const medal = r => r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank;
+  let html = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)">
+    <thead><tr style="background:var(--navy);color:#fff">
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px">排名</th>
+      <th style="padding:10px 14px;text-align:left;font-size:12.5px">學號</th>
+      <th style="padding:10px 14px;text-align:left;font-size:12.5px">姓名</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px">已修學分</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px">加權平均</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px">及格/不及格</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px">成績單</th>
+    </tr></thead><tbody>`;
+  _gsumRows.forEach((r,i) => {
+    const top3 = r.rank && r.rank<=3;
+    html += `<tr style="border-top:1px solid var(--cr2);${top3?'background:var(--navy3)':''}">
+      <td style="padding:8px 14px;text-align:center;font-size:${top3?'16px':'13px'}">${r.rank ? medal(r) : '—'}</td>
+      <td style="padding:8px 14px;font-size:13px">${r.student.student_code||''}</td>
+      <td style="padding:8px 14px;font-size:13px;font-weight:${top3?600:400}">${r.student.name_zh||''}</td>
+      <td style="padding:8px 14px;text-align:center;font-size:13px">${r.totalCredits}</td>
+      <td style="padding:8px 14px;text-align:center;font-size:13px;font-weight:600">${r.avg!=null?r.avg:'尚無成績'}</td>
+      <td style="padding:8px 14px;text-align:center;font-size:13px">${r.avg!=null?`${r.pass} / ${r.fail}`:'—'}</td>
+      <td style="padding:8px 14px;text-align:center"><button class="btn btn-sec btn-sm" onclick="viewStudentTranscript(${i})">📄 查看</button> <button class="btn btn-sec btn-sm" onclick="downloadStudentTranscriptPDF(${i})">⬇ PDF</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+async function ensurePdfLibs() {
+  if (typeof html2canvas === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  if (typeof window.jspdf === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+}
+
+function buildTranscriptHTML(r, semLabel) {
+  const rows = r.courses.map(c => `
+    <tr>
+      <td style="padding:8px 10px;border:1px solid #ccc;font-family:monospace;white-space:nowrap">${c.code}</td>
+      <td style="padding:8px 10px;border:1px solid #ccc;word-break:break-all;white-space:normal">${c.name}</td>
+      <td style="padding:8px 10px;border:1px solid #ccc;text-align:center;white-space:nowrap">${REQ_ZH[c.reqType]||''}</td>
+      <td style="padding:8px 10px;border:1px solid #ccc;text-align:center;white-space:nowrap">${c.credits}</td>
+      <td style="padding:8px 10px;border:1px solid #ccc;text-align:center;font-weight:600;white-space:nowrap">${c.grade_label || c.score}</td>
+    </tr>`).join('');
+  return `
+  <div style="width:750px;padding:36px 40px;font-family:'Noto Sans TC',sans-serif;background:#fff;color:#1A1510;box-sizing:border-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1B3A6B;padding-bottom:14px;margin-bottom:18px">
+      <div>
+        <div style="font-size:20px;font-weight:700;color:#1B3A6B">福智佛教學院</div>
+        <div style="font-size:14px;color:#3A3020;margin-top:2px">${semLabel} 學期成績單</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#999;white-space:nowrap">列印日期：${new Date().toLocaleDateString('zh-TW')}</div>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:13px;table-layout:fixed">
+      <tr>
+        <td style="padding:4px 8px;width:20%;color:#666">學號</td><td style="padding:4px 8px;width:30%;font-weight:700">${r.student.student_code||''}</td>
+        <td style="padding:4px 8px;width:20%;color:#666">姓名</td><td style="padding:4px 8px;width:30%;font-weight:700">${r.student.name_zh||''}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 8px;color:#666">已修學分</td><td style="padding:4px 8px;font-weight:700">${r.totalCredits}</td>
+        <td style="padding:4px 8px;color:#666">加權平均</td><td style="padding:4px 8px;font-weight:700">${r.avg!=null?r.avg:'尚無成績'}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 8px;color:#666">及格科數</td><td style="padding:4px 8px;font-weight:700">${r.pass}</td>
+        <td style="padding:4px 8px;color:#666">不及格科數</td><td style="padding:4px 8px;font-weight:700">${r.fail}</td>
+      </tr>
+    </table>
+
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
+      <colgroup>
+        <col style="width:82px"><col><col style="width:56px"><col style="width:46px"><col style="width:56px">
+      </colgroup>
+      <thead><tr style="background:#1B3A6B;color:#fff">
+        <th style="padding:8px 10px;border:1px solid #1B3A6B;text-align:left">課程編號</th>
+        <th style="padding:8px 10px;border:1px solid #1B3A6B;text-align:left">課程名稱</th>
+        <th style="padding:8px 10px;border:1px solid #1B3A6B">選修別</th>
+        <th style="padding:8px 10px;border:1px solid #1B3A6B">學分</th>
+        <th style="padding:8px 10px;border:1px solid #1B3A6B">成績</th>
+      </tr></thead>
+      <tbody>${rows || `<tr><td colspan="5" style="padding:16px;text-align:center;border:1px solid #ccc;color:#888">查無成績記錄</td></tr>`}</tbody>
+    </table>
+  </div>`;
+}
+
+async function renderTranscriptPdfBlob(r, semLabel) {
+  // 用position:absolute + opacity:0（不是丟到-9999px外）避免部分瀏覽器離視窗過遠時裁切渲染範圍
+  const container = document.createElement('div');
+  container.style.cssText = 'position:absolute;top:0;left:0;opacity:0;pointer-events:none;z-index:-1';
+  container.innerHTML = buildTranscriptHTML(r, semLabel);
+  document.body.appendChild(container);
+  try {
+    const target = container.firstElementChild;
+    const canvas = await html2canvas(target, { scale: 2, width: target.offsetWidth, windowWidth: target.offsetWidth });
+    const { jsPDF } = window.jspdf;
+    // A4直式（210×297mm），把圖片等比例縮放置中塞進頁面留白邊界
+    const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
+    const pageW = 210, pageH = 297, margin = 12;
+    const maxW = pageW - margin*2, maxH = pageH - margin*2;
+    const imgRatio = canvas.width / canvas.height;
+    let w = maxW, h = w / imgRatio;
+    if (h > maxH) { h = maxH; w = h * imgRatio; }
+    const x = (pageW - w) / 2, y = margin;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, w, h);
+    return pdf.output('blob');
+  } finally {
+    container.remove();
+  }
+}
+
+function currentGsumSemLabel() {
+  return document.getElementById('gsum-sem-range').selectedOptions[0]?.textContent
+    .replace('僅 ','').replace('累計至今（全部學期）','累計至今') || '';
+}
+
+async function downloadStudentTranscriptPDF(idx) {
+  const r = _gsumRows[idx];
+  showToast('📄 產生PDF中…');
+  await ensurePdfLibs();
+  const semLabel = currentGsumSemLabel();
+  const blob = await renderTranscriptPdfBlob(r, semLabel);
+  const fileName = `${semLabel} 成績單-${r.student.student_code}-${r.student.name_zh}.pdf`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  showToast('✅ 已下載');
+}
+
+async function downloadAllTranscriptsPDF() {
+  const withGrades = _gsumRows.filter(r => r.courses.length);
+  if (!withGrades.length) { showToast('目前沒有可產出成績單的學生','error'); return; }
+  showToast(`📦 產生中，共 ${withGrades.length} 位，請稍候…`);
+  await ensurePdfLibs();
+  const semLabel = currentGsumSemLabel();
+  try {
+    const zip = new JSZip();
+    for (const r of withGrades) {
+      const blob = await renderTranscriptPdfBlob(r, semLabel);
+      zip.file(`${semLabel} 成績單-${r.student.student_code}-${r.student.name_zh}.pdf`, blob);
+    }
+    const content = await zip.generateAsync({ type: 'blob' });
+    const cohort = document.getElementById('gsum-cohort').value;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content); a.download = `${cohort}級_${semLabel}_全體成績單.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    showToast('✅ 全部完成，已下載ZIP');
+  } catch (e) {
+    showToast('產生失敗：'+e.message, 'error');
+  }
+}
+
+function viewStudentTranscript(idx) {
+  const r = _gsumRows[idx];
+  let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--ink3)">學號：${r.student.student_code||''}　加權平均：<b style="color:var(--ink)">${r.avg!=null?r.avg:'尚無成績'}</b>　已修學分：${r.totalCredits}　及格${r.pass}科／不及格${r.fail}科</div>`;
+  if (!r.courses.length) {
+    html += '<div style="color:var(--ink3);font-size:13px;padding:12px 0">目前範圍內查無已送出的成績</div>';
+  } else {
+    html += `<table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
+      <colgroup><col style="width:90px"><col><col style="width:60px"><col style="width:50px"><col style="width:60px"></colgroup>
+      <thead><tr style="background:var(--cr3)"><th style="padding:6px 8px;text-align:left">課程編號</th><th style="padding:6px 8px;text-align:left">課程名稱</th><th style="padding:6px 8px;text-align:center">選修別</th><th style="padding:6px 8px;text-align:center">學分</th><th style="padding:6px 8px;text-align:center">成績</th></tr></thead><tbody>`;
+    r.courses.forEach(c => {
+      html += `<tr style="border-top:1px solid var(--cr2)">
+        <td style="padding:6px 8px;font-family:monospace;white-space:nowrap">${c.code}</td>
+        <td style="padding:6px 8px;word-break:break-all">${c.name}</td>
+        <td style="padding:6px 8px;text-align:center;white-space:nowrap">${REQ_ZH[c.reqType]||''}</td>
+        <td style="padding:6px 8px;text-align:center;white-space:nowrap">${c.credits}</td>
+        <td style="padding:6px 8px;text-align:center;font-weight:600;white-space:nowrap">${c.grade_label || c.score}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  html += `<div style="margin-top:14px;text-align:right"><button class="btn btn-pri btn-sm" onclick="downloadStudentTranscriptPDF(${idx})">📄 下載PDF</button></div>`;
+  openThModal(`${r.student.name_zh} 成績單`, html);
+}
+
+async function exportGradeSummaryExcel() {
+  if (!_gsumRows.length) { showToast('目前沒有可匯出的資料','error'); return; }
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const cohort = document.getElementById('gsum-cohort').value;
+  const semLabel = document.getElementById('gsum-sem-range').selectedOptions[0]?.textContent || '';
+  const header = ['排名','學號','姓名','已修學分','加權平均','及格科數','不及格科數'];
+  const rows = _gsumRows.map(r => [r.rank||'', r.student.student_code||'', r.student.name_zh||'', r.totalCredits, r.avg!=null?r.avg:'尚無成績', r.pass, r.fail]);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([[`${cohort}級 成績彙總（${semLabel}）`], header, ...rows]);
+  XLSX.utils.book_append_sheet(wb, ws, '成績彙總');
+  XLSX.writeFile(wb, `${cohort}級_成績彙總.xlsx`);
 }
 
 async function loadGradesAdmin() {
