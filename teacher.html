@@ -552,6 +552,18 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
   </div>
 </div>
 
+<div class="modal-bg" id="roster-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="roster-modal-title">選課學生名單</div>
+      <button class="modal-close" onclick="closeRosterModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="roster-modal-body" style="padding:4px 0"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="syl-modal">
   <div class="modal">
     <div class="modal-hdr">
@@ -1119,6 +1131,47 @@ function filterMyCourses() {
   renderMyCourseTable(filtered, MY_COURSES._sylMap || {});
 }
 
+async function viewCourseRoster(offeringId, courseName) {
+  document.getElementById('roster-modal-title').textContent = `${courseName} — 選課學生名單`;
+  const body = document.getElementById('roster-modal-body');
+  body.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  document.getElementById('roster-modal').classList.add('open');
+
+  const { data: enrolls, error } = await sb.from('enrollments')
+    .select('status, students(student_code, name_zh)')
+    .eq('offering_id', offeringId)
+    .in('status', ['confirmed', 'withdrawn'])
+    .order('students(student_code)');
+
+  if (error) { body.innerHTML = `<div style="color:var(--red);font-size:13px">載入失敗：${error.message}</div>`; return; }
+  if (!enrolls?.length) { body.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">目前尚無選課學生</div>'; return; }
+
+  const confirmed = enrolls.filter(e => e.status === 'confirmed');
+  const withdrawn = enrolls.filter(e => e.status === 'withdrawn');
+
+  let html = `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">共 ${confirmed.length} 位選課中${withdrawn.length ? `，另有 ${withdrawn.length} 位已停修` : ''}</div>`;
+  html += '<div style="display:flex;flex-direction:column;gap:4px">';
+  confirmed.forEach(e => {
+    html += `<div style="display:flex;gap:10px;padding:5px 8px;background:var(--cr3);border-radius:6px;font-size:13px">
+      <span style="color:var(--ink3);font-family:monospace">${e.students?.student_code||''}</span>
+      <span>${e.students?.name_zh||''}</span>
+    </div>`;
+  });
+  if (withdrawn.length) {
+    html += '<div style="font-size:11px;color:var(--ink3);margin-top:8px;margin-bottom:2px">已停修</div>';
+    withdrawn.forEach(e => {
+      html += `<div style="display:flex;gap:10px;padding:5px 8px;background:#FFF3E0;border-radius:6px;font-size:13px;color:#B05010">
+        <span style="font-family:monospace">${e.students?.student_code||''}</span>
+        <span>${e.students?.name_zh||''}</span>
+        <span style="margin-left:auto;font-size:11px">停修</span>
+      </div>`;
+    });
+  }
+  html += '</div>';
+  body.innerHTML = html;
+}
+function closeRosterModal() { document.getElementById('roster-modal').classList.remove('open'); }
+
 function renderMyCourseCards(courses, sylMap) {
   const grid = document.getElementById('my-courses-grid');
   if (!courses.length) { grid.innerHTML = '<div style="color:var(--ink3);padding:20px">此學期無開課記錄</div>'; return; }
@@ -1140,6 +1193,7 @@ function renderMyCourseCards(courses, sylMap) {
       '<div class="cc-info"><span>⏰ '+(c.time_raw||'待確認')+'</span><span>🏛 '+(c.classroom_name||'待確認')+'</span></div>' +
       '</div><div class="cc-bot">' +
       '<span class="cc-cred">'+c.credits+' 學分 <span style="font-size:11px;color:var(--ink3)">'+(REQ_ZH[c.req_type]||'')+'</span></span>' +
+      '<button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="margin-right:6px">👥 學生名單</button>' +
       '<button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')">'+btnText+'</button>' +
       '</div></div>';
   }).join('');
@@ -1163,7 +1217,7 @@ function renderMyCourseTable(courses, sylMap) {
       '<td style="font-size:12px">'+(c.teachers_str||'—')+'</td>' +
       '<td style="font-size:12px">'+(c.time_raw||'待確認')+'</td>' +
       '<td style="font-size:12px">'+(c.classroom_name||'待確認')+'</td>' +
-      '<td style="text-align:center"><button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="padding:3px 10px;font-size:11.5px">'+btnText+'</button></td>' +
+      '<td style="text-align:center"><button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="padding:3px 10px;font-size:11.5px;margin-right:4px">👥</button><button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="padding:3px 10px;font-size:11.5px">'+btnText+'</button></td>' +
     '</tr>';
   }).join('');
 }
@@ -2489,6 +2543,11 @@ async function submitGrades() {
     submitBtn.textContent = '✅ 確認送出';
     return;
   }
+
+  // 注意：final_grade 同步到 enrollments 的動作，目前刻意不放在這裡。
+  // 因為老師「送出(submitted)」只代表回傳給管理者，還沒經過管理者複核確認(confirmed)，
+  // 學生不應該在複核前就看到成績。等「管理者確認公佈」機制設計定案後，
+  // 同步動作要改成掛在該動作上，不是掛在這個送出函式裡。
 
   // 立即鎖定 UI，不等重新載入
   _gradeSubmitted = true;
