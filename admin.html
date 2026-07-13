@@ -3848,10 +3848,11 @@ async function loadSurveyAdmin() {
           ${s.status==='draft' ? `<button class="btn" onclick="genSurveyTokens('${s.id}')">🎫 產生填答連結</button>` : ''}
           ${s.status==='draft' && tokenCount>0 ? `<button class="btn btn-pri" onclick="setSurveyStatus('${s.id}','open')">▶ 開放調查</button>` : ''}
           ${s.status==='open' ? `<button class="btn" onclick="setSurveyStatus('${s.id}','closed')" style="background:#FFF3E0;color:#B05010">⏹ 截止調查</button>` : ''}
+          ${s.status==='closed' ? `<button class="btn" onclick="reopenSurvey('${s.id}','${s.end_at}')" style="background:#EAF4EE;color:#1F5C3A">🔓 重新開放</button>` : ''}
           ${s.status==='open' ? `<button class="btn" onclick="viewSurveyLinks('${s.id}')">🔗 查看連結</button>` : ''}
           ${(s.status==='open'||s.status==='closed') ? `<button class="btn" onclick="viewSurveyIncomplete('${s.id}')">📋 未填名單－依學科</button>` : ''}
           ${(s.status==='open'||s.status==='closed') ? `<button class="btn" onclick="viewSurveyIncompleteByStudent('${s.id}')">📋 未填名單－依學生</button>` : ''}
-          ${isClosed ? `<button class="btn btn-pri" onclick="viewSurveyStats('${s.id}')">📊 統計結果</button>` : ''}
+          ${(s.status==='open'||s.status==='closed') ? `<button class="btn btn-pri" onclick="viewSurveyStats('${s.id}')">📊 統計結果</button>` : ''}
           <button class="btn" onclick="editSurveyModal('${s.id}')">✏️ 編輯</button>
           ${s.status==='draft' ? `<button class="btn" onclick="deleteSurvey('${s.id}','${s.title.replace(/'/g,'')}')" style="background:#FEE;color:var(--red)">🗑 刪除</button>` : ''}
         </div>
@@ -4052,6 +4053,35 @@ async function genSurveyTokens(surveyId) {
     showToast(`✅ 已產生 ${rows.length} 份填答連結`);
     loadSurveyAdmin();
   } catch(e) { showToast('產生失敗：'+e.message,'error'); console.warn(e); }
+}
+
+async function reopenSurvey(surveyId, oldEndAt) {
+  // 預設新截止時間：從現在起再往後推7天，admin可自行調整
+  const defaultNew = new Date(Date.now() + 7*24*60*60*1000);
+  const defaultStr = defaultNew.toISOString().slice(0,16);
+  const oldStr = oldEndAt ? new Date(oldEndAt).toLocaleString('zh-TW') : '—';
+  const html = `
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:12px">原本截止時間：${oldStr}<br>重新開放後，狀態會變回「開放中」，並套用下面設定的新截止時間。</div>
+    <label class="flabel">新截止時間</label>
+    <input type="datetime-local" id="reopen-new-end" class="finput" value="${defaultStr}">
+    <div style="margin-top:16px;text-align:right">
+      <button class="btn btn-pri" onclick="confirmReopenSurvey('${surveyId}')">🔓 確認重新開放</button>
+    </div>`;
+  openThModal('重新開放調查', html);
+}
+
+async function confirmReopenSurvey(surveyId) {
+  const newEndVal = document.getElementById('reopen-new-end').value;
+  if (!newEndVal) { showToast('請選擇新截止時間','error'); return; }
+  const newEnd = new Date(newEndVal);
+  if (newEnd <= new Date()) { showToast('新截止時間必須晚於現在','error'); return; }
+  try {
+    const { error } = await sb.from('surveys').update({ status:'open', end_at: newEnd.toISOString() }).eq('id', surveyId);
+    if (error) { showToast('操作失敗：'+error.message,'error'); return; }
+    closeThModal();
+    showToast('✅ 已重新開放，新截止時間：'+newEnd.toLocaleString('zh-TW'));
+    loadSurveyAdmin();
+  } catch(e) { showToast('操作失敗：'+e.message,'error'); }
 }
 
 async function setSurveyStatus(surveyId, status) {
@@ -14087,7 +14117,7 @@ function applyTranscriptColWidths(ws) {
     { wch: 12 }, // 課程編號
     { wch: 32 }, // 課程名稱
     { wch: 8 },  // 選修別
-    { wch: 7 },  // 學分
+    { wch: 12 }, // 學分（此欄在header列同時要放8位數學號，所以加寬）
     { wch: 8 },  // 分數
     { wch: 8 },  // 等第
   ];
