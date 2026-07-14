@@ -2309,6 +2309,9 @@ let ETHICS_UPLOADS = {};   // item_id -> [upload rows]
 let ETHICS_REVIEW_TYPE = null;  // 'general' | 'simple' | 'exempt'
 const ETHICS_TYPE_LABEL = { general:'一般審查', simple:'簡易審查', exempt:'免除審查' };
 const ETHICS_TYPE_SHORT = { general:'一般', simple:'簡易', exempt:'免除' };
+const ETHICS_CHANNEL_LABEL = { ccu:'國立中正大學人類研究倫理審查委員會', kaohsiung_afgh:'國軍高雄總醫院人體試驗委員會' };
+const ETHICS_CHANNEL_AVAILABLE = { ccu:true, kaohsiung_afgh:false }; // 第二個單位資料還在蒐集中，尚未開放選擇
+let ETHICS_CHANNEL = null;
 
 async function viewEthicsFile(storagePath, fileName) {
   const { data: signed, error } = await sb.storage.from('ethics-review').createSignedUrl(storagePath, 300);
@@ -2322,11 +2325,12 @@ async function loadEthicsReviewSection() {
   if (!wrap) return;
   try {
     const [{ data: items }, { data: sel }, { data: uploads }] = await Promise.all([
-      sb.from('ethics_review_items').select('*').eq('active', true).eq('channel','ccu'),
-      sb.from('ethics_review_selection').select('review_type').eq('student_id', ME.id).maybeSingle(),
+      sb.from('ethics_review_items').select('*').eq('active', true),
+      sb.from('ethics_review_selection').select('review_type, channel').eq('student_id', ME.id).maybeSingle(),
       sb.from('ethics_review_uploads').select('*').eq('student_id', ME.id).order('uploaded_at')
     ]);
     ETHICS_ITEMS = items || [];
+    ETHICS_CHANNEL = sel?.channel || null;
     ETHICS_REVIEW_TYPE = sel?.review_type || null;
     ETHICS_UPLOADS = {};
     (uploads || []).forEach(u => { (ETHICS_UPLOADS[u.item_id] ||= []).push(u); });
@@ -2338,7 +2342,31 @@ async function loadEthicsReviewSection() {
 
 function renderEthicsReviewUI() {
   const wrap = document.getElementById('ethics-review-wrap');
-  let html = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">`;
+
+  // 第一步：選審查單位（尚未選過才會看到這一步）
+  if (!ETHICS_CHANNEL) {
+    let html = `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">請先選擇這次要送審的審查單位，決定後其他準備項目會依此顯示。</div>
+      <div style="display:flex;flex-direction:column;gap:10px">`;
+    Object.keys(ETHICS_CHANNEL_LABEL).forEach(ch => {
+      const available = ETHICS_CHANNEL_AVAILABLE[ch];
+      html += `<div onclick="${available ? `selectEthicsChannel('${ch}')` : ''}"
+        style="padding:14px 16px;border-radius:10px;border:1.5px solid var(--cr2);background:${available?'#fff':'var(--cr3)'};cursor:${available?'pointer':'not-allowed'};display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13.5px;color:${available?'var(--ink)':'var(--ink3)'}">${ETHICS_CHANNEL_LABEL[ch]}</span>
+        ${available ? '<span style="color:var(--navy);font-size:12px">選擇 →</span>' : '<span style="font-size:11px;color:var(--ink3);background:#fff;padding:2px 8px;border-radius:10px">籌備中，尚未開放</span>'}
+      </div>`;
+    });
+    html += `</div>`;
+    wrap.innerHTML = html;
+    return;
+  }
+
+  // 已選過審查單位：頂部顯示目前選擇＋可以變更
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:8px 12px;background:var(--navy3);border-radius:8px">
+    <span style="font-size:12.5px;color:var(--navy)">審查單位：<b>${ETHICS_CHANNEL_LABEL[ETHICS_CHANNEL]}</b></span>
+    <a href="javascript:void(0)" onclick="changeEthicsChannel()" style="font-size:12px;color:var(--navy);text-decoration:underline">變更審查單位</a>
+  </div>`;
+
+  html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">`;
   ['general','simple','exempt'].forEach(t => {
     const active = ETHICS_REVIEW_TYPE === t;
     html += `<button onclick="selectEthicsReviewType('${t}')"
@@ -2355,6 +2383,7 @@ function renderEthicsReviewUI() {
 
   const key = ETHICS_REVIEW_TYPE === 'exempt' ? 'exempt' : 'general_simple';
   const items = ETHICS_ITEMS
+    .filter(it => it.channel === ETHICS_CHANNEL)
     .filter(it => key === 'exempt' ? it.applies_exempt : it.applies_general_simple)
     .sort((a,b) => (key==='exempt'?a.sort_exempt:a.sort_general_simple) - (key==='exempt'?b.sort_exempt:b.sort_general_simple));
 
@@ -2400,9 +2429,29 @@ function renderEthicsReviewUI() {
   wrap.innerHTML = html;
 }
 
-async function selectEthicsReviewType(type) {
+async function selectEthicsChannel(channel) {
   const { error } = await sb.from('ethics_review_selection')
-    .upsert({ student_id: ME.id, review_type: type, updated_at: new Date().toISOString() }, { onConflict: 'student_id' });
+    .upsert({ student_id: ME.id, channel, updated_at: new Date().toISOString() }, { onConflict: 'student_id' });
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+  ETHICS_CHANNEL = channel;
+  renderEthicsReviewUI();
+}
+
+function changeEthicsChannel() {
+  if (!confirm('確定要變更審查單位嗎？變更後請重新確認審查類別是否需要調整。')) return;
+  ETHICS_CHANNEL = null;
+  ETHICS_REVIEW_TYPE = null;
+  renderEthicsReviewUI();
+  // 注意：這裡先只改畫面上的選擇狀態，實際存檔要等使用者在下一步重新選擇審查單位時才會寫入
+  // （避免使用者按了「變更」卻又反悔，資料庫還沒異動前都還來得及取消）
+}
+
+async function selectEthicsReviewType(type) {
+  if (ETHICS_REVIEW_TYPE && ETHICS_REVIEW_TYPE !== type) {
+    if (!confirm(`確定要把審查類別從「${ETHICS_TYPE_LABEL[ETHICS_REVIEW_TYPE]}」改成「${ETHICS_TYPE_LABEL[type]}」嗎？一般情況下審查類別決定後不會更動，請確認是真的需要修正。`)) return;
+  }
+  const { error } = await sb.from('ethics_review_selection')
+    .upsert({ student_id: ME.id, channel: ETHICS_CHANNEL, review_type: type, updated_at: new Date().toISOString() }, { onConflict: 'student_id' });
   if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
   ETHICS_REVIEW_TYPE = type;
   renderEthicsReviewUI();
@@ -2560,12 +2609,51 @@ async function loadThesisView() {
       html += `</div>`;
 
       // 論文題目
+      html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px">
+        <div style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--navy);margin-bottom:10px">論文題目</div>`;
       if (prog.title_zh) {
-        html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px">
-          <div style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--navy);margin-bottom:10px">論文題目</div>
-          <div style="font-size:14px"><strong>${prog.title_zh}</strong></div>
-          ${prog.title_en?`<div style="font-size:12px;color:var(--ink3);font-style:italic;margin-top:4px">${prog.title_en}</div>`:''}</div>`;
+        html += `<div style="font-size:14px"><strong>${prog.title_zh}</strong></div>
+          ${prog.title_en?`<div style="font-size:12px;color:var(--ink3);font-style:italic;margin-top:4px">${prog.title_en}</div>`:''}`;
+        const { data:pendingTitle } = await sb.from('thesis_pending_reviews')
+          .select('id').eq('thesis_id', prog.id).eq('review_type','title_change').eq('status','pending');
+        if (pendingTitle?.length) {
+          html += `<div style="background:#FFF8E1;border-radius:6px;padding:10px 14px;font-size:13px;color:#8A6D00;margin-top:12px">⏳ 題目修改申請審核中…</div>`;
+        } else {
+          const { data:rejectedTitle2 } = await sb.from('thesis_pending_reviews')
+            .select('note, reviewed_at').eq('thesis_id', prog.id).eq('review_type','title_change').eq('status','rejected')
+            .order('reviewed_at',{ascending:false}).limit(1);
+          if (rejectedTitle2?.length) {
+            const r2 = rejectedTitle2[0];
+            html += `<div style="background:#FEECEC;border:1px solid #F5C0C0;border-radius:8px;padding:12px 14px;margin-top:12px;margin-bottom:12px">
+              <div style="font-size:13px;color:#C62828;font-weight:500;margin-bottom:4px">⚠️ 您的修改題目申請已被退回</div>
+              ${r2.note?`<div style="font-size:12.5px;color:var(--ink2);line-height:1.7">退回原因：${r2.note}</div>`:''}
+            </div>`;
+          }
+          html += `<button onclick="openTitleForm()" style="margin-top:${rejectedTitle2?.length?'0':'14px'};padding:8px 16px;border-radius:8px;background:#fff;color:var(--navy);border:1.5px solid var(--navy);cursor:pointer;font-size:13px">✏️ 申請修改題目</button>`;
+        }
+      } else {
+        const { data:pendingTitle } = await sb.from('thesis_pending_reviews')
+          .select('id').eq('thesis_id', prog.id).eq('review_type','title_change').eq('status','pending');
+        if (pendingTitle?.length) {
+          html += `<div style="background:#FFF8E1;border-radius:6px;padding:10px 14px;font-size:13px;color:#8A6D00">⏳ 論文題目審核中…</div>`;
+        } else {
+          const { data:rejectedTitle } = await sb.from('thesis_pending_reviews')
+            .select('note, reviewed_at').eq('thesis_id', prog.id).eq('review_type','title_change').eq('status','rejected')
+            .order('reviewed_at',{ascending:false}).limit(1);
+          if (rejectedTitle?.length) {
+            const r = rejectedTitle[0];
+            html += `<div style="background:#FEECEC;border:1px solid #F5C0C0;border-radius:8px;padding:12px 14px;margin-bottom:12px">
+              <div style="font-size:13px;color:#C62828;font-weight:500;margin-bottom:4px">⚠️ 您的論文題目申請已被退回，請重新送出</div>
+              ${r.note?`<div style="font-size:12.5px;color:var(--ink2);line-height:1.7">退回原因：${r.note}</div>`:''}
+            </div>
+            <button onclick="openTitleForm()" style="padding:9px 18px;border-radius:8px;background:var(--navy);color:#fff;border:none;cursor:pointer;font-size:13px">＋ 重新送出論文題目</button>`;
+          } else {
+            html += `<div style="color:var(--ink3);font-size:13px;margin-bottom:12px">尚未送出論文題目</div>
+              <button onclick="openTitleForm()" style="padding:9px 18px;border-radius:8px;background:var(--navy);color:#fff;border:none;cursor:pointer;font-size:13px">＋ 送出論文題目</button>`;
+          }
+        }
       }
+      html += `</div>`;
     } else {
       html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px;text-align:center">
         <div style="color:var(--ink3);font-size:13px;margin-bottom:14px">尚未開始論文流程</div>
@@ -2689,6 +2777,69 @@ async function submitAdvisor() {
 }
 
 
+
+/* ════ 批次C：送出／修改論文題目 ════ */
+async function openTitleForm() {
+  try {
+    const { data:prog } = await sb.from('thesis_progress')
+      .select('id, title_zh, title_en').eq('student_id', ME.id).maybeSingle();
+    if (!prog) { showToast('請先完成指導教授申請','error'); return; }
+
+    const isChange = !!prog.title_zh; // 已經有正式題目 → 這次是「修改」，要填修改原因
+    let prefillZh = prog.title_zh || '', prefillEn = prog.title_en || '';
+
+    // 如果上次申請被退回，帶入上次退回前填的內容，讓學生在原基礎上修改，不用重打一次
+    const { data:rejected } = await sb.from('thesis_pending_reviews')
+      .select('content').eq('thesis_id', prog.id)
+      .eq('review_type','title_change').eq('status','rejected')
+      .order('reviewed_at',{ascending:false}).limit(1);
+    if (rejected?.length) {
+      const c = rejected[0].content || {};
+      prefillZh = c.title_zh || prefillZh;
+      prefillEn = c.title_en || prefillEn;
+    }
+
+    const html = `
+      <div class="frow"><label class="flabel">論文中文題目 *</label>
+        <input class="finput" id="title-zh" value="${prefillZh.replace(/"/g,'&quot;')}" placeholder="請輸入完整中文題目"></div>
+      <div class="frow"><label class="flabel">論文英文題目</label>
+        <input class="finput" id="title-en" value="${prefillEn.replace(/"/g,'&quot;')}" placeholder="選填"></div>
+      ${isChange ? `
+      <div class="frow"><label class="flabel">修改原因 *</label>
+        <textarea class="finput" id="title-reason" rows="3" placeholder="請說明這次修改題目的原因"></textarea></div>` : ''}
+      <div style="font-size:12px;color:var(--ink3);margin:10px 0 16px">送出後將由行政人員審核，審核通過才會成為正式題目。</div>
+      <button onclick="submitTitleChange(${isChange})" style="padding:9px 18px;border-radius:8px;background:var(--navy);color:#fff;border:none;cursor:pointer;font-size:13px;width:100%">送出審核</button>`;
+    openThModal(isChange ? '申請修改論文題目' : '送出論文題目', html);
+  } catch(e) {
+    showToast('載入失敗：'+e.message,'error');
+  }
+}
+
+async function submitTitleChange(isChange) {
+  const titleZh = document.getElementById('title-zh').value.trim();
+  const titleEn = document.getElementById('title-en').value.trim();
+  const reason = isChange ? document.getElementById('title-reason').value.trim() : '';
+  if (!titleZh) { showToast('請填寫中文題目','error'); return; }
+  if (isChange && !reason) { showToast('請填寫修改原因','error'); return; }
+
+  try {
+    const { data:prog } = await sb.from('thesis_progress')
+      .select('id').eq('student_id', ME.id).maybeSingle();
+    if (!prog) { showToast('請先完成指導教授申請','error'); return; }
+
+    await sb.from('thesis_pending_reviews').insert({
+      thesis_id: prog.id, student_id: ME.id, review_type:'title_change',
+      content: { title_zh: titleZh, title_en: titleEn||null, reason: reason||null }, status:'pending'
+    });
+
+    closeThModal();
+    showToast('✅ 已送出，等待行政審核');
+    loadThesisView();
+  } catch(e) {
+    showToast('送出失敗：'+e.message,'error');
+    console.warn('submitTitleChange:', e);
+  }
+}
 
 /* ════ 列印指導教授申請單（A4）════ */
 async function printAdvisorForm() {
