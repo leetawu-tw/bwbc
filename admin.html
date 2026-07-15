@@ -351,7 +351,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="surveys" onclick="showPage('survey',this)"><span class="nav-icon">📋</span>教學意見調查</div>
         <div class="nav-item" data-perm="scholarship" onclick="showPage('scholarship',this)"><span class="nav-icon">🏆</span>獎學金推薦</div>
         <div class="nav-item" data-perm="grades" onclick="showPage('grades',this)"><span class="nav-icon">📊</span>成績登錄</div>
-        <div class="nav-item" data-perm="grades" onclick="showPage('grade-summary',this)"><span class="nav-icon">🏆</span>成績彙總</div>
+        <div class="nav-item" data-perm="grade-summary" onclick="showPage('grade-summary',this)"><span class="nav-icon">🏆</span>成績彙總</div>
         <div class="nav-item" data-perm="grades" onclick="showPage('conduct',this)"><span class="nav-icon">🧭</span>操行成績管理</div>
       </div>
       <div class="nav-section">
@@ -359,10 +359,14 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="thesis" onclick="showPage('thesis',this)"><span class="nav-icon">📝</span>畢業論文 <span class="badge badge-warn" id="thesis-pending-badge" style="margin-left:auto;display:none">0</span></div>
       </div>
       <div class="nav-section">
-        <div class="nav-label">系統管理</div>
+        <div class="nav-label">行政效能</div>
+        <div class="nav-item" data-perm="forms" onclick="showPage('forms',this)"><span class="nav-icon">📄</span>常用表單</div>
         <div class="nav-item" data-perm="meetings" onclick="showPage('meetings',this)"><span class="nav-icon">📅</span>會議管理</div>
-        <div class="nav-item" data-perm="announcements" onclick="showPage('announcements',this)"><span class="nav-icon">📢</span>公佈欄 <span class="badge badge-warn" id="ann-badge" style="margin-left:auto;display:none">0</span></div>
         <div class="nav-item" data-perm="todos" onclick="showPage('todos',this)"><span class="nav-icon">✅</span>待辦事務 <span class="badge badge-warn" id="todo-badge" style="margin-left:auto;display:none">0</span></div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">系統管理</div>
+        <div class="nav-item" data-perm="announcements" onclick="showPage('announcements',this)"><span class="nav-icon">📢</span>公佈欄 <span class="badge badge-warn" id="ann-badge" style="margin-left:auto;display:none">0</span></div>
         <div class="nav-item" data-perm="semesters" onclick="showPage('semesters',this)"><span class="nav-icon">📆</span>學期管理</div>
         <div class="nav-item" data-perm="logs" onclick="showPage('audit',this)"><span class="nav-icon">📋</span>操作記錄</div>
       </div>
@@ -834,6 +838,19 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         </div>
       </div>
 
+      <!-- ▌常用表單 ▌-->
+      <div id="page-forms" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">📄 常用表單</div>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:14px">
+          提供師生行政常用表單下載（Word/PDF），依對象分四類。每張卡片可獨立上傳、排序、刪除。
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px" id="forms-cards-wrap">
+          <div style="text-align:center;padding:60px;color:var(--ink3);grid-column:1/-1">載入中…</div>
+        </div>
+      </div>
+
       <!-- ▌成績登錄管理（學科）▌ -->
       <div id="page-grades" style="display:none">
         <div class="page-hdr">
@@ -910,6 +927,15 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 
         <!-- ── 成績狀態 ── -->
         <div id="gpanel-status" class="gpanel" style="display:none">
+          <div style="border:1.5px dashed var(--cr2);border-radius:10px;padding:16px;margin-bottom:14px;text-align:center;cursor:pointer"
+            onclick="document.getElementById('grade-import-input').click()"
+            ondragover="event.preventDefault();this.style.borderColor='var(--navy)'"
+            ondragleave="this.style.borderColor='var(--cr2)'"
+            ondrop="event.preventDefault();this.style.borderColor='var(--cr2)';handleGradeBatchImport(event.dataTransfer.files)">
+            <div style="font-size:13px;color:var(--ink3)">📥 <b>批次匯入成績</b>——可一次拖曳多個檔案（老師出國等情況，由行政代為登錄）</div>
+            <div style="font-size:11.5px;color:var(--ink3);margin-top:2px">請先用下方各課程列的「📥 範本」按鈕下載預填學號姓名的成績單CSV（跟老師端下載的格式完全相同），填好成績後再拖回這裡——系統會依「課程代號」自動比對是哪一門課，也支援老師自己下載的空白範本或已填成績的檔案</div>
+            <input type="file" id="grade-import-input" multiple accept=".csv,.xlsx,.xls" style="display:none" onchange="handleGradeBatchImport(this.files)">
+          </div>
           <div class="toolbar">
             <input class="search" id="gst-search" placeholder="🔍 課程名稱或評分老師…" style="width:220px" oninput="filterGradeStatus()">
             <select id="gst-status-filter" class="fselect" style="width:130px" onchange="filterGradeStatus()">
@@ -8890,6 +8916,7 @@ function showPage(page, btn) {
   if (page==='todos') loadTodos();
   if (page==='survey') loadSurveyAdmin();
   if (page==='scholarship') renderScholarshipHome();
+  if (page==='forms') loadFormsAdmin();
   if (page==='grades') loadGradesAdmin();
   if (page==='grade-summary') loadGradeSummary();
   if (page==='conduct') loadConductAdmin();
@@ -10866,7 +10893,7 @@ let _allUsers = [];
 let _usrSort = { field:'email', dir:1 };
 
 const PERM_KEYS = ['announcements','todos','meetings','courses','open_courses',
-                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','logs'];
+                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','grade-summary','forms','logs'];
 
 const PERM_LABELS = {
   announcements: '📢 公佈欄',
@@ -10878,6 +10905,7 @@ const PERM_LABELS = {
   teachers:      '👤 教師管理',
   thesis:        '📝 畢業論文',
   scholarship:   '🏆 獎學金推薦',
+  forms:         '📄 常用表單',
   students:      '🧑‍🎓 學生資料',
   semesters:     '📆 學期管理',
   surveys:       '📊 意見調查',
@@ -12884,6 +12912,157 @@ let SCH_CUR_CATEGORY = null;
 let SCH_CUR_TYPE = null;
 let SCH_CUR_PERIOD = null;
 
+/* ════════════════════════════════════════════════════════
+ * 📄 常用表單（四類：教師/學生/行政/全體，各自獨立管理）
+ * ════════════════════════════════════════════════════════ */
+const FORMS_CATEGORY_LABEL = { teacher:'👨‍🏫 教師專用', student:'🎓 學生專用', staff:'🗂 行政專用', general:'📋 全體專用' };
+let FORMS_ALL = [];
+
+async function loadFormsAdmin() {
+  const wrap = document.getElementById('forms-cards-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--ink3);grid-column:1/-1">載入中…</div>';
+  try {
+    const { data } = await sb.from('forms').select('*').eq('active', true).order('sort_order').order('created_at');
+    FORMS_ALL = data || [];
+    renderFormsCards();
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px;grid-column:1/-1">載入失敗：${e.message}</div>`;
+  }
+}
+
+function renderFormsCards() {
+  const wrap = document.getElementById('forms-cards-wrap');
+  wrap.innerHTML = Object.keys(FORMS_CATEGORY_LABEL).map(cat => {
+    const list = FORMS_ALL.filter(f => f.category === cat);
+    return `
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px">
+      <div style="font-weight:600;font-size:15px;margin-bottom:12px;color:var(--navy)">${FORMS_CATEGORY_LABEL[cat]}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px" id="forms-list-${cat}"
+        ondragover="event.preventDefault()"
+        ondrop="formDropOnList(event,'${cat}')">
+        ${list.length ? list.map(f => renderFormRow(f, cat)).join('') : '<div style="color:var(--ink3);font-size:12.5px;padding:6px 0">尚無表單（可從其他卡片拖曳表單過來）</div>'}
+      </div>
+      <div style="border:1.5px dashed var(--cr2);border-radius:8px;padding:10px;cursor:pointer;text-align:center"
+        onclick="document.getElementById('forms-input-${cat}').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--navy)'"
+        ondragleave="this.style.borderColor='var(--cr2)'"
+        ondrop="event.preventDefault();this.style.borderColor='var(--cr2)';handleFormUpload('${cat}',event.dataTransfer.files)">
+        <div style="font-size:12px;color:var(--ink3)">📎 點擊或拖曳上傳表單</div>
+        <input type="file" id="forms-input-${cat}" multiple accept=".pdf,.doc,.docx,.odt,.xls,.xlsx" style="display:none" onchange="handleFormUpload('${cat}',this.files)">
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderFormRow(f, cat) {
+  const { data: pub } = sb.storage.from('forms').getPublicUrl(f.storage_path);
+  const url = pub.publicUrl;
+  const ext = (f.file_name.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+  const canView = ['pdf','doc','docx','ppt','pptx','xls','xlsx'].includes(ext);
+  const safeFn = f.file_name.replace(/'/g,"\\'");
+  return `
+    <div id="form-row-${f.id}" draggable="true"
+      ondragstart="formDragStart(event,'${f.id}','${cat}')"
+      ondragover="event.preventDefault()"
+      ondrop="formDrop(event,'${f.id}','${cat}')"
+      ondragend="this.style.opacity='1'"
+      style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span style="cursor:grab;color:var(--ink3);font-size:14px;user-select:none" title="按住拖曳排序">⠿</span>
+      ${canView ? `<a href="javascript:void(0)" onclick="openViewer('${encodeURIComponent(url)}','${ext}','${safeFn}')" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:3px 10px;border-radius:20px;background:var(--navy3);color:var(--navy);text-decoration:none;border:1px solid rgba(43,95,160,.2)">👁 線上看</a>` : ''}
+      <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 10px;background:var(--cr3);border-radius:20px">
+        <a href="${url}" target="_blank" style="flex:1;color:var(--ink);text-decoration:none">📎 ${f.title}</a>
+        <button onclick="deleteForm('${f.id}','${f.storage_path}')" title="刪除" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px">🗑</button>
+      </span>
+    </div>`;
+}
+
+let _formDragState = null;
+function formDragStart(ev, formId, cat) {
+  _formDragState = { id: formId, cat };
+  ev.currentTarget.style.opacity = '0.4';
+  ev.stopPropagation();
+}
+
+// 拖曳放到某一列上：插入到那一列的位置（可跨類別，跨類別時會順便更新category欄位）
+async function formDrop(ev, targetId, targetCat) {
+  ev.preventDefault();
+  ev.stopPropagation();
+  if (!_formDragState || _formDragState.id === targetId) return;
+  const targetIdx = FORMS_ALL.filter(f => f.category === targetCat).findIndex(f => f.id === targetId);
+  await moveFormTo(_formDragState.id, _formDragState.cat, targetCat, targetIdx);
+  _formDragState = null;
+}
+
+// 拖曳放到卡片空白處（不是放在特定一列上）：移到那個類別的最後面
+async function formDropOnList(ev, targetCat) {
+  ev.preventDefault();
+  if (!_formDragState) return;
+  await moveFormTo(_formDragState.id, _formDragState.cat, targetCat, -1); // -1＝放最後
+  _formDragState = null;
+}
+
+async function moveFormTo(formId, fromCat, toCat, insertAtIdx) {
+  if (fromCat === toCat && insertAtIdx === -1) return; // 同類別拖到空白處，位置不變，不用處理
+
+  const fromList = FORMS_ALL.filter(f => f.category === fromCat);
+  const draggedIdx = fromList.findIndex(f => f.id === formId);
+  if (draggedIdx === -1) return;
+  const [dragged] = fromList.splice(draggedIdx, 1);
+
+  let toList = fromCat === toCat ? fromList : FORMS_ALL.filter(f => f.category === toCat);
+  dragged.category = toCat;
+  if (insertAtIdx === -1 || insertAtIdx >= toList.length) toList.push(dragged);
+  else toList.splice(insertAtIdx, 0, dragged);
+
+  // 重新編號受影響的類別（跨類別時，來源跟目的地各自的sort_order都要重編）
+  fromList.forEach((f,i) => { f.sort_order = i; });
+  if (fromCat !== toCat) toList.forEach((f,i) => { f.sort_order = i; });
+
+  const others = FORMS_ALL.filter(f => f.category !== fromCat && f.category !== toCat);
+  FORMS_ALL = fromCat === toCat ? [...others, ...toList] : [...others, ...fromList, ...toList];
+  renderFormsCards();
+
+  try {
+    const toUpdate = fromCat === toCat ? toList : [...fromList, ...toList];
+    await Promise.all(toUpdate.map(f =>
+      sb.from('forms').update({ category: f.category, sort_order: f.sort_order }).eq('id', f.id)
+    ));
+    if (fromCat !== toCat) showToast(`✅ 已移到「${FORMS_CATEGORY_LABEL[toCat]}」`);
+  } catch (e) {
+    showToast('儲存失敗：'+e.message, 'error');
+  }
+}
+
+async function handleFormUpload(category, files) {
+  const allowed = ['pdf','doc','docx','odt','xls','xlsx'];
+  for (const f of Array.from(files)) {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!allowed.includes(ext)) { showToast(`不支援 .${ext} 格式`, 'error'); continue; }
+    const title = f.name.replace(/\.[^.]+$/, ''); // 預設標題＝檔名去掉副檔名，之後如需要可另外加編輯標題功能
+    const path = `${category}/${Date.now()}_${Math.random().toString(36).slice(2,7)}.${ext}`;
+    const { error: upErr } = await sb.storage.from('forms').upload(path, f);
+    if (upErr) { showToast('上傳失敗：'+upErr.message, 'error'); continue; }
+    const { error: insErr } = await sb.from('forms').insert({
+      category, title, file_name: f.name, storage_path: path, file_size: f.size, uploaded_by: window.ADMIN_EMAIL||null
+    });
+    if (insErr) { showToast('記錄失敗：'+insErr.message, 'error'); continue; }
+  }
+  await loadFormsAdmin();
+  showToast('✅ 上傳完成');
+}
+
+async function deleteForm(id, storagePath) {
+  if (!confirm('確定刪除此表單？此動作會立即生效，無法復原。')) return;
+  const { error: se } = await sb.storage.from('forms').remove([storagePath]);
+  if (se) console.warn('Storage 刪除失敗：', se.message);
+  const { error } = await sb.from('forms').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：'+error.message, 'error'); return; }
+  FORMS_ALL = FORMS_ALL.filter(f => f.id !== id); // 同步清掉記憶體資料，避免之前踩過的「切換頁面又冒出來」的bug
+  const row = document.getElementById('form-row-'+id);
+  if (row) row.remove();
+  showToast('✅ 已刪除');
+}
+
 async function renderScholarshipHome() {
   const wrap = document.getElementById('scholarship-wrap');
   wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3)">載入中…</div>';
@@ -13945,6 +14124,16 @@ async function loadGradeSummaryTable() {
       .not('score','is',null)
       .in('student_id', studentIds);
 
+    // 2b) 這些學生「已修科目數」——選課中(confirmed)的課程總數，不管有沒有成績，用來對照「繳交科目數」看有沒有科目還沒交
+    const { data: allEnrolls } = await sb.from('enrollments')
+      .select('student_id, offering_id, semester_id')
+      .eq('status','confirmed').in('student_id', studentIds);
+    const enrolledCountByStudent = {};
+    (allEnrolls||[]).forEach(e => {
+      if (semRange !== 'all' && e.semester_id !== semRange) return;
+      enrolledCountByStudent[e.student_id] = (enrolledCountByStudent[e.student_id]||0) + 1;
+    });
+
     // 3) 這些成績涉及的開課記錄 → 課程(學分) + 學期
     const offeringIds = [...new Set((entries||[]).map(e=>e.offering_id))];
     let offMap = {};
@@ -13970,11 +14159,12 @@ async function loadGradeSummaryTable() {
       const off = offMap[e.offering_id];
       const credits = off?.course?.credits || 0;
       if (credits <= 0) return; // 沒有學分的課不計入加權（理論上不該發生，防呆）
-      (byStudent[e.student_id] ||= { totalScoreCredits:0, totalCredits:0, reqCredits:0, selCredits:0, pass:0, fail:0, courses:[] });
+      (byStudent[e.student_id] ||= { totalScoreCredits:0, totalCredits:0, reqCredits:0, selCredits:0, reqCount:0, selCount:0, pass:0, fail:0, courses:[] });
       const b = byStudent[e.student_id];
       b.totalScoreCredits += e.score * credits;
       b.totalCredits += credits;
-      if (off.course?.req_type === 'req') b.reqCredits += credits; else b.selCredits += credits; // 選修別：必修算必修，選修/二選一都算進選修
+      // 選修別：必修算必修，選修/二選一都算進選修
+      if (off.course?.req_type === 'req') { b.reqCredits += credits; b.reqCount++; } else { b.selCredits += credits; b.selCount++; }
       if (e.score >= 60) b.pass++; else b.fail++;
       b.courses.push({ name: off.course?.name_zh||'', code: off.course?.code||'', reqType: off.course?.req_type||'', credits, score: e.score, grade_label: e.grade_label });
     });
@@ -13988,7 +14178,10 @@ async function loadGradeSummaryTable() {
         avg: avg!=null ? Math.round((avg + Number.EPSILON) * 100) / 100 : null,
         totalCredits: b?.totalCredits || 0,
         reqCredits: b?.reqCredits || 0, selCredits: b?.selCredits || 0,
+        reqCount: b?.reqCount || 0, selCount: b?.selCount || 0,
         pass: b?.pass || 0, fail: b?.fail || 0,
+        enrolledCount: enrolledCountByStudent[s.id] || 0,
+        submittedCount: courses.length,
         courses
       };
     });
@@ -14013,6 +14206,8 @@ function renderGradeSummaryTable() {
       <th style="padding:10px 14px;text-align:center;font-size:12.5px">排名</th>
       <th style="padding:10px 14px;text-align:left;font-size:12.5px">學號</th>
       <th style="padding:10px 14px;text-align:left;font-size:12.5px">姓名</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px">已修科目數</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px">繳交科目數</th>
       <th style="padding:10px 14px;text-align:center;font-size:12.5px">已修學分</th>
       <th style="padding:10px 14px;text-align:center;font-size:12.5px">加權平均</th>
       <th style="padding:10px 14px;text-align:center;font-size:12.5px">及格/不及格</th>
@@ -14020,10 +14215,13 @@ function renderGradeSummaryTable() {
     </tr></thead><tbody>`;
   _gsumRows.forEach((r,i) => {
     const top3 = r.rank && r.rank<=3;
+    const incomplete = r.enrolledCount > r.submittedCount;
     html += `<tr style="border-top:1px solid var(--cr2);${top3?'background:var(--navy3)':''}">
       <td style="padding:8px 14px;text-align:center;font-size:${top3?'16px':'13px'}">${r.rank ? medal(r) : '—'}</td>
       <td style="padding:8px 14px;font-size:13px">${r.student.student_code||''}</td>
       <td style="padding:8px 14px;font-size:13px;font-weight:${top3?600:400}">${r.student.name_zh||''}</td>
+      <td style="padding:8px 14px;text-align:center;font-size:13px">${r.enrolledCount}</td>
+      <td style="padding:8px 14px;text-align:center;font-size:13px;${incomplete?'color:#B05010;font-weight:600':''}">${r.submittedCount}${incomplete?' ⚠️':''}</td>
       <td style="padding:8px 14px;text-align:center;font-size:13px">${r.totalCredits}</td>
       <td style="padding:8px 14px;text-align:center;font-size:13px;font-weight:600">${r.avg!=null?r.avg:'尚無成績'}</td>
       <td style="padding:8px 14px;text-align:center;font-size:13px">${r.avg!=null?`${r.pass} / ${r.fail}`:'—'}</td>
@@ -14054,6 +14252,11 @@ async function ensurePdfLibs() {
 }
 
 // 分數跟等第一起顯示，不要只顯示等第把分數藏起來
+// 已修學分細分文字，PDF/Excel/畫面彈窗三處共用，確保格式永遠一致
+function gsumCreditsBreakdown(r) {
+  return `${r.submittedCount} 門${r.totalCredits}學分（${r.reqCount}門必修 ${r.reqCredits}學分，${r.selCount}門選修${r.selCredits}學分）`;
+}
+
 function gsumGradeDisplay(c) {
   if (c.score == null) return c.grade_label || '';
   return c.grade_label ? `${c.score}（${c.grade_label}）` : String(c.score);
@@ -14085,7 +14288,7 @@ function buildTranscriptHTML(r, semLabel) {
         <td style="padding:4px 8px;width:20%;color:#666">姓名</td><td style="padding:4px 8px;width:30%;font-weight:700">${r.student.name_zh||''}</td>
       </tr>
       <tr>
-        <td style="padding:4px 8px;color:#666">已修學分</td><td style="padding:4px 8px;font-weight:700">${r.totalCredits}（必修${r.reqCredits}學分，選修${r.selCredits}學分）</td>
+        <td style="padding:4px 8px;color:#666">本學期修讀</td><td style="padding:4px 8px;font-weight:700">${gsumCreditsBreakdown(r)}</td>
         <td style="padding:4px 8px;color:#666">加權平均</td><td style="padding:4px 8px;font-weight:700">${r.avg!=null?r.avg:'尚無成績'}</td>
       </tr>
       <tr>
@@ -14160,7 +14363,7 @@ function buildTranscriptAoa(r, semLabel) {
     ['福智佛教學院'],
     [`${semLabel} 成績單`],
     ['系所', '佛法應用研究所', '學號', r.student.student_code||'', '姓名', r.student.name_zh||''],
-    ['加權平均', r.avg!=null?r.avg:'', '', '已修學分', `${r.totalCredits}（必修${r.reqCredits}，選修${r.selCredits}）`],
+    ['加權平均', r.avg!=null?r.avg:'', '', '本學期修讀', gsumCreditsBreakdown(r)],
     ['及格科數', r.pass, '', '不及格科', r.fail],
     [],
     header,
@@ -14253,7 +14456,7 @@ async function downloadAllTranscriptsExcel() {
 
 function viewStudentTranscript(idx) {
   const r = _gsumRows[idx];
-  let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--ink3)">學號：${r.student.student_code||''}　加權平均：<b style="color:var(--ink)">${r.avg!=null?r.avg:'尚無成績'}</b>　已修學分：${r.totalCredits}（必修${r.reqCredits}，選修${r.selCredits}）　及格${r.pass}科／不及格${r.fail}科</div>`;
+  let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--ink3)">學號：${r.student.student_code||''}　加權平均：<b style="color:var(--ink)">${r.avg!=null?r.avg:'尚無成績'}</b>　本學期修讀：${gsumCreditsBreakdown(r)}　及格${r.pass}科／不及格${r.fail}科</div>`;
   if (!r.courses.length) {
     html += '<div style="color:var(--ink3);font-size:13px;padding:12px 0">目前範圍內查無已送出的成績</div>';
   } else {
@@ -14287,8 +14490,8 @@ async function exportGradeSummaryExcel() {
   }
   const cohort = document.getElementById('gsum-cohort').value;
   const semLabel = document.getElementById('gsum-sem-range').selectedOptions[0]?.textContent || '';
-  const header = ['排名','學號','姓名','已修學分','加權平均','及格科數','不及格科數'];
-  const rows = _gsumRows.map(r => [r.rank||'', r.student.student_code||'', r.student.name_zh||'', r.totalCredits, r.avg!=null?r.avg:'尚無成績', r.pass, r.fail]);
+  const header = ['排名','學號','姓名','已修科目數','繳交科目數','已修學分','加權平均','及格科數','不及格科數'];
+  const rows = _gsumRows.map(r => [r.rank||'', r.student.student_code||'', r.student.name_zh||'', r.enrolledCount, r.submittedCount, r.totalCredits, r.avg!=null?r.avg:'尚無成績', r.pass, r.fail]);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([[`${cohort}級 成績彙總（${semLabel}）`], header, ...rows]);
   XLSX.utils.book_append_sheet(wb, ws, '成績彙總');
@@ -14572,7 +14775,7 @@ async function loadGradeStatus() {
   // 該學期所有開課（不論有沒有人填過成績都要列出）
   const { data: offerings, error } = await sb
     .from('course_offerings')
-    .select(`id, courses(code, name_zh), grade_assignments(teacher_id, teachers(name_zh))`)
+    .select(`id, courses(code, name_zh, req_type, credits), grade_assignments(teacher_id, teachers(name_zh))`)
     .eq('semester_id', semId).eq('is_active', true).order('course_id');
   if (error) { tbody.innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
   if (!offerings?.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">此學期無開課資料</td></tr>'; return; }
@@ -14599,7 +14802,10 @@ async function loadGradeStatus() {
     return {
       offering_id: o.id,
       label: `${o.courses?.code||''} ${o.courses?.name_zh||''}`,
+      code: o.courses?.code||'', courseName: o.courses?.name_zh||'',
+      reqType: o.courses?.req_type||'', credits: o.courses?.credits||'',
       teacher: assigned?.teachers?.name_zh || '',
+      teacher_id: assigned?.teacher_id || null,
       hasTeacher: !!assigned,
       count: g.count, status, submitted_at: g.submitted_at,
     };
@@ -14654,6 +14860,7 @@ function renderStatusTable() {
     <td style="font-size:12px">${r.submitted_at ? r.submitted_at.slice(0,16).replace('T',' ') : '—'}</td>
     <td style="white-space:nowrap">
       <button class="btn btn-sec btn-sm" onclick="viewGradeEntries('${r.offering_id}','${r.label.replace(/'/g,"\\'")}','${(r.teacher||'未指定').replace(/'/g,"\\'")}')" title="檢視成績（唯讀）">👁 檢視</button>
+      <button class="btn btn-sec btn-sm" onclick="downloadGradeImportTemplate('${r.offering_id}','${r.label.replace(/'/g,"\\'")}')" title="下載預填學號姓名的匯入範本" style="margin-left:4px">📥 範本</button>
       ${r.status==='submitted'
         ? `<button class="btn btn-sec btn-sm" onclick="rejectGradeEntry('${r.offering_id}','${(r.teacher||'').replace(/'/g,"\\'")}')" title="退回給老師修正" style="margin-left:4px;color:var(--red);border-color:var(--red)">↩️ 退回</button>`
         : ''}
@@ -14662,13 +14869,236 @@ function renderStatusTable() {
 }
 
 /* 👁 檢視成績（唯讀，不可修改）*/
+/* 📥 下載單一課程的成績匯入範本（預填學號姓名，第一列藏offering_id當辨識碼） */
+async function downloadGradeImportTemplate(offeringId, courseLabel) {
+  const gstRow = _gstRows.find(r => r.offering_id === offeringId);
+  if (!gstRow) { showToast('找不到課程資料','error'); return; }
+  const { data: enrollsRaw } = await sb.from('enrollments')
+    .select('students(student_code, name_zh)')
+    .eq('offering_id', offeringId).eq('status', 'confirmed');
+  if (!enrollsRaw?.length) { showToast('此課程目前沒有選課中的學生','error'); return; }
+  // 巢狀欄位排序（.order('students(...)')）在PostgREST不一定可靠，改成抓回資料後自己排序保險
+  const enrolls = enrollsRaw.slice().sort((a,b) => (a.students?.student_code||'').localeCompare(b.students?.student_code||''));
+
+  const semLabel = document.getElementById('g-semester').selectedOptions[0]?.textContent || '';
+  const total = enrolls.length;
+  const q = v => `"${String(v).replace(/"/g,'""')}"`;
+  const row = arr => arr.map(q).join(',');
+
+  const lines = [
+    row(['福智學校財團法人福智佛教學院','','','','','']),
+    row(['佛法應用研究所','','','','','']),
+    row([`${semLabel}學期成績`,'','','','','']),
+    row([`課程代號：${gstRow.code}`,'','','','','']),
+    row([`課程名稱：${gstRow.courseName}`,'','','','','']),
+    row([`必選修：${REQ_ZH[gstRow.reqType]||''}`,'','',`學分數：${gstRow.credits}`,'','']),
+    row([`授課教師：${gstRow.teacher||'（尚未指定）'}`,'','',`修課學生數：${total}`,'','']),
+    row(['','','','','','']),
+    row(['序號','學號','姓名','成績','等第','備註']),
+    ...enrolls.map((e,i) => row([i+1, e.students?.student_code||'', e.students?.name_zh||'', '', '', ''])),
+    row(['','','','','','']),
+    row([`修課學生數：${total}`,'','','','','']),
+    row(['註：滿70分為及格','','','','','']),
+    row(['','','','','','']),
+    row(['','','','','','']),
+    row(['授課教師簽名：','','','','','']),
+  ];
+  const csv = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `(範本)${semLabel}_${gstRow.code}${gstRow.courseName}_學期成績.csv`;
+  a.click();
+}
+
+/* 📥 批次匯入成績：可一次拖曳多個檔案，用「課程代號」比對是哪一門課
+   解析邏輯刻意跟teacher.html本身既有的匯入功能對齊（抓含「學號」的表頭列、
+   抓含「成績」的欄位當分數欄，也順便相容「分數」這個舊版admin用過的欄名） */
+let _gradeImportBatch = [];
+
+function parseCSVLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+async function fileToRows(file) {
+  if (/\.csv$/i.test(file.name)) {
+    const text = await file.text();
+    return text.split(/\r?\n/).map(l => parseCSVLine(l));
+  }
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, { header: 1 });
+}
+
+async function handleGradeBatchImport(files) {
+  files = Array.from(files);
+  if (!files.length) return;
+  showToast(`解析 ${files.length} 個檔案中…`);
+  _gradeImportBatch = [];
+
+  const scale = (_currentGradePeriod.academic?.grade_scale) || DEFAULT_GRADE_SCALE;
+  const scoreToLabel = score => {
+    for (const row of scale) if (score >= row.min && score <= row.max) return row.label;
+    return '';
+  };
+
+  for (const file of files) {
+    try {
+      const rows = (await fileToRows(file)).map(r => (r||[]).map(c => String(c==null?'':c).trim()));
+
+      // 找含「課程代號」的那一列，代號可能跟標籤同一格（"課程代號：AD22040"）
+      // 也可能分開兩格（一格寫"課程代號"、另一格單獨寫"AD22040"），兩種都要處理
+      const codeRowIdx = rows.slice(0, 10).findIndex(r => r.some(c => c.includes('課程代號')));
+      let courseCode = null;
+      if (codeRowIdx >= 0) {
+        const codeRow = rows[codeRowIdx];
+        const labelIdx = codeRow.findIndex(c => c.includes('課程代號'));
+        const sameCell = codeRow[labelIdx].match(/課程代號[:：]\s*(\S+)/);
+        if (sameCell) courseCode = sameCell[1];
+        else {
+          for (let j = labelIdx+1; j < codeRow.length; j++) { if (codeRow[j]) { courseCode = codeRow[j]; break; } }
+        }
+      }
+      if (!courseCode) { _gradeImportBatch.push({ file: file.name, error: '找不到「課程代號」，請確認是成績單格式的檔案' }); continue; }
+
+      const gstRow = _gstRows.find(r => r.code === courseCode);
+      if (!gstRow) { _gradeImportBatch.push({ file: file.name, error: `課程代號「${courseCode}」不是這學期的課，請確認學期選對了` }); continue; }
+      if (!gstRow.hasTeacher) { _gradeImportBatch.push({ file: file.name, error: `「${gstRow.label}」尚未指定評分老師，請先到「開課評分老師指派」設定後再匯入（成績記錄一定要綁定一位老師）` }); continue; }
+
+      // 找表頭列（含「學號」的那一列，兼容各種欄位順序/組合，例如「期末總成績」也算成績欄）
+      const headerIdx = rows.findIndex(r => r.some(c => c.includes('學號')));
+      if (headerIdx < 0) { _gradeImportBatch.push({ file: file.name, error: '找不到表頭列（需含「學號」欄位）' }); continue; }
+      const headers = rows[headerIdx];
+      const idCol = headers.findIndex(h => h.includes('學號'));
+      const scoreCol = headers.findIndex(h => h.includes('成績') || h.includes('分數'));
+      if (idCol < 0 || scoreCol < 0) { _gradeImportBatch.push({ file: file.name, error: '找不到學號或成績欄位' }); continue; }
+
+      // 抓這門課「所有」選課記錄（不只confirmed），才能正確辨識「已停修的學生分數欄寫停修」是合理狀況、不是錯誤
+      const { data: enrolls } = await sb.from('enrollments')
+        .select('student_id, status, students(student_code, name_zh)')
+        .eq('offering_id', gstRow.offering_id);
+      const byCode = {}; (enrolls||[]).forEach(e => { if (e.students?.student_code) byCode[e.students.student_code] = e; });
+      const NON_NUMERIC_STATUS_WORDS = ['停修','休學','退學','退選','缺考'];
+
+      const parsed = [], errors = [], skipped = [];
+      // 資料列從表頭下一列開始，遇到空白列（該課學生資料跟後面備註區用空白列隔開）就停止
+      for (let i = headerIdx + 1; i < rows.length; i++) {
+        const r = rows[i];
+        const code = r[idCol] || '';
+        if (!code) break; // 空白列＝資料區結束
+        const scoreRaw = r[scoreCol];
+        const enr = byCode[code];
+        if (!enr) { errors.push(`學號 ${code} 不在此課程選課名單中`); continue; }
+        if (scoreRaw === '' || scoreRaw == null) continue; // 分數沒填，當作缺考/尚未評分，跳過不算錯誤
+
+        const score = Number(scoreRaw);
+        if (isNaN(score)) {
+          // 非數字：如果是「停修/休學」這類已知狀態詞，而且該生的選課狀態也不是confirmed，視為正常情況、略過不算錯誤
+          if (NON_NUMERIC_STATUS_WORDS.some(w => String(scoreRaw).includes(w)) && enr.status !== 'confirmed') {
+            skipped.push(`${enr.students.name_zh}（${scoreRaw}，選課狀態一致，略過）`);
+          } else {
+            errors.push(`${enr.students.name_zh} 分數「${scoreRaw}」不是有效數字，且選課狀態為「${enr.status}」，請確認`);
+          }
+          continue;
+        }
+        if (enr.status !== 'confirmed') { errors.push(`${enr.students.name_zh} 選課狀態是「${enr.status}」（非選課中），但分數欄填了數字「${scoreRaw}」，請確認是否正確`); continue; }
+        if (score < 0 || score > 100) { errors.push(`${enr.students.name_zh} 分數「${scoreRaw}」不是0-100的有效數字`); continue; }
+        parsed.push({ student_id: enr.student_id, student_code: code, name_zh: enr.students.name_zh, score, grade_label: scoreToLabel(score) });
+      }
+
+      _gradeImportBatch.push({
+        file: file.name, offeringId: gstRow.offering_id, courseLabel: gstRow.label, teacher: gstRow.teacher, teacherId: gstRow.teacher_id, hasTeacher: gstRow.hasTeacher,
+        parsed, errors, skipped
+      });
+    } catch (e) {
+      _gradeImportBatch.push({ file: file.name, error: '解析失敗：'+e.message });
+    }
+  }
+
+  renderGradeImportPreview();
+}
+
+function renderGradeImportPreview() {
+  let html = `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">請確認以下匯入內容，確認無誤後才會正式寫入成績（狀態直接標記為「已送出」，等同老師本人送出）。</div>`;
+  html += `<div style="display:flex;flex-direction:column;gap:10px;max-height:55vh;overflow-y:auto">`;
+  _gradeImportBatch.forEach((b, i) => {
+    if (b.error) {
+      html += `<div style="background:#FEECEC;border:1px solid #F5C0C0;border-radius:8px;padding:10px 14px">
+        <div style="font-weight:600;font-size:13px;color:#C62828">❌ ${b.file}</div>
+        <div style="font-size:12px;color:var(--ink2);margin-top:2px">${b.error}</div>
+      </div>`;
+      return;
+    }
+    html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:10px 14px">
+      <div style="font-weight:600;font-size:13px">${b.courseLabel} <span style="font-weight:400;color:var(--ink3);font-size:12px">（${b.file}）</span></div>
+      <div style="font-size:12px;color:var(--ink3);margin-top:2px">評分老師：${b.teacher}　·　將匯入 ${b.parsed.length} 位學生的成績${b.skipped?.length?`　·　自動略過 ${b.skipped.length} 位（停修/休學等）`:''}</div>
+      ${b.skipped?.length ? `<div style="margin-top:4px;font-size:11px;color:var(--ink3)">${b.skipped.join('、')}</div>` : ''}
+      ${b.errors.length ? `<div style="margin-top:6px;font-size:11.5px;color:#C62828">${b.errors.map(e=>`⚠️ ${e}`).join('<br>')}</div>` : ''}
+    </div>`;
+  });
+  html += `</div>`;
+
+  const validCount = _gradeImportBatch.filter(b => !b.error && b.parsed.length).length;
+  html += `<div style="margin-top:16px;text-align:right">
+    <button class="btn btn-sec btn-sm" onclick="closeThModal()">取消</button>
+    <button class="btn btn-pri btn-sm" ${validCount?'':'disabled'} onclick="confirmGradeBatchImport()">✅ 確認匯入（${validCount}門課）</button>
+  </div>`;
+  openThModal('批次匯入成績－預覽確認', html);
+}
+
+async function confirmGradeBatchImport() {
+  const semId = document.getElementById('g-semester').value;
+  const gradePeriodId = _currentGradePeriod.academic?.id;
+  if (!gradePeriodId) { showToast('此學期尚未開放成績登錄期程','error'); return; }
+
+  let okFiles = 0, okStudents = 0, failMsgs = [];
+  for (const b of _gradeImportBatch) {
+    if (b.error || !b.parsed.length) continue;
+    try {
+      const rows = b.parsed.map(p => ({
+        grade_period_id: gradePeriodId, offering_id: b.offeringId, grade_type: 'academic',
+        teacher_id: b.teacherId, student_id: p.student_id, score: p.score, grade_label: p.grade_label,
+        status: 'submitted', submitted_at: new Date().toISOString(),
+      }));
+      const { error } = await sb.from('grade_entries')
+        .upsert(rows, { onConflict: 'grade_period_id,offering_id,student_id,teacher_id' });
+      if (error) throw error;
+      okFiles++; okStudents += rows.length;
+    } catch (e) {
+      failMsgs.push(`${b.courseLabel}：${e.message}`);
+    }
+  }
+
+  closeThModal();
+  if (failMsgs.length) showToast(`部分失敗：${failMsgs.join('；')}`, 'error');
+  else showToast(`✅ 已匯入 ${okFiles} 門課、共 ${okStudents} 筆成績`);
+  document.getElementById('grade-import-input').value = '';
+  loadGradeStatus();
+}
+
 async function viewGradeEntries(offeringId, courseLabel, teacherName) {
-  const { data, error } = await sb.from('grade_entries')
+  const { data: dataRaw, error } = await sb.from('grade_entries')
     .select('score, grade_label, is_withdrawn, is_suspended, notes, students(student_code, name_zh)')
-    .eq('offering_id', offeringId).eq('grade_type','academic')
-    .order('students(student_code)');
+    .eq('offering_id', offeringId).eq('grade_type','academic');
   if (error) { showToast('載入失敗：'+error.message,'error'); return; }
-  if (!data?.length) { showToast('此課程尚無成績記錄','error'); return; }
+  if (!dataRaw?.length) { showToast('此課程尚無成績記錄','error'); return; }
+  const data = dataRaw.slice().sort((a,b) => (a.students?.student_code||'').localeCompare(b.students?.student_code||''));
 
   const rows = data.map((r,i) => {
     const s = r.students||{};
