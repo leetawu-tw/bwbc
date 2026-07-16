@@ -167,6 +167,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .tl-done-wrap summary::-webkit-details-marker{display:none}
 .tl-done-wrap summary{list-style:none}
 .tl-done-wrap[open] summary{margin-bottom:2px}
+.viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
+.viewer-box{background:#fff;border-radius:10px;width:100%;max-width:960px;height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.viewer-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--navy);color:#fff;font-size:13px}
+.viewer-hdr button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+.viewer-frame{flex:1;border:none;width:100%}
+details summary::-webkit-details-marker{display:none}
+details[open] > summary .survey-toggle-arrow{transform:rotate(0deg)}
+details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
 </style>
 </head>
 <body>
@@ -219,6 +227,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')">🎯 課堂調查即時秀</div>
       <div class="side-item" id="nav-survey"      onclick="showSection('survey')">📊 教學意見</div>
       <div class="side-item" id="nav-scholarship" onclick="showSection('scholarship')">🏆 獎學金推薦</div>
+      <div class="side-item" id="nav-forms"       onclick="showSection('forms')">📄 常用表單</div>
       <div class="side-item" id="nav-grades"      onclick="showSection('grades')">📊 成績登錄</div>
       <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')">🧭 操行評分</div>
       <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')">📋 課堂點名</div>
@@ -424,6 +433,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
       <div id="sec-scholarship" class="t-section">
         <div class="section-title">🏆 獎學金推薦</div>
         <div id="scholarship-list">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+      </div>
+
+      <!-- ── 常用表單 section ── -->
+      <div id="sec-forms" class="t-section">
+        <div class="section-title">📄 常用表單</div>
+        <div id="forms-list-wrap">
           <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
         </div>
       </div>
@@ -1137,14 +1154,14 @@ async function viewCourseRoster(offeringId, courseName) {
   body.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
   document.getElementById('roster-modal').classList.add('open');
 
-  const { data: enrolls, error } = await sb.from('enrollments')
+  const { data: enrollsRaw, error } = await sb.from('enrollments')
     .select('status, students(student_code, name_zh)')
     .eq('offering_id', offeringId)
-    .in('status', ['confirmed', 'withdrawn'])
-    .order('students(student_code)');
+    .in('status', ['confirmed', 'withdrawn']);
 
   if (error) { body.innerHTML = `<div style="color:var(--red);font-size:13px">載入失敗：${error.message}</div>`; return; }
-  if (!enrolls?.length) { body.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">目前尚無選課學生</div>'; return; }
+  if (!enrollsRaw?.length) { body.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">目前尚無選課學生</div>'; return; }
+  const enrolls = enrollsRaw.slice().sort((a,b) => (a.students?.student_code||'').localeCompare(b.students?.student_code||''));
 
   const confirmed = enrolls.filter(e => e.status === 'confirmed');
   const withdrawn = enrolls.filter(e => e.status === 'withdrawn');
@@ -2332,17 +2349,16 @@ async function loadGradeSheet(offeringId) {
   empty.style.display = 'none';
 
   // 取得修課學生：confirmed + withdrawn（停修），排除 dropped/rejected/pending
-  const { data: enrollments, error: enrError } = await sb
+  const { data: enrollmentsRaw, error: enrError } = await sb
     .from('enrollments')
     .select('id, status, student_id')
     .eq('offering_id', offeringId)
-    .in('status', ['confirmed', 'withdrawn'])
-    .order('student_id');
+    .in('status', ['confirmed', 'withdrawn']);
 
   if (enrError) { console.error('enrollments error:', enrError); }
 
   // 單獨查學生資料（避免 RLS join 問題）
-  const stuIds = (enrollments||[]).map(e => e.student_id);
+  const stuIds = (enrollmentsRaw||[]).map(e => e.student_id);
   let studentMap = {};
   if (stuIds.length) {
     const { data: students } = await sb.from('students')
@@ -2350,6 +2366,10 @@ async function loadGradeSheet(offeringId) {
       .in('id', stuIds);
     (students||[]).forEach(s => { studentMap[s.id] = s; });
   }
+
+  // 依學號排序（原本用.order('student_id')排的是enrollments自己的UUID，跟學號完全無關，順序看起來很奇怪）
+  const enrollments = (enrollmentsRaw||[]).slice().sort((a,b) =>
+    (studentMap[a.student_id]?.student_code||'').localeCompare(studentMap[b.student_id]?.student_code||''));
 
   // 取得已有的成績記錄
   const { data: existingEntries } = await sb
@@ -2937,6 +2957,212 @@ async function submitConductBatch(adjField, submittedField) {
 }
 
 /* ════ 🏆 獎學金推薦（只有主授教師能填，截止前可隨時修改） ════ */
+// 附件線上看（PDF瀏覽器原生顯示，Word/Excel用微軟線上檢視器嵌入）
+function openViewer(encodedUrl, ext, fileName) {
+  const url = decodeURIComponent(encodedUrl);
+  const isPdf = ext === 'pdf';
+  const src = isPdf ? url : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+  const overlay = document.createElement('div');
+  overlay.className = 'viewer-overlay';
+  overlay.innerHTML = `
+    <div class="viewer-box">
+      <div class="viewer-hdr">
+        <span>${fileName.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+        <button onclick="this.closest('.viewer-overlay').remove()">✕ 關閉</button>
+      </div>
+      <iframe src="${src}" class="viewer-frame"></iframe>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+const FORMS_CATEGORY_LABEL_T = { teacher:'👨‍🏫 教師專用', general:'📋 全體專用' };
+
+async function loadFormsSection() {
+  const wrap = document.getElementById('forms-list-wrap');
+  wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
+  try {
+    const { data } = await sb.from('forms').select('*')
+      .eq('active', true).in('category', ['teacher','general'])
+      .order('sort_order');
+    let html = '';
+    Object.keys(FORMS_CATEGORY_LABEL_T).forEach(cat => {
+      const list = (data||[]).filter(f => f.category === cat);
+      html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px;margin-bottom:16px">
+        <div style="font-weight:600;font-size:15px;margin-bottom:12px;color:var(--navy)">${FORMS_CATEGORY_LABEL_T[cat]}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${list.length ? list.map(f => renderFormRowT(f)).join('') : '<div style="color:var(--ink3);font-size:12.5px;padding:6px 0">目前尚無表單</div>'}
+        </div>
+      </div>`;
+    });
+    wrap.innerHTML = html;
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px;font-size:13px">載入失敗：${e.message}</div>`;
+  }
+}
+
+function renderFormRowT(f) {
+  const { data: pub } = sb.storage.from('forms').getPublicUrl(f.storage_path);
+  const url = pub.publicUrl;
+  const ext = (f.file_name.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+  const canView = ['pdf','doc','docx','ppt','pptx','xls','xlsx'].includes(ext);
+  const safeFn = f.file_name.replace(/'/g,"\\'");
+  return `
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      ${canView ? `<a href="javascript:void(0)" onclick="openViewer('${encodeURIComponent(url)}','${ext}','${safeFn}')" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:3px 10px;border-radius:20px;background:var(--navy3);color:var(--navy);text-decoration:none;border:1px solid rgba(43,95,160,.2)">👁 線上看</a>` : ''}
+      <a href="${url}" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 10px;background:var(--cr3);border-radius:20px;color:var(--ink);text-decoration:none">📎 ${f.title}</a>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════════════
+ * 📊 教學意見調查（教師端：只看自己開課的部分，統計結果匿名彙總）
+ * ════════════════════════════════════════════════════════ */
+async function loadTeacherSurveys() {
+  const wrap = document.getElementById('survey-list');
+  wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
+  try {
+    // 找自己的開課記錄
+    const { data: myOfferings } = await sb.from('offering_teachers').select('offering_id').eq('teacher_id', ME.id);
+    const offIds = [...new Set((myOfferings||[]).map(o=>o.offering_id))];
+    if (!offIds.length) { wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">目前沒有開課記錄</div>'; return; }
+
+    // 找這些開課記錄有產生過調查連結（token）的調查，代表這份調查涵蓋自己的課
+    const { data: tokens } = await sb.from('survey_tokens').select('survey_id, offering_id, used').in('offering_id', offIds);
+    if (!tokens?.length) { wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">目前沒有涵蓋您課程的教學意見調查</div>'; return; }
+
+    const surveyIds = [...new Set(tokens.map(t=>t.survey_id))];
+    const { data: surveysRaw } = await sb.from('surveys').select('*, semesters(label, academic_year, semester_num)').in('id', surveyIds);
+    // 依「學期先後＋期中/期末順序」排序（同學期期末排在期中後面），不是依建立時間
+    // （這裡刻意不用created_at：測試用的調查資料建立時間可能比真實調查更新，導致排序語意不對）
+    const ROUND_ORDER = { midterm: 0, final: 1 };
+    const surveys = (surveysRaw||[]).slice().sort((a,b) => {
+      const ay = (b.semesters?.academic_year||0) - (a.semesters?.academic_year||0);
+      if (ay) return ay;
+      const sn = (b.semesters?.semester_num||0) - (a.semesters?.semester_num||0);
+      if (sn) return sn;
+      return (ROUND_ORDER[b.round]??0) - (ROUND_ORDER[a.round]??0);
+    });
+    const { data: offs } = await sb.from('v_course_schedule').select('offering_id, name_zh, code').in('offering_id', offIds);
+    const courseMap = {}; (offs||[]).forEach(o=>courseMap[o.offering_id]=o);
+
+    let html = '';
+    (surveys||[]).forEach(s => {
+      const myTokens = tokens.filter(t => t.survey_id === s.id);
+      const total = myTokens.length;
+      const used = myTokens.filter(t=>t.used).length;
+      const rate = total ? Math.round(used/total*100) : 0;
+      const byOffering = {};
+      myTokens.forEach(t => { (byOffering[t.offering_id] ||= {total:0, used:0}); byOffering[t.offering_id].total++; if (t.used) byOffering[t.offering_id].used++; });
+
+      html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:18px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+          <span style="font-size:11px;padding:3px 10px;border-radius:12px;background:${s.status==='open'?'#E8F5E9':'#F1F1F1'};color:${s.status==='open'?'#2E7D32':'#666'}">${s.status==='open'?'開放中':'已截止'}</span>
+          <strong style="font-size:15px">${s.title}</strong>
+          <span style="font-size:12px;color:var(--ink3)">${s.semesters?.label||''}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
+          ${Object.keys(byOffering).map(oid => {
+            const c = courseMap[oid] || {};
+            const b = byOffering[oid];
+            const p = b.total ? Math.round(b.used/b.total*100) : 0;
+            return `<div style="font-size:12.5px;color:var(--ink2);background:var(--cr3);padding:6px 10px;border-radius:6px">${c.name_zh||'（課程）'}　填答 ${b.used} / ${b.total}（${p}%）</div>`;
+          }).join('')}
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:10px">全部課程合計：填答 ${used} / ${total}（${rate}%）</div>
+        <button class="btn btn-pri btn-sm" onclick="viewMySurveyStats('${s.id}','${s.title.replace(/'/g,"\\'")}')">📊 查看統計結果</button>
+      </div>`;
+    });
+    wrap.innerHTML = html || '<div style="color:var(--ink3);font-size:13px;padding:20px">目前沒有涵蓋您課程的教學意見調查</div>';
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px;font-size:13px">載入失敗：${e.message}</div>`;
+  }
+}
+
+// 統計結果只彙整「自己開的課」，不會看到其他老師的課程資料，填答內容本身也匿名（不知道是哪位學生填的）
+async function viewMySurveyStats(surveyId, surveyTitle) {
+  const wrap = document.getElementById('survey-list');
+  wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">統計中…</div>';
+  try {
+    const { data: myOfferings } = await sb.from('offering_teachers').select('offering_id').eq('teacher_id', ME.id);
+    const offIds = [...new Set((myOfferings||[]).map(o=>o.offering_id))];
+
+    const { data: questions } = await sb.from('survey_questions').select('*').eq('active', true).order('sort_order');
+    const { data: responses } = await sb.from('survey_responses').select('*').eq('survey_id', surveyId).in('offering_id', offIds);
+
+    let html = `<button class="btn btn-sec btn-sm" onclick="loadTeacherSurveys()">← 返回列表</button>
+      <div style="font-weight:600;font-size:15px;margin:12px 0">${surveyTitle}　統計結果</div>`;
+
+    if (!responses?.length) {
+      html += '<div style="color:var(--ink3);font-size:13px;padding:20px 0">目前尚無填答資料</div>';
+      wrap.innerHTML = html; return;
+    }
+
+    const { data: courses } = await sb.from('v_course_schedule').select('offering_id, name_zh, code').in('offering_id', offIds);
+    const cMap = {}; (courses||[]).forEach(c=>cMap[c.offering_id]=c);
+    const { data: enrolls } = await sb.from('enrollments').select('offering_id').eq('status','confirmed').in('offering_id', offIds);
+    const enrollCountMap = {}; (enrolls||[]).forEach(e => { enrollCountMap[e.offering_id] = (enrollCountMap[e.offering_id]||0) + 1; });
+
+    const byCourse = {};
+    responses.forEach(r => {
+      if (!byCourse[r.offering_id]) byCourse[r.offering_id] = {
+        offering_id: r.offering_id, course: cMap[r.offering_id]?.name_zh || '未知課程', code: cMap[r.offering_id]?.code || '',
+        enrollCount: enrollCountMap[r.offering_id] || 0, answers:{}, respondents:new Set()
+      };
+      const c = byCourse[r.offering_id];
+      c.respondents.add(r.enrollment_id);
+      if (!c.answers[r.question_id]) c.answers[r.question_id] = [];
+      c.answers[r.question_id].push(r.answer);
+    });
+
+    const SCALE = ['非常同意','同意','普通','不同意','非常不同意'];
+    const SCORE = {'非常同意':5,'同意':4,'普通':3,'不同意':2,'非常不同意':1};
+    const SCALE_COLOR = {'非常同意':'#2E9E5B','同意':'#8BC34A','普通':'#F0C419','不同意':'#F2994A','非常不同意':'#E5544D'};
+
+    Object.values(byCourse).sort((a,b)=>a.course.localeCompare(b.course,'zh')).forEach((c,ci) => {
+      const n = c.respondents.size;
+      const ratePct = c.enrollCount ? Math.round(n/c.enrollCount*100) : 0;
+      html += `<details style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:18px;margin-bottom:14px">
+        <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;user-select:none">
+          <span class="survey-toggle-arrow" style="display:inline-block;transition:transform .15s;color:var(--ink3);font-size:12px">▾</span>
+          <strong style="font-size:14px;color:var(--navy)">${c.course}</strong>
+          <span style="font-size:12px;color:var(--ink3)">　${c.code}　修課 ${c.enrollCount} 人　填答 ${n} 人（${ratePct}%）</span>
+        </summary>
+        <div style="margin-top:14px">`;
+      questions.forEach((q,qi) => {
+        const ans = c.answers[q.id] || [];
+        html += `<div style="margin-bottom:14px">
+          <div style="font-size:13px;font-weight:500;margin-bottom:8px">${qi+1}. ${q.question_text}</div>`;
+        if (q.type === 'single') {
+          const cnt = {}; SCALE.forEach(s=>cnt[s]=0);
+          let sum=0, valid=0;
+          ans.forEach(a=>{ if(a in cnt){cnt[a]++; sum+=SCORE[a]||0; valid++;} });
+          const avg = valid ? (sum/valid).toFixed(2) : '—';
+          html += `<div style="display:flex;flex-direction:column;gap:4px">`;
+          SCALE.forEach(s=>{
+            const v = cnt[s]; const pct = valid ? Math.round(v/valid*100) : 0;
+            html += `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+              <span style="width:70px;color:${SCALE_COLOR[s]};font-weight:500">${s}</span>
+              <div style="flex:1;background:var(--cr2);border-radius:4px;height:16px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${SCALE_COLOR[s]}"></div></div>
+              <span style="width:60px;text-align:right;color:var(--ink3)">${v} 人 ${pct}%</span>
+            </div>`;
+          });
+          html += `<div style="font-size:12.5px;color:var(--navy);font-weight:500;margin-top:4px">平均分：${avg} / 5.0</div></div>`;
+        } else {
+          const texts = ans.filter(a=>a && a.trim());
+          html += texts.length
+            ? `<div style="display:flex;flex-direction:column;gap:6px">${texts.map(t=>`<div style="font-size:13px;color:var(--ink2);background:var(--cr3);border-radius:6px;padding:8px 12px;line-height:1.6">${t.replace(/</g,'&lt;')}</div>`).join('')}</div>`
+            : `<div style="font-size:12.5px;color:var(--ink3)">（無文字回饋）</div>`;
+        }
+        html += `</div>`;
+      });
+      html += `</div></details>`;
+    });
+
+    wrap.innerHTML = html;
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px;font-size:13px">統計失敗：${e.message}</div>`;
+  }
+}
+
 async function loadScholarshipSection() {
   const wrap = document.getElementById('scholarship-list');
   wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
@@ -3066,6 +3292,8 @@ function showSection(id) {
   if (id === 'conduct') { loadConductSection(); }
   if (id === 'attendance') { loadTAttOfferings(); }
   if (id === 'scholarship') { loadScholarshipSection(); }
+  if (id === 'survey') { loadTeacherSurveys(); }
+  if (id === 'forms') { loadFormsSection(); }
 }
 // 相容舊呼叫
 function switchTab(id, btn) {
