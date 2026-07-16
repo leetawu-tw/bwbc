@@ -2451,3 +2451,42 @@ Claude 每次開新對話，是從 **Claude Project 裡存的檔案**（不是�
 
 - 這次開發期間遇到一次Supabase平台Storage服務不穩定（官方status page有公告事故），導致資料庫寫入成功但實際檔案沒有真的落地到Storage的情況——這不是程式邏輯問題，是平台端問題。如果之後又遇到「畫面顯示上傳成功、但Storage是空的」，先去Supabase status page確認有沒有進行中的事故，不要當成新bug排查
 - 目前沒有清理孤兒記錄的機制（`ethics_review_uploads`有記錄但Storage沒有對應檔案的情況），如果之後常態性發生，需要另外規劃比對/清理工具
+
+---
+
+## 41. 教師端「教學意見調查」結果查看（2026-07-15 新增）
+
+**教師端 → 左側「教學意見」**
+
+原本這個選單項目**完全是空殼**——`showSection()`裡沒有任何觸發邏輯，點進去永遠停在「載入中…」。這次補齊完整功能：
+
+### 功能內容
+- 列出涵蓋自己開課的所有調查（開放中/已截止都會顯示，只要`teacher_visible`允許）
+- 每份調查顯示各科填答率、全部課程合計填答率
+- 「📊 查看統計結果」：匿名彙總（單選題長條圖+平均分、文字題原文列出但不透露填答者），**只看得到自己開的課**，看不到其他老師的課程
+- 每個科目統計區塊可收合/展開（預設全部收合，老師自己選要先看哪一科）
+- 調查列表排序：**依學期先後＋期中/期末順序**（同學期期末排在期中後面），**刻意不用建立時間排序**——因為測試用的調查資料建立時間可能比正式調查更新，會導致排序語意不對，這是實際踩過的坑
+
+### 關鍵bug：`surveys`表RLS漏了teacher角色
+除了「忘記接線」這個明顯的bug，深入排查後發現一個更根本的問題：`surveys`表的RLS政策原本是
+```
+current_user_can_read('surveys') OR status = 'open'
+```
+`teacher`角色對任何`perm_key`永遠回傳`none`，所以老師**只能看得到狀態是`open`（開放中）的調查**——這解釋了使用者最初回報的「已截止的調查，老師看不到」。修正後政策：
+```
+current_user_can_read('surveys') OR status = 'open'
+OR (teacher_visible = true AND EXISTS(
+      SELECT 1 FROM survey_tokens st JOIN offering_teachers ot ON ot.offering_id = st.offering_id
+      WHERE st.survey_id = surveys.id AND ot.teacher_id = current_teacher_id()))
+```
+
+### 新增`teacher_visible`欄位：admin可控制是否公開結果給老師
+`surveys`表新增`teacher_visible`欄位（預設`false`）。admin端每張調查卡片新增狀態標籤（👁老師可見結果／🔒老師不可見結果）+ 切換按鈕。**用途**：admin可能會建立測試用的調查（例如「測試期中教學意見調查」），這種不該讓老師看到統計結果，用這個開關手動控制，不會因為調查本身截止就自動曝光給老師。
+
+### 這次的除錯過程值得記錄的教訓
+排查這個bug花了非常多輪，因為表面上每一層資料都查得到（`offering_teachers`查得到9筆、`survey_tokens`查得到56筆、手動在Console呼叫函式也完全正常），但實際點擊畫面卻一直失敗。最後追查到問題出在**中間依賴的另一張表**（`surveys`本身）的RLS，不是我們一直在檢查的`survey_tokens`（那張表本來就刻意不開RLS）。詳細排查方法論見skill troubleshooting症狀14。
+
+---
+
+*本手冊持續更新。每次系統功能變更時同步更新本文件。*
+*系統版本：admin v9.1 / teacher v2.15 / student v2.9 / live-poll v1.0　最後更新：2026-07-15*
