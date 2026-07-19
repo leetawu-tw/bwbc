@@ -889,9 +889,9 @@ async function enterApp(user) {
 }
 
 /* ════ 共用：依日期判斷現在學期（不依賴 is_current，那個欄位只給admin排課範圍用） ════ */
-let _currentSemCache = null;
-async function getCurrentSemester() {
-  if (_currentSemCache) return _currentSemCache;
+let _dateCurrentSemCache = null;
+async function getCurrentSemesterByDate() {
+  if (_dateCurrentSemCache) return _dateCurrentSemCache;
   const { data: sems } = await sb.from('semesters')
     .select('id,label,start_date,end_date').order('start_date');
   if (!sems?.length) return null;
@@ -903,8 +903,8 @@ async function getCurrentSemester() {
       return d < best.d ? {i, d} : best;
     }, {i: 0, d: Infinity}).i;
   }
-  _currentSemCache = sems[idx];
-  return _currentSemCache;
+  _dateCurrentSemCache = sems[idx];
+  return _dateCurrentSemCache;
 }
 
 /* ════ 時程提醒（過去/現在/未來三段式） ════ */
@@ -916,13 +916,9 @@ async function loadTeacherTimeline() {
   if (!sems?.length) { el.innerHTML = '<div style="color:var(--ink3)">無時程資料</div>'; return; }
 
   const now = new Date();
-  let idx = sems.findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
-  if (idx === -1) {
-    idx = sems.reduce((best, s, i) => {
-      const d = Math.abs(new Date(s.start_date) - now);
-      return d < best.d ? {i, d} : best;
-    }, {i: 0, d: Infinity}).i;
-  }
+  const curSemInfo = await getCurrentSemesterByDate(); // 共用函式，不再自己重複寫一份日期比對邏輯
+  let idx = sems.findIndex(s => s.id === curSemInfo?.id);
+  if (idx === -1) idx = 0; // 理論上不會發生，防呆
   const prev = sems[idx - 1] || null;
   const cur  = sems[idx] || null;
   const next = sems[idx + 1] || null;
@@ -1026,9 +1022,16 @@ async function loadPublicAnnouncements(role) {
       const annAtts = attMap[a.id]||[];
       const attHtml = annAtts.length
         ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-            ${annAtts.map(att=>`<a href="${signedMap[att.id]}" target="_blank"
-              style="font-size:11px;padding:3px 10px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
-              📎 ${att.filename}</a>`).join('')}
+            ${annAtts.map(att=>{
+              const ext = (att.filename.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+              const canView = ['pdf','doc','docx','ppt','pptx','xls','xlsx'].includes(ext);
+              const safeFn = att.filename.replace(/'/g,"\\'");
+              return `${canView ? `<a href="javascript:void(0)" onclick="openViewer('${encodeURIComponent(signedMap[att.id])}','${ext}','${safeFn}')"
+                style="font-size:11px;padding:3px 10px;border-radius:12px;background:var(--navy3);color:var(--navy);text-decoration:none;display:inline-flex;align-items:center;gap:4px">👁 線上看</a>` : ''}
+              <a href="${signedMap[att.id]}" target="_blank"
+                style="font-size:11px;padding:3px 10px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+                📎 ${att.filename}</a>`;
+            }).join('')}
            </div>` : '';
       const hasBody = a.content || annAtts.length;
       const expStr = a.expires_at ? `至 ${new Date(a.expires_at).toLocaleDateString('zh-TW')}` : '';
@@ -1107,7 +1110,7 @@ async function loadMyCourses() {
   const sel = document.getElementById('my-sem-filter');
   if (sel) {
     sel.innerHTML = '<option value="">全部學期</option>' + sems.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
-    const curSem = await getCurrentSemester();
+    const curSem = await getCurrentSemesterByDate();
     if (curSem && sems.includes(curSem.label)) sel.value = curSem.label;
     else if (sems.length > 0) sel.value = sems[0];
   }
@@ -1343,7 +1346,7 @@ async function loadAllCourses() {
   const sems = [];
   ALL_COURSES.forEach(c => { if (c.semester_label && !sems.includes(c.semester_label)) sems.push(c.semester_label); });
   let defaultSem = '';
-  const curSem = await getCurrentSemester();
+  const curSem = await getCurrentSemesterByDate();
   if (curSem && sems.includes(curSem.label)) defaultSem = curSem.label;
   else if (sems.length) defaultSem = sems[0];
 
@@ -2241,11 +2244,22 @@ async function loadGradesSection() {
              offering:course_offerings(id, courses(code, name_zh))`)
     .eq('teacher_id', ME.id);
 
-  // 只顯示 is_active=true 且在期限內的
+  // 只顯示 is_active=true 且在期限內的；但如果這門課曾被admin「退回」解鎖過（即使期程已過期），也要讓老師進得去，
+  // 不然admin的「退回」動作等於白做——老師還是看不到、改不了
   const now = new Date();
+  const offeringIdsToCheck = (assignments||[]).map(a => a.offering_id);
+  let unlockedOfferingIds = new Set();
+  if (offeringIdsToCheck.length) {
+    const { data: unlockedEntries } = await sb.from('grade_entries')
+      .select('offering_id').eq('teacher_id', ME.id).eq('grade_type','academic')
+      .eq('status','draft').eq('is_locked', false).not('unlocked_at','is',null)
+      .in('offering_id', offeringIdsToCheck);
+    unlockedOfferingIds = new Set((unlockedEntries||[]).map(e => e.offering_id));
+  }
   _gradeAssignments = (assignments||[]).filter(a => {
     const gp = a.grade_period;
     if (!gp?.is_active) return false;
+    if (unlockedOfferingIds.has(a.offering_id)) return true; // admin明確退回解鎖過，例外放行
     if (gp.open_at  && new Date(gp.open_at)  > now) return false;
     if (gp.close_at && new Date(gp.close_at) < now) return false;
     return true;
@@ -2432,11 +2446,11 @@ async function loadGradeSheet(offeringId) {
       <td>${s?.name_zh||'—'}</td>
       <td>
         ${disabled ? `<span style="color:var(--ink3)">${isWithdrawn||isSuspended ? '—' : score}</span>`
-          : `<input type="number" min="0" max="100" step="1" value="${score}"
+          : `<input type="number" min="0" max="100" step="0.1" value="${score}"
               style="width:80px;padding:3px 6px;border:1px solid var(--cr2);border-radius:4px;font-size:13px"
               data-sid="${e.student_id}"
               onchange="onScoreChange(this)"
-              onblur="if(this.value!==''&&(this.value<0||this.value>100)){this.value=Math.min(100,Math.max(0,Math.round(this.value)));onScoreChange(this)}">`}
+              onblur="if(this.value!==''&&(this.value<0||this.value>100)){this.value=Math.min(100,Math.max(0,Number(this.value)));onScoreChange(this)}">`}
       </td>
       <td id="grade-label-${e.student_id}" style="font-size:13px;font-weight:500">${gradeLabel}</td>
       <td style="font-size:12px;color:var(--ink3)">${notes}</td>
@@ -2519,10 +2533,10 @@ async function submitGrades() {
     if (!inp) return; // 停修/休學無 input，跳過
     const val = inp.value.trim();
     const num = Number(val);
-    if (val === '' || isNaN(num) || num < 0 || num > 100 || !Number.isInteger(num)) {
+    if (val === '' || isNaN(num) || num < 0 || num > 100) {
       const name = tr.cells[2]?.textContent.trim() || `第${idx+1}筆`;
       if (val === '') errors.push(`${name}：成績空白`);
-      else errors.push(`${name}：成績「${val}」不符合（需為 0~100 的整數）`);
+      else errors.push(`${name}：成績「${val}」不符合（需為 0~100 的數字）`);
     }
   });
 
@@ -2782,7 +2796,7 @@ async function loadConductSection() {
   const wrap = document.getElementById('conduct-wrap');
   wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
 
-  const sem = await getCurrentSemester();
+  const sem = await getCurrentSemesterByDate();
   if (!sem) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">查無現在學期資料</div>'; return; }
 
   // 期程提示（同成績登錄的純參考模式）
@@ -3331,7 +3345,7 @@ async function loadTAttOfferings() {
 
   // 直接沿用已經載入的 MY_COURSES（loadMyCourses 已經抓過這位老師教的所有開課記錄）
   const all = (MY_COURSES||[]).slice();
-  const curSem = await getCurrentSemester();
+  const curSem = await getCurrentSemesterByDate();
   const curLabel = curSem ? curSem.label : null;
   const showPast = document.getElementById('tatt-show-past').checked;
 

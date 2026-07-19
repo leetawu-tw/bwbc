@@ -319,6 +319,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div class="nav-section">
         <div class="nav-label">課程管理</div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('offerings',this)"><span class="nav-icon">📅</span>開課記錄</div>
+        <div class="nav-item" data-perm="open_courses" onclick="showPage('ta-match',this)"><span class="nav-icon">🙋</span>TA配對 <span class="badge badge-warn" id="ta-pending-badge" style="margin-left:auto;display:none">0</span></div>
         <div class="nav-item" id="nav-schedules" data-perm="open_courses" onclick="toggleScheduleMenu()" style="justify-content:space-between">
           <span><span class="nav-icon">🗓</span>課表展開</span>
           <span id="sched-arrow" style="font-size:11px;transition:transform .2s">▼</span>
@@ -506,6 +507,20 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <tbody id="conflicts-body"></tbody>
           </table>
         </div>
+      </div>
+
+      <!-- ▌TA配對 ▌-->
+      <div id="page-ta-match" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">🙋 TA配對</div>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:14px">
+          顯示課程大綱裡勾選「需要教學助理」的科目，分「開放申請」跟「行政直接指定」兩類，兩種模式都能在這裡完成配對，不用再切換到開課記錄。
+        </div>
+        <div style="margin-bottom:14px">
+          <select id="ta-match-semester" class="fselect" style="width:160px" onchange="loadTaMatch()"></select>
+        </div>
+        <div id="ta-match-wrap"><div style="text-align:center;padding:40px;color:var(--ink3)">載入中…</div></div>
       </div>
 
       <!-- ▌課程管理 ▌-->
@@ -1037,6 +1052,9 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <option value="">全年級</option>
             </select>
             <input class="search" id="cd-search" placeholder="🔍 學號或姓名…" style="width:200px" oninput="renderConductList()">
+            <button class="btn btn-sec" onclick="downloadConductSummaryExcel()">📥 彙總Excel</button>
+            <button class="btn btn-sec" onclick="downloadAllConductSlipsPDF()">📦 全部成績單PDF</button>
+            <button class="btn btn-sec" onclick="downloadAllConductSlipsExcel()">📊 全部成績單Excel</button>
           </div>
           <div class="tbl-wrap">
             <table>
@@ -1050,6 +1068,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               </tbody>
             </table>
           </div>
+          <div id="conduct-nonactive-wrap" style="margin-top:16px"></div>
         </div>
       </div>
 
@@ -1304,6 +1323,15 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div class="frow">
         <label class="flabel">備註</label>
         <textarea class="finput" id="stu-notes" rows="2"></textarea>
+      </div>
+
+      <!-- 狀態異動歷程（只有編輯既有學生時才顯示，新增學生還沒有歷程可看） -->
+      <div id="stu-status-history-wrap" style="display:none;margin-top:14px;border-top:1px solid var(--cr2);padding-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="flabel" style="margin:0">📜 狀態異動歷程</div>
+          <button class="btn btn-sec btn-sm" onclick="openAddStatusHistoryForm()">＋ 補登歷史記錄</button>
+        </div>
+        <div id="stu-status-history-list" style="font-size:12.5px;color:var(--ink3)">載入中…</div>
       </div>
 
       <!-- 帳號建立提示 -->
@@ -2238,7 +2266,12 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <option value="false">不需要</option>
         </select>
         <label class="flabel">教學助理條件說明（選填）</label>
-        <textarea class="finput" id="sy-ta-note" rows="2" placeholder="例：需熟悉XX軟體、需有帶班經驗等" style="width:100%;resize:vertical"></textarea>
+        <textarea class="finput" id="sy-ta-note" rows="2" placeholder="例：需熟悉XX軟體、需有帶班經驗等" style="width:100%;resize:vertical;margin-bottom:10px"></textarea>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+          <input type="checkbox" id="sy-ta-open"> <span class="flabel" style="margin:0">開放學生申請TA（勾選後會出現在學生端「TA申請」清單；不勾選就是由行政/老師直接指定，不開放申請）</span>
+        </label>
+        <label class="flabel">開放申請名額</label>
+        <input type="number" class="finput" id="sy-ta-slots" min="1" value="1" style="width:100px">
       </div>
     </div>
     <div class="sy-section">
@@ -3280,15 +3313,10 @@ async function updateDashboard() {
     .select('id,label,academic_year,semester_num,is_current,start_date,end_date')
     .order('academic_year').order('semester_num');
 
-  // 找 CURRENT_SEM（依日期判斷，不依賴 is_current——那個欄位只給排課可編輯範圍用）
-  const now = new Date();
-  let curIdx2 = (allSems||[]).findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
-  if (curIdx2 === -1 && allSems?.length) {
-    curIdx2 = allSems.reduce((best, s, i) => {
-      const d = Math.abs(new Date(s.start_date) - now);
-      return d < best.d ? {i, d} : best;
-    }, {i: 0, d: Infinity}).i;
-  }
+  // 找 CURRENT_SEM（呼叫共用函式，不再自己重複寫一份日期比對邏輯）
+  const curSemInfo = await getCurrentSemesterByDate();
+  let curIdx2 = (allSems||[]).findIndex(s => s.id === curSemInfo?.id);
+  if (curIdx2 === -1) curIdx2 = 0; // 理論上不會發生，防呆
   const curSem = curIdx2 > -1 ? allSems[curIdx2] : null;
   const nextSem = curIdx2 > -1 && curIdx2 < (allSems?.length||0) - 1 ? allSems[curIdx2 + 1] : null;
 
@@ -3331,14 +3359,8 @@ async function updateDashboard() {
   // 動態時程提醒（過去/現在/未來三段式，依今天日期算，不依賴 is_current）
   const timeline = document.getElementById('d-timeline');
   if (timeline) {
-    const now = new Date();
-    let tlIdx = allSems.findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
-    if (tlIdx === -1) {
-      tlIdx = allSems.reduce((best, s, i) => {
-        const d = Math.abs(new Date(s.start_date) - now);
-        return d < best.d ? {i, d} : best;
-      }, {i: 0, d: Infinity}).i;
-    }
+    const now = new Date(); // tlDaysLeft等後續計算還會用到，保留宣告
+    const tlIdx = curIdx2; // 沿用上面已經算好的現在學期索引，不用重新查一次
     const tlPrev = allSems[tlIdx - 1] || null;
     const tlCur  = allSems[tlIdx] || null;
     const tlNext = allSems[tlIdx + 1] || null;
@@ -6449,6 +6471,8 @@ function renderSyllabus() {
   document.getElementById('sy-prereq-note').value=d.prerequisite_note||'';
   document.getElementById('sy-ta-needed').value = d.ta_needed===true?'true':(d.ta_needed===false?'false':'');
   document.getElementById('sy-ta-note').value=d.ta_requirement_note||'';
+  document.getElementById('sy-ta-open').checked = !!d.ta_open_for_apply;
+  document.getElementById('sy-ta-slots').value = d.ta_slots||1;
   renderObjs(); renderMths(); renderAsmnt(); renderWeeks(); renderBib();
   if (SY.is_digital) renderDigitalInfo();
 }
@@ -6633,6 +6657,8 @@ async function saveSyllabus() {
     prerequisite_note: document.getElementById('sy-prereq-note').value,
     ta_needed: document.getElementById('sy-ta-needed').value===''?null:(document.getElementById('sy-ta-needed').value==='true'),
     ta_requirement_note: document.getElementById('sy-ta-note').value,
+    ta_open_for_apply: document.getElementById('sy-ta-open').checked,
+    ta_slots: parseInt(document.getElementById('sy-ta-slots').value) || 1,
     objectives: SY.data.objectives||[], methods: SY.data.methods||[],
     assessment: SY.data.assessment||[], weeks: SY.data.weeks||[],
     bibliography: SY.data.bibliography||{required:[],optional:[]},
@@ -6880,7 +6906,24 @@ async function parseStandardSyllabusDocx(arrayBuffer, isDigital) {
   });
 
   const getText = (key) => (sections[key]||[]).filter(el=>el.tagName!=='TABLE').map(el=>el.textContent.trim()).filter(Boolean).join('\n');
-  const getListItems = (key) => (sections[key]||[]).filter(el=>el.tagName!=='TABLE').map(el=>el.textContent.replace(/^\d+[.、]\s*/,'').trim()).filter(Boolean);
+  // 項目清單解析：Word裡常見兩種寫法——(a)每項各自獨立成一個段落 (b)全部擠在同一段落、用Shift+Enter軟換行分行
+  // 這裡統一先把每個段落的文字用\n打散成一行一行，再依「數字.」或「數字、」開頭切出各項目，兩種寫法都能正確處理
+  const getListItems = (key) => {
+    const lines = (sections[key]||[]).filter(el=>el.tagName!=='TABLE')
+      .flatMap(el => el.textContent.split('\n')).map(l=>l.trim()).filter(Boolean);
+    const items = [];
+    let cur = '';
+    lines.forEach(line => {
+      if (/^\d+[.、]/.test(line)) {
+        if (cur) items.push(cur.trim());
+        cur = line.replace(/^\d+[.、]\s*/, '');
+      } else if (cur) {
+        cur += ' ' + line;
+      }
+    });
+    if (cur) items.push(cur.trim());
+    return items;
+  };
 
   // 改成全文件掃描所有表格，依表頭內容判斷是哪張表（不依賴標題分段，更耐受文件格式差異）
   const allTables = Array.from(wrap.querySelectorAll('table')).map(t=>
@@ -6899,7 +6942,19 @@ async function parseStandardSyllabusDocx(arrayBuffer, isDigital) {
 
   // 評量方式表格（依表頭「項目」「比例」判斷，跳過表頭列）
   const asmntRows = findTableByHeader(['項目','比例']).slice(1).filter(r=>r.some(c=>c));
-  const assessment = asmntRows.map(r=>({ name:r[0]||'', pct:parseFloat(r[1])||0, desc:r[2]||'' }));
+  let assessment = asmntRows.map(r=>({ name:r[0]||'', pct:parseFloat(r[1])||0, desc:r[2]||'' }));
+  // 找不到表格 → 改用文字備援解析：逐行嚴格比對「數字. 項目名稱（NN%）：說明」格式
+  // （刻意不用getListItems的跨行接續邏輯，因為週教學進度可能沒有獨立標題、混在評量方式底下，
+  //   跨行接續會把週次內容誤黏到最後一項評量說明裡）
+  if (!assessment.length) {
+    const lines = (sections['評量方式']||[]).filter(el=>el.tagName!=='TABLE')
+      .flatMap(el => el.textContent.split('\n')).map(l=>l.trim()).filter(Boolean);
+    assessment = [];
+    lines.forEach(line => {
+      const m = line.match(/^\d+[.、]\s*(.*?)[（(]\s*(\d+)\s*%\s*[）)]\s*[:：]?\s*(.*)$/);
+      if (m) assessment.push({ name:m[1].trim(), pct:parseFloat(m[2]), desc:m[3].trim() });
+    });
+  }
 
   // 教學進度表格（依表頭「週次」「主題」判斷，跳過表頭列）
   const weekRows = findTableByHeader(['週次','主題']).slice(1);
@@ -6911,10 +6966,23 @@ async function parseStandardSyllabusDocx(arrayBuffer, isDigital) {
     if (t.includes('實體')) return 'inperson';
     return '';
   };
-  const weeks = weekRows.map((r,i)=>{
-    const weekNum = parseInt(r[0]) || (i+1);
-    return { week:weekNum, title:r[1]||'', teacher:'', content:r[2]||'', mode: matchMode(r[3]) };
-  });
+  let weeks;
+  if (weekRows.length) {
+    weeks = weekRows.map((r,i)=>{
+      const weekNum = parseInt(r[0]) || (i+1);
+      return { week:weekNum, title:r[1]||'', teacher:'', content:r[2]||'', mode: matchMode(r[3]) };
+    });
+  } else {
+    // 找不到表格 → 全文件掃描抓「第N週：內容」這種寫法的段落（數字前後允許有空格，兩種寫法都吃得下）。
+    // 不符合這個格式的行（例如「第一部分：前行」這類分類標題）會被自然跳過，不會誤判成一週。
+    const allLines = Array.from(wrap.querySelectorAll('p, li'))
+      .flatMap(el => el.textContent.split('\n')).map(l=>l.trim()).filter(Boolean);
+    weeks = [];
+    allLines.forEach(line => {
+      const m = line.match(/^第\s*(\d+)\s*週[：:]\s*(.*)$/);
+      if (m) weeks.push({ week: parseInt(m[1]), title: m[2].trim(), teacher:'', content:'', mode:'' });
+    });
+  }
   while (weeks.length < 16) weeks.push({week:weeks.length+1,title:'',teacher:'',content:'',mode:''});
 
   // 參考書目：用 H3「必讀」「參考」切
@@ -8854,6 +8922,179 @@ async function saveClassroom() {
 }
 
 /* ════ CONFLICT ════ */
+/* ════════════════════════════════════════════════════════
+ * 🙋 TA配對（第一階段：配對本身，工讀金另外做）
+ * 涵蓋兩種模式：開放學生申請（審核配對）＋ 行政直接指定（不用等申請）
+ * ════════════════════════════════════════════════════════ */
+async function loadTaMatch() {
+  const semSel = document.getElementById('ta-match-semester');
+  if (!semSel.options.length) {
+    const { data: sems } = await sb.from('semesters').select('id,label').order('label',{ascending:false});
+    semSel.innerHTML = (sems||[]).map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+    const cur = await getCurrentSemesterByDate();
+    if (cur && sems?.find(s=>s.id===cur.id)) semSel.value = cur.id;
+  }
+  await loadTaMatchTable();
+}
+
+async function loadTaMatchTable() {
+  const wrap = document.getElementById('ta-match-wrap');
+  const semId = document.getElementById('ta-match-semester').value;
+  if (!semId) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px">請選擇學期</div>'; return; }
+  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3)">載入中…</div>';
+
+  try {
+    if (!STUDENTS_ALL.length) await loadStudents(); // 直接指定要用到全體學生下拉選單
+
+    const { data: offs } = await sb.from('course_offerings')
+      .select('id, course_id, courses(name_zh, code)').eq('semester_id', semId).eq('is_active', true);
+    const offIds = (offs||[]).map(o=>o.id);
+    if (!offIds.length) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px">此學期尚無開課記錄</div>'; return; }
+
+    // 這次改成抓「所有需要TA」的課（不論開放申請或直接指定），才能兩種模式都在同一頁處理
+    const { data: syls } = await sb.from('syllabi')
+      .select('offering_id, ta_slots, ta_open_for_apply, ta_requirement_note')
+      .in('offering_id', offIds).eq('ta_needed', true);
+    if (!syls?.length) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px">此學期沒有課程標示需要TA</div>'; return; }
+
+    const needTaOfferingIds = syls.map(s=>s.offering_id);
+    const offMap = {}; (offs||[]).forEach(o=>offMap[o.id]=o);
+    const sylMap = {}; syls.forEach(s=>sylMap[s.offering_id]=s);
+
+    const { data: apps } = await sb.from('ta_applications')
+      .select('id, offering_id, student_id, note, status, applied_at, students(student_code, name_zh)')
+      .in('offering_id', needTaOfferingIds).order('applied_at');
+    const { data: matched } = await sb.from('offering_staff')
+      .select('id, offering_id, student_id, students(student_code, name_zh)')
+      .in('offering_id', needTaOfferingIds).eq('role', 'ta');
+
+    const openIds = needTaOfferingIds.filter(id => sylMap[id].ta_open_for_apply);
+    const designatedIds = needTaOfferingIds.filter(id => !sylMap[id].ta_open_for_apply);
+
+    let html = '';
+    if (openIds.length) {
+      html += `<div style="font-weight:600;font-size:13px;color:var(--ink3);margin-bottom:8px">📋 開放學生申請（需要審核配對）</div>`;
+      openIds.forEach(oid => { html += renderOpenApplyCard(oid, offMap[oid], sylMap[oid], apps, matched); });
+    }
+    if (designatedIds.length) {
+      html += `<div style="font-weight:600;font-size:13px;color:var(--ink3);margin:20px 0 8px">🎯 行政直接指定（不開放申請）</div>`;
+      designatedIds.forEach(oid => { html += renderDesignatedCard(oid, offMap[oid], sylMap[oid], matched); });
+    }
+    wrap.innerHTML = html;
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px">載入失敗：${e.message}</div>`;
+  }
+}
+
+function renderOpenApplyCard(oid, off, syl, apps, matched) {
+  const pending = (apps||[]).filter(a=>a.offering_id===oid && a.status==='pending');
+  const matchedList = (matched||[]).filter(m=>m.offering_id===oid);
+  const slots = syl.ta_slots || 1;
+  return `<div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:18px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <strong style="font-size:15px">${off.courses?.name_zh||''}</strong>
+      <span style="font-size:12px;color:var(--ink3)">${off.courses?.code||''}</span>
+      <span style="font-size:12px;padding:2px 10px;border-radius:12px;background:${matchedList.length>=slots?'#E8F5E9':'#FFF3E0'};color:${matchedList.length>=slots?'#2E7D32':'#B05010'}">已配對 ${matchedList.length} / ${slots}</span>
+    </div>
+    ${syl.ta_requirement_note ? `<div style="font-size:12px;color:var(--ink3);margin-bottom:10px">條件說明：${syl.ta_requirement_note}</div>` : ''}
+    ${matchedList.length ? `<div style="margin-bottom:10px">
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">已配對</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${matchedList.map(m=>`<span style="font-size:12px;padding:4px 10px;background:var(--navy3);color:var(--navy);border-radius:14px">${m.students?.name_zh||''} <button onclick="removeTaAssignment('${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--red);margin-left:4px">✕</button></span>`).join('')}
+      </div>
+    </div>` : ''}
+    ${pending.length ? `<div>
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">待審核申請（${pending.length}）</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${pending.map(a=>`
+          <div style="display:flex;align-items:center;gap:8px;background:var(--cr3);padding:8px 12px;border-radius:8px;flex-wrap:wrap">
+            <span style="font-size:13px">${a.students?.student_code||''} ${a.students?.name_zh||''}</span>
+            ${a.note ? `<span style="font-size:12px;color:var(--ink3);flex:1">${a.note}</span>` : '<span style="flex:1"></span>'}
+            <button class="btn btn-pri btn-sm" onclick="approveTaApplication('${a.id}','${oid}','${a.student_id}',${slots},${matchedList.length})">✅ 核准</button>
+            <button class="btn btn-sec btn-sm" onclick="rejectTaApplication('${a.id}')">✕ 婉拒</button>
+          </div>`).join('')}
+      </div>
+    </div>` : '<div style="font-size:12px;color:var(--ink3)">目前沒有待審核的申請</div>'}
+  </div>`;
+}
+
+function renderDesignatedCard(oid, off, syl, matched) {
+  const matchedList = (matched||[]).filter(m=>m.offering_id===oid);
+  const sorted = [...STUDENTS_ALL].sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
+  const studentOptions = '<option value="">— 選擇學生 —</option>' + sorted.map(s=>`<option value="${s.id}">${s.student_code||''}　${s.name_zh||''}</option>`).join('');
+  return `<div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:18px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <strong style="font-size:15px">${off.courses?.name_zh||''}</strong>
+      <span style="font-size:12px;color:var(--ink3)">${off.courses?.code||''}</span>
+      <span style="font-size:12px;padding:2px 10px;border-radius:12px;background:${matchedList.length?'#E8F5E9':'#F0F0F0'};color:${matchedList.length?'#2E7D32':'#888'}">${matchedList.length?`已指定 ${matchedList.length} 位`:'尚未指定'}</span>
+    </div>
+    ${syl.ta_requirement_note ? `<div style="font-size:12px;color:var(--ink3);margin-bottom:10px">條件說明：${syl.ta_requirement_note}</div>` : ''}
+    ${matchedList.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      ${matchedList.map(m=>`<span style="font-size:12px;padding:4px 10px;background:var(--navy3);color:var(--navy);border-radius:14px">${m.students?.name_zh||''} <button onclick="removeTaAssignment('${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--red);margin-left:4px">✕</button></span>`).join('')}
+    </div>` : ''}
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="ta-designate-sel-${oid}" class="fselect" style="flex:1;min-width:180px">${studentOptions}</select>
+      <button class="btn btn-pri btn-sm" onclick="designateTa('${oid}')">＋ 直接指定</button>
+    </div>
+  </div>`;
+}
+
+async function approveTaApplication(appId, offeringId, studentId, slots, currentMatched) {
+  if (currentMatched >= slots) {
+    if (!confirm(`此課程名額已滿（${currentMatched}/${slots}），確定仍要核准這筆申請嗎？`)) return;
+  }
+  try {
+    const { error: e1 } = await sb.from('offering_staff')
+      .insert({ offering_id: offeringId, student_id: studentId, role: 'ta' });
+    if (e1) { showToast('配對失敗：'+e1.message, 'error'); return; }
+    const { error: e2 } = await sb.from('ta_applications')
+      .update({ status: 'matched', reviewed_by: window.ADMIN_USER_ID||null, reviewed_at: new Date().toISOString() })
+      .eq('id', appId);
+    if (e2) { showToast('狀態更新失敗：'+e2.message, 'error'); return; }
+    showToast('✅ 已配對成功');
+    loadTaMatchTable();
+  } catch (e) { showToast('操作失敗：'+e.message, 'error'); }
+}
+
+async function rejectTaApplication(appId) {
+  const note = prompt('婉拒原因（選填）：') || null;
+  try {
+    const { error } = await sb.from('ta_applications')
+      .update({ status: 'rejected', review_note: note, reviewed_by: window.ADMIN_USER_ID||null, reviewed_at: new Date().toISOString() })
+      .eq('id', appId);
+    if (error) { showToast('操作失敗：'+error.message, 'error'); return; }
+    showToast('已婉拒');
+    loadTaMatchTable();
+  } catch (e) { showToast('操作失敗：'+e.message, 'error'); }
+}
+
+// 行政直接指定（不經過申請流程，用在admin/老師已經知道要找誰的課）
+async function designateTa(offeringId) {
+  const sel = document.getElementById(`ta-designate-sel-${offeringId}`);
+  const studentId = sel.value;
+  if (!studentId) { showToast('請先選擇學生','error'); return; }
+  try {
+    const { error } = await sb.from('offering_staff').insert({ offering_id: offeringId, student_id: studentId, role: 'ta' });
+    if (error) {
+      if (error.message.includes('duplicate') || error.code === '23505') { showToast('此學生已經是這門課的TA','error'); return; }
+      showToast('指定失敗：'+error.message, 'error'); return;
+    }
+    showToast('✅ 已直接指定');
+    loadTaMatchTable();
+  } catch (e) { showToast('操作失敗：'+e.message, 'error'); }
+}
+
+// 移除TA指派（不論是配對來的還是直接指定的，都是同一張offering_staff表，共用同一個移除功能）
+async function removeTaAssignment(staffId) {
+  if (!confirm('確定移除這位TA的指派嗎？')) return;
+  try {
+    const { error } = await sb.from('offering_staff').delete().eq('id', staffId);
+    if (error) { showToast('移除失敗：'+error.message, 'error'); return; }
+    showToast('已移除');
+    loadTaMatchTable();
+  } catch (e) { showToast('操作失敗：'+e.message, 'error'); }
+}
+
 async function runConflictCheck(silent=false) {
   if (!silent) showToast('⏳ 執行衝堂偵測中…');
   const semId=await getSemesterId();
@@ -8932,6 +9173,7 @@ function showPage(page, btn) {
   if (page==='courses') loadCourses();
   if (page==='semesters') loadSemesterPage();
   if (page==='conflicts') runConflictCheck(false);
+  if (page==='ta-match') loadTaMatch();
   if (page==='audit') loadAuditLog();
   if (page==='announcements') loadAnnouncements();
   if (page==='todos') loadTodos();
@@ -9574,8 +9816,21 @@ async function generateConductRoster() {
   const semId = document.getElementById('cd-semester').value;
   if (!semId) { showToast('請先選擇學期','error'); return; }
 
-  const { data: students, error: e1 } = await sb.from('students').select('id, cohort').eq('status','active');
+  const { data: semInfo } = await sb.from('semesters').select('start_date,label').eq('id', semId).maybeSingle();
+  if (semInfo?.start_date && new Date(semInfo.start_date) > new Date()) {
+    if (!confirm(`「${semInfo.label}」這個學期還沒開始（開始日期：${semInfo.start_date}），確定現在要產生名單嗎？`)) return;
+  }
+
+  // 只抓在學學生：休學/退學的不需要操行成績，不幫他們建立正式評分記錄
+  // （用另一套獨立顯示邏輯讓他們「看得到、標示狀態」，但不會出現在需要打分數的表格裡）
+  const { data: students, error: e1 } = await sb.from('students').select('id, cohort, enrolled_date').eq('status','active');
   if (e1) { showToast('載入學生失敗：'+e1.message,'error'); return; }
+
+  // 只納入「這個學期開始時已經入學」的學生，避免下學期才入學的新生被提前拉進舊學期的名單
+  // （沒有enrolled_date資料的舊生預設放行，不因為資料缺漏被誤擋）
+  const eligible = semInfo?.start_date
+    ? students.filter(s => !s.enrolled_date || new Date(s.enrolled_date) <= new Date(semInfo.start_date))
+    : students;
 
   const { data: advisors } = await sb.from('v_student_advisors').select('student_id, advisor_teacher_id');
   const advMap = {}; (advisors||[]).forEach(a => advMap[a.student_id] = a.advisor_teacher_id);
@@ -9583,7 +9838,7 @@ async function generateConductRoster() {
   const { data: existing } = await sb.from('conduct_grades').select('student_id').eq('semester_id', semId);
   const existingSet = new Set((existing||[]).map(e=>e.student_id));
 
-  const toInsert = students.filter(s=>!existingSet.has(s.id)).map(s => ({
+  const toInsert = eligible.filter(s=>!existingSet.has(s.id)).map(s => ({
     student_id: s.id, semester_id: semId, advisor_id: advMap[s.id] || null,
   }));
 
@@ -9602,15 +9857,37 @@ async function loadConductRoster() {
   tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
 
   const { data, error } = await sb.from('conduct_grades')
-    .select(`*, students(student_code, name_zh, cohort), teachers(name_zh)`)
+    .select(`*, students(student_code, name_zh, cohort, status), teachers(name_zh)`)
     .eq('semester_id', semId);
   if (error) { tbody.innerHTML = `<tr><td colspan="11" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
 
-  _conductRows = data || [];
+  // 校規：休學當學期，學科跟操行都不算分數——不管這筆記錄是什麼時候建立的（產生名單時還在學、後來才休學也一樣），
+  // 只要「目前」不是在學狀態，一律不列入主表格的正式分數，改移到下方「非在學名單」
+  const allRows = data || [];
+  _conductRows = allRows.filter(r => r.students?.status === 'active');
+  const nonActiveWithRow = allRows.filter(r => r.students?.status && r.students.status !== 'active');
 
-  const cohorts = [...new Set(_conductRows.map(r=>r.students?.cohort).filter(Boolean))].sort((a,b)=>b-a);
+  const cohorts = [...new Set(allRows.map(r=>r.students?.cohort).filter(Boolean))].sort((a,b)=>b-a);
   const cohortSel = document.getElementById('cd-cohort-filter');
   cohortSel.innerHTML = '<option value="">全年級</option>' + cohorts.map(c=>`<option value="${c}">${c}級</option>`).join('');
+
+  // 非在學名單：「有記錄但不算分數」跟「從來沒有記錄」兩種情況合併顯示，畫面上一視同仁
+  const existingNonActiveIds = new Set(nonActiveWithRow.map(r=>r.student_id));
+  const { data: nonActiveStudentsNoRow } = await sb.from('students')
+    .select('id, student_code, name_zh, cohort, status').in('status', ['leave','withdrawn']);
+  const nonActiveList = [
+    ...nonActiveWithRow.map(r => ({ id: r.student_id, student_code: r.students.student_code, name_zh: r.students.name_zh, cohort: r.students.cohort, status: r.students.status })),
+    ...(nonActiveStudentsNoRow||[]).filter(s => !existingNonActiveIds.has(s.id)),
+  ];
+  if (nonActiveList.length) {
+    const naIds = nonActiveList.map(s=>s.id);
+    const { data: naHist } = await sb.from('student_status_history')
+      .select('student_id, changed_at').in('student_id', naIds).order('changed_at', {ascending:false});
+    const naHistMap = {}; (naHist||[]).forEach(h => { if (!naHistMap[h.student_id]) naHistMap[h.student_id] = h; });
+    renderConductNonActiveList(nonActiveList, naHistMap);
+  } else {
+    document.getElementById('conduct-nonactive-wrap').innerHTML = '';
+  }
 
   if (!_conductRows.length) {
     tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--ink3)">尚無名單，請先在上方「期程設定」點「產生／更新本學期名單」</td></tr>';
@@ -9619,9 +9896,166 @@ async function loadConductRoster() {
   renderConductList();
 }
 
+function renderConductNonActiveList(list, histMap) {
+  const wrap = document.getElementById('conduct-nonactive-wrap');
+  const sorted = list.slice().sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
+  wrap.innerHTML = `
+    <div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px">📋 以下學生目前非在學狀態，不需要操行成績（僅供知悉，不會出現在上方評分表格中）</div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      ${sorted.map(s => {
+        const h = histMap[s.id];
+        const dateStr = h ? `　自${new Date(h.changed_at).toLocaleDateString('zh-TW')}` : '';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:6px 12px;background:var(--cr3);border-radius:6px;font-size:12.5px">
+          <span class="mono">${s.student_code||''}</span>
+          <span>${s.name_zh||''}</span>
+          <span style="color:var(--ink3)">${s.cohort||''}級</span>
+          <span style="padding:1px 8px;border-radius:10px;background:#FFE0B2;color:#8A5300">${STU_STATUS_LABEL[s.status]||s.status}${dateStr}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
 function conductFinalScore(r) {
   const total = (r.base_score||85) + (r.advisor_adj||0) + (r.director_adj||0) + (r.merit_demerit||0);
   return Math.min(100, total);
+}
+
+/* ════════════════════════════════════════════════════════
+ * 📥 操行成績下載：彙總Excel（依年級分區）＋ 個人成績單PDF/Excel（只顯示最終分數）
+ * ════════════════════════════════════════════════════════ */
+const CONDUCT_FOOTNOTE = '註：本項操行成績之評定，係依據「福智學校財團法人福智佛教學院學生操行成績評定規定」辦理，基本分為 85 分，導師和所長各可依學生平時表現加減 5 分，滿分以 100 分為限。';
+
+async function ensureXLSX() {
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+}
+
+async function downloadConductSummaryExcel() {
+  if (!_conductRows.length) { showToast('目前沒有可匯出的資料','error'); return; }
+  await ensureXLSX();
+  const semLabel = document.getElementById('cd-semester').selectedOptions[0]?.textContent || '';
+  const cohorts = [...new Set(_conductRows.map(r=>r.students?.cohort).filter(Boolean))].sort((a,b)=>a-b);
+  const header = ['學號','姓名','導師','導師調整','所長調整','獎懲分數','最終分數','導師送出','所長送出'];
+  const aoa = [[`${semLabel} 操行成績彙總`]];
+  cohorts.forEach(c => {
+    const rows = _conductRows.filter(r=>r.students?.cohort===c).slice()
+      .sort((a,b)=>(a.students?.student_code||'').localeCompare(b.students?.student_code||''));
+    aoa.push([], [`${c}級`], header);
+    rows.forEach(r => aoa.push([
+      r.students?.student_code||'', r.students?.name_zh||'', r.teachers?.name_zh||'',
+      r.advisor_adj||0, r.director_adj||0, r.merit_demerit||0, conductFinalScore(r),
+      r.advisor_submitted_at?'已送出':'未送出', r.director_submitted_at?'已送出':'未送出',
+    ]));
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:12},{wch:12},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws, '操行成績彙總');
+  XLSX.writeFile(wb, `${semLabel}_操行成績彙總.xlsx`);
+  showToast('✅ 已下載');
+}
+
+function buildConductSlipHTML(r, semLabel) {
+  return `
+  <div style="width:750px;padding:40px;font-family:'Noto Sans TC',sans-serif;background:#fff;color:#1A1510;box-sizing:border-box">
+    <div style="border-bottom:3px solid #1B3A6B;padding-bottom:14px;margin-bottom:24px">
+      <div style="font-size:20px;font-weight:700;color:#1B3A6B">福智佛教學院</div>
+      <div style="font-size:14px;font-weight:600;color:#1B3A6B;margin-top:2px">佛法應用研究所</div>
+      <div style="font-size:14px;color:#3A3020;margin-top:2px">${semLabel} 操行成績單</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:28px;font-size:14px">
+      <tr><td style="padding:6px 8px;width:90px;color:#666">學號</td><td style="padding:6px 8px;font-weight:700">${r.students?.student_code||''}</td>
+          <td style="padding:6px 8px;width:70px;color:#666">姓名</td><td style="padding:6px 8px;font-weight:700">${r.students?.name_zh||''}</td></tr>
+      <tr><td style="padding:6px 8px;color:#666">年級</td><td style="padding:6px 8px;font-weight:700">${r.students?.cohort||''}級</td>
+          <td style="padding:6px 8px;color:#666">導師</td><td style="padding:6px 8px;font-weight:700">${r.teachers?.name_zh||''}</td></tr>
+    </table>
+    <div style="text-align:center;background:#F5F7FA;border-radius:10px;padding:24px;margin-bottom:24px">
+      <div style="font-size:13px;color:#666;margin-bottom:6px">操行成績</div>
+      <div style="font-size:40px;font-weight:700;color:#1B3A6B">${conductFinalScore(r)}</div>
+    </div>
+    <div style="font-size:11.5px;color:#888;line-height:1.8">${CONDUCT_FOOTNOTE}</div>
+    <div style="margin-top:20px;font-size:11px;color:#999">列印日期：${new Date().toLocaleDateString('zh-TW')}</div>
+  </div>`;
+}
+
+async function renderConductSlipPdfBlob(r, semLabel) {
+  await ensurePdfLibs();
+  const container = document.createElement('div');
+  container.style.cssText = 'position:absolute;top:0;left:0;opacity:0;pointer-events:none;z-index:-1';
+  container.innerHTML = buildConductSlipHTML(r, semLabel);
+  document.body.appendChild(container);
+  try {
+    const target = container.firstElementChild;
+    const canvas = await html2canvas(target, { scale: 2, width: target.offsetWidth, windowWidth: target.offsetWidth });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
+    const pageW = 210, pageH = 297, margin = 12;
+    const maxW = pageW - margin*2, maxH = pageH - margin*2;
+    const imgRatio = canvas.width / canvas.height;
+    let w = maxW, h = w / imgRatio;
+    if (h > maxH) { h = maxH; w = h * imgRatio; }
+    const x = (pageW - w) / 2, y = margin;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, w, h);
+    return pdf.output('blob');
+  } finally {
+    container.remove();
+  }
+}
+
+async function downloadAllConductSlipsPDF() {
+  if (!_conductRows.length) { showToast('目前沒有可產出的資料','error'); return; }
+  showToast(`📦 產生中，共 ${_conductRows.length} 位，請稍候…`);
+  const semLabel = document.getElementById('cd-semester').selectedOptions[0]?.textContent || '';
+  try {
+    const zip = new JSZip();
+    for (const r of _conductRows) {
+      const blob = await renderConductSlipPdfBlob(r, semLabel);
+      zip.file(`${semLabel} 操行成績單-${r.students?.student_code}-${r.students?.name_zh}.pdf`, blob);
+    }
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content); a.download = `${semLabel}_全體操行成績單.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    showToast('✅ 全部完成，已下載ZIP');
+  } catch (e) {
+    showToast('產生失敗：'+e.message, 'error');
+  }
+}
+
+function buildConductSlipAoa(r, semLabel) {
+  return [
+    ['福智佛教學院'], ['佛法應用研究所'], [`${semLabel} 操行成績單`],
+    ['學號', r.students?.student_code||'', '姓名', r.students?.name_zh||''],
+    ['年級', `${r.students?.cohort||''}級`, '導師', r.teachers?.name_zh||''],
+    [],
+    ['操行成績', conductFinalScore(r)],
+    [],
+    [CONDUCT_FOOTNOTE],
+  ];
+}
+
+async function downloadAllConductSlipsExcel() {
+  if (!_conductRows.length) { showToast('目前沒有可產出的資料','error'); return; }
+  await ensureXLSX();
+  const semLabel = document.getElementById('cd-semester').selectedOptions[0]?.textContent || '';
+  const wb = XLSX.utils.book_new();
+  const usedNames = new Set();
+  _conductRows.forEach(r => {
+    let sheetName = String(r.students?.student_code || 'unknown').slice(0, 31);
+    while (usedNames.has(sheetName)) sheetName = (sheetName + '_').slice(0, 31);
+    usedNames.add(sheetName);
+    const ws = XLSX.utils.aoa_to_sheet(buildConductSlipAoa(r, semLabel));
+    ws['!cols'] = [{wch:12},{wch:20},{wch:10},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  });
+  XLSX.writeFile(wb, `${semLabel}_全體操行成績單.xlsx`);
+  showToast('✅ 已下載');
 }
 
 function renderConductList() {
@@ -9718,7 +10152,7 @@ async function loadStudents() {
   try {
     const [{ data:students }, { data:advisors }, { data:teachers }] = await Promise.all([
       sb.from('students').select('*').order('student_code'),
-      sb.from('v_student_advisors').select('student_id, current_advisor_teacher_id, advisor_source'),
+      sb.from('v_student_advisors').select('student_id, advisor_teacher_id, advisor_source'),
       sb.from('teachers').select('id, name_zh')
     ]);
 
@@ -9729,7 +10163,7 @@ async function loadStudents() {
       const ad = advisorMap[s.id];
       return {
         ...s,
-        _advisor_name: ad?.current_advisor_teacher_id ? teacherMap[ad.current_advisor_teacher_id] : null,
+        _advisor_name: ad?.advisor_teacher_id ? teacherMap[ad.advisor_teacher_id] : null,
         _advisor_source: ad?.advisor_source || null
       };
     });
@@ -10297,6 +10731,71 @@ async function printBlankRoster() {
 
 /* ─── 新增/編輯學生 Modal ─── */
 
+async function loadStudentStatusHistory(studentId) {
+  const wrap = document.getElementById('stu-status-history-list');
+  wrap.innerHTML = '載入中…';
+  const { data, error } = await sb.from('student_status_history')
+    .select('*').eq('student_id', studentId).order('changed_at', {ascending:false});
+  if (error) { wrap.innerHTML = `<span style="color:var(--red)">載入失敗：${error.message}</span>`; return; }
+  if (!data?.length) { wrap.innerHTML = '尚無異動記錄'; return; }
+  wrap.innerHTML = data.map(h => {
+    const from = h.old_status ? (STU_STATUS_LABEL[h.old_status]||h.old_status) : '（入學）';
+    const to = STU_STATUS_LABEL[h.new_status]||h.new_status;
+    const dt = new Date(h.changed_at).toLocaleString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--cr3);border-radius:6px;margin-bottom:4px">
+      <span style="color:var(--ink3)">${dt}</span>
+      <span>${from} → <b>${to}</b></span>
+      ${h.note ? `<span style="color:var(--ink3);flex:1">（${h.note}）</span>` : '<span style="flex:1"></span>'}
+    </div>`;
+  }).join('');
+}
+
+function openAddStatusHistoryForm() {
+  const studentId = document.getElementById('stu-id').value;
+  if (!studentId) { showToast('請先儲存學生資料後再補登歷程','error'); return; }
+  const html = `
+    <div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">補登過去發生過的狀態異動記錄，請填寫真實發生的時間（不是今天）。</div>
+    <div class="frow"><label class="flabel">變更前狀態</label>
+      <select class="finput" id="hist-old-status">
+        <option value="">（入學/不清楚）</option>
+        <option value="active">在學</option>
+        <option value="leave">休學</option>
+        <option value="graduated">已畢業</option>
+        <option value="withdrawn">退學</option>
+      </select></div>
+    <div class="frow"><label class="flabel">變更後狀態 *</label>
+      <select class="finput" id="hist-new-status">
+        <option value="active">在學</option>
+        <option value="leave">休學</option>
+        <option value="graduated">已畢業</option>
+        <option value="withdrawn">退學</option>
+      </select></div>
+    <div class="frow"><label class="flabel">實際發生時間 *</label>
+      <input type="datetime-local" class="finput" id="hist-changed-at"></div>
+    <div class="frow"><label class="flabel">原因說明（選填）</label>
+      <textarea class="finput" id="hist-note" rows="2"></textarea></div>
+    <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="submitStatusHistoryBackfill('${studentId}')">儲存這筆記錄</button>`;
+  openThModal('補登狀態異動記錄', html);
+}
+
+async function submitStatusHistoryBackfill(studentId) {
+  const oldStatus = document.getElementById('hist-old-status').value || null;
+  const newStatus = document.getElementById('hist-new-status').value;
+  const changedAt = document.getElementById('hist-changed-at').value;
+  const note = document.getElementById('hist-note').value.trim() || null;
+  if (!changedAt) { showToast('請填寫實際發生時間','error'); return; }
+  try {
+    const { error } = await sb.from('student_status_history').insert({
+      student_id: studentId, old_status: oldStatus, new_status: newStatus,
+      changed_at: new Date(changedAt).toISOString(), note, recorded_by: window.ADMIN_USER_ID||null,
+    });
+    if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+    closeThModal();
+    showToast('✅ 已補登');
+    loadStudentStatusHistory(studentId);
+  } catch(e) { showToast('儲存失敗：'+e.message,'error'); }
+}
+
 function openStudentModal(id) {
   _stuPhotoFile = null;
   // 清空欄位
@@ -10348,9 +10847,12 @@ function openStudentModal(id) {
       document.getElementById('stu-photo-preview').innerHTML = `<img src="${s.photo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
     }
     document.getElementById('stu-account-hint').style.display = 'none';
+    document.getElementById('stu-status-history-wrap').style.display = 'block';
+    loadStudentStatusHistory(id);
   } else {
     document.getElementById('stu-modal-title').textContent = '➕ 新增學生';
     document.getElementById('stu-account-hint').style.display = 'block';
+    document.getElementById('stu-status-history-wrap').style.display = 'none';
   }
   openModal('stu-modal');
 }
@@ -10460,6 +10962,14 @@ async function saveStudent() {
     showToast(id ? '✅ 已更新' : '✅ 已新增');
     writeAuditLog('學生資料', id?'編輯學生':'新增學生', 'students', savedId,
       `${code} ${name_zh}`, `${STU_STATUS_LABEL[payload.status]||''}`);
+
+    // 狀態真的有變更（不是本來就這個狀態），才寫入異動歷程；新增學生的第一筆狀態也記一筆（old_status=null代表起點）
+    if (!id || oldStatus !== newStatus) {
+      await sb.from('student_status_history').insert({
+        student_id: savedId, old_status: oldStatus, new_status: newStatus,
+        changed_at: new Date().toISOString(), recorded_by: window.ADMIN_USER_ID||null,
+      });
+    }
 
     closeModal('stu-modal');
     loadStudents();
@@ -14210,7 +14720,11 @@ async function loadGradeSummaryTable() {
     // 有成績的排前面、依平均降冪；沒有任何成績的排最後、不參與排名
     const withGrades = rows.filter(r => r.avg != null).sort((a,b) => b.avg - a.avg);
     const withoutGrades = rows.filter(r => r.avg == null);
-    withGrades.forEach((r,i) => r.rank = i+1);
+    // 並列名次規則：分數完全相同就是同一個名次，下一個不同分數的人名次直接跳號
+    // （例如兩人並列第3名，就沒有第4名，下一位是第5名；並列第1名同理，沒有第2名，下一位是第3名）
+    withGrades.forEach((r,i) => {
+      r.rank = (i > 0 && r.avg === withGrades[i-1].avg) ? withGrades[i-1].rank : i+1;
+    });
     _gsumRows = [...withGrades, ...withoutGrades];
 
     renderGradeSummaryTable();
@@ -14895,14 +15409,14 @@ async function downloadGradeImportTemplate(offeringId, courseLabel) {
   const gstRow = _gstRows.find(r => r.offering_id === offeringId);
   if (!gstRow) { showToast('找不到課程資料','error'); return; }
   const { data: enrollsRaw } = await sb.from('enrollments')
-    .select('students(student_code, name_zh)')
-    .eq('offering_id', offeringId).eq('status', 'confirmed');
+    .select('status, students(student_code, name_zh)')
+    .eq('offering_id', offeringId).in('status', ['confirmed','withdrawn']);
   if (!enrollsRaw?.length) { showToast('此課程目前沒有選課中的學生','error'); return; }
   // 巢狀欄位排序（.order('students(...)')）在PostgREST不一定可靠，改成抓回資料後自己排序保險
   const enrolls = enrollsRaw.slice().sort((a,b) => (a.students?.student_code||'').localeCompare(b.students?.student_code||''));
 
   const semLabel = document.getElementById('g-semester').selectedOptions[0]?.textContent || '';
-  const total = enrolls.length;
+  const confirmedCount = enrolls.filter(e => e.status === 'confirmed').length; // 修課學生數只算目前實際選課中的，停修的列出來但不計入這個數字
   const q = v => `"${String(v).replace(/"/g,'""')}"`;
   const row = arr => arr.map(q).join(',');
 
@@ -14913,12 +15427,12 @@ async function downloadGradeImportTemplate(offeringId, courseLabel) {
     row([`課程代號：${gstRow.code}`,'','','','','']),
     row([`課程名稱：${gstRow.courseName}`,'','','','','']),
     row([`必選修：${REQ_ZH[gstRow.reqType]||''}`,'','',`學分數：${gstRow.credits}`,'','']),
-    row([`授課教師：${gstRow.teacher||'（尚未指定）'}`,'','',`修課學生數：${total}`,'','']),
+    row([`授課教師：${gstRow.teacher||'（尚未指定）'}`,'','',`修課學生數：${confirmedCount}`,'','']),
     row(['','','','','','']),
     row(['序號','學號','姓名','成績','等第','備註']),
-    ...enrolls.map((e,i) => row([i+1, e.students?.student_code||'', e.students?.name_zh||'', '', '', ''])),
+    ...enrolls.map((e,i) => row([i+1, e.students?.student_code||'', e.students?.name_zh||'', e.status==='withdrawn'?'停修':'', '', e.status==='withdrawn'?'已停修':''])),
     row(['','','','','','']),
-    row([`修課學生數：${total}`,'','','','','']),
+    row([`修課學生數：${confirmedCount}`,'','','','','']),
     row(['註：滿70分為及格','','','','','']),
     row(['','','','','','']),
     row(['','','','','','']),
@@ -15114,19 +15628,31 @@ async function confirmGradeBatchImport() {
 }
 
 async function viewGradeEntries(offeringId, courseLabel, teacherName) {
-  const { data: dataRaw, error } = await sb.from('grade_entries')
-    .select('score, grade_label, is_withdrawn, is_suspended, notes, students(student_code, name_zh)')
+  // 改成以選課名單（enrollments）為主體，不是以grade_entries為主體：
+  // 停修學生通常從沒被登錄過成績、grade_entries裡根本沒有那一筆，如果只查grade_entries會漏掉他們，
+  // 跟「範本」下載那份文件的邏輯要一致（範本已經修過，這裡也要跟著改）
+  const { data: enrollsRaw, error: e1 } = await sb.from('enrollments')
+    .select('student_id, status, students(student_code, name_zh)')
+    .eq('offering_id', offeringId).in('status', ['confirmed','withdrawn']);
+  if (e1) { showToast('載入失敗：'+e1.message,'error'); return; }
+  if (!enrollsRaw?.length) { showToast('此課程目前沒有選課中的學生','error'); return; }
+
+  const { data: gradesRaw, error: e2 } = await sb.from('grade_entries')
+    .select('student_id, score, grade_label, notes')
     .eq('offering_id', offeringId).eq('grade_type','academic');
-  if (error) { showToast('載入失敗：'+error.message,'error'); return; }
-  if (!dataRaw?.length) { showToast('此課程尚無成績記錄','error'); return; }
-  const data = dataRaw.slice().sort((a,b) => (a.students?.student_code||'').localeCompare(b.students?.student_code||''));
+  if (e2) { showToast('載入失敗：'+e2.message,'error'); return; }
+  const gradeMap = {}; (gradesRaw||[]).forEach(g => { gradeMap[g.student_id] = g; });
+
+  const data = enrollsRaw.slice().sort((a,b) => (a.students?.student_code||'').localeCompare(b.students?.student_code||''));
 
   const rows = data.map((r,i) => {
     const s = r.students||{};
-    const note = r.is_withdrawn ? '停修' : r.is_suspended ? '休學' : (r.notes||'');
-    const scoreDisplay = (r.is_withdrawn||r.is_suspended) ? '—' : (r.score ?? '—');
-    const labelDisplay = (r.is_withdrawn||r.is_suspended) ? '' : (r.grade_label||'');
-    return `<tr style="${(r.is_withdrawn||r.is_suspended)?'color:var(--ink3);background:var(--cr3)':''}">
+    const g = gradeMap[r.student_id];
+    const isWithdrawn = r.status === 'withdrawn';
+    const note = isWithdrawn ? '停修' : (g?.notes||'');
+    const scoreDisplay = isWithdrawn ? '—' : (g?.score ?? '（尚未登錄）');
+    const labelDisplay = isWithdrawn ? '' : (g?.grade_label||'');
+    return `<tr style="${isWithdrawn?'color:var(--ink3);background:var(--cr3)':''}">
       <td style="padding:6px 10px">${i+1}</td>
       <td style="padding:6px 10px" class="mono">${s.student_code||'—'}</td>
       <td style="padding:6px 10px">${s.name_zh||'—'}</td>

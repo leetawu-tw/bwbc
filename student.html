@@ -230,10 +230,12 @@ input{font-family:inherit}
       <div class="side-nav-label">功能選單</div>
       <div class="side-item" id="nav-ann"    onclick="showSection('ann')">📢 公佈欄</div>
       <div class="side-item" id="nav-select" onclick="showSection('select')">📚 選課</div>
+      <div class="side-item" id="nav-ta-apply" onclick="showSection('ta-apply')">🙋 TA申請</div>
       <div class="side-item" id="nav-attendance" onclick="showSection('attendance')" style="display:none">📋 課堂點名</div>
       <div class="side-item" id="nav-print-sheet" onclick="showSection('print-sheet')">🖨 選課單列印</div>
       <div class="side-item" id="nav-thesis" onclick="showSection('thesis')">📝 畢業論文</div>
       <div class="side-item" id="nav-survey" onclick="showSection('survey')">📋 意見調查</div>
+      <div class="side-item" id="nav-forms" onclick="showSection('forms')">📄 常用表單</div>
     </div>
 
     <!-- 右側主內容 -->
@@ -414,6 +416,21 @@ input{font-family:inherit}
         <div id="survey-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
 
+      <!-- ── 常用表單 ── -->
+      <div id="sec-forms" class="t-section">
+        <div class="section-title">📄 常用表單</div>
+        <div id="forms-list-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── TA申請 ── -->
+      <div id="sec-ta-apply" class="t-section">
+        <div class="section-title">🙋 TA申請</div>
+        <div style="margin-bottom:12px">
+          <select id="ta-apply-semester" class="fselect" style="width:160px" onchange="loadTaApplySection()"></select>
+        </div>
+        <div id="ta-apply-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
       <!-- ── 選課單列印 ── -->
       <div id="sec-print-sheet" class="t-section">
         <div class="section-title">🖨 選課單列印</div>
@@ -553,6 +570,23 @@ async function passwordLogin() {
   }
 }
 
+// 找「現在學期」：依日期判斷（start_date~end_date包含今天），不依賴is_current
+// （is_current只給admin排課範圍用，不保證跟今天日期同步）。
+// 跟admin.html/teacher.html同名同邏輯，三個portal共用同一套判斷方式，避免各自寫一份互相不同步。
+async function getCurrentSemesterByDate() {
+  const { data: allSems } = await sb.from('semesters').select('id,label,start_date,end_date').order('start_date');
+  if (!allSems?.length) return null;
+  const now = new Date();
+  let idx = allSems.findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
+  if (idx === -1) {
+    idx = allSems.reduce((best, s, i) => {
+      const d = Math.abs(new Date(s.start_date) - now);
+      return d < best.d ? {i, d} : best;
+    }, {i: 0, d: Infinity}).i;
+  }
+  return allSems[idx] || null;
+}
+
 async function enterApp(user) {
   CURRENT_USER_ID = user.id;
   document.getElementById('login-screen').style.display='none';
@@ -604,18 +638,8 @@ async function enterApp(user) {
   CURRENT_SEM_ID    = sem.id;
   CURRENT_SEM_LABEL = sem.label;
 
-  // 找本學期（依日期判斷，不依賴 is_current——那個欄位只給admin排課範圍用，不保證跟今天日期同步）
-  const { data:allSemsForActive } = await sb.from('semesters')
-    .select('id,label,start_date,end_date').order('start_date');
-  const nowForActive = new Date();
-  let activeIdx = (allSemsForActive||[]).findIndex(s => new Date(s.start_date) <= nowForActive && nowForActive <= new Date(s.end_date + 'T23:59:59'));
-  if (activeIdx === -1 && allSemsForActive?.length) {
-    activeIdx = allSemsForActive.reduce((best, s, i) => {
-      const d = Math.abs(new Date(s.start_date) - nowForActive);
-      return d < best.d ? {i, d} : best;
-    }, {i: 0, d: Infinity}).i;
-  }
-  const activeSem = activeIdx > -1 ? allSemsForActive[activeIdx] : null;
+  // 找本學期（依日期判斷，呼叫共用函式，不再自己重複寫一份）
+  const activeSem = await getCurrentSemesterByDate();
   ACTIVE_SEM_ID    = activeSem?.id    || CURRENT_SEM_ID;
   ACTIVE_SEM_LABEL = activeSem?.label || CURRENT_SEM_LABEL;
 
@@ -668,14 +692,10 @@ async function loadStudentTimeline() {
     .select('id,label,start_date,end_date').order('start_date');
   if (!sems?.length) { el.innerHTML = '<div style="color:var(--ink3)">無時程資料</div>'; return; }
 
-  const now = new Date();
-  let idx = sems.findIndex(s => new Date(s.start_date) <= now && now <= new Date(s.end_date + 'T23:59:59'));
-  if (idx === -1) {
-    idx = sems.reduce((best, s, i) => {
-      const d = Math.abs(new Date(s.start_date) - now);
-      return d < best.d ? {i, d} : best;
-    }, {i: 0, d: Infinity}).i;
-  }
+  const now = new Date(); // daysLeft等後續計算還會用到，保留宣告
+  const curSemInfo = await getCurrentSemesterByDate(); // 共用函式，不再自己重複寫一份日期比對邏輯
+  let idx = sems.findIndex(s => s.id === curSemInfo?.id);
+  if (idx === -1) idx = 0; // 理論上不會發生，防呆
   const prev = sems[idx - 1] || null;
   const cur  = sems[idx] || null;
   const next = sems[idx + 1] || null;
@@ -1101,9 +1121,16 @@ async function loadPublicAnnouncements(role) {
       const annAtts = attMap[a.id]||[];
       const attHtml = annAtts.length
         ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-            ${annAtts.map(att=>`<a href="${signedMap[att.id]}" target="_blank"
-              style="font-size:11px;padding:3px 10px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
-              📎 ${att.filename}</a>`).join('')}
+            ${annAtts.map(att=>{
+              const ext = (att.filename.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+              const canView = ['pdf','doc','docx','ppt','pptx','xls','xlsx'].includes(ext);
+              const safeFn = att.filename.replace(/'/g,"\\'");
+              return `${canView ? `<a href="javascript:void(0)" onclick="openViewer('${encodeURIComponent(signedMap[att.id])}','${ext}','${safeFn}')"
+                style="font-size:11px;padding:3px 10px;border-radius:12px;background:var(--navy3);color:var(--navy);text-decoration:none;display:inline-flex;align-items:center;gap:4px">👁 線上看</a>` : ''}
+              <a href="${signedMap[att.id]}" target="_blank"
+                style="font-size:11px;padding:3px 10px;border-radius:12px;background:#DDD6FE;color:#4C1D95;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+                📎 ${att.filename}</a>`;
+            }).join('')}
            </div>` : '';
       const hasBody = a.content || annAtts.length;
       const expStr = a.expires_at ? `至 ${new Date(a.expires_at).toLocaleDateString('zh-TW')}` : '';
@@ -2268,6 +2295,8 @@ function showSection(id) {
   if (nav) nav.classList.add('active');
   if (id === 'thesis') { loadThesisView(); loadEthicsReviewSection(); }
   if (id === 'survey') loadStudentSurveys();
+  if (id === 'forms') loadFormsSection();
+  if (id === 'ta-apply') loadTaApplySection();
   if (id === 'print-sheet') loadPrintSheetView();
   if (id === 'attendance') loadAttendanceOfferings();
 }
@@ -2898,6 +2927,161 @@ async function printAdvisorForm() {
 
 
 /* ════ 意見調查 ════ */
+const FORMS_CATEGORY_LABEL_S = { student:'🎓 學生專用', general:'📋 全體專用' };
+
+/* ════════════════════════════════════════════════════════
+ * 🙋 TA申請（學生端：限申請1門，狀態待審核/已配對就不能再申請）
+ * ════════════════════════════════════════════════════════ */
+async function loadTaApplySection() {
+  const wrap = document.getElementById('ta-apply-wrap');
+  const semSel = document.getElementById('ta-apply-semester');
+  if (!semSel.options.length) {
+    const { data: sems } = await sb.from('semesters').select('id,label').order('label',{ascending:false});
+    semSel.innerHTML = (sems||[]).map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+    // 預設帶入選課學期（CURRENT_SEM_ID）：TA配對通常是為下學期預先準備，但也可能期中需要更換TA，
+    // 所以保留下拉選單讓學生自己切換，不強制鎖定
+    if (CURRENT_SEM_ID && sems?.find(s=>s.id===CURRENT_SEM_ID)) semSel.value = CURRENT_SEM_ID;
+  }
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  try {
+    // 先看自己有沒有進行中的申請（待審核或已配對）——這個檢查不分學期，因為系統限制一人同時只能有一筆進行中的申請
+    const { data: myApp } = await sb.from('ta_applications')
+      .select('id, offering_id, status, note, applied_at, review_note')
+      .eq('student_id', ME.id).in('status', ['pending','matched']).maybeSingle();
+
+    if (myApp) {
+      const { data: off } = await sb.from('course_offerings').select('course_id, courses(name_zh, code)').eq('id', myApp.offering_id).maybeSingle();
+      const statusLabel = myApp.status === 'matched' ? '✅ 已配對成功' : '⏳ 待審核';
+      let html = `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px">
+        <div style="font-size:13px;color:var(--ink3);margin-bottom:8px">${statusLabel}</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:6px">${off?.courses?.name_zh||''} <span style="font-size:12px;color:var(--ink3);font-weight:400">${off?.courses?.code||''}</span></div>
+        ${myApp.note ? `<div style="font-size:13px;color:var(--ink2);margin-bottom:8px">我的申請說明：${myApp.note}</div>` : ''}
+        <div style="font-size:12px;color:var(--ink3)">申請時間：${new Date(myApp.applied_at).toLocaleString('zh-TW')}</div>`;
+      if (myApp.status === 'pending') {
+        html += `<button onclick="withdrawTaApplication('${myApp.id}')" style="margin-top:14px;padding:8px 16px;border-radius:8px;background:#fff;color:var(--red);border:1.5px solid var(--red);cursor:pointer;font-size:13px">取消申請</button>`;
+      } else {
+        html += `<div style="margin-top:14px;font-size:12px;color:var(--ink3)">已配對成功的申請無法自行取消，如需異動請洽行政。</div>`;
+      }
+      html += `</div>`;
+      wrap.innerHTML = html;
+      return;
+    }
+
+    // 沒有進行中的申請 → 列出「所選學期」目前開放申請的科目（預設選課學期，可自行切換，例如期中更換TA的情況）
+    const targetSemId = semSel.value;
+    if (!targetSemId) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">請選擇學期</div>'; return; }
+
+    const { data: offs } = await sb.from('course_offerings')
+      .select('id, courses(name_zh, code)').eq('semester_id', targetSemId).eq('is_active', true);
+    const offIds = (offs||[]).map(o=>o.id);
+    const { data: syls } = await sb.from('syllabi')
+      .select('offering_id, ta_slots, ta_requirement_note')
+      .in('offering_id', offIds).eq('ta_open_for_apply', true);
+
+    if (!syls?.length) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">目前沒有開放申請TA的科目</div>'; return; }
+
+    const offMap = {}; (offs||[]).forEach(o=>offMap[o.id]=o);
+    const { data: matched } = await sb.from('offering_staff').select('offering_id').in('offering_id', syls.map(s=>s.offering_id)).eq('role','ta');
+    const matchedCount = {}; (matched||[]).forEach(m=>{ matchedCount[m.offering_id] = (matchedCount[m.offering_id]||0)+1; });
+
+    let html = `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:14px">每人限申請1門課，送出後請等候行政審核配對。</div>
+      <div style="display:flex;flex-direction:column;gap:10px">`;
+    syls.forEach(s => {
+      const off = offMap[s.offering_id];
+      const cnt = matchedCount[s.offering_id] || 0;
+      const full = cnt >= (s.ta_slots||1);
+      html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+          <strong style="font-size:14.5px">${off?.courses?.name_zh||''}</strong>
+          <span style="font-size:12px;color:var(--ink3)">${off?.courses?.code||''}</span>
+          <span style="font-size:11px;padding:2px 10px;border-radius:12px;background:${full?'#F0F0F0':'#E8F5E9'};color:${full?'#888':'#2E7D32'}">名額 ${cnt}/${s.ta_slots||1}</span>
+        </div>
+        ${s.ta_requirement_note ? `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">條件說明：${s.ta_requirement_note}</div>` : ''}
+        <button ${full?'disabled':''} onclick="openTaApplyForm('${s.offering_id}','${(off?.courses?.name_zh||'').replace(/'/g,"\\'")}')"
+          style="padding:7px 16px;border-radius:8px;background:${full?'#E0E0E0':'var(--navy)'};color:${full?'#999':'#fff'};border:none;cursor:${full?'not-allowed':'pointer'};font-size:13px">
+          ${full?'名額已滿':'＋ 申請這門課'}</button>
+      </div>`;
+    });
+    html += `</div>`;
+    wrap.innerHTML = html;
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px;font-size:13px">載入失敗：${e.message}</div>`;
+  }
+}
+
+function openTaApplyForm(offeringId, courseName) {
+  const html = `
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:12px">申請「${courseName}」的教學助理，每人限申請1門課。</div>
+    <label class="flabel">申請說明（選填，可以簡單介紹自己或申請動機）</label>
+    <textarea class="finput" id="ta-apply-note" rows="4" placeholder="選填"></textarea>
+    <button onclick="submitTaApplication('${offeringId}')" style="margin-top:14px;padding:9px 18px;border-radius:8px;background:var(--navy);color:#fff;border:none;cursor:pointer;font-size:13px;width:100%">送出申請</button>`;
+  openThModal('申請TA', html);
+}
+
+async function submitTaApplication(offeringId) {
+  const note = document.getElementById('ta-apply-note').value.trim();
+  try {
+    const { error } = await sb.from('ta_applications').insert({ offering_id: offeringId, student_id: ME.id, note: note||null });
+    if (error) {
+      if (error.message.includes('ta_applications_one_active_per_student')) {
+        showToast('您目前已有一筆進行中的申請，請先取消才能申請其他課程', 'error');
+      } else {
+        showToast('送出失敗：'+error.message, 'error');
+      }
+      return;
+    }
+    closeThModal();
+    showToast('✅ 已送出申請，請等候審核');
+    loadTaApplySection();
+  } catch (e) { showToast('送出失敗：'+e.message, 'error'); }
+}
+
+async function withdrawTaApplication(appId) {
+  if (!confirm('確定取消這筆申請嗎？')) return;
+  try {
+    const { error } = await sb.from('ta_applications').update({ status: 'withdrawn' }).eq('id', appId);
+    if (error) { showToast('取消失敗：'+error.message, 'error'); return; }
+    showToast('已取消申請');
+    loadTaApplySection();
+  } catch (e) { showToast('取消失敗：'+e.message, 'error'); }
+}
+
+async function loadFormsSection() {
+  const wrap = document.getElementById('forms-list-wrap');
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  try {
+    const { data } = await sb.from('forms').select('*')
+      .eq('active', true).in('category', ['student','general'])
+      .order('sort_order');
+    let html = '';
+    Object.keys(FORMS_CATEGORY_LABEL_S).forEach(cat => {
+      const list = (data||[]).filter(f => f.category === cat);
+      html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px;margin-bottom:16px">
+        <div style="font-weight:600;font-size:15px;margin-bottom:12px;color:var(--navy)">${FORMS_CATEGORY_LABEL_S[cat]}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${list.length ? list.map(f => renderFormRowS(f)).join('') : '<div style="color:var(--ink3);font-size:12.5px;padding:6px 0">目前尚無表單</div>'}
+        </div>
+      </div>`;
+    });
+    wrap.innerHTML = html;
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px;font-size:13px">載入失敗：${e.message}</div>`;
+  }
+}
+
+function renderFormRowS(f) {
+  const { data: pub } = sb.storage.from('forms').getPublicUrl(f.storage_path);
+  const url = pub.publicUrl;
+  const ext = (f.file_name.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+  const canView = ['pdf','doc','docx','ppt','pptx','xls','xlsx'].includes(ext);
+  const safeFn = f.file_name.replace(/'/g,"\\'");
+  return `
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      ${canView ? `<a href="javascript:void(0)" onclick="openViewer('${encodeURIComponent(url)}','${ext}','${safeFn}')" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:3px 10px;border-radius:20px;background:var(--navy3);color:var(--navy);text-decoration:none;border:1px solid rgba(43,95,160,.2)">👁 線上看</a>` : ''}
+      <a href="${url}" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 10px;background:var(--cr3);border-radius:20px;color:var(--ink);text-decoration:none">📎 ${f.title}</a>
+    </div>`;
+}
+
 async function loadStudentSurveys() {
   const wrap = document.getElementById('survey-wrap');
   if (!wrap) return;
