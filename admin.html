@@ -191,6 +191,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .stu-avatar{width:36px;height:36px;border-radius:50%;background:var(--cr3);object-fit:cover;display:block;text-align:center;line-height:36px;font-size:11px;color:var(--ink3);font-weight:500}
 .stu-status-badge{display:inline-block;font-size:11px;padding:2px 10px;border-radius:12px;font-weight:500}
 .stu-status-active{background:#E8F5E9;color:#1A6A30}
+.stu-status-pending{background:#F3E5F5;color:#7B1FA2}
 .stu-status-leave{background:#FFF3E0;color:#B05010}
 .stu-status-graduated{background:#E3F2FD;color:#1565C0}
 .stu-status-withdrawn{background:#FCE4EC;color:#C2185B}
@@ -663,6 +664,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 
       <!-- ▌學生資料管理 ▌-->
       <div id="page-students" style="display:none;flex-direction:column;gap:12px">
+        <div id="stu-scheduled-reminder-banner" style="display:none"></div>
         <div class="page-hdr">
           <div class="page-title">🧑‍🎓 學生資料</div>
           <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
@@ -676,6 +678,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <select id="stu-status-filter" onchange="renderStudents()"
               style="padding:7px 10px;border:1px solid var(--cr2);border-radius:6px;font-size:13px;background:#fff">
               <option value="">全部狀態</option>
+              <option value="pending">新生未報到</option>
               <option value="active">在學</option>
               <option value="leave">休學</option>
               <option value="graduated">已畢業</option>
@@ -1220,6 +1223,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div class="frow-3">
         <div class="frow"><label class="flabel">學籍狀態</label>
           <select class="finput" id="stu-status">
+            <option value="pending">新生未報到</option>
             <option value="active">在學</option>
             <option value="leave">休學</option>
             <option value="graduated">已畢業</option>
@@ -1334,6 +1338,21 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div id="stu-status-history-list" style="font-size:12.5px;color:var(--ink3)">載入中…</div>
       </div>
 
+      <!-- 預約未來狀態異動（例如：現在就設定「下學期開始休學」，但現在狀態不變） -->
+      <div id="stu-scheduled-status-wrap" style="display:none;margin-top:14px;border-top:1px solid var(--cr2);padding-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="flabel" style="margin:0">📅 預約未來狀態異動</div>
+          <button class="btn btn-sec btn-sm" onclick="openScheduleStatusForm()">＋ 新增預約</button>
+        </div>
+        <div id="stu-scheduled-status-list" style="font-size:12.5px;color:var(--ink3)">載入中…</div>
+      </div>
+
+      <!-- 目前選課（可針對個別課程直接處理停修，不用整體變更學籍狀態） -->
+      <div id="stu-enrollments-wrap" style="display:none;margin-top:14px;border-top:1px solid var(--cr2);padding-top:14px">
+        <div class="flabel" style="margin:0 0 8px">🎓 目前選課</div>
+        <div id="stu-enrollments-list" style="font-size:12.5px;color:var(--ink3)">載入中…</div>
+      </div>
+
       <!-- 帳號建立提示 -->
       <div id="stu-account-hint" style="background:var(--gold3);border-radius:6px;padding:10px 14px;font-size:12px;color:#7A5C00;display:none">
         💡 儲存後系統將自動產生學校 email <code id="stu-account-email"></code><br>
@@ -1406,7 +1425,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow-y:auto">
       <div style="padding:10px 14px;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;font-size:12.5px;color:#6D4C00;line-height:1.7">
         <strong>📌 規則：</strong>依「學號」比對 — 學號存在則<strong style="color:#1A6A30">更新</strong>、學號不存在則<strong style="color:#1565C0">新增</strong><br>
-        <strong>📄 欄位（按下載範本為準）：</strong>學號(必填)、中文姓名、英文姓名、性別(M/F/O)、出生日期、入學年、狀態(active在學/leave休學/graduated已畢業/withdrawn退學)、學校email、個人email、電話、通訊地址、緊急聯絡人、關係、緊急電話、入學日期、學歷、畢業學校、廣論班級、住宿、備註
+        <strong>📄 欄位（按下載範本為準）：</strong>學號(必填)、中文姓名、英文姓名、性別(M/F/O)、出生日期、入學年、狀態(pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學)、學校email、個人email、電話、通訊地址、緊急聯絡人、關係、緊急電話、入學日期、學歷、畢業學校、廣論班級、住宿、備註
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="file" id="stu-update-file" accept=".xlsx,.xls,.csv" onchange="onStudentUpdateFile(event)" style="font-size:13px">
@@ -10140,7 +10159,7 @@ let _stuSort = { field:'student_code', dir:1 };
 let _stuPhotoFile = null;  // 暫存待上傳的大頭照
 let _stuImportData = null; // 暫存匯入解析結果
 
-const STU_STATUS_LABEL = { active:'在學', leave:'休學', graduated:'已畢業', withdrawn:'退學' };
+const STU_STATUS_LABEL = { pending:'新生未報到', active:'在學', leave:'休學', graduated:'已畢業', withdrawn:'退學' };
 const STU_HOUSING_LABEL = {
   self_home:'自宅', eco_village:'生態村租屋', off_campus:'校外租屋',
   commute:'通勤', other:'其他'
@@ -10167,6 +10186,24 @@ async function loadStudents() {
         _advisor_source: ad?.advisor_source || null
       };
     });
+
+    // 檢查有沒有「預約已到期」的狀態異動，跳橫幅提醒（半自動：只提醒，不自動套用）
+    const { data: dueChanges } = await sb.from('student_status_history')
+      .select('id, student_id, new_status, changed_at, students(student_code, name_zh)')
+      .eq('is_applied', false).lte('changed_at', new Date().toISOString());
+    const banner = document.getElementById('stu-scheduled-reminder-banner');
+    if (dueChanges?.length) {
+      banner.style.display = 'block';
+      banner.innerHTML = `<div style="background:#FFF3E0;border:1px solid #F0C419;border-radius:8px;padding:12px 16px;font-size:13px;color:#8A6D00">
+        ⏰ 有 ${dueChanges.length} 筆預約狀態異動已到期，請確認是否套用：
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+          ${dueChanges.map(h => `<button onclick="openStudentModal('${h.student_id}')" style="font-size:12px;padding:4px 10px;border-radius:14px;background:#fff;border:1px solid #F0C419;cursor:pointer">
+            ${h.students?.student_code||''} ${h.students?.name_zh||''} → ${STU_STATUS_LABEL[h.new_status]||h.new_status}</button>`).join('')}
+        </div>
+      </div>`;
+    } else {
+      banner.style.display = 'none';
+    }
 
     // 更新年級篩選下拉
     const cohorts = [...new Set(STUDENTS_ALL.map(s=>s.cohort).filter(Boolean))].sort((a,b)=>b-a);
@@ -10258,6 +10295,7 @@ function renderStudents() {
       <td style="padding:6px 8px;font-size:11.5px">${advisorBadge}</td>
       <td style="padding:6px 8px;text-align:center">
         <button onclick="openStudentModal('${s.id}')" style="padding:3px 8px;border-radius:5px;font-size:11.5px;background:var(--navy);color:#fff;border:none;cursor:pointer">✏️</button>
+        ${s.status==='pending' ? `<button onclick="confirmStudentRegistration('${s.id}','${(s.name_zh||'').replace(/'/g,"\\'")}')" style="margin-left:4px;padding:3px 8px;border-radius:5px;font-size:11.5px;background:#2E9E5B;color:#fff;border:none;cursor:pointer">✅ 確認報到</button>` : ''}
       </td>
     </tr>`;
   }).join('');
@@ -10796,6 +10834,155 @@ async function submitStatusHistoryBackfill(studentId) {
   } catch(e) { showToast('儲存失敗：'+e.message,'error'); }
 }
 
+/* ════════════════════════════════════════════════════════
+ * 📅 預約未來狀態異動（半自動：admin看清單自己確認套用，不會自動生效）
+ * ════════════════════════════════════════════════════════ */
+async function loadScheduledStatusChanges(studentId) {
+  const wrap = document.getElementById('stu-scheduled-status-list');
+  wrap.innerHTML = '載入中…';
+  const { data, error } = await sb.from('student_status_history')
+    .select('*').eq('student_id', studentId).eq('is_applied', false).order('changed_at');
+  if (error) { wrap.innerHTML = `<span style="color:var(--red)">載入失敗：${error.message}</span>`; return; }
+  if (!data?.length) { wrap.innerHTML = '目前沒有預約中的異動'; return; }
+  const now = new Date();
+  wrap.innerHTML = data.map(h => {
+    const ready = new Date(h.changed_at) <= now;
+    const dt = new Date(h.changed_at).toLocaleDateString('zh-TW');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${ready?'#FFF3E0':'var(--cr3)'};border-radius:6px;margin-bottom:4px">
+      <span>預約於 <b>${dt}</b> 改為「${STU_STATUS_LABEL[h.new_status]||h.new_status}」</span>
+      ${h.note ? `<span style="color:var(--ink3);flex:1">（${h.note}）</span>` : '<span style="flex:1"></span>'}
+      ${ready ? `<span style="font-size:11px;color:#B05010">⏰ 已到期</span><button class="btn btn-pri btn-sm" onclick="applyScheduledStatusChange('${h.id}','${studentId}')">✅ 套用</button>`
+              : `<button class="btn btn-sec btn-sm" onclick="cancelScheduledStatusChange('${h.id}','${studentId}')">取消</button>`}
+    </div>`;
+  }).join('');
+}
+
+function openScheduleStatusForm() {
+  const studentId = document.getElementById('stu-id').value;
+  if (!studentId) { showToast('請先儲存學生資料後再預約異動','error'); return; }
+  const html = `
+    <div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">設定未來的狀態異動，現在不會生效，等生效日到了要在畫面上手動按「套用」才會真的改變狀態。</div>
+    <div class="frow"><label class="flabel">預約改為 *</label>
+      <select class="finput" id="sched-new-status">
+        <option value="leave">休學</option>
+        <option value="active">在學（復學）</option>
+        <option value="graduated">已畢業</option>
+        <option value="withdrawn">退學</option>
+      </select></div>
+    <div class="frow"><label class="flabel">生效日期 *</label>
+      <input type="date" class="finput" id="sched-effective-date"></div>
+    <div class="frow"><label class="flabel">原因說明（選填）</label>
+      <textarea class="finput" id="sched-note" rows="2"></textarea></div>
+    <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="submitScheduleStatusChange('${studentId}')">儲存預約</button>`;
+  openThModal('預約未來狀態異動', html);
+}
+
+async function submitScheduleStatusChange(studentId) {
+  const newStatus = document.getElementById('sched-new-status').value;
+  const effectiveDate = document.getElementById('sched-effective-date').value;
+  const note = document.getElementById('sched-note').value.trim() || null;
+  if (!effectiveDate) { showToast('請填寫生效日期','error'); return; }
+  try {
+    const { error } = await sb.from('student_status_history').insert({
+      student_id: studentId, old_status: null, new_status: newStatus,
+      changed_at: new Date(effectiveDate + 'T00:00:00').toISOString(),
+      note, recorded_by: window.ADMIN_USER_ID||null, is_applied: false,
+    });
+    if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+    closeThModal();
+    showToast('✅ 已建立預約');
+    loadScheduledStatusChanges(studentId);
+  } catch(e) { showToast('儲存失敗：'+e.message,'error'); }
+}
+
+async function applyScheduledStatusChange(historyId, studentId) {
+  const { data: hist } = await sb.from('student_status_history').select('new_status').eq('id', historyId).maybeSingle();
+  if (!hist) return;
+  if (!confirm(`確定要套用這筆預約，把狀態正式改為「${STU_STATUS_LABEL[hist.new_status]||hist.new_status}」嗎？`)) return;
+  try {
+    const { error: e1 } = await sb.from('students').update({ status: hist.new_status }).eq('id', studentId);
+    if (e1) { showToast('操作失敗：'+e1.message,'error'); return; }
+    const { error: e2 } = await sb.from('student_status_history').update({ is_applied: true }).eq('id', historyId);
+    if (e2) { showToast('狀態更新失敗：'+e2.message,'error'); return; }
+    showToast('✅ 已套用');
+    loadStudentStatusHistory(studentId);
+    loadScheduledStatusChanges(studentId);
+    loadStudents();
+    if (hist.new_status === 'leave' || hist.new_status === 'withdrawn') {
+      const { data: stuInfo } = await sb.from('students').select('name_zh').eq('id', studentId).maybeSingle();
+      await promptWithdrawEnrollmentsForStatusChange(studentId, stuInfo?.name_zh||'', hist.new_status);
+    }
+  } catch(e) { showToast('操作失敗：'+e.message,'error'); }
+}
+
+async function cancelScheduledStatusChange(historyId, studentId) {
+  if (!confirm('確定取消這筆預約嗎？')) return;
+  const { error } = await sb.from('student_status_history').delete().eq('id', historyId);
+  if (error) { showToast('取消失敗：'+error.message,'error'); return; }
+  showToast('已取消預約');
+  loadScheduledStatusChanges(studentId);
+}
+
+/* ════════════════════════════════════════════════════════
+ * 🎓 目前選課：針對個別課程直接處理停修（不用整體變更學籍狀態）
+ * ════════════════════════════════════════════════════════ */
+async function loadStudentEnrollmentsForWithdraw(studentId) {
+  const wrap = document.getElementById('stu-enrollments-list');
+  wrap.innerHTML = '載入中…';
+  const { data: enrolls, error } = await sb.from('enrollments')
+    .select('id, status, offering_id, semester_id')
+    .eq('student_id', studentId).eq('status', 'confirmed');
+  if (error) { wrap.innerHTML = `<span style="color:var(--red)">載入失敗：${error.message}</span>`; return; }
+  if (!enrolls?.length) { wrap.innerHTML = '目前沒有選課中的課程'; return; }
+
+  const offIds = enrolls.map(e=>e.offering_id);
+  const { data: offs } = await sb.from('course_offerings').select('id, course_id, semester_id').in('id', offIds);
+  const courseIds = [...new Set((offs||[]).map(o=>o.course_id))];
+  const { data: courses } = await sb.from('courses').select('id, name_zh, code').in('id', courseIds);
+  const courseMap = {}; (courses||[]).forEach(c=>courseMap[c.id]=c);
+  const offMap = {}; (offs||[]).forEach(o=>offMap[o.id]=o);
+  const semIds = [...new Set(enrolls.map(e=>e.semester_id))];
+  const { data: sems } = await sb.from('semesters').select('id, label').in('id', semIds);
+  const semMap = {}; (sems||[]).forEach(s=>semMap[s.id]=s.label);
+
+  wrap.innerHTML = enrolls.map(e => {
+    const off = offMap[e.offering_id];
+    const c = off ? courseMap[off.course_id] : null;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--cr3);border-radius:6px;margin-bottom:4px">
+      <span style="font-size:11px;color:var(--ink3)">${semMap[e.semester_id]||''}</span>
+      <span style="flex:1">${c?.name_zh||'（課程名稱不明）'} <span style="color:var(--ink3);font-size:11px">${c?.code||''}</span></span>
+      <button class="btn btn-sec btn-sm" onclick="openWithdrawEnrollmentForm('${e.id}','${(c?.name_zh||'').replace(/'/g,"\\'")}','${studentId}')">📝 停修</button>
+    </div>`;
+  }).join('');
+}
+
+function openWithdrawEnrollmentForm(enrollmentId, courseName, studentId) {
+  const today = new Date().toISOString().slice(0,10);
+  const html = `
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:12px">為「${courseName}」辦理停修</div>
+    <div class="frow"><label class="flabel">申請日 *</label>
+      <input type="date" class="finput" id="wd-date" value="${today}"></div>
+    <div class="frow"><label class="flabel">原因說明（選填）</label>
+      <textarea class="finput" id="wd-reason" rows="2"></textarea></div>
+    <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="submitWithdrawEnrollment('${enrollmentId}','${studentId}')">確認停修</button>`;
+  openThModal('停修申請', html);
+}
+
+async function submitWithdrawEnrollment(enrollmentId, studentId) {
+  const date = document.getElementById('wd-date').value;
+  const reason = document.getElementById('wd-reason').value.trim() || null;
+  if (!date) { showToast('請填寫申請日','error'); return; }
+  try {
+    const { error } = await sb.from('enrollments')
+      .update({ status: 'withdrawn', withdraw_at: new Date(date + 'T00:00:00').toISOString(), withdraw_reason: reason })
+      .eq('id', enrollmentId);
+    if (error) { showToast('處理失敗：'+error.message,'error'); return; }
+    closeThModal();
+    showToast('✅ 已辦理停修');
+    loadStudentEnrollmentsForWithdraw(studentId);
+  } catch(e) { showToast('處理失敗：'+e.message,'error'); }
+}
+
 function openStudentModal(id) {
   _stuPhotoFile = null;
   // 清空欄位
@@ -10848,11 +11035,17 @@ function openStudentModal(id) {
     }
     document.getElementById('stu-account-hint').style.display = 'none';
     document.getElementById('stu-status-history-wrap').style.display = 'block';
+    document.getElementById('stu-scheduled-status-wrap').style.display = 'block';
+    document.getElementById('stu-enrollments-wrap').style.display = 'block';
     loadStudentStatusHistory(id);
+    loadScheduledStatusChanges(id);
+    loadStudentEnrollmentsForWithdraw(id);
   } else {
     document.getElementById('stu-modal-title').textContent = '➕ 新增學生';
     document.getElementById('stu-account-hint').style.display = 'block';
     document.getElementById('stu-status-history-wrap').style.display = 'none';
+    document.getElementById('stu-scheduled-status-wrap').style.display = 'none';
+    document.getElementById('stu-enrollments-wrap').style.display = 'none';
   }
   openModal('stu-modal');
 }
@@ -10887,6 +11080,21 @@ function onStudentPhotoSelect(e) {
       `<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
   };
   reader.readAsDataURL(file);
+}
+
+// 新生未報到 → 在學：確認報到快速動作（不用開整個編輯視窗）
+async function confirmStudentRegistration(studentId, studentName) {
+  if (!confirm(`確認「${studentName}」已完成報到、狀態改為在學嗎？`)) return;
+  try {
+    const { error } = await sb.from('students').update({ status: 'active' }).eq('id', studentId);
+    if (error) { showToast('操作失敗：'+error.message,'error'); return; }
+    await sb.from('student_status_history').insert({
+      student_id: studentId, old_status: 'pending', new_status: 'active',
+      changed_at: new Date().toISOString(), note: '確認報到', recorded_by: window.ADMIN_USER_ID||null,
+    });
+    showToast('✅ 已確認報到');
+    loadStudents();
+  } catch(e) { showToast('操作失敗：'+e.message,'error'); }
 }
 
 async function saveStudent() {
@@ -11247,7 +11455,7 @@ async function downloadUpdateTemplate() {
   }
   var headers = ['學號','姓名','英文名','性別','狀態','學校email','個人email','電話','地址','緊急聯絡人','關係','緊急電話','廣論班級','住宿','備註','學歷','畢業學校','入學日期(YYYY-MM-DD)','出生日期(YYYY-MM-DD)'];
   var example = ['11421101','盧瑞萱','Lu Jui-Hsuan','F','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','北17秋01','commute','','學士','國立台灣大學','2025-09-01','1998-05-20'];
-  var note = ['# 必填8碼','# 必填','','# M男/F女/O其他','# active在學/leave休學/graduated已畢業/withdrawn退學','','','','','','','','','# self_home自宅/eco_village生態村/off_campus校外/commute通勤/other','','','','# YYYY-MM-DD','# YYYY-MM-DD'];
+  var note = ['# 必填8碼','# 必填','','# M男/F女/O其他','# pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學','','','','','','','','','# self_home自宅/eco_village生態村/off_campus校外/commute通勤/other','','','','# YYYY-MM-DD','# YYYY-MM-DD'];
   var ws = XLSX.utils.aoa_to_sheet([headers, example, note]);
   ws['!cols'] = headers.map(function(){ return {wch:14}; });
   var wb = XLSX.utils.book_new();
