@@ -628,13 +628,13 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <button class="btn btn-pri" onclick="openAdvisorModal()">＋ 新增導師指派</button>
         </div>
         <div style="font-size:12.5px;color:var(--ink3);margin-bottom:14px">
-          一年級（現在學期入學年）的導師由此處指派，操行成績評分人會自動依此判斷。二年級以後優先以論文指導教授為導師，若該生尚無指導教授才會退回使用這裡指派的班級導師。
+          一年級（現在學期入學年）的導師由此處指派，操行成績評分人會自動依此判斷。二年級以後優先以論文指導教授為導師，若該生尚無指導教授才會退回使用這裡指派的班級導師。同一年級可以有多位「現任」導師（共同導師），新增時預設不會停用其他人，只有勾選「取代原本的現任導師」才會停用。
         </div>
         <div class="tbl-wrap">
           <table>
             <thead><tr>
               <th>年級</th><th>導師</th><th>角色</th><th>起始學期</th><th>結束學期</th>
-              <th>現任</th><th>異動原因</th><th>操作</th>
+              <th>現任</th><th>異動原因</th><th>負責學生</th><th>操作</th>
             </tr></thead>
             <tbody id="advisors-body">
               <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>
@@ -2157,6 +2157,10 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin:10px 0">
         <input type="checkbox" id="adv-current" style="width:15px;height:15px" checked>
         <span>設為現任導師</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin:10px 0;padding:8px 10px;background:#FFF3E0;border-radius:6px">
+        <input type="checkbox" id="adv-replace-others" style="width:15px;height:15px">
+        <span>取代原本的現任導師（同年級＋同角色的其他現任記錄會一併停用；<b>不勾選＝新增為共同導師，原本的人維持現任</b>）</span>
       </label>
       <div>
         <label class="flabel">異動原因／備註</label>
@@ -9222,12 +9226,12 @@ let _advisorsAll = [];
 
 async function loadAdvisors() {
   const tbody = document.getElementById('advisors-body');
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
 
   const { data, error } = await sb.from('class_advisors')
     .select(`*, teachers(name_zh)`)
     .order('cohort', { ascending:false }).order('is_current', { ascending:false });
-  if (error) { tbody.innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
+  if (error) { tbody.innerHTML = `<tr><td colspan="9" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
 
   const semIds = [...new Set((data||[]).flatMap(a=>[a.start_semester,a.end_semester]).filter(Boolean))];
   let semMap = {};
@@ -9237,9 +9241,25 @@ async function loadAdvisors() {
   }
 
   _advisorsAll = data || [];
-  if (!_advisorsAll.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">尚無導師指派記錄</td></tr>'; return; }
+  if (!_advisorsAll.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink3)">尚無導師指派記錄</td></tr>'; return; }
 
-  tbody.innerHTML = _advisorsAll.map(a => `<tr>
+  // 批次查每筆advisor記錄目前指定了幾位學生（只有role=advisor才有意義，所長等機構角色不用）
+  const advisorIds = _advisorsAll.filter(a=>a.role==='advisor').map(a=>a.id);
+  const assignCountMap = {};
+  if (advisorIds.length) {
+    const { data: assigns } = await sb.from('class_advisor_students').select('class_advisor_id').in('class_advisor_id', advisorIds);
+    (assigns||[]).forEach(x => { assignCountMap[x.class_advisor_id] = (assignCountMap[x.class_advisor_id]||0) + 1; });
+  }
+
+  // 同年級、同角色(advisor)、現任的記錄數——只有2位以上才有「分組」的必要，113級/114級這種單一導師的年級不用顯示按鈕
+  const currentAdvisorCountByCohort = {};
+  _advisorsAll.filter(a=>a.role==='advisor' && a.is_current).forEach(a => {
+    currentAdvisorCountByCohort[a.cohort] = (currentAdvisorCountByCohort[a.cohort]||0) + 1;
+  });
+
+  tbody.innerHTML = _advisorsAll.map(a => {
+    const needsGrouping = a.role==='advisor' && a.is_current && (currentAdvisorCountByCohort[a.cohort]||0) >= 2;
+    return `<tr>
     <td>${a.cohort}級</td>
     <td>${a.teachers?.name_zh||'—'}</td>
     <td>${a.role||''}</td>
@@ -9247,11 +9267,17 @@ async function loadAdvisors() {
     <td style="font-size:12px">${semMap[a.end_semester]||'—'}</td>
     <td>${a.is_current ? '<span style="color:var(--green)">✅ 是</span>' : '<span style="color:var(--ink3)">—</span>'}</td>
     <td style="font-size:12px;color:var(--ink3)">${a.reason||a.notes||''}</td>
+    <td style="font-size:12px">
+      ${needsGrouping ? (assignCountMap[a.id]
+        ? `<span style="color:var(--navy);font-weight:600">${assignCountMap[a.id]}位</span> <button class="btn btn-sec btn-sm" onclick="openAdvisorStudentsModal('${a.id}')">✏️ 調整</button>`
+        : `<span style="color:#B05010;font-weight:600">尚未分組</span> <button class="btn btn-sec btn-sm" onclick="openAdvisorStudentsModal('${a.id}')">＋ 指定學生</button>`) : '<span style="color:var(--ink3)">—</span>'}
+    </td>
     <td>
       <button class="btn btn-sec btn-sm" onclick="openAdvisorModal('${a.id}')">✏️</button>
       <button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="deleteAdvisor('${a.id}')">🗑</button>
     </td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
 async function openAdvisorModal(id) {
@@ -9262,6 +9288,7 @@ async function openAdvisorModal(id) {
   document.getElementById('adv-role').value = a?.role || 'advisor';
   document.getElementById('adv-reason').value = a?.reason || a?.notes || '';
   document.getElementById('adv-current').checked = a ? !!a.is_current : true;
+  document.getElementById('adv-replace-others').checked = false; // 每次都重新預設不勾選，避免瀏覽器記住上次狀態誤觸
 
   // 教師下拉
   if (!TEACHERS?.length) await loadTeachers();
@@ -9289,13 +9316,16 @@ async function saveAdvisor() {
   const startSem = document.getElementById('adv-start-sem').value || null;
   const endSem = document.getElementById('adv-end-sem').value || null;
   const isCurrent = document.getElementById('adv-current').checked;
+  const replaceOthers = document.getElementById('adv-replace-others').checked;
   const reason = document.getElementById('adv-reason').value.trim();
 
   if (!cohort || !teacherId) { showToast('請填寫年級與導師','error'); return; }
 
-  // 如果設為現任，同年級其他記錄要先取消現任（一個年級同時只有一位現任導師）
-  if (isCurrent) {
-    await sb.from('class_advisors').update({ is_current:false }).eq('cohort', cohort).neq('id', id||'00000000-0000-0000-0000-000000000000');
+  // 只有admin明確勾選「取代」才會停用同年級＋同角色的其他現任記錄；
+  // 不勾選（預設）就單純新增這一筆，其他人維持現任不受影響——用來支援「共同導師」這種同年級多位現任的情況
+  if (isCurrent && replaceOthers) {
+    await sb.from('class_advisors').update({ is_current:false })
+      .eq('cohort', cohort).eq('role', role).neq('id', id||'00000000-0000-0000-0000-000000000000');
   }
 
   const payload = {
@@ -9309,6 +9339,55 @@ async function saveAdvisor() {
   if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
 
   showToast('✅ 已儲存'); closeAdvisorModal(); loadAdvisors();
+}
+
+// 指定學生（分組）：讓同年級多位現任導師，各自只負責特定學生
+async function openAdvisorStudentsModal(advisorId) {
+  const a = _advisorsAll.find(x=>x.id===advisorId);
+  if (!a) return;
+
+  const { data: students } = await sb.from('students').select('id,student_code,name_zh').eq('cohort', parseInt(a.cohort)).order('student_code');
+  const { data: myAssigns } = await sb.from('class_advisor_students').select('student_id').eq('class_advisor_id', advisorId);
+  const myIds = new Set((myAssigns||[]).map(x=>x.student_id));
+
+  // 同年級其他advisor角色的分組狀況，顯示出來避免重複勾選到別人已經認領的學生
+  const otherAdvisors = _advisorsAll.filter(x=>x.cohort===a.cohort && x.role==='advisor' && x.id!==advisorId);
+  const otherAdvisorIds = otherAdvisors.map(x=>x.id);
+  let otherAssignMap = {};
+  if (otherAdvisorIds.length) {
+    const { data: otherAssigns } = await sb.from('class_advisor_students').select('student_id, class_advisor_id').in('class_advisor_id', otherAdvisorIds);
+    const advisorNameMap = {}; otherAdvisors.forEach(x=>advisorNameMap[x.id]=x.teachers?.name_zh||_advisorsAll.find(y=>y.id===x.id)?.teachers?.name_zh);
+    (otherAssigns||[]).forEach(x => { otherAssignMap[x.student_id] = advisorNameMap[x.class_advisor_id] || ''; });
+  }
+
+  const html = `
+    <div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">
+      勾選歸「${a.teachers?.name_zh||''}」負責的學生（${a.cohort}級）。<b>一位都不勾＝整個年級都算這位導師負責</b>（維持原本行為）；勾了任何一位，就代表「分組」開始生效，操行成績會依這裡的勾選來判斷該找誰打分數。
+    </div>
+    <div style="max-height:50vh;overflow-y:auto;border:1px solid var(--cr2);border-radius:8px;padding:10px">
+      ${(students||[]).map(s => `
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;border-radius:6px" onmouseover="this.style.background='var(--cr3)'" onmouseout="this.style.background=''">
+          <input type="checkbox" class="adv-stu-cb" value="${s.id}" ${myIds.has(s.id)?'checked':''} style="width:15px;height:15px">
+          <span class="mono" style="font-size:12px">${s.student_code}</span>
+          <span>${s.name_zh}</span>
+          ${otherAssignMap[s.id] ? `<span style="font-size:11px;color:#B05010;margin-left:auto">已歸${otherAssignMap[s.id]}</span>` : ''}
+        </label>`).join('')}
+    </div>
+    <button class="btn btn-pri" style="width:100%;margin-top:14px" onclick="saveAdvisorStudents('${advisorId}')">儲存分組</button>`;
+  openThModal(`指定學生 — ${a.teachers?.name_zh||''}（${a.cohort}級）`, html);
+}
+
+async function saveAdvisorStudents(advisorId) {
+  const checked = Array.from(document.querySelectorAll('.adv-stu-cb:checked')).map(el => el.value);
+  try {
+    await sb.from('class_advisor_students').delete().eq('class_advisor_id', advisorId);
+    if (checked.length) {
+      await sb.from('class_advisor_students').insert(checked.map(sid => ({ class_advisor_id: advisorId, student_id: sid })));
+    }
+    closeThModal();
+    showToast('✅ 已儲存分組');
+    loadAdvisors();
+  } catch(e) { showToast('儲存失敗：'+e.message,'error'); }
 }
 
 async function deleteAdvisor(id) {
@@ -9854,6 +9933,14 @@ async function generateConductRoster() {
 
   const { data: advisors } = await sb.from('v_student_advisors').select('student_id, advisor_teacher_id');
   const advMap = {}; (advisors||[]).forEach(a => advMap[a.student_id] = a.advisor_teacher_id);
+
+  // 分組override：如果某位學生被指定歸屬到特定導師（同年級多位現任導師分組的情況），優先用這個，
+  // 沒有被指定的學生才照上面v_student_advisors算出來的整年級預設值
+  const { data: groupAssigns } = await sb.from('class_advisor_students')
+    .select('student_id, class_advisors(teacher_id, is_current)');
+  (groupAssigns||[]).forEach(g => {
+    if (g.class_advisors?.is_current) advMap[g.student_id] = g.class_advisors.teacher_id;
+  });
 
   const { data: existing } = await sb.from('conduct_grades').select('student_id').eq('semester_id', semId);
   const existingSet = new Set((existing||[]).map(e=>e.student_id));
