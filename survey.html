@@ -67,7 +67,7 @@ const SB_URL  = 'https://pjyjpcumakxevxuxwcyx.supabase.co';
 const SB_ANON = 'sb_publishable_Hxw2qfgBO5BTkX4wG4xeTQ_tEsPG3pc';
 const sb = supabase.createClient(SB_URL, SB_ANON, { auth:{ persistSession:false } });
 
-let TOKEN_DATA = null;
+let TOKEN_STR = null;
 let SURVEY = null;
 let QUESTIONS = [];
 const ANSWERS = {};
@@ -92,54 +92,42 @@ async function init() {
     showState('err','🔗','連結無效','此填答連結缺少必要參數，請使用行政人員提供的完整連結。');
     return;
   }
+  TOKEN_STR = token; // 存起來，送出填答時要再用一次
 
   try {
-    // 1. 查 token
-    const { data:tk } = await sb.from('survey_tokens')
-      .select('*').eq('token', token).maybeSingle();
-    if (!tk) {
+    // 改用資料庫函式一次拿到所有需要的資料，不再直接查survey_tokens/survey_questions這些已經鎖起來的表
+    const { data, error } = await sb.rpc('get_survey_form_by_token', { p_token: token });
+    if (error) { showState('err','⚠️','載入失敗', error.message); return; }
+    if (data?.error === 'invalid_token') {
       showState('err','❌','連結無效','找不到對應的填答連結，請確認連結正確。');
       return;
     }
-    TOKEN_DATA = tk;
+    if (data?.error === 'survey_not_found') {
+      showState('err','❌','調查不存在','此調查已被移除。');
+      return;
+    }
 
-    // 2. 查調查
-    const { data:sv } = await sb.from('surveys').select('*').eq('id', tk.survey_id).maybeSingle();
-    if (!sv) { showState('err','❌','調查不存在','此調查已被移除。'); return; }
-    SURVEY = sv;
+    SURVEY = data.survey;
 
-    // 3. 檢查狀態與時間
+    // 檢查狀態與時間
     const now = new Date();
-    if (sv.status === 'closed' || now > new Date(sv.end_at)) {
-      showState('err','⏰','調查已截止',`本調查已於 ${new Date(sv.end_at).toLocaleString('zh-TW')} 截止，感謝您的關注。`);
+    if (SURVEY.status === 'closed' || now > new Date(SURVEY.end_at)) {
+      showState('err','⏰','調查已截止',`本調查已於 ${new Date(SURVEY.end_at).toLocaleString('zh-TW')} 截止，感謝您的關注。`);
       return;
     }
-    if (sv.status === 'draft' || now < new Date(sv.start_at)) {
-      showState('err','📅','尚未開放',`本調查將於 ${new Date(sv.start_at).toLocaleString('zh-TW')} 開放填答。`);
+    if (SURVEY.status === 'draft' || now < new Date(SURVEY.start_at)) {
+      showState('err','📅','尚未開放',`本調查將於 ${new Date(SURVEY.start_at).toLocaleString('zh-TW')} 開放填答。`);
       return;
     }
 
-    // 4. 已填過？
-    if (tk.used) {
+    // 已填過？
+    if (data.token_used) {
       showState('ok','✅','您已完成填答','感謝您的寶貴意見！此調查每人每門課僅能填寫一次。');
       return;
     }
 
-    // 5. 課程資訊
-    const { data:course } = await sb.from('v_course_schedule')
-      .select('name_zh, code, time_raw').eq('offering_id', tk.offering_id).maybeSingle();
-    let teacherName = '';
-    if (tk.teacher_id) {
-      const { data:t } = await sb.from('teachers').select('name_zh').eq('id', tk.teacher_id).maybeSingle();
-      teacherName = t?.name_zh || '';
-    }
-
-    // 6. 題目
-    const { data:qs } = await sb.from('survey_questions')
-      .select('*').eq('active', true).order('sort_order');
-    QUESTIONS = qs || [];
-
-    renderForm(course, teacherName);
+    QUESTIONS = data.questions || [];
+    renderForm(data.course, data.teacher_name);
   } catch(e) {
     showState('err','⚠️','載入失敗', e.message);
     console.warn('init:', e);
@@ -201,33 +189,22 @@ async function submitSurvey() {
   btn.disabled = true; btn.textContent = '送出中…';
 
   try {
-    // 再次確認未填過（防重複）
-    const { data:tk } = await sb.from('survey_tokens')
-      .select('used').eq('id', TOKEN_DATA.id).maybeSingle();
-    if (tk?.used) {
-      showState('ok','✅','您已完成填答','感謝您的寶貴意見！');
+    // 組填答資料（question_id + answer 兩個欄位就好，其餘survey_id/offering_id等函式內部會自己從token反查）
+    const answers = QUESTIONS
+      .filter(q => ANSWERS[q.id] != null && ANSWERS[q.id] !== '')
+      .map(q => ({ question_id: q.id, answer: String(ANSWERS[q.id]) }));
+
+    const { data, error } = await sb.rpc('submit_survey_response', { p_token: TOKEN_STR, p_answers: answers });
+    if (error) { btn.disabled=false; btn.textContent='送出填答'; showToast('送出失敗：'+error.message,'error'); return; }
+    if (!data?.success) {
+      if (data?.error === 'already_used') {
+        showState('ok','✅','您已完成填答','感謝您的寶貴意見！');
+        return;
+      }
+      btn.disabled=false; btn.textContent='送出填答';
+      showToast('送出失敗，請重新整理頁面再試一次','error');
       return;
     }
-
-    // 組填答資料
-    const rows = QUESTIONS
-      .filter(q => ANSWERS[q.id] != null && ANSWERS[q.id] !== '')
-      .map(q => ({
-        survey_id: SURVEY.id,
-        offering_id: TOKEN_DATA.offering_id,
-        teacher_id: TOKEN_DATA.teacher_id,
-        enrollment_id: TOKEN_DATA.enrollment_id,
-        question_id: q.id,
-        answer: String(ANSWERS[q.id])
-      }));
-
-    const { error:e1 } = await sb.from('survey_responses').insert(rows);
-    if (e1) { btn.disabled=false; btn.textContent='送出填答'; showToast('送出失敗：'+e1.message,'error'); return; }
-
-    // 標記已填
-    await sb.from('survey_tokens')
-      .update({ used:true, used_at:new Date().toISOString() })
-      .eq('id', TOKEN_DATA.id);
 
     showState('ok','🙏','填答完成','感謝您的寶貴意見！您的回饋將幫助提升教學品質。');
   } catch(e) {
