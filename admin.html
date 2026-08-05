@@ -358,7 +358,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       <div class="nav-section">
         <div class="nav-label">論文管理</div>
-        <div class="nav-item" data-perm="thesis" onclick="showPage('thesis',this)"><span class="nav-icon">📝</span>畢業論文 <span class="badge badge-warn" id="thesis-pending-badge" style="margin-left:auto;display:none">0</span></div>
+        <div class="nav-item" data-perm="thesis" onclick="showPage('thesis',this)"><span class="nav-icon">📝</span>畢業論文與發表會 <span class="badge badge-warn" id="thesis-pending-badge" style="margin-left:auto;display:none">0</span></div>
       </div>
       <div class="nav-section">
         <div class="nav-label">行政效能</div>
@@ -818,7 +818,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <!-- ▌畢業論文管理 ▌ -->
       <div id="page-thesis" style="display:none">
         <div class="page-hdr">
-          <div class="page-title">📝 畢業論文管理</div>
+          <div class="page-title">📝 畢業論文與發表會管理</div>
           <div style="display:flex;gap:8px">
             <button class="btn" id="th-tab-pending-btn" onclick="thSwitchView('pending')" style="background:var(--gold);color:#fff">⏳ 待審核 <span id="th-pending-count">0</span></button>
             <button class="btn btn-pri" id="th-tab-all-btn" onclick="thSwitchView('all')">📋 論文進度總覽</button>
@@ -1063,8 +1063,14 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div class="tbl-wrap">
             <table>
               <thead><tr>
-                <th>學號</th><th>姓名</th><th>年級</th><th>導師</th>
-                <th>導師調整</th><th>所長調整</th><th>獎懲分數</th><th>最終分數</th>
+                <th onclick="conductSort('student_code')" style="cursor:pointer">學號 <span id="conduct-sort-student_code">⇅</span></th>
+                <th onclick="conductSort('name_zh')" style="cursor:pointer">姓名 <span id="conduct-sort-name_zh">⇅</span></th>
+                <th onclick="conductSort('cohort')" style="cursor:pointer">年級 <span id="conduct-sort-cohort">⇅</span></th>
+                <th onclick="conductSort('advisor')" style="cursor:pointer">導師 <span id="conduct-sort-advisor">⇅</span></th>
+                <th onclick="conductSort('advisor_adj')" style="cursor:pointer">導師調整 <span id="conduct-sort-advisor_adj">⇅</span></th>
+                <th onclick="conductSort('director_adj')" style="cursor:pointer">所長調整 <span id="conduct-sort-director_adj">⇅</span></th>
+                <th onclick="conductSort('merit_demerit')" style="cursor:pointer">獎懲分數 <span id="conduct-sort-merit_demerit">⇅</span></th>
+                <th onclick="conductSort('final')" style="cursor:pointer">最終分數 <span id="conduct-sort-final">⇅</span></th>
                 <th>導師送出</th><th>所長送出</th><th>操作</th>
               </tr></thead>
               <tbody id="conduct-tbody">
@@ -10170,11 +10176,32 @@ function renderConductList() {
   const cohort = document.getElementById('cd-cohort-filter').value;
   const q = document.getElementById('cd-search').value.trim().toLowerCase();
 
+  const sortGetters = {
+    student_code: r => r.students?.student_code||'',
+    name_zh: r => r.students?.name_zh||'',
+    cohort: r => r.students?.cohort||0,
+    advisor: r => r.teachers?.name_zh||'',
+    advisor_adj: r => r.advisor_adj||0,
+    director_adj: r => r.director_adj||0,
+    merit_demerit: r => r.merit_demerit||0,
+    final: r => conductFinalScore(r),
+  };
+  const getter = sortGetters[_conductSort.field] || sortGetters.student_code;
+
   let list = _conductRows.filter(r => {
     if (cohort && String(r.students?.cohort) !== cohort) return false;
     if (q && !r.students?.student_code?.toLowerCase().includes(q) && !r.students?.name_zh?.toLowerCase().includes(q)) return false;
     return true;
-  }).sort((a,b)=>(a.students?.student_code||'').localeCompare(b.students?.student_code||''));
+  }).sort((a,b) => {
+    const va = getter(a), vb = getter(b);
+    const cmp = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb));
+    return cmp * _conductSort.dir;
+  });
+
+  ['student_code','name_zh','cohort','advisor','advisor_adj','director_adj','merit_demerit','final'].forEach(f => {
+    const el = document.getElementById('conduct-sort-'+f);
+    if (el) el.textContent = _conductSort.field===f ? (_conductSort.dir===1?'▲':'▼') : '⇅';
+  });
 
   if (!list.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--ink3)">無符合條件的資料</td></tr>'; return; }
 
@@ -10244,6 +10271,7 @@ function switchConductTab(tab, btn) {
  * ════════════════════════════════════════════════════════════════════ */
 let STUDENTS_ALL = [];
 let _stuSort = { field:'student_code', dir:1 };
+let _conductSort = { field:'student_code', dir:1 };
 let _stuPhotoFile = null;  // 暫存待上傳的大頭照
 let _stuImportData = null; // 暫存匯入解析結果
 
@@ -10387,6 +10415,12 @@ function renderStudents() {
       </td>
     </tr>`;
   }).join('');
+}
+
+function conductSort(field) {
+  if (_conductSort.field===field) _conductSort.dir *= -1;
+  else { _conductSort.field = field; _conductSort.dir = 1; }
+  renderConductList();
 }
 
 function stuSort(field) {
@@ -12463,6 +12497,7 @@ let PRES_CUR_TYPE = null;
 let PRES_CUR_STATUS = 'ongoing';
 let PRES_CUR_EVENT = null;
 const PRES_TYPE_LABEL = { thesis_proposal:'研究生論文計畫發表會', summary_report:'研究生學習總結分享會' };
+const PRES_TITLE_LABEL = { thesis_proposal:'論文題目', summary_report:'報告題目' };
 
 // 一般 .toFixed(2) 在某些剛好卡在中間值的數字上，因為浮點數誤差會四捨五入錯，這裡加一個修正版
 function presRound2(n) {
@@ -12490,6 +12525,7 @@ async function renderPresentationHome() {
     return { ongoingCount: ongoing.length, ongoingPeople, completedCount: completed.length };
   };
   const s1 = stat('thesis_proposal');
+  const s2 = stat('summary_report');
 
   wrap.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:16px">
@@ -12500,9 +12536,12 @@ async function renderPresentationHome() {
           已完成：${s1.completedCount} 場
         </div>
       </div>
-      <div style="border:1px dashed var(--cr2);border-radius:12px;padding:20px;background:#fafafa;color:var(--ink3)">
-        <div style="font-size:15px;font-weight:600;margin-bottom:10px">📊 研究生學習總結分享會</div>
-        <div style="font-size:13px">敬請期待</div>
+      <div class="pres-card" onclick="openPresentationType('summary_report')" style="cursor:pointer;border:1px solid var(--cr2);border-radius:12px;padding:20px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+        <div style="font-size:15px;font-weight:600;color:var(--navy);margin-bottom:10px">📊 研究生學習總結分享會</div>
+        <div style="font-size:13px;color:var(--ink2);line-height:1.8">
+          進行中：${s2.ongoingCount} 場　${s2.ongoingPeople} 人<br>
+          已完成：${s2.completedCount} 場
+        </div>
       </div>
       <div style="border:1px dashed var(--cr2);border-radius:12px;padding:20px;background:#fafafa;color:var(--ink3)">
         <div style="font-size:15px;font-weight:600">（保留卡片3）</div>
@@ -12642,7 +12681,7 @@ async function renderPresentationEventDetail() {
         <div style="display:flex;align-items:center;margin-bottom:10px;gap:6px;flex-wrap:wrap">
           <div style="font-weight:600">🧑‍🎓 參加學生</div>
           <button class="btn btn-sec btn-sm" style="margin-left:auto" onclick="openAddParticipantsModal()">＋ 新增參加同學</button>
-          <button class="btn btn-sec btn-sm" onclick="openImportTitleCSVModal()">📥 匯入題目/簡介(Excel/CSV)</button>
+          <button class="btn btn-sec btn-sm" onclick="openImportTitleCSVModal()">📥 匯入${PRES_TITLE_LABEL[PRES_CUR_EVENT.type]||'題目'}/簡介(Excel/CSV)</button>
           <label class="btn btn-sec btn-sm" style="cursor:pointer">📥 批次匯入附件(多檔)
             <input type="file" multiple style="display:none" onchange="presBatchImportAttachments(this.files)">
           </label>
@@ -12753,7 +12792,7 @@ async function renderPresParticipants() {
       <div style="display:flex;justify-content:space-between;align-items:start">
         <div>
           <div style="font-weight:500">${p.students?.cohort||''} ${p.students?.student_code||''} ${p.students?.name_zh||''}</div>
-          <input class="finput" value="${esc(p.title_zh||'')}" placeholder="論文題目" oninput="presUpdateParticipant('${p.id}','title_zh',this.value)" style="font-size:12.5px;margin:6px 0">
+          <input class="finput" value="${esc(p.title_zh||'')}" placeholder="${PRES_TITLE_LABEL[PRES_CUR_EVENT.type]||'題目'}" oninput="presUpdateParticipant('${p.id}','title_zh',this.value)" style="font-size:12.5px;margin:6px 0">
           <input class="finput" value="${esc(p.intro_text||'')}" placeholder="一句話簡介" oninput="presUpdateParticipant('${p.id}','intro_text',this.value)" style="font-size:12.5px">
         </div>
         <button class="btn-del btn btn-sm" onclick="presRemoveParticipant('${p.id}')">✕</button>
@@ -12769,13 +12808,14 @@ async function renderPresParticipants() {
 
 /* ── 批次匯入：題目/簡介 (CSV) ── */
 function openImportTitleCSVModal() {
+  const titleLabel = PRES_TITLE_LABEL[PRES_CUR_EVENT.type] || '論文題目';
   const html = `
     <div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">
-      支援 Excel(.xlsx) 或 CSV，欄位名稱（第一列）：<br><b>學號,論文題目,一句話簡介</b><br>
+      支援 Excel(.xlsx) 或 CSV，欄位名稱（第一列）：<br><b>學號,${titleLabel},一句話簡介</b><br>
       學號必須是已經加進這個場次的學生，不在名單裡的學號會被跳過（請先用「＋新增參加同學」把人加進來）。
     </div>
     <input type="file" id="pres-title-csv-file" accept=".csv,.xlsx,.xls" style="margin-bottom:10px">`;
-  presShowSimpleModal('匯入題目/簡介', html, async () => {
+  presShowSimpleModal(`匯入${titleLabel}/簡介`, html, async () => {
     const file = document.getElementById('pres-title-csv-file').files[0];
     if (!file) { showToast('請先選擇檔案','error'); return false; }
 
@@ -12790,7 +12830,7 @@ function openImportTitleCSVModal() {
         const sheet = wb.Sheets[wb.SheetNames[0]];
         rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
         // Excel欄位讀出來的key就是表頭文字，跟CSV版本統一成一樣的物件結構，下面比對邏輯不用分兩套
-        rows = rows.map(r => ({ '學號': String(r['學號']??'').trim(), '論文題目': r['論文題目']??'', '一句話簡介': r['一句話簡介']??'' }));
+        rows = rows.map(r => ({ '學號': String(r['學號']??'').trim(), [titleLabel]: r[titleLabel]??'', '一句話簡介': r['一句話簡介']??'' }));
       } else {
         const text = await file.text();
         rows = parseCSV(text).rows;
@@ -12810,7 +12850,7 @@ function openImportTitleCSVModal() {
       const pid = byCode[code];
       if (!pid) { skipped.push(code); continue; }
       await sb.from('presentation_participants').update({
-        title_zh: r['論文題目']||'', intro_text: r['一句話簡介']||''
+        title_zh: r[titleLabel]||'', intro_text: r['一句話簡介']||''
       }).eq('id', pid);
       okCount++;
     }
@@ -13442,7 +13482,7 @@ async function presExportRawScoresExcel() {
   (scores||[]).forEach(s => { scoresByKey[`${s.participant_id}_${s.judge_id}`] = s; });
 
   await presEnsureXLSX();
-  const header = ['學號','姓名','論文題目','評審', ...criteria.map(c=>c.name), '加權小計','評語/鼓勵的話'];
+  const header = ['學號','姓名',PRES_TITLE_LABEL[PRES_CUR_EVENT.type]||'題目','評審', ...criteria.map(c=>c.name), '加權小計','評語/鼓勵的話'];
   const rows = [header];
   (parts||[]).forEach(p => (judges||[]).forEach(j => {
     const s = scoresByKey[`${p.id}_${j.id}`];
@@ -13469,9 +13509,9 @@ function presBuildScoreSheetsHtml(parts, judges, scoresByKey, pairs) {
     const critRows = criteria.map(([n,w],ci)=>`<tr><td>${n}</td><td>${w}</td><td>${crit_scores[ci]?.score ?? ''}</td><td></td></tr>`).join('');
     return `
     <div class="score-sheet">
-      <h2>佛法應用研究所研究生論文計畫發表會評分表</h2>
+      <h2>佛法應用研究所${PRES_TYPE_LABEL[PRES_CUR_EVENT.type]||''}評分表</h2>
       <div class="info">學號：${p.students?.student_code||''}　學生姓名：${p.students?.name_zh||''}　評審：${esc(j.name)}　日期：${PRES_CUR_EVENT.event_date}</div>
-      <div class="info2">論文題目：${esc(p.title_zh||'')}</div>
+      <div class="info2">${PRES_TITLE_LABEL[PRES_CUR_EVENT.type]||'題目'}：${esc(p.title_zh||'')}</div>
       <table><thead><tr><th>評分項目</th><th>配分</th><th>得分</th><th>備註</th></tr></thead>
       <tbody>${critRows}<tr><td>合計</td><td>${totalWeight}</td><td>${existing?.total_score!=null?existing.total_score.toFixed(1):'總分'}</td><td></td></tr></tbody></table>
       <div class="comment">評審老師評語／給同學的鼓勵的話：<div class="comment-text">${esc(existing?.comment||'')}</div></div>
