@@ -12740,7 +12740,15 @@ async function renderPresParticipants() {
   const list = data || [];
   if (!list.length) { el.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:10px">尚未加入任何學生</div>'; return; }
   el.innerHTML = list.map(p => {
-    const atts = (p.presentation_attachments||[]).map(a=>`<span class="att-chip" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--navy3);padding:2px 4px 2px 6px;border-radius:4px;margin-right:4px">${a.file_type}:${esc(a.file_name)}<button onclick="presDeleteAttachment('${a.id}','${a.storage_path}')" title="刪除此附件（刪除後可重新上傳替換）" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:12px;padding:0 2px">🗑</button></span>`).join('') || '<span style="color:var(--ink3);font-size:11.5px">尚無附件</span>';
+    const atts = (p.presentation_attachments||[]).map(a=>{
+      const ext = (a.file_name.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+      const canView = ['pdf','doc','docx','ppt','pptx','xls','xlsx'].includes(ext);
+      const url = sb.storage.from('presentation-files').getPublicUrl(a.storage_path).data.publicUrl;
+      const safeFn = a.file_name.replace(/'/g,"\\'");
+      return `<span class="att-chip" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--navy3);padding:2px 4px 2px 6px;border-radius:4px;margin-right:4px">
+        ${canView ? `<a href="javascript:void(0)" onclick="openViewer('${encodeURIComponent(url)}','${ext}','${safeFn}')" style="color:var(--navy);text-decoration:none">👁</a>` : ''}
+        ${a.file_type}:${esc(a.file_name)}<button onclick="presDeleteAttachment('${a.id}','${a.storage_path}')" title="刪除此附件（刪除後可重新上傳替換）" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:12px;padding:0 2px">🗑</button></span>`;
+    }).join('') || '<span style="color:var(--ink3);font-size:11.5px">尚無附件</span>';
     return `<div style="border:1px solid var(--cr2);border-radius:8px;padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:start">
         <div>
@@ -13213,6 +13221,10 @@ async function presSaveScores() {
 }
 
 /* ── 統計與排名 ── */
+let _presStats = [];
+let _presStatsCriteria = [];
+let _presStatsSort = { field:'rank', dir:1 };
+
 async function presShowStats() {
   const { data: parts } = await sb.from('presentation_participants').select('*, students(student_code,name_zh)').eq('event_id', PRES_CUR_EVENT.id).order('sort_order');
   const { data: scores } = await sb.from('presentation_scores').select('*').in('participant_id', (parts||[]).map(p=>p.id));
@@ -13230,10 +13242,40 @@ async function presShowStats() {
     return { p, judgeCount, critAvgs, totalAvg };
   });
   stats.sort((a,b) => b.totalAvg - a.totalAvg);
-  stats.forEach((s,i) => { s.rank = i+1; });
+  stats.forEach((s,i) => { s.rank = i+1; }); // 名次固定依總平均排出來，跟畫面排序顯示用途分開，排序只影響「怎麼列出來看」
 
-  const head = criteria.map(c=>`<th>${esc(c.name)}</th>`).join('');
-  const rows = stats.map(s => `<tr>
+  _presStats = stats;
+  _presStatsCriteria = criteria;
+  _presStatsSort = { field:'rank', dir:1 };
+  renderPresStats();
+}
+
+function presStatsSort(field) {
+  if (_presStatsSort.field===field) _presStatsSort.dir *= -1;
+  else { _presStatsSort.field = field; _presStatsSort.dir = 1; }
+  renderPresStats();
+}
+
+function renderPresStats() {
+  const criteria = _presStatsCriteria;
+  const sortGetters = {
+    rank: s => s.rank,
+    name: s => s.p.students?.name_zh||'',
+    total: s => s.totalAvg,
+    judges: s => s.judgeCount,
+  };
+  criteria.forEach((c,ci) => { sortGetters['crit'+ci] = s => s.critAvgs[ci]; });
+  const getter = sortGetters[_presStatsSort.field] || sortGetters.rank;
+
+  const sorted = _presStats.slice().sort((a,b) => {
+    const va = getter(a), vb = getter(b);
+    const cmp = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb));
+    return cmp * _presStatsSort.dir;
+  });
+
+  const sortIcon = f => _presStatsSort.field===f ? (_presStatsSort.dir===1?'▲':'▼') : '⇅';
+  const head = criteria.map((c,ci)=>`<th onclick="presStatsSort('crit${ci}')" style="cursor:pointer">${esc(c.name)} ${sortIcon('crit'+ci)}</th>`).join('');
+  const rows = sorted.map(s => `<tr>
     <td>${s.rank}</td>
     <td style="text-align:left">${s.p.students?.student_code||''} ${s.p.students?.name_zh||''}</td>
     ${s.critAvgs.map(v=>`<td>${presRound2(v)}</td>`).join('')}
@@ -13246,12 +13288,19 @@ async function presShowStats() {
   wrap.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
       <button class="btn btn-sec" onclick="renderPresentationEventDetail()">← 返回場次管理</button>
-      <div style="font-size:15px;font-weight:600">統計與排名（共${stats.length}位）</div>
+      <div style="font-size:15px;font-weight:600">統計與排名（共${_presStats.length}位）</div>
       <button class="btn btn-sec" style="margin-left:auto" onclick="presPrintStats()">🖨 列印</button>
       <button class="btn btn-sec" onclick="presExportStatsExcel()">⬇ 下載Excel</button>
     </div>
     <table id="pres-stats-table" style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="background:var(--cr3)"><th>排名</th><th style="text-align:left">學生</th>${head}<th>總平均</th><th>等第</th><th>備註</th></tr></thead>
+      <thead><tr style="background:var(--cr3)">
+        <th onclick="presStatsSort('rank')" style="cursor:pointer">排名 ${sortIcon('rank')}</th>
+        <th onclick="presStatsSort('name')" style="cursor:pointer;text-align:left">學生 ${sortIcon('name')}</th>
+        ${head}
+        <th onclick="presStatsSort('total')" style="cursor:pointer">總平均 ${sortIcon('total')}</th>
+        <th>等第</th>
+        <th onclick="presStatsSort('judges')" style="cursor:pointer">備註 ${sortIcon('judges')}</th>
+      </tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <style>#pres-stats-table th,#pres-stats-table td{border:1px solid var(--cr2);padding:8px;text-align:center}</style>`;
