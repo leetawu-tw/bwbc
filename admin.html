@@ -345,6 +345,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="teachers" onclick="showPage('payroll',this)"><span class="nav-icon">💰</span>兼課鐘點費核銷</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('advisors',this)"><span class="nav-icon">🎓</span>班級導師管理</div>
         <div class="nav-item" data-perm="classrooms" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
+        <div class="nav-item" data-perm="lending" onclick="showPage('lending',this)"><span class="nav-icon">🔧</span>設備借用管理</div>
         <div class="nav-item" data-perm="students" onclick="showPage('students',this)"><span class="nav-icon">🧑‍🎓</span>學生資料</div>
         <div class="nav-item" data-perm="__admin_only" onclick="showPage('users',this)"><span class="nav-icon">👥</span>帳號管理</div>
       </div>
@@ -659,6 +660,137 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             </tr></thead>
             <tbody id="classrooms-body"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ▌設備借用管理 ▌-->
+      <div id="page-lending" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">🔧 設備借用管理</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-sec" id="lend-btn-add-equip" onclick="lendOpenAddEquipModal()">＋ 新增設備</button>
+            <button class="btn btn-sec" style="background:#7c3aed;color:#fff;border-color:#7c3aed" onclick="lendOpenAddResModal()" title="先在下方卡片牆勾選要預約的設備（可複選），再點這裡">📅 新增預約</button>
+            <button class="btn btn-sec" onclick="lendLoadAll()">🔄 重新整理</button>
+          </div>
+        </div>
+
+        <div id="lend-overdue-bar" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:#92400e"></div>
+
+        <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:8px 14px;margin-bottom:12px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12.5px">
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#e5e7eb;border:1px solid #ccc"></div>可借用</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#8b5cf6"></div>已預約</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#3b82f6"></div>借用中</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#f97316"></div>預約逾期未取</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#eab308"></div>逾期未歸還</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#f43f5e"></div>故障/待修</div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+          <button class="btn btn-pri" id="lend-btn-borrow" onclick="lendOpenBorrowModal()" disabled>📤 批次借用</button>
+          <button class="btn" style="background:var(--green);color:#fff" id="lend-btn-return" onclick="lendOpenReturnModal()" disabled>📥 快速歸還</button>
+          <button class="btn btn-sec" id="lend-btn-clear" onclick="lendClearSelection()" disabled>✕ 取消選取</button>
+        </div>
+
+        <div id="lend-equipment-container" style="margin-bottom:24px"></div>
+
+        <div class="panel-tabs" style="display:flex;border-bottom:1px solid var(--cr2);margin-bottom:16px;overflow-x:auto">
+          <button class="lend-tab active" data-tab="lend-tab-dashboard" onclick="lendSwitchTab('lend-tab-dashboard',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--navy);cursor:pointer;border-bottom:2px solid var(--navy);background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">📊 總覽</button>
+          <button class="lend-tab" data-tab="lend-tab-equip" onclick="lendSwitchTab('lend-tab-equip',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">設備管理</button>
+          <button class="lend-tab" data-tab="lend-tab-records" onclick="lendSwitchTab('lend-tab-records',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">借用紀錄</button>
+          <button class="lend-tab" data-tab="lend-tab-res" onclick="lendSwitchTab('lend-tab-res',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">預約管理</button>
+          <button class="lend-tab" data-tab="lend-tab-violations" onclick="lendSwitchTab('lend-tab-violations',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">違規紀錄</button>
+          <button class="lend-tab" data-tab="lend-tab-settings" onclick="lendSwitchTab('lend-tab-settings',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">系統設定</button>
+        </div>
+
+        <div id="lend-tab-dashboard" class="lend-panel-section">
+          <div id="lend-stat-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:20px"></div>
+          <div style="margin-bottom:20px">
+            <div style="font-size:15px;font-weight:700;margin-bottom:10px">依身份別使用統計</div>
+            <div id="lend-borrower-type-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px"></div>
+          </div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:10px">逾期紀錄排行</div>
+          <div class="tbl-wrap" style="margin-bottom:20px">
+            <table><thead><tr><th>借用人</th><th>身份</th><th style="text-align:center">違規次數</th></tr></thead>
+            <tbody id="lend-rank-body"></tbody></table>
+          </div>
+        </div>
+
+        <div id="lend-tab-equip" class="lend-panel-section" style="display:none">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+            <input class="fselect" id="lend-equip-search" placeholder="🔍 搜尋設備…" style="max-width:220px" oninput="lendRenderEquipTable()">
+            <span id="lend-equip-count" style="font-size:12px;color:var(--ink3)"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>順序</th>
+              <th onclick="lendSort('equip','category')" style="cursor:pointer">類別 <span id="lend-sort-equip-category">⇅</span></th>
+              <th onclick="lendSort('equip','name')" style="cursor:pointer">名稱 <span id="lend-sort-equip-name">⇅</span></th>
+              <th onclick="lendSort('equip','property_no')" style="cursor:pointer">財產編號 <span id="lend-sort-equip-property_no">⇅</span></th>
+              <th>狀態</th><th>目前借用人</th><th>備註</th><th>操作</th>
+            </tr></thead><tbody id="lend-equip-body"></tbody></table>
+          </div>
+        </div>
+
+        <div id="lend-tab-records" class="lend-panel-section" style="display:none">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+            <input class="fselect" id="lend-rec-search" placeholder="🔍 搜尋…" style="max-width:200px" oninput="lendRenderRecordsTable()">
+            <select class="fselect" id="lend-rec-filter" style="max-width:140px" onchange="lendRenderRecordsTable()">
+              <option value="">全部</option><option value="active">借用中</option><option value="returned">已歸還</option>
+              <option value="late">逾期</option><option value="violated">違規</option>
+            </select>
+            <span id="lend-rec-count" style="font-size:12px;color:var(--ink3)"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th onclick="lendSort('records','equipment_name')" style="cursor:pointer">設備 <span id="lend-sort-records-equipment_name">⇅</span></th>
+              <th>財產編號</th><th onclick="lendSort('records','borrower_name')" style="cursor:pointer">借用人 <span id="lend-sort-records-borrower_name">⇅</span></th>
+              <th>身份</th>
+              <th onclick="lendSort('records','borrow_time')" style="cursor:pointer">借出 <span id="lend-sort-records-borrow_time">⇅</span></th>
+              <th onclick="lendSort('records','expected_return')" style="cursor:pointer">應還 <span id="lend-sort-records-expected_return">⇅</span></th>
+              <th>實還</th><th>狀態</th>
+            </tr></thead><tbody id="lend-rec-body"></tbody></table>
+          </div>
+        </div>
+
+        <div id="lend-tab-res" class="lend-panel-section" style="display:none">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+            <input class="fselect" id="lend-res-search" placeholder="🔍 搜尋…" style="max-width:200px" oninput="lendRenderResTable()">
+            <select class="fselect" id="lend-res-filter" style="max-width:150px" onchange="lendRenderResTable()">
+              <option value="">全部</option><option value="active">有效</option><option value="fulfilled">已借用</option>
+              <option value="expired">已過期</option><option value="cancelled_user">已取消</option><option value="cancelled_violation">被違規取消</option>
+            </select>
+            <span id="lend-res-count" style="font-size:12px;color:var(--ink3)"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>設備</th><th>借用人</th><th>身份</th><th>開始</th><th>結束</th><th>狀態</th><th>備註</th><th>操作</th>
+            </tr></thead><tbody id="lend-res-body"></tbody></table>
+          </div>
+        </div>
+
+        <div id="lend-tab-violations" class="lend-panel-section" style="display:none">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+            <span id="lend-vio-count" style="font-size:12px;color:var(--ink3)"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr><th>借用人</th><th>身份</th><th>違規類型</th><th>說明</th><th>時間</th></tr></thead>
+            <tbody id="lend-vio-body"></tbody></table>
+          </div>
+        </div>
+
+        <div id="lend-tab-settings" class="lend-panel-section" style="display:none">
+          <div style="max-width:440px;display:flex;flex-direction:column;gap:14px">
+            <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px">
+              <div style="font-size:14px;font-weight:700;margin-bottom:12px">⏱️ 系統設定</div>
+              <label class="flabel">預約歸還緩衝分鐘數</label>
+              <input type="number" id="lend-set-buffer" class="finput" min="0" max="480">
+              <p style="font-size:11.5px;color:var(--ink3);margin-top:4px">借「已預約」設備時，歸還上限＝預約開始前N分鐘</p>
+              <label class="flabel" style="margin-top:12px">預約逾期未取門檻分鐘數</label>
+              <input type="number" id="lend-set-grace" class="finput" min="0" max="180">
+              <p style="font-size:11.5px;color:var(--ink3);margin-top:4px">預約時間過後超過N分鐘還沒借，畫面標記為「橙色-預約逾期未取」</p>
+              <button class="btn btn-pri" style="margin-top:12px" onclick="lendSaveSettings()">儲存設定</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -9223,6 +9355,7 @@ function showPage(page, btn) {
   if (page==='advisors') loadAdvisors();
   if (page==='payroll') loadPayrollPage();
   if (page==='users') loadUsers();
+  if (page==='lending') lendLoadAll();
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -11754,7 +11887,7 @@ let _allUsers = [];
 let _usrSort = { field:'email', dir:1 };
 
 const PERM_KEYS = ['announcements','todos','meetings','courses','open_courses',
-                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','grade-summary','forms','logs'];
+                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','grade-summary','forms','logs','lending'];
 
 const PERM_LABELS = {
   announcements: '📢 公佈欄',
@@ -11773,6 +11906,7 @@ const PERM_LABELS = {
   grades:        '📊 成績登錄',
   'grade-summary': '🏆 成績彙總',
   logs:          '📜 操作記錄',
+  lending:       '🔧 設備借用管理',
 };
 
 const PERM_LEVELS = ['none','read','write','admin'];
@@ -16226,6 +16360,879 @@ async function rejectGradeEntry(offeringId, teacherName) {
   showToast('已退回，老師可重新編輯');
   writeAuditLog('成績管理','退回學科成績','grade_entries',offeringId,teacherName,reason||'');
   loadGradeStatus();
+}
+
+/* ══════════════════════════════════════════════════════════
+   🔧 設備借用管理
+   ══════════════════════════════════════════════════════════ */
+let _lendEquip = [], _lendRes = [], _lendRecords = [], _lendViolations = [], _lendCategories = [];
+
+// 「＋ 新增設備」只有write以上權限能用，其他人隱藏（不是灰階，因為隱藏比灰階更清楚表達「這不是你能做的事」）
+function lendApplyPermButtons() {
+  const btn = document.getElementById('lend-btn-add-equip');
+  if (!btn) return;
+  const canWrite = typeof window.hasPerm === 'function' ? window.hasPerm('lending','write') : true;
+  btn.style.display = canWrite ? '' : 'none';
+}
+let _lendBorrowMap = {}; // equipmentId -> {borrowerName, borrowerType, expectedReturn, borrowTime, recordId}
+let _lendSelectedIds = new Set();
+let _lendSettings = { return_buffer_minutes: 60, pickup_grace_minutes: 20 };
+let _lendSort = { equip:{field:'sort_order',dir:1}, records:{field:'borrow_time',dir:-1} };
+let _lendRecFilter = { kw:'', status:'' };
+let _lendResFilter = { kw:'', status:'' };
+const LEND_STATUS_LABEL = { available:'可借用', reserved:'已預約', borrowed:'借用中', overdue:'逾期未歸還', notpicked:'預約逾期未取', broken:'故障/待修' };
+const LEND_STATUS_COLOR = { available:'#e5e7eb', reserved:'#8b5cf6', borrowed:'#3b82f6', overdue:'#eab308', notpicked:'#f97316', broken:'#f43f5e' };
+const LEND_RES_STATUS_LABEL = { active:'有效', fulfilled:'已借用', expired:'已過期', cancelled_user:'已取消', cancelled_violation:'被違規取消' };
+const LEND_RESULT_LABEL = { normal:'正常歸還', late:'逾期歸還', violated:'無效預約' };
+const LEND_VIO_LABEL = { late_return:'逾期未還', reservation_violated:'預約被壓壞' };
+const LEND_BTYPE_LABEL = { student:'學生', teacher:'教師', staff:'行政人員', guest:'訪客' };
+
+async function lendLoadAll() {
+  const container = document.getElementById('lend-equipment-container');
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">載入中…</div>';
+
+  lendApplyPermButtons();
+
+  const { data: equip } = await sb.from('lending_equipment').select('*').order('category').order('sort_order');
+  const { data: res } = await sb.from('lending_reservations').select('*').eq('status','active').order('start_time');
+  const { data: records } = await sb.from('lending_records').select('*').is('actual_return_time', null);
+  const { data: settings } = await sb.from('lending_settings').select('*');
+  const { data: cats } = await sb.from('lending_categories').select('*').order('sort_order');
+
+  _lendEquip = equip || [];
+  _lendRes = res || [];
+  _lendRecords = records || [];
+  _lendCategories = cats || [];
+  (settings||[]).forEach(s => { _lendSettings[s.key] = parseInt(s.value,10) || 0; });
+
+  // 批次解析借用人姓名（student/teacher各自查一次，guest直接用guest_name）
+  await lendResolveBorrowerNames(_lendRecords);
+
+  _lendBorrowMap = {};
+  _lendRecords.forEach(r => {
+    _lendBorrowMap[r.equipment_id] = {
+      borrowerName: r._borrowerName || '---',
+      borrowerType: r.borrower_type,
+      expectedReturn: r.expected_return,
+      borrowTime: r.borrow_time,
+      recordId: r.id,
+    };
+  });
+
+  // 把有效預約掛回設備
+  await lendResolveBorrowerNames(_lendRes);
+  const resByEquip = {};
+  _lendRes.forEach(r => { (resByEquip[r.equipment_id] ||= []).push(r); });
+  _lendEquip.forEach(eq => { eq._reservations = (resByEquip[eq.id]||[]).sort((a,b)=>new Date(a.start_time)-new Date(b.start_time)); });
+
+  lendRenderEquipment();
+  lendRenderOverdueBar();
+  lendLoadAdminData();
+}
+
+// 批次把borrower_type/borrower_id解析成姓名，掛在_borrowerName欄位
+async function lendResolveBorrowerNames(rows) {
+  const studentIds = [...new Set(rows.filter(r=>r.borrower_type==='student' && r.borrower_id).map(r=>r.borrower_id))];
+  const teacherIds = [...new Set(rows.filter(r=>r.borrower_type==='teacher' && r.borrower_id).map(r=>r.borrower_id))];
+  const staffIds = [...new Set(rows.filter(r=>r.borrower_type==='staff' && r.borrower_id).map(r=>r.borrower_id))];
+  let studentMap = {}, teacherMap = {}, staffMap = {};
+  if (studentIds.length) {
+    const { data } = await sb.from('students').select('id,student_code,name_zh').in('id', studentIds);
+    (data||[]).forEach(s => { studentMap[s.id] = `${s.name_zh}（${s.student_code}）`; });
+  }
+  if (teacherIds.length) {
+    const { data } = await sb.from('teachers').select('id,name_zh').in('id', teacherIds);
+    (data||[]).forEach(t => { teacherMap[t.id] = t.name_zh; });
+  }
+  if (staffIds.length) {
+    const { data } = await sb.from('users').select('id,display_name,email').in('id', staffIds);
+    (data||[]).forEach(u => { staffMap[u.id] = u.display_name || u.email; });
+  }
+  rows.forEach(r => {
+    r._borrowerName = r.borrower_type === 'guest' ? `${r.guest_name}（訪客）`
+      : r.borrower_type === 'student' ? (studentMap[r.borrower_id] || '---')
+      : r.borrower_type === 'staff' ? (staffMap[r.borrower_id] || '---')
+      : (teacherMap[r.borrower_id] || '---');
+  });
+}
+
+// 依即時狀態計算畫面顯示狀態（overdue/notpicked是算出來的，不存資料庫）
+function lendComputeDisplayStatus(eq) {
+  const now = new Date();
+  if (eq.status === 'borrowed') {
+    const b = _lendBorrowMap[eq.id];
+    if (b && new Date(b.expectedReturn) < now) return 'overdue';
+    return 'borrowed';
+  }
+  if (eq.status === 'reserved' && eq._reservations && eq._reservations.length) {
+    const nearest = eq._reservations[0];
+    const graceEnd = new Date(new Date(nearest.start_time).getTime() + _lendSettings.pickup_grace_minutes*60000);
+    if (now >= new Date(nearest.start_time) && now < graceEnd) return 'reserved'; // 剛好在借用時窗內，還算合理
+    if (now >= graceEnd) return 'notpicked';
+    return 'reserved';
+  }
+  return eq.status; // available / broken
+}
+
+// ── 卡片牆渲染 ──
+function lendRenderEquipment() {
+  const ct = document.getElementById('lend-equipment-container');
+  if (!_lendEquip.length) { ct.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3);background:#fff;border:2px dashed var(--cr2);border-radius:12px">目前尚無設備資料，點「＋ 新增設備」開始建立</div>'; return; }
+
+  const canWrite = typeof window.hasPerm === 'function' ? window.hasPerm('lending','write') : true;
+  const grp = {};
+  _lendEquip.forEach(eq => { (grp[eq.category] ||= []).push(eq); });
+
+  // 類別顯示順序：依_lendCategories.sort_order；沒登記過的類別(理論上不該發生)排最後
+  const catOrderMap = {}; _lendCategories.forEach(c => { catOrderMap[c.name] = c.sort_order; });
+  const catNames = Object.keys(grp).sort((a,b) => (catOrderMap[a]??999999) - (catOrderMap[b]??999999));
+
+  let html = '';
+  catNames.forEach(cat => {
+    html += `<div style="margin-bottom:18px" data-lend-cat-section="${esc(cat)}">
+      <div ${canWrite?'draggable="true"':''} ${canWrite?`ondragstart="lendCatDragStart(event,'${esc(cat)}')" ondragover="lendCatDragOver(event)" ondrop="lendCatDrop(event,'${esc(cat)}')"`:''}
+        style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink2);margin-bottom:8px;border-left:4px solid var(--navy);padding-left:8px;${canWrite?'cursor:grab;':''}user-select:none">
+        ${canWrite ? `<span style="color:var(--ink3);font-size:12px" title="拖曳調整類別順序">⠿</span>` : ''}
+        ${esc(cat)} <span style="font-size:11px;background:#f5f5f0;border:1px solid var(--cr2);border-radius:20px;padding:1px 8px;color:var(--ink3);font-weight:400">${grp[cat].length}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px">`;
+    grp[cat].forEach(eq => {
+      const ds = lendComputeDisplayStatus(eq);
+      const selected = _lendSelectedIds.has(eq.id);
+      const b = _lendBorrowMap[eq.id];
+      let extraLine = '';
+      if ((ds==='borrowed'||ds==='overdue') && b) extraLine = `<div style="font-size:11px;color:#1e40af;margin-top:3px">👤 ${esc(b.borrowerName)}（${lendFmtShort(b.expectedReturn)}）</div>`;
+      if (ds==='reserved' && eq._reservations?.[0]) {
+        const moreCount = eq._reservations.length - 1;
+        extraLine = `<div style="font-size:11px;color:#5b21b6;margin-top:3px">📅 ${esc(eq._reservations[0]._borrowerName||'')}（${lendFmtShort(eq._reservations[0].start_time)}）${moreCount>0?`<span style="color:var(--ink3)"> ＋還有${moreCount}筆(右鍵看全部)</span>`:''}</div>`;
+      }
+      if (ds==='notpicked' && eq._reservations?.[0]) extraLine = `<div style="font-size:11px;color:#c2410c;margin-top:3px">⚠️ ${esc(eq._reservations[0]._borrowerName||'')}未取件
+        ${canWrite ? `<button onclick="event.stopPropagation();lendReleaseNotpicked('${eq.id}','${eq._reservations[0].id}')" style="margin-left:4px;font-size:10px;padding:1px 6px;border-radius:10px;border:1px solid #f97316;background:#fff;color:#c2410c;cursor:pointer">一鍵釋放</button>` : ''}</div>`;
+      html += `<div class="lend-card" data-id="${eq.id}" ${canWrite?'draggable="true"':''}
+        onclick="lendToggleSelect('${eq.id}')" oncontextmenu="lendShowContext(event,'${eq.id}')"
+        ${canWrite ? `ondragstart="lendItemDragStart(event,'${eq.id}')" ondragover="lendItemDragOver(event)" ondrop="lendItemDrop(event,'${eq.id}')"` : ''}
+        style="background:#fff;border:1.5px solid ${selected?'var(--navy)':'var(--cr2)'};${selected?'outline:2px solid var(--navy);outline-offset:1px;background:#f0f6ff;':''}border-radius:10px;padding:12px;cursor:pointer;user-select:none">
+        <div style="width:9px;height:9px;border-radius:50%;background:${LEND_STATUS_COLOR[ds]};margin-bottom:7px"></div>
+        <div style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(eq.name)}">${esc(eq.name)}</div>
+        <div style="font-size:10.5px;color:var(--ink3);font-family:monospace;margin-bottom:3px">${esc(eq.property_no)}</div>
+        <div style="font-size:11.5px;font-weight:500;color:${ds==='overdue'?'#a16207':ds==='notpicked'?'#c2410c':ds==='broken'?'#9f1239':ds==='borrowed'?'#1e40af':ds==='reserved'?'#5b21b6':'var(--ink3)'}">${LEND_STATUS_LABEL[ds]}</div>
+        ${extraLine}
+      </div>`;
+
+    });
+    html += `</div></div>`;
+  });
+  ct.innerHTML = html;
+}
+
+// ── 拖曳排序：類別（整區）── //
+let _lendDragCatSource = null;
+function lendCatDragStart(e, cat) { _lendDragCatSource = cat; e.dataTransfer.effectAllowed = 'move'; }
+function lendCatDragOver(e) { e.preventDefault(); }
+async function lendCatDrop(e, targetCat) {
+  e.preventDefault();
+  if (!_lendDragCatSource || _lendDragCatSource === targetCat) { _lendDragCatSource = null; return; }
+  const ordered = _lendCategories.slice().sort((a,b)=>a.sort_order-b.sort_order);
+  const srcIdx = ordered.findIndex(c=>c.name===_lendDragCatSource);
+  const tgtIdx = ordered.findIndex(c=>c.name===targetCat);
+  _lendDragCatSource = null;
+  if (srcIdx<0 || tgtIdx<0) return;
+  const [moved] = ordered.splice(srcIdx,1);
+  ordered.splice(tgtIdx,0,moved);
+  for (let i=0; i<ordered.length; i++) {
+    await sb.from('lending_categories').update({sort_order:(i+1)*10}).eq('id', ordered[i].id);
+  }
+  showToast('✅ 類別順序已調整');
+  lendLoadAll();
+}
+
+// ── 拖曳排序：項目（同類別內）── //
+let _lendDragItemSource = null;
+function lendItemDragStart(e, id) { e.stopPropagation(); _lendDragItemSource = id; e.dataTransfer.effectAllowed = 'move'; }
+function lendItemDragOver(e) { e.preventDefault(); e.stopPropagation(); }
+async function lendItemDrop(e, targetId) {
+  e.preventDefault(); e.stopPropagation();
+  const srcId = _lendDragItemSource;
+  _lendDragItemSource = null;
+  if (!srcId || srcId === targetId) return;
+  const src = _lendEquip.find(x=>x.id===srcId);
+  const tgt = _lendEquip.find(x=>x.id===targetId);
+  if (!src || !tgt) return;
+  if (src.category !== tgt.category) { showToast('只能在同一個類別內調整順序（跨類別請拖曳類別標題）','error'); return; }
+  const sameCat = _lendEquip.filter(x=>x.category===src.category).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const srcIdx = sameCat.findIndex(x=>x.id===srcId);
+  const tgtIdx = sameCat.findIndex(x=>x.id===targetId);
+  const [moved] = sameCat.splice(srcIdx,1);
+  sameCat.splice(tgtIdx,0,moved);
+  for (let i=0; i<sameCat.length; i++) {
+    await sb.from('lending_equipment').update({sort_order:(i+1)*10}).eq('id', sameCat[i].id);
+  }
+  showToast('✅ 順序已調整');
+  lendLoadAll();
+}
+
+function lendFmtShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso); if (isNaN(d)) return '';
+  const p = n => String(n).padStart(2,'0');
+  return `${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function lendFmtDate(iso) {
+  if (!iso) return '---';
+  const d = new Date(iso); if (isNaN(d)) return String(iso);
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function lendRenderOverdueBar() {
+  const overdue = _lendEquip.filter(eq => lendComputeDisplayStatus(eq)==='overdue');
+  const bar = document.getElementById('lend-overdue-bar');
+  if (!overdue.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  bar.innerHTML = `⚠️ <b>逾期未歸還：</b>${overdue.map(e=>esc(e.name)).join('、')}`;
+}
+
+function lendToggleSelect(id) {
+  if (_lendSelectedIds.has(id)) _lendSelectedIds.delete(id); else _lendSelectedIds.add(id);
+  lendRenderEquipment();
+  lendUpdateButtons();
+}
+function lendClearSelection() { _lendSelectedIds.clear(); lendRenderEquipment(); lendUpdateButtons(); }
+
+// 混合選取時的錯誤提示：用彈窗而不是toast，因為要列出設備清單，3秒的toast常常來不及看完
+function lendShowBlockAlert(title, invalidItems, reason) {
+  const html = `<div style="font-size:13px;line-height:1.8">
+    <p style="margin:0 0 8px">以下項目${reason}，已從這次操作中排除，請取消勾選後再試一次：</p>
+    <ul style="margin:0;padding-left:18px">
+      ${invalidItems.map(e=>`<li><b>${esc(e.name)}</b>（${esc(e.property_no)}）— 目前狀態：${LEND_STATUS_LABEL[lendComputeDisplayStatus(e)]}</li>`).join('')}
+    </ul>
+  </div>`;
+  presShowSimpleModal(title, html, async()=>true);
+}
+
+function lendUpdateButtons() {
+  const has = _lendSelectedIds.size > 0;
+  document.getElementById('lend-btn-clear').disabled = !has;
+  let anyBorrow=false, anyReturn=false;
+  _lendEquip.forEach(eq => {
+    if (!_lendSelectedIds.has(eq.id)) return;
+    const ds = lendComputeDisplayStatus(eq);
+    if (ds==='available'||ds==='reserved') anyBorrow = true;
+    if (ds==='borrowed'||ds==='overdue') anyReturn = true;
+  });
+  document.getElementById('lend-btn-borrow').disabled = !anyBorrow;
+  document.getElementById('lend-btn-return').disabled = !anyReturn;
+}
+
+// ── 右鍵詳情 ──
+function lendShowContext(e, equipId) {
+  e.preventDefault();
+  const eq = _lendEquip.find(x=>x.id===equipId); if (!eq) return;
+  const ds = lendComputeDisplayStatus(eq);
+  const b = _lendBorrowMap[equipId];
+  let html = `<div style="font-size:13px;line-height:1.9">
+    <div><b>${esc(eq.name)}</b>（${esc(eq.property_no)}）</div>
+    <div>狀態：${LEND_STATUS_LABEL[ds]}</div>`;
+  if (b) html += `<div>借用人：${esc(b.borrowerName)}</div><div>應還時間：${lendFmtDate(b.expectedReturn)}</div>`;
+  if (eq._reservations?.length) html += `<div style="margin-top:6px;font-weight:600">近期預約（共${eq._reservations.length}筆）</div>` + eq._reservations.map(r=>`<div>${esc(r._borrowerName||'')}：${lendFmtDate(r.start_time)} ～ ${lendFmtDate(r.end_time)}</div>`).join('');
+  html += `</div>`;
+  presShowSimpleModal(`設備詳情`, html, async()=>true);
+}
+
+// ── 借用彈窗 ──
+let _lendBorrowerLookup = null; // {type,id,name} 或 null(訪客模式)
+
+function lendOpenBorrowModal() {
+  const selected = _lendEquip.filter(eq => _lendSelectedIds.has(eq.id));
+  const items = selected.filter(eq => ['available','reserved'].includes(lendComputeDisplayStatus(eq)));
+  const invalid = selected.filter(eq => !['available','reserved'].includes(lendComputeDisplayStatus(eq)));
+  if (invalid.length) {
+    lendShowBlockAlert('⚠️ 無法借用', invalid, '目前狀態無法借用');
+    return;
+  }
+  if (!items.length) return;
+  _lendBorrowerLookup = null; // 先不預設，讓使用者第一件事就是回答「這是誰要借」
+  const now = new Date();
+  const toLocalInput = d => { const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+
+  // 找即將到來的預約，決定歸還時間上限
+  let upcoming = [];
+  items.forEach(eq => (eq._reservations||[]).forEach(r => { if (new Date(r.start_time) > now) upcoming.push({eq, r}); }));
+  upcoming.sort((a,b)=>new Date(a.r.start_time)-new Date(b.r.start_time));
+
+  let defaultReturn, maxReturn = '', warnHtml = '';
+  if (upcoming.length) {
+    const nearest = upcoming[0];
+    const deadline = new Date(new Date(nearest.r.start_time).getTime() - _lendSettings.return_buffer_minutes*60000);
+    const startAt = deadline > now ? deadline : new Date(now.getTime()+30*60000);
+    defaultReturn = toLocalInput(startAt);
+    maxReturn = toLocalInput(new Date(nearest.r.start_time));
+    warnHtml = `<div class="alert" style="display:block;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;padding:8px 10px;border-radius:8px;font-size:12px;margin-bottom:8px">
+      ⚠️ 以下設備已有預約：${upcoming.map(u=>`<b>${esc(u.eq.name)}</b>：${lendFmtDate(u.r.start_time)}起`).join('、')}<br>
+      請於預約開始前 ${_lendSettings.return_buffer_minutes} 分鐘歸還。</div>`;
+  } else {
+    let target = new Date(); target.setHours(17,30,0,0);
+    if (target <= now) target.setDate(target.getDate()+1); // 已經超過今天17:30，改預設明天17:30
+    defaultReturn = toLocalInput(target);
+  }
+
+  const html = `
+    ${warnHtml}
+    <div style="background:#f5f5f0;border:1px solid var(--cr2);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12.5px">
+      <b>選取設備：</b>${items.map(e=>`${esc(e.name)}（${esc(e.property_no)}）`).join('、')}
+    </div>
+    <label class="flabel">這是誰要借？</label>
+    <div style="margin-bottom:8px">
+      <button type="button" class="btn btn-sec btn-sm" onclick="lendUseSelfAsBorrower('lend-borrow')">⚡ 我自己（${esc(window.ADMIN_NAME || window.ADMIN_EMAIL)}）</button>
+    </div>
+    <input class="finput" id="lend-borrow-name" placeholder="輸入姓名" oninput="lendOnBorrowerNameInput(this.value,'lend-borrow-code')">
+    <label class="flabel" style="margin-top:8px">學號／教師email <span style="font-size:11px;color:var(--ink3);font-weight:400">（填其中一個欄位，另一個會自動帶出；兩邊都查不到會切換成訪客登記）</span></label>
+    <input class="finput" id="lend-borrow-code" placeholder="輸入學號或教師email" oninput="lendOnBorrowerCodeInput(this.value,'lend-borrow-name')">
+    <div id="lend-borrower-found" style="font-size:12.5px;color:var(--green);margin-top:4px;display:none"></div>
+    <div id="lend-guest-fields" style="display:none;margin-top:8px">
+      <label class="flabel">姓名 *</label><input class="finput" id="lend-guest-name" placeholder="訪客姓名">
+      <label class="flabel" style="margin-top:6px">聯絡方式 *</label><input class="finput" id="lend-guest-contact" placeholder="手機或email">
+    </div>
+    <label class="flabel" style="margin-top:10px">預計歸還時間 *</label>
+    <input type="datetime-local" class="finput" id="lend-borrow-return" value="${defaultReturn}" ${maxReturn?`max="${maxReturn}"`:''}>
+    <label class="flabel" style="margin-top:8px">備註</label>
+    <input class="finput" id="lend-borrow-note" placeholder="（選填）">
+  `;
+  presShowSimpleModal('📤 填寫借用單', html, lendSubmitBorrow);
+}
+
+// 快速帶入登入者自己的身份（借用單/預約單都共用），使用者仍可以改成輸入別人的資料覆蓋掉
+function lendUseSelfAsBorrower(prefix) {
+  _lendBorrowerLookup = { type:'staff', id: window.ADMIN_USER_ID, name: window.ADMIN_NAME || window.ADMIN_EMAIL };
+  const nameEl = document.getElementById(prefix+'-name');
+  const codeEl = document.getElementById(prefix+'-code');
+  if (nameEl) nameEl.value = window.ADMIN_NAME || '';
+  if (codeEl) codeEl.value = window.ADMIN_EMAIL || '';
+  const foundEl = document.getElementById('lend-borrower-found');
+  const guestEl = document.getElementById('lend-guest-fields');
+  foundEl.textContent = `✅ ${window.ADMIN_NAME || window.ADMIN_EMAIL}（自己）`;
+  foundEl.style.color = 'var(--green)'; foundEl.style.display = 'block';
+  guestEl.style.display = 'none';
+}
+
+// 姓名 → 模糊比對學生+教師（同時搜兩邊），唯一結果才自動帶出學號/email；有多筆符合就不自動帶，讓使用者自己補打學號/email
+async function lendOnBorrowerNameInput(val, codeFieldId) {
+  val = val.trim();
+  const foundEl = document.getElementById('lend-borrower-found');
+  const guestEl = document.getElementById('lend-guest-fields');
+  const codeEl = document.getElementById(codeFieldId);
+  if (val.length < 2) return;
+
+  const { data: stus } = await sb.from('students').select('id,student_code,name_zh').ilike('name_zh', `%${val}%`);
+  const { data: teas } = await sb.from('teachers').select('id,email,name_zh').ilike('name_zh', `%${val}%`);
+  const hits = [
+    ...(stus||[]).map(s=>({type:'student', id:s.id, name:s.name_zh, code:s.student_code})),
+    ...(teas||[]).filter(t=>t.email).map(t=>({type:'teacher', id:t.id, name:t.name_zh, code:t.email})),
+  ];
+
+  if (hits.length === 1) {
+    const h = hits[0];
+    _lendBorrowerLookup = { type:h.type, id:h.id, name:h.name };
+    codeEl.value = h.code;
+    foundEl.textContent = `✅ 找到：${h.name}（${h.type==='student'?'學生':'教師'}）`;
+    foundEl.style.color = 'var(--green)'; foundEl.style.display='block';
+    guestEl.style.display='none';
+  } else if (hits.length > 1) {
+    foundEl.textContent = `找到 ${hits.length} 位符合「${val}」的人，請直接填寫學號或email確認是哪一位`;
+    foundEl.style.color = '#c2410c'; foundEl.style.display='block';
+  }
+}
+
+async function lendOnBorrowerCodeInput(val, nameFieldId) {
+  val = val.trim();
+  const foundEl = document.getElementById('lend-borrower-found');
+  const guestEl = document.getElementById('lend-guest-fields');
+  const nameEl = nameFieldId ? document.getElementById(nameFieldId) : null;
+  if (val.length < 2) { foundEl.style.display='none'; guestEl.style.display='none'; _lendBorrowerLookup=null; return; }
+
+  const { data: stu } = await sb.from('students').select('id,name_zh').eq('student_code', val).maybeSingle();
+  if (stu) { _lendBorrowerLookup = {type:'student', id:stu.id, name:stu.name_zh}; if(nameEl) nameEl.value = stu.name_zh; foundEl.textContent = `✅ 找到：${stu.name_zh}（學生）`; foundEl.style.color='var(--green)'; foundEl.style.display='block'; guestEl.style.display='none'; return; }
+
+  const { data: tea } = await sb.from('teachers').select('id,name_zh').eq('email', val).maybeSingle();
+  if (tea) { _lendBorrowerLookup = {type:'teacher', id:tea.id, name:tea.name_zh}; if(nameEl) nameEl.value = tea.name_zh; foundEl.textContent = `✅ 找到：${tea.name_zh}（教師）`; foundEl.style.color='var(--green)'; foundEl.style.display='block'; guestEl.style.display='none'; return; }
+
+  _lendBorrowerLookup = null;
+  foundEl.textContent = '查無此人，請填寫下方訪客資訊';
+  foundEl.style.color = '#c2410c'; foundEl.style.display='block';
+  guestEl.style.display='block';
+}
+
+async function lendSubmitBorrow() {
+  const items = _lendEquip.filter(eq => _lendSelectedIds.has(eq.id) && ['available','reserved'].includes(lendComputeDisplayStatus(eq)));
+  const ret = document.getElementById('lend-borrow-return').value;
+  const note = document.getElementById('lend-borrow-note').value.trim();
+  if (!ret) { showToast('請填寫預計歸還時間','error'); return false; }
+  if (new Date(ret) <= new Date()) { showToast('歸還時間必須晚於現在','error'); return false; }
+
+  let btype, bid=null, gname=null, gcontact=null;
+  if (_lendBorrowerLookup) {
+    btype = _lendBorrowerLookup.type; bid = _lendBorrowerLookup.id;
+  } else {
+    gname = document.getElementById('lend-guest-name')?.value.trim();
+    gcontact = document.getElementById('lend-guest-contact')?.value.trim();
+    if (!gname || !gcontact) { showToast('請填寫訪客姓名與聯絡方式，或輸入正確的學號/工號','error'); return false; }
+    btype = 'guest';
+  }
+
+  for (const eq of items) {
+    let reservationId = null;
+    if (eq.status === 'reserved' && eq._reservations?.length) {
+      const nearest = eq._reservations[0];
+      if (new Date() >= new Date(nearest.start_time)) { showToast(`${eq.name}的預約已開始，請先聯絡管理者處理`,'error'); return false; }
+      // 只有「這次借用的人」跟「原本預約的人」是同一人，才算是來取件、把預約標記完成；
+      // 如果是不相干的其他人借走（提早借、跟預約者無關），這筆預約要維持有效，不能被誤標成已完成
+      const sameBorrower = btype === 'guest'
+        ? (nearest.borrower_type === 'guest' && nearest.guest_name === gname)
+        : (nearest.borrower_type === btype && nearest.borrower_id === bid);
+      if (sameBorrower) reservationId = nearest.id;
+    }
+    const { error: e1 } = await sb.from('lending_records').insert({
+      equipment_id: eq.id, borrower_type: btype, borrower_id: bid, guest_name: gname, guest_contact: gcontact,
+      reservation_id: reservationId, expected_return: new Date(ret).toISOString(), note: note||null,
+    });
+    if (e1) { showToast('借用失敗：'+e1.message,'error'); return false; }
+    await sb.from('lending_equipment').update({ status:'borrowed' }).eq('id', eq.id);
+    if (reservationId) await sb.from('lending_reservations').update({ status:'fulfilled' }).eq('id', reservationId);
+  }
+  showToast('✅ 借用完成');
+  _lendSelectedIds.clear();
+  lendLoadAll();
+  return true;
+}
+
+// ── 歸還彈窗 ──
+function lendOpenReturnModal() {
+  const selected = _lendEquip.filter(eq => _lendSelectedIds.has(eq.id));
+  const items = selected.filter(eq => ['borrowed','overdue'].includes(lendComputeDisplayStatus(eq)));
+  const invalid = selected.filter(eq => !['borrowed','overdue'].includes(lendComputeDisplayStatus(eq)));
+  if (invalid.length) {
+    lendShowBlockAlert('⚠️ 無法歸還', invalid, '目前不是借用中，無法歸還');
+    return;
+  }
+  if (!items.length) return;
+  const html = items.map(eq => {
+    const b = _lendBorrowMap[eq.id] || {};
+    const late = b.expectedReturn && new Date(b.expectedReturn) < new Date();
+    return `<div style="padding:6px 0;border-bottom:1px solid var(--cr2)">
+      <b>${esc(eq.name)}</b>（${esc(eq.property_no)}）<br>
+      <span style="font-size:12px;color:var(--ink3)">借用人：${esc(b.borrowerName||'---')} ／ 應還：<span style="color:${late?'var(--red)':'inherit'}">${lendFmtDate(b.expectedReturn)}</span>${late?' ⚠️逾期':''}</span>
+    </div>`;
+  }).join('');
+  presShowSimpleModal('📥 確認歸還', html, lendSubmitReturn);
+}
+
+async function lendSubmitReturn() {
+  const items = _lendEquip.filter(eq => _lendSelectedIds.has(eq.id) && ['borrowed','overdue'].includes(lendComputeDisplayStatus(eq)));
+  const nowIso = new Date().toISOString();
+  for (const eq of items) {
+    const rec = _lendRecords.find(r => r.equipment_id === eq.id && !r.actual_return_time);
+    if (!rec) continue;
+    const isLate = new Date() > new Date(rec.expected_return);
+    let returnResult = 'normal', nextStatus = 'available';
+
+    if (rec.reservation_id) {
+      const resRow = _lendRes.find(r => r.id === rec.reservation_id) || (await sb.from('lending_reservations').select('*').eq('id',rec.reservation_id).maybeSingle()).data;
+      if (resRow) {
+        const resStart = new Date(resRow.start_time);
+        if (new Date() <= resStart) {
+          returnResult = isLate ? 'late' : 'normal';
+          nextStatus = 'reserved';
+          if (isLate) await lendWriteViolation(rec, null, 'late_return', `逾期歸還，應於${lendFmtDate(rec.expected_return)}前還回`);
+        } else {
+          returnResult = 'violated'; nextStatus = 'available';
+          await sb.from('lending_reservations').update({ status:'cancelled_violation' }).eq('id', resRow.id);
+          await lendWriteViolation(rec, resRow.id, 'reservation_violated', `未於預約開始前（${lendFmtDate(resRow.start_time)}）歸還，預約已無效`);
+        }
+      }
+    } else if (isLate) {
+      returnResult = 'late';
+      await lendWriteViolation(rec, null, 'late_return', `逾期歸還，應於${lendFmtDate(rec.expected_return)}前還回`);
+    }
+
+    // 就算這次借用本身沒有綁定任何預約，也要檢查一下這件設備是不是還有「別人的、不相干的」有效預約在等著
+    // （例如：A預約了，結果是B先把它借走又還回來，還回來之後應該退回「已預約」給A，不能變回「可借用」）
+    if (nextStatus === 'available') {
+      const { data: otherActiveRes } = await sb.from('lending_reservations').select('id').eq('equipment_id', eq.id).eq('status','active').limit(1);
+      if (otherActiveRes?.length) nextStatus = 'reserved';
+    }
+
+    await sb.from('lending_records').update({ actual_return_time: nowIso, return_result: returnResult }).eq('id', rec.id);
+    await sb.from('lending_equipment').update({ status: nextStatus }).eq('id', eq.id);
+  }
+  showToast('✅ 歸還完成');
+  _lendSelectedIds.clear();
+  lendLoadAll();
+  return true;
+}
+
+async function lendWriteViolation(rec, resId, type, desc) {
+  await sb.from('lending_violations').insert({
+    borrower_type: rec.borrower_type, borrower_id: rec.borrower_id, guest_name: rec.guest_name,
+    record_id: rec.id, affected_reservation_id: resId, type, description: desc,
+  });
+}
+
+// ── 一鍵釋放（預約逾期未取）──
+async function lendReleaseNotpicked(equipId, resId) {
+  if (!confirm('確定要釋放這個未取件的預約嗎？（會把設備改回可借用，並取消此預約）')) return;
+  await sb.from('lending_reservations').update({ status:'cancelled_user', note:'管理者一鍵釋放（未取件）' }).eq('id', resId);
+  await sb.from('lending_equipment').update({ status:'available' }).eq('id', equipId);
+  showToast('已釋放');
+  lendLoadAll();
+}
+
+// ── 頁籤切換 ──
+function lendSwitchTab(id, btn) {
+  document.querySelectorAll('.lend-panel-section').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.lend-tab').forEach(b=>{ b.classList.remove('active'); b.style.color='var(--ink3)'; b.style.borderBottomColor='transparent'; });
+  document.getElementById(id).style.display = 'block';
+  btn.classList.add('active'); btn.style.color='var(--navy)'; btn.style.borderBottomColor='var(--navy)';
+  if (id==='lend-tab-settings') lendLoadSettingsForm();
+}
+
+async function lendLoadAdminData() {
+  const { data: allRecords } = await sb.from('lending_records').select('*').order('borrow_time',{ascending:false});
+  const { data: allRes } = await sb.from('lending_reservations').select('*').order('start_time',{ascending:false});
+  const { data: vios } = await sb.from('lending_violations').select('*').order('created_at',{ascending:false});
+  _lendRecords = allRecords || [];
+  _lendRes = allRes || [];
+  _lendViolations = vios || [];
+  await lendResolveBorrowerNames(_lendRecords);
+  await lendResolveBorrowerNames(_lendRes);
+  await lendResolveBorrowerNames(_lendViolations);
+  lendRenderDashboard();
+  lendRenderEquipTable();
+  lendRenderRecordsTable();
+  lendRenderResTable();
+  lendRenderVioTable();
+}
+
+// ── 總覽 ──
+function lendRenderDashboard() {
+  const total = _lendEquip.length;
+  const avail = _lendEquip.filter(e=>lendComputeDisplayStatus(e)==='available').length;
+  const borrowed = _lendEquip.filter(e=>['borrowed','overdue'].includes(lendComputeDisplayStatus(e))).length;
+  const broken = _lendEquip.filter(e=>e.status==='broken').length;
+  document.getElementById('lend-stat-grid').innerHTML = `
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:14px"><div style="font-size:11px;color:var(--ink3)">總設備數</div><div style="font-size:26px;font-weight:700">${total}</div></div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:14px"><div style="font-size:11px;color:var(--ink3)">可借用</div><div style="font-size:26px;font-weight:700;color:var(--green)">${avail}</div></div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:14px"><div style="font-size:11px;color:var(--ink3)">借用中</div><div style="font-size:26px;font-weight:700;color:var(--navy)">${borrowed}</div></div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:14px"><div style="font-size:11px;color:var(--ink3)">故障/待修</div><div style="font-size:26px;font-weight:700;color:var(--red)">${broken}</div></div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:14px"><div style="font-size:11px;color:var(--ink3)">總借用次數</div><div style="font-size:26px;font-weight:700">${_lendRecords.length}</div></div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:14px"><div style="font-size:11px;color:var(--ink3)">違規次數</div><div style="font-size:26px;font-weight:700;color:#ea580c">${_lendViolations.length}</div></div>`;
+
+  // 依身份別統計
+  const byType = { student:{count:0,active:0}, teacher:{count:0,active:0}, staff:{count:0,active:0}, guest:{count:0,active:0} };
+  _lendRecords.forEach(r => { if(!byType[r.borrower_type]) return; byType[r.borrower_type].count++; if (!r.actual_return_time) byType[r.borrower_type].active++; });
+  document.getElementById('lend-borrower-type-stats').innerHTML = Object.keys(byType).map(t => `
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:14px">
+      <div style="font-size:12px;color:var(--ink3)">${LEND_BTYPE_LABEL[t]}</div>
+      <div style="font-size:22px;font-weight:700">${byType[t].count} <span style="font-size:12px;font-weight:400;color:var(--ink3)">次</span></div>
+      <div style="font-size:11.5px;color:var(--navy)">目前借用中：${byType[t].active}</div>
+    </div>`).join('');
+
+  // 逾期排行
+  const vioCountByBorrower = {};
+  _lendViolations.forEach(v => {
+    const key = v.borrower_type + '_' + (v.borrower_id || v.guest_name);
+    vioCountByBorrower[key] ||= { name: v._borrowerName, type: v.borrower_type, count: 0 };
+    vioCountByBorrower[key].count++;
+  });
+  const ranked = Object.values(vioCountByBorrower).sort((a,b)=>b.count-a.count);
+  const rb = document.getElementById('lend-rank-body');
+  rb.innerHTML = ranked.length ? ranked.map(r => `<tr><td>${esc(r.name)}</td><td>${LEND_BTYPE_LABEL[r.type]}</td><td style="text-align:center;font-weight:700;color:var(--red)">${r.count}</td></tr>`).join('')
+    : '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--ink3)">尚無違規紀錄</td></tr>';
+}
+
+// ── 設備管理表 ──
+function lendSort(table, field) {
+  const s = _lendSort[table] || (_lendSort[table]={field,dir:1});
+  if (s.field===field) s.dir*=-1; else { s.field=field; s.dir=1; }
+  if (table==='equip') lendRenderEquipTable(); else lendRenderRecordsTable();
+}
+
+function lendRenderEquipTable() {
+  const kw = (document.getElementById('lend-equip-search')?.value||'').trim().toLowerCase();
+  let list = _lendEquip.filter(e => !kw || e.name.toLowerCase().includes(kw) || e.property_no.toLowerCase().includes(kw) || e.category.toLowerCase().includes(kw));
+  const s = _lendSort.equip;
+  const NUMERIC_FIELDS = new Set(['sort_order']); // 明確指定哪些欄位一定要當數字比較，不要靠typeof猜測（Supabase有時會回傳數字字串）
+  list = list.slice().sort((a,b)=>{
+    const av=a[s.field], bv=b[s.field];
+    const cmp = NUMERIC_FIELDS.has(s.field) ? (Number(av)||0)-(Number(bv)||0) : String(av||'').localeCompare(String(bv||''));
+    return cmp*s.dir;
+  });
+  document.getElementById('lend-equip-count').textContent = `${list.length} 筆`;
+  const canWrite = typeof window.hasPerm === 'function' ? window.hasPerm('lending','write') : true;
+  const tb = document.getElementById('lend-equip-body');
+  tb.innerHTML = list.length ? list.map(eq => {
+    const ds = lendComputeDisplayStatus(eq);
+    const b = _lendBorrowMap[eq.id];
+    return `<tr>
+      <td style="white-space:nowrap">${canWrite ? `<button class="btn btn-sec btn-sm" onclick="lendMoveEquip('${eq.id}','up')" title="上移">▲</button><button class="btn btn-sec btn-sm" onclick="lendMoveEquip('${eq.id}','down')" title="下移">▼</button>` : '<span style="color:var(--ink3);font-size:11px">—</span>'}</td>
+      <td>${esc(eq.category)}</td><td style="font-weight:600">${esc(eq.name)}</td>
+      <td style="font-family:monospace;font-size:12px">${esc(eq.property_no)}</td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${LEND_STATUS_COLOR[ds]}22;color:${LEND_STATUS_COLOR[ds]};border:1px solid ${LEND_STATUS_COLOR[ds]}">${LEND_STATUS_LABEL[ds]}</span></td>
+      <td style="font-size:12px">${b?esc(b.borrowerName):'---'}</td>
+      <td style="font-size:12px;color:var(--ink3)">${esc(eq.note||'')}</td>
+      <td>${canWrite ? `<button class="btn btn-sec btn-sm" onclick="lendOpenStatusModal('${eq.id}')">改狀態</button>
+      <button class="btn btn-sec btn-sm" onclick="lendOpenEditEquipModal('${eq.id}')">編輯</button>
+      <button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="lendDeleteEquip('${eq.id}','${esc(eq.name)}')">刪除</button>` : '<span style="color:var(--ink3);font-size:11px">—</span>'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--ink3)">尚無設備</td></tr>';
+}
+
+// 上下移動排序（同類別內互換sort_order，卡片牆跟表格都會照這個順序顯示）
+async function lendMoveEquip(id, direction) {
+  const eq = _lendEquip.find(x=>x.id===id); if (!eq) return;
+  const sameCat = _lendEquip.filter(x=>x.category===eq.category).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const idx = sameCat.findIndex(x=>x.id===id);
+  const swapIdx = direction==='up' ? idx-1 : idx+1;
+  if (swapIdx < 0 || swapIdx >= sameCat.length) return; // 已經是這個類別的第一個/最後一個
+  const other = sameCat[swapIdx];
+  await sb.from('lending_equipment').update({sort_order: other.sort_order}).eq('id', eq.id);
+  await sb.from('lending_equipment').update({sort_order: eq.sort_order}).eq('id', other.id);
+  lendLoadAll();
+}
+
+function lendOpenAddEquipModal() {
+  const html = `
+    <label class="flabel">類別 *</label><input class="finput" id="lend-eq-category" placeholder="例如：攝影器材">
+    <label class="flabel" style="margin-top:8px">設備名稱 *</label><input class="finput" id="lend-eq-name" placeholder="例如：Sony A7R V">
+    <label class="flabel" style="margin-top:8px">財產編號 *</label><input class="finput" id="lend-eq-prop" placeholder="例如：CAM-001">
+    <label class="flabel" style="margin-top:8px">備註</label><input class="finput" id="lend-eq-note" placeholder="（選填）">
+    <input type="hidden" id="lend-eq-id">`;
+  presShowSimpleModal('＋ 新增設備', html, lendSubmitAddEquip);
+}
+function lendOpenEditEquipModal(id) {
+  const eq = _lendEquip.find(x=>x.id===id); if (!eq) return;
+  const html = `
+    <label class="flabel">類別 *</label><input class="finput" id="lend-eq-category" value="${esc(eq.category)}">
+    <label class="flabel" style="margin-top:8px">設備名稱 *</label><input class="finput" id="lend-eq-name" value="${esc(eq.name)}">
+    <label class="flabel" style="margin-top:8px">財產編號 *</label><input class="finput" id="lend-eq-prop" value="${esc(eq.property_no)}">
+    <label class="flabel" style="margin-top:8px">備註</label><input class="finput" id="lend-eq-note" value="${esc(eq.note||'')}">
+    <input type="hidden" id="lend-eq-id" value="${eq.id}">`;
+  presShowSimpleModal(`編輯設備：${eq.name}`, html, lendSubmitAddEquip);
+}
+async function lendSubmitAddEquip() {
+  const id = document.getElementById('lend-eq-id').value;
+  const category = document.getElementById('lend-eq-category').value.trim();
+  const name = document.getElementById('lend-eq-name').value.trim();
+  const property_no = document.getElementById('lend-eq-prop').value.trim();
+  const note = document.getElementById('lend-eq-note').value.trim();
+  if (!category || !name || !property_no) { showToast('請完整填寫類別、名稱、財產編號','error'); return false; }
+  const payload = { category, name, property_no, note: note||null };
+  const { error } = id ? await sb.from('lending_equipment').update(payload).eq('id', id) : await sb.from('lending_equipment').insert(payload);
+  if (error) { showToast((id?'更新':'新增')+'失敗：'+error.message,'error'); return false; }
+  showToast('✅ 已儲存');
+  lendLoadAll();
+  return true;
+}
+async function lendDeleteEquip(id, name) {
+  if (!confirm(`確定要刪除「${name}」嗎？相關的借用/預約歷史紀錄不會被刪除，只是這個設備本身不再出現在清單中。`)) return;
+  const { error } = await sb.from('lending_equipment').delete().eq('id', id);
+  if (error) { showToast('刪除失敗（可能還有借用中的紀錄關聯）：'+error.message,'error'); return; }
+  showToast('已刪除'); lendLoadAll();
+}
+function lendOpenStatusModal(id) {
+  const eq = _lendEquip.find(x=>x.id===id); if (!eq) return;
+  const html = `<div style="font-size:13px;color:var(--ink2);margin-bottom:10px">設備：${esc(eq.name)}</div>
+    <select class="fselect" id="lend-status-select">
+      <option value="available"${eq.status==='available'?' selected':''}>可借用</option>
+      <option value="reserved"${eq.status==='reserved'?' selected':''}>已預約</option>
+      <option value="borrowed"${eq.status==='borrowed'?' selected':''}>借用中</option>
+      <option value="broken"${eq.status==='broken'?' selected':''}>故障/待修</option>
+    </select>
+    <input type="hidden" id="lend-status-eqid" value="${eq.id}">`;
+  presShowSimpleModal('✏️ 修改設備狀態', html, lendSubmitStatusChange);
+}
+async function lendSubmitStatusChange() {
+  const id = document.getElementById('lend-status-eqid').value;
+  const status = document.getElementById('lend-status-select').value;
+  const { error } = await sb.from('lending_equipment').update({status}).eq('id', id);
+  if (error) { showToast('修改失敗：'+error.message,'error'); return false; }
+  showToast('已更新'); lendLoadAll(); return true;
+}
+
+// ── 新增預約 ──
+function lendOpenAddResModal() {
+  const selected = _lendEquip.filter(eq => _lendSelectedIds.has(eq.id));
+  if (!selected.length) { showToast('請先在下方卡片牆勾選要預約的設備（可複選）', 'error'); return; }
+  const BLOCKED_STATUSES = ['broken','borrowed','overdue','notpicked']; // 故障、借用中、逾期、預約逾期未取都不能再被預約
+  const items = selected.filter(eq => !BLOCKED_STATUSES.includes(lendComputeDisplayStatus(eq)));
+  const invalid = selected.filter(eq => BLOCKED_STATUSES.includes(lendComputeDisplayStatus(eq)));
+  if (invalid.length) {
+    lendShowBlockAlert('⚠️ 無法預約', invalid, '目前狀態無法預約');
+    return;
+  }
+  const now = new Date(); now.setMinutes(0,0,0);
+  const end = new Date(now.getTime()+2*3600000);
+  const toLocalInput = d => { const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+  _lendBorrowerLookup = null;
+  const html = `
+    <div style="background:#f5f5f0;border:1px solid var(--cr2);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12.5px">
+      <b>選取設備：</b>${items.map(e=>`${esc(e.name)}（${esc(e.property_no)}）`).join('、')}
+    </div>
+    <div class="frow" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="flabel">預約開始 *</label><input type="datetime-local" class="finput" id="lend-res-start" value="${toLocalInput(now)}"></div>
+      <div><label class="flabel">預約結束 *</label><input type="datetime-local" class="finput" id="lend-res-end" value="${toLocalInput(end)}"></div>
+    </div>
+    <label class="flabel" style="margin-top:8px">這是誰要預約？</label>
+    <div style="margin-bottom:8px">
+      <button type="button" class="btn btn-sec btn-sm" onclick="lendUseSelfAsBorrower('lend-res')">⚡ 我自己（${esc(window.ADMIN_NAME || window.ADMIN_EMAIL)}）</button>
+    </div>
+    <input class="finput" id="lend-res-name" placeholder="輸入姓名" oninput="lendOnBorrowerNameInput(this.value,'lend-res-code')">
+    <label class="flabel" style="margin-top:8px">學號／教師email <span style="font-size:11px;color:var(--ink3);font-weight:400">（填其中一個欄位，另一個會自動帶出）</span></label>
+    <input class="finput" id="lend-res-code" placeholder="輸入學號或教師email" oninput="lendOnBorrowerCodeInput(this.value,'lend-res-name')">
+    <div id="lend-borrower-found" style="font-size:12.5px;color:var(--green);margin-top:4px;display:none"></div>
+    <div id="lend-guest-fields" style="display:none;margin-top:8px">
+      <label class="flabel">姓名 *</label><input class="finput" id="lend-guest-name" placeholder="訪客姓名">
+      <label class="flabel" style="margin-top:6px">聯絡方式 *</label><input class="finput" id="lend-guest-contact" placeholder="手機或email">
+    </div>
+    <label class="flabel" style="margin-top:8px">備註</label><input class="finput" id="lend-res-note" placeholder="（選填）">`;
+  presShowSimpleModal('📅 新增預約', html, lendSubmitAddRes);
+}
+async function lendSubmitAddRes() {
+  const BLOCKED_STATUSES = ['broken','borrowed','overdue','notpicked'];
+  const items = _lendEquip.filter(eq => _lendSelectedIds.has(eq.id) && !BLOCKED_STATUSES.includes(lendComputeDisplayStatus(eq)));
+  const start = document.getElementById('lend-res-start').value;
+  const end = document.getElementById('lend-res-end').value;
+  const note = document.getElementById('lend-res-note').value.trim();
+  if (!items.length) { showToast('請先選擇設備','error'); return false; }
+  if (!start || !end) { showToast('請填寫預約時段','error'); return false; }
+  if (new Date(end) <= new Date(start)) { showToast('結束時間必須晚於開始時間','error'); return false; }
+
+  let btype, bid=null, gname=null, gcontact=null;
+  if (_lendBorrowerLookup) { btype = _lendBorrowerLookup.type; bid = _lendBorrowerLookup.id; }
+  else {
+    gname = document.getElementById('lend-guest-name')?.value.trim();
+    gcontact = document.getElementById('lend-guest-contact')?.value.trim();
+    if (!gname || !gcontact) { showToast('請填寫預約人資訊（學號/教師email，或訪客姓名+聯絡方式）','error'); return false; }
+    btype = 'guest';
+  }
+
+  // 逐一檢查每件設備的時段衝突，任何一件衝突就整批擋下（避免部分成功部分失敗造成混亂）
+  const conflicts = [];
+  for (const eq of items) {
+    const { data: existing } = await sb.from('lending_reservations').select('*').eq('equipment_id', eq.id).eq('status','active');
+    const hasConflict = (existing||[]).some(r => new Date(start) < new Date(r.end_time) && new Date(end) > new Date(r.start_time));
+    if (hasConflict) conflicts.push(eq);
+  }
+  if (conflicts.length) {
+    lendShowBlockAlert('⚠️ 時段衝突', conflicts, '在這個時段已經有其他預約，時段衝突');
+    return false;
+  }
+
+  for (const eq of items) {
+    const { error } = await sb.from('lending_reservations').insert({
+      equipment_id: eq.id, borrower_type: btype, borrower_id: bid, guest_name: gname, guest_contact: gcontact,
+      start_time: new Date(start).toISOString(), end_time: new Date(end).toISOString(), note: note||null,
+    });
+    if (error) { showToast(`「${eq.name}」預約失敗：`+error.message,'error'); return false; }
+    if (eq.status === 'available') await sb.from('lending_equipment').update({status:'reserved'}).eq('id', eq.id);
+  }
+  showToast(`✅ 已成功預約 ${items.length} 件設備`);
+  _lendSelectedIds.clear();
+  lendLoadAll();
+  return true;
+}
+
+async function lendCancelRes(id) {
+  if (!confirm('確定要取消此預約嗎？')) return;
+  const res = _lendRes.find(r=>r.id===id);
+  await sb.from('lending_reservations').update({status:'cancelled_user'}).eq('id', id);
+  if (res) {
+    const { data: remaining } = await sb.from('lending_reservations').select('id').eq('equipment_id', res.equipment_id).eq('status','active').neq('id', id);
+    if (!remaining?.length) {
+      const eq = _lendEquip.find(e=>e.id===res.equipment_id);
+      if (eq && eq.status === 'reserved') await sb.from('lending_equipment').update({status:'available'}).eq('id', res.equipment_id);
+    }
+  }
+  showToast('已取消'); lendLoadAll();
+}
+
+// ── 借用紀錄表 ──
+function lendRenderRecordsTable() {
+  const kw = (document.getElementById('lend-rec-search')?.value||'').trim().toLowerCase();
+  const status = document.getElementById('lend-rec-filter')?.value || '';
+  let list = _lendRecords.filter(r => {
+    if (kw && !(r._borrowerName||'').toLowerCase().includes(kw)) return false;
+    if (status==='active' && r.actual_return_time) return false;
+    if (status==='returned' && !r.actual_return_time) return false;
+    if (status==='late' && r.return_result!=='late') return false;
+    if (status==='violated' && r.return_result!=='violated') return false;
+    return true;
+  });
+  document.getElementById('lend-rec-count').textContent = `${list.length} 筆`;
+  const tb = document.getElementById('lend-rec-body');
+  tb.innerHTML = list.length ? list.map(r => {
+    const eq = _lendEquip.find(e=>e.id===r.equipment_id) || {};
+    const active = !r.actual_return_time;
+    const overdue = active && new Date(r.expected_return) < new Date();
+    const label = active ? (overdue?'逾期未還':'借用中') : (LEND_RESULT_LABEL[r.return_result]||r.return_result);
+    const color = active ? (overdue?'#a16207':'#1e40af') : (r.return_result==='violated'?'#9a3412':r.return_result==='late'?'#9a3412':'#166534');
+    return `<tr>
+      <td style="font-weight:600">${esc(eq.name||'---')}</td><td style="font-family:monospace;font-size:12px">${esc(eq.property_no||'---')}</td>
+      <td>${esc(r._borrowerName||'---')}</td><td style="font-size:12px">${LEND_BTYPE_LABEL[r.borrower_type]}</td>
+      <td style="font-size:12px">${lendFmtDate(r.borrow_time)}</td><td style="font-size:12px">${lendFmtDate(r.expected_return)}</td>
+      <td style="font-size:12px">${r.actual_return_time?lendFmtDate(r.actual_return_time):'---'}</td>
+      <td><span style="font-size:11px;color:${color}">${label}</span></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--ink3)">無符合紀錄</td></tr>';
+}
+
+// ── 預約表 ──
+function lendRenderResTable() {
+  const kw = (document.getElementById('lend-res-search')?.value||'').trim().toLowerCase();
+  const status = document.getElementById('lend-res-filter')?.value || '';
+  let list = _lendRes.filter(r => {
+    if (kw && !(r._borrowerName||'').toLowerCase().includes(kw)) return false;
+    if (status && r.status !== status) return false;
+    return true;
+  });
+  document.getElementById('lend-res-count').textContent = `${list.length} 筆`;
+  const tb = document.getElementById('lend-res-body');
+  tb.innerHTML = list.length ? list.map(r => {
+    const eq = _lendEquip.find(e=>e.id===r.equipment_id) || {};
+    return `<tr>
+      <td style="font-weight:600">${esc(eq.name||'---')}</td><td>${esc(r._borrowerName||'---')}</td>
+      <td style="font-size:12px">${LEND_BTYPE_LABEL[r.borrower_type]}</td>
+      <td style="font-size:12px">${lendFmtDate(r.start_time)}</td><td style="font-size:12px">${lendFmtDate(r.end_time)}</td>
+      <td><span style="font-size:11px">${LEND_RES_STATUS_LABEL[r.status]||r.status}</span></td>
+      <td style="font-size:12px;color:var(--ink3)">${esc(r.note||'')}</td>
+      <td>${r.status==='active'?`<button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="lendCancelRes('${r.id}')">取消</button>`:'---'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--ink3)">無預約紀錄</td></tr>';
+}
+
+// ── 違規表 ──
+function lendRenderVioTable() {
+  document.getElementById('lend-vio-count').textContent = `${_lendViolations.length} 筆`;
+  const tb = document.getElementById('lend-vio-body');
+  tb.innerHTML = _lendViolations.length ? _lendViolations.map(v => `<tr>
+      <td style="font-weight:600">${esc(v._borrowerName||'---')}</td><td style="font-size:12px">${LEND_BTYPE_LABEL[v.borrower_type]}</td>
+      <td><span style="font-size:11px">${LEND_VIO_LABEL[v.type]||v.type}</span></td>
+      <td style="font-size:12px">${esc(v.description||'')}</td><td style="font-size:12px">${lendFmtDate(v.created_at)}</td>
+    </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink3)">無違規紀錄</td></tr>';
+}
+
+// ── 系統設定 ──
+function lendLoadSettingsForm() {
+  document.getElementById('lend-set-buffer').value = _lendSettings.return_buffer_minutes;
+  document.getElementById('lend-set-grace').value = _lendSettings.pickup_grace_minutes;
+}
+async function lendSaveSettings() {
+  const buffer = parseInt(document.getElementById('lend-set-buffer').value, 10);
+  const grace = parseInt(document.getElementById('lend-set-grace').value, 10);
+  if (isNaN(buffer) || buffer < 0 || isNaN(grace) || grace < 0) { showToast('請輸入有效的分鐘數','error'); return; }
+  await sb.from('lending_settings').upsert([{key:'return_buffer_minutes',value:String(buffer)},{key:'pickup_grace_minutes',value:String(grace)}]);
+  _lendSettings.return_buffer_minutes = buffer; _lendSettings.pickup_grace_minutes = grace;
+  showToast('✅ 設定已儲存');
+  lendRenderEquipment();
 }
 
 checkAuth();
