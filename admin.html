@@ -345,7 +345,6 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="teachers" onclick="showPage('payroll',this)"><span class="nav-icon">💰</span>兼課鐘點費核銷</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('advisors',this)"><span class="nav-icon">🎓</span>班級導師管理</div>
         <div class="nav-item" data-perm="classrooms" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
-        <div class="nav-item" data-perm="lending" onclick="showPage('lending',this)"><span class="nav-icon">🔧</span>設備借用管理</div>
         <div class="nav-item" data-perm="students" onclick="showPage('students',this)"><span class="nav-icon">🧑‍🎓</span>學生資料</div>
         <div class="nav-item" data-perm="__admin_only" onclick="showPage('users',this)"><span class="nav-icon">👥</span>帳號管理</div>
       </div>
@@ -364,6 +363,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div class="nav-section">
         <div class="nav-label">行政效能</div>
         <div class="nav-item" data-perm="forms" onclick="showPage('forms',this)"><span class="nav-icon">📄</span>常用表單</div>
+        <div class="nav-item" data-perm="lending" onclick="showPage('lending',this)"><span class="nav-icon">🔧</span>設備借用管理</div>
         <div class="nav-item" data-perm="meetings" onclick="showPage('meetings',this)"><span class="nav-icon">📅</span>會議管理</div>
         <div class="nav-item" data-perm="todos" onclick="showPage('todos',this)"><span class="nav-icon">✅</span>待辦事務 <span class="badge badge-warn" id="todo-badge" style="margin-left:auto;display:none">0</span></div>
       </div>
@@ -1012,6 +1012,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <option value="">請選擇學期</option>
           </select>
           <span style="font-size:12px;color:var(--ink3)">套用於下方所有分頁；預設為現在學期，補資料時可手動切換</span>
+          <span id="g-sem-lock-area" style="margin-left:auto;display:flex;align-items:center;gap:8px"></span>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:16px;align-items:center">
           <button class="btn btn-pri" id="gtab-setup-btn"  onclick="switchGradeTab('setup',this)">⚙️ 期程設定</button>
@@ -15142,13 +15143,29 @@ async function loadGradeSummary() {
   const cohortSel = document.getElementById('gsum-cohort');
   cohortSel.innerHTML = cohorts.map(c=>`<option value="${c}">${c}級</option>`).join('');
 
-  // 學期範圍下拉：全部學期 + 累計選項
-  const { data: sems } = await sb.from('semesters').select('id,label').order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
+  // 學期範圍下拉：全部學期 + 整學年度 + 累計選項
+  const { data: sems } = await sb.from('semesters').select('id,label,academic_year').order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
+  _gsumSemMeta = {}; // semester_id -> academic_year，篩選時用來判斷這個學期屬於哪個學年度
+  (sems||[]).forEach(s => { _gsumSemMeta[s.id] = s.academic_year; });
+  const years = [...new Set((sems||[]).map(s=>s.academic_year))].sort((a,b)=>b-a);
+
   const semSel = document.getElementById('gsum-sem-range');
   semSel.innerHTML = '<option value="all">累計至今（全部學期）</option>' +
+    years.map(y=>`<option value="year:${y}">${y}學年度（整學年）</option>`).join('') +
     (sems||[]).map(s=>`<option value="${s.id}">僅 ${s.label}</option>`).join('');
 
   if (cohorts.length) loadGradeSummaryTable();
+}
+let _gsumSemMeta = {};
+
+// 判斷某個學期是否落在目前選取的範圍內（'all'=全部；'year:114'=114學年度整年；其他=單一學期id）
+function gsumSemInRange(semesterId, semRange) {
+  if (semRange === 'all') return true;
+  if (semRange.startsWith('year:')) {
+    const y = parseInt(semRange.slice(5), 10);
+    return _gsumSemMeta[semesterId] === y;
+  }
+  return semesterId === semRange;
 }
 
 async function loadGradeSummaryTable() {
@@ -15174,13 +15191,24 @@ async function loadGradeSummaryTable() {
       .not('score','is',null)
       .in('student_id', studentIds);
 
-    // 2b) 這些學生「已修科目數」——選課中(confirmed)的課程總數，不管有沒有成績，用來對照「繳交科目數」看有沒有科目還沒交
+    // 2b) 這些學生「已修科目數」——選課中(confirmed)、且是有學分的課程，不管有沒有成績，用來對照「繳交科目數」看有沒有科目還沒交
+    // （0學分的課，例如通過/不通過制、不列入畢業學分的講座，不需要交成績，不計入這個基準，否則會永遠誤報警告）
     const { data: allEnrolls } = await sb.from('enrollments')
       .select('student_id, offering_id, semester_id')
       .eq('status','confirmed').in('student_id', studentIds);
+    const enrollOfferingIds = [...new Set((allEnrolls||[]).map(e=>e.offering_id))];
+    let enrollCreditsMap = {};
+    if (enrollOfferingIds.length) {
+      const { data: enrollOffs } = await sb.from('course_offerings').select('id,course_id').in('id', enrollOfferingIds);
+      const enrollCourseIds = [...new Set((enrollOffs||[]).map(o=>o.course_id))];
+      const { data: enrollCourses } = await sb.from('courses').select('id,credits').in('id', enrollCourseIds);
+      const creditByCourseId = {}; (enrollCourses||[]).forEach(c=>creditByCourseId[c.id]=c.credits);
+      (enrollOffs||[]).forEach(o => { enrollCreditsMap[o.id] = creditByCourseId[o.course_id] || 0; });
+    }
     const enrolledCountByStudent = {};
     (allEnrolls||[]).forEach(e => {
-      if (semRange !== 'all' && e.semester_id !== semRange) return;
+      if (!gsumSemInRange(e.semester_id, semRange)) return;
+      if (!enrollCreditsMap[e.offering_id]) return; // 0學分（或查無學分）的課不計入
       enrolledCountByStudent[e.student_id] = (enrolledCountByStudent[e.student_id]||0) + 1;
     });
 
@@ -15192,40 +15220,61 @@ async function loadGradeSummaryTable() {
       const courseIds = [...new Set((offs||[]).map(o=>o.course_id))];
       const { data: courses } = await sb.from('courses').select('id,name_zh,code,credits,req_type').in('id', courseIds);
       const cMap = {}; (courses||[]).forEach(c=>cMap[c.id]=c);
-      (offs||[]).forEach(o => { offMap[o.id] = { ...o, course: cMap[o.course_id] }; });
+      const semIds = [...new Set((offs||[]).map(o=>o.semester_id))];
+      const { data: semRows } = await sb.from('semesters').select('id,label').in('id', semIds);
+      const semLabelMap = {}; (semRows||[]).forEach(s=>semLabelMap[s.id]=s.label);
+      (offs||[]).forEach(o => { offMap[o.id] = { ...o, course: cMap[o.course_id], semLabel: semLabelMap[o.semester_id] }; });
     }
 
     // 4) 依學期範圍篩選
     const filtered = (entries||[]).filter(e => {
       const off = offMap[e.offering_id];
       if (!off) return false;
-      if (semRange !== 'all' && off.semester_id !== semRange) return false;
+      if (!gsumSemInRange(off.semester_id, semRange)) return false;
       return true;
     });
 
-    // 5) 依學生分組，算加權平均
+    // 5) 依學生分組：先把「所有實際發生過的成績記錄」都收進courses（含補修前的不及格，供單學期查看時如實顯示）
     const byStudent = {};
     filtered.forEach(e => {
       const off = offMap[e.offering_id];
       const credits = off?.course?.credits || 0;
       if (credits <= 0) return; // 沒有學分的課不計入加權（理論上不該發生，防呆）
-      (byStudent[e.student_id] ||= { totalScoreCredits:0, totalCredits:0, reqCredits:0, selCredits:0, reqCount:0, selCount:0, pass:0, fail:0, courses:[] });
-      const b = byStudent[e.student_id];
-      b.totalScoreCredits += e.score * credits;
-      b.totalCredits += credits;
-      // 選修別：必修算必修，選修/二選一都算進選修
-      if (off.course?.req_type === 'req') { b.reqCredits += credits; b.reqCount++; } else { b.selCredits += credits; b.selCount++; }
-      if (e.grade_label !== '不及格') b.pass++; else b.fail++;
-      b.courses.push({ name: off.course?.name_zh||'', code: off.course?.code||'', reqType: off.course?.req_type||'', credits, score: e.score, grade_label: e.grade_label });
+      (byStudent[e.student_id] ||= { courses:[] });
+      byStudent[e.student_id].courses.push({ name: off.course?.name_zh||'', code: off.course?.code||'', reqType: off.course?.req_type||'', credits, score: e.score, grade_label: e.grade_label, semesterId: off.semester_id, semLabel: off.semLabel||'' });
+    });
+
+    // 5b) 加權平均只計「去重複」後的成績：同一個課程代碼補修過，只取最高分那次計入累計/整學年度平均，
+    // 不及格那次仍然留在courses裡（單學期查看照常顯示發生過的事實），只是不會被算進加權平均分子分母
+    Object.values(byStudent).forEach(b => {
+      const bestByCode = {};
+      b.courses.forEach(c => {
+        const key = c.code;
+        if (!bestByCode[key] || c.score > bestByCode[key].score) bestByCode[key] = c;
+      });
+      const counted = Object.values(bestByCode);
+      b.totalScoreCredits = 0; b.totalCredits = 0;
+      b.reqCredits = 0; b.selCredits = 0; b.reqCount = 0; b.selCount = 0;
+      b.pass = 0; b.fail = 0;
+      counted.forEach(c => {
+        b.totalScoreCredits += c.score * c.credits;
+        b.totalCredits += c.credits;
+        if (c.reqType === 'req') { b.reqCredits += c.credits; b.reqCount++; } else { b.selCredits += c.credits; b.selCount++; }
+        if (c.grade_label !== '不及格') b.pass++; else b.fail++;
+      });
     });
 
     const rows = _gsumStudents.map(s => {
       const b = byStudent[s.id];
       const avg = b && b.totalCredits > 0 ? (b.totalScoreCredits / b.totalCredits) : null;
       const courses = (b?.courses || []).slice().sort((a,c) => (a.code||'').localeCompare(c.code||''));
+      // avgCents是整數（分數*100取四捨五入），用整數比較同分/排序才不會有浮點數誤差問題
+      // （例如兩個人的平均分數理論上不同，但經過.toFixed(2)/浮點數運算後可能被誤判成同一個值，反之亦然）
+      const avgCents = avg!=null ? Math.round(avg * 100) : null;
       return {
         student: s,
-        avg: avg!=null ? Math.round((avg + Number.EPSILON) * 100) / 100 : null,
+        avg: avgCents!=null ? avgCents/100 : null,
+        avgCents,
         totalCredits: b?.totalCredits || 0,
         reqCredits: b?.reqCredits || 0, selCredits: b?.selCredits || 0,
         reqCount: b?.reqCount || 0, selCount: b?.selCount || 0,
@@ -15236,13 +15285,21 @@ async function loadGradeSummaryTable() {
       };
     });
 
-    // 有成績的排前面、依平均降冪；沒有任何成績的排最後、不參與排名
-    const withGrades = rows.filter(r => r.avg != null).sort((a,b) => b.avg - a.avg);
-    const withoutGrades = rows.filter(r => r.avg == null);
-    // 並列名次規則：分數完全相同就是同一個名次，下一個不同分數的人名次直接跳號
-    // （例如兩人並列第3名，就沒有第4名，下一位是第5名；並列第1名同理，沒有第2名，下一位是第3名）
+    // 有成績的排前面：先依平均降冪（avgCents整數比較，避免浮點數誤差），
+    // 同分時接著依「通過科目數」降冪、再依「已修學分」降冪排序——
+    // 這樣同分的人彼此之間，一開始的排列順序就已經是正確的比序順序，後面判斷名次時才不會比錯
+    const withGrades = rows.filter(r => r.avgCents != null).sort((a,b) =>
+      b.avgCents - a.avgCents || b.pass - a.pass || b.totalCredits - a.totalCredits);
+    const withoutGrades = rows.filter(r => r.avgCents == null);
+
+    // 並列名次規則（全班統一適用，不分名次前後）：
+    // 總分（avgCents）相同 → 比「通過科目數」→ 再比「已修學分」；
+    // 三項都相同才算真正並列同名次；只要比出高下，名次就正常往下排，不會佔用額外名次
     withGrades.forEach((r,i) => {
-      r.rank = (i > 0 && r.avg === withGrades[i-1].avg) ? withGrades[i-1].rank : i+1;
+      if (i === 0) { r.rank = 1; return; }
+      const prev = withGrades[i-1];
+      const tied = r.avgCents === prev.avgCents && r.pass === prev.pass && r.totalCredits === prev.totalCredits;
+      r.rank = tied ? prev.rank : i+1;
     });
     _gsumRows = [...withGrades, ...withoutGrades];
 
@@ -15277,14 +15334,18 @@ function renderGradeSummaryTable() {
       <td style="padding:8px 14px;text-align:center;font-size:13px">${r.enrolledCount}</td>
       <td style="padding:8px 14px;text-align:center;font-size:13px;${incomplete?'color:#B05010;font-weight:600':''}">${r.submittedCount}${incomplete?' ⚠️':''}</td>
       <td style="padding:8px 14px;text-align:center;font-size:13px">${r.totalCredits}</td>
-      <td style="padding:8px 14px;text-align:center;font-size:13px;font-weight:600">${r.avg!=null?r.avg:'尚無成績'}</td>
+      <td style="padding:8px 14px;text-align:center;font-size:13px;font-weight:600">${r.avg!=null?r.avg.toFixed(2):'尚無成績'}</td>
       <td style="padding:8px 14px;text-align:center;font-size:13px">${r.avg!=null?`${r.pass} / ${r.fail}`:'—'}</td>
       <td style="padding:8px 14px;text-align:center"><button class="btn btn-sec btn-sm" onclick="viewStudentTranscript(${i})">📄 查看</button> <button class="btn btn-sec btn-sm" onclick="downloadStudentTranscriptPDF(${i})">⬇ PDF</button> <button class="btn btn-sec btn-sm" onclick="downloadStudentTranscriptExcel(${i})">⬇ Excel</button>
-        ${document.getElementById('gsum-sem-range').value !== 'all' ? `<button class="btn btn-pri btn-sm" onclick="downloadCombinedTranscriptPDF(${i})">📋 學期總成績單(含操行)</button>` : ''}</td>
+        ${gsumIsSingleSemester(document.getElementById('gsum-sem-range').value) ? `<button class="btn btn-pri btn-sm" onclick="downloadCombinedTranscriptPDF(${i})">📋 學期總成績單(含操行)</button>` : ''}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
+}
+// 判斷目前選的範圍是不是「單一學期」（不是全部、也不是整學年度），只有這種情況才適合產生「單學期總成績單」
+function gsumIsSingleSemester(semRange) {
+  return semRange !== 'all' && !semRange.startsWith('year:');
 }
 
 async function ensurePdfLibs() {
@@ -15317,15 +15378,67 @@ function gsumGradeDisplay(c) {
   return c.grade_label ? `${c.score}（${c.grade_label}）` : String(c.score);
 }
 
+// 把課程依所屬學期分組，各自算出該學期的加權平均/及格科數/學分明細
+// 用於「整學年度」成績單：下方課程要拆成各學期分開列示，各自有小計
+function gsumGroupCoursesBySemester(courses) {
+  const bySem = {};
+  courses.forEach(c => {
+    const key = c.semLabel || '未知學期';
+    (bySem[key] ||= { semLabel: key, courses: [], totalScoreCredits:0, totalCredits:0, reqCredits:0, selCredits:0, reqCount:0, selCount:0, pass:0, fail:0 });
+    const g = bySem[key];
+    g.courses.push(c);
+    if (c.score != null) { g.totalScoreCredits += c.score * c.credits; g.totalCredits += c.credits; }
+    if (c.reqType === 'req') { g.reqCredits += c.credits; g.reqCount++; } else { g.selCredits += c.credits; g.selCount++; }
+    if (c.grade_label !== '不及格') g.pass++; else g.fail++;
+  });
+  return Object.values(bySem).sort((a,b) => a.semLabel.localeCompare(b.semLabel)).map(g => ({
+    ...g,
+    avg: g.totalCredits > 0 ? g.totalScoreCredits / g.totalCredits : null,
+  }));
+}
+
 function buildTranscriptHTML(r, semLabel) {
-  const rows = r.courses.map(c => `
+  const distinctSems = [...new Set(r.courses.map(c=>c.semLabel).filter(Boolean))];
+  const isMultiSem = distinctSems.length > 1;
+
+  const courseTableHead = `
+      <thead><tr style="background:#1B3A6B;color:#fff">
+        <th style="padding:8px 10px;border:1px solid #1B3A6B;text-align:left">課程編號</th>
+        <th style="padding:8px 10px;border:1px solid #1B3A6B;text-align:left">課程名稱</th>
+        <th style="padding:8px 10px;border:1px solid #1B3A6B">選修別</th>
+        <th style="padding:8px 10px;border:1px solid #1B3A6B">學分</th>
+        <th style="padding:8px 10px;border:1px solid #1B3A6B">成績</th>
+      </tr></thead>`;
+  const courseRowHtml = c => `
     <tr>
       <td style="padding:8px 10px;border:1px solid #ccc;font-family:monospace;white-space:nowrap">${c.code}</td>
       <td style="padding:8px 10px;border:1px solid #ccc;word-break:break-all;white-space:normal">${c.name}</td>
       <td style="padding:8px 10px;border:1px solid #ccc;text-align:center;white-space:nowrap">${REQ_ZH[c.reqType]||''}</td>
       <td style="padding:8px 10px;border:1px solid #ccc;text-align:center;white-space:nowrap">${c.credits}</td>
       <td style="padding:8px 6px;border:1px solid #ccc;text-align:center;font-weight:600;white-space:nowrap;font-size:12px">${gsumGradeDisplay(c)}</td>
-    </tr>`).join('');
+    </tr>`;
+
+  let courseSection;
+  if (isMultiSem) {
+    // 整學年度：依學期分組，各自一個小標題+表格+小計
+    const groups = gsumGroupCoursesBySemester(r.courses);
+    courseSection = groups.map(g => `
+      <div style="font-size:13px;font-weight:700;color:#1B3A6B;margin:16px 0 6px">${g.semLabel} 學期（本學期修讀 ${g.courses.length} 門 ${g.totalCredits} 學分；加權平均 ${g.avg!=null?g.avg.toFixed(2):'—'}；及格 ${g.pass} 科／不及格 ${g.fail} 科）</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
+        <colgroup><col style="width:80px"><col><col style="width:50px"><col style="width:42px"><col style="width:88px"></colgroup>
+        ${courseTableHead}
+        <tbody>${g.courses.map(courseRowHtml).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;border:1px solid #ccc;color:#888">查無成績記錄</td></tr>`}</tbody>
+      </table>`).join('');
+  } else {
+    const rows = r.courses.map(courseRowHtml).join('');
+    courseSection = `
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
+        <colgroup><col style="width:80px"><col><col style="width:50px"><col style="width:42px"><col style="width:88px"></colgroup>
+        ${courseTableHead}
+        <tbody>${rows || `<tr><td colspan="5" style="padding:16px;text-align:center;border:1px solid #ccc;color:#888">查無成績記錄</td></tr>`}</tbody>
+      </table>`;
+  }
+
   return `
   <div style="width:750px;padding:36px 40px;font-family:'Noto Sans TC',sans-serif;background:#fff;color:#1A1510;box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1B3A6B;padding-bottom:14px;margin-bottom:18px">
@@ -15344,7 +15457,7 @@ function buildTranscriptHTML(r, semLabel) {
       </tr>
       <tr>
         <td style="padding:4px 8px;color:#666">本學期修讀</td><td style="padding:4px 8px;font-weight:700">${gsumCreditsBreakdown(r)}</td>
-        <td style="padding:4px 8px;color:#666">加權平均</td><td style="padding:4px 8px;font-weight:700">${r.avg!=null?r.avg:'尚無成績'}</td>
+        <td style="padding:4px 8px;color:#666">加權平均</td><td style="padding:4px 8px;font-weight:700">${r.avg!=null?r.avg.toFixed(2):'尚無成績'}</td>
       </tr>
       <tr>
         <td style="padding:4px 8px;color:#666">及格科數</td><td style="padding:4px 8px;font-weight:700">${r.pass}</td>
@@ -15352,19 +15465,7 @@ function buildTranscriptHTML(r, semLabel) {
       </tr>
     </table>
 
-    <table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
-      <colgroup>
-        <col style="width:80px"><col><col style="width:50px"><col style="width:42px"><col style="width:88px">
-      </colgroup>
-      <thead><tr style="background:#1B3A6B;color:#fff">
-        <th style="padding:8px 10px;border:1px solid #1B3A6B;text-align:left">課程編號</th>
-        <th style="padding:8px 10px;border:1px solid #1B3A6B;text-align:left">課程名稱</th>
-        <th style="padding:8px 10px;border:1px solid #1B3A6B">選修別</th>
-        <th style="padding:8px 10px;border:1px solid #1B3A6B">學分</th>
-        <th style="padding:8px 10px;border:1px solid #1B3A6B">成績</th>
-      </tr></thead>
-      <tbody>${rows || `<tr><td colspan="5" style="padding:16px;text-align:center;border:1px solid #ccc;color:#888">查無成績記錄</td></tr>`}</tbody>
-    </table>
+    ${courseSection}
   </div>`;
 }
 
@@ -15404,7 +15505,7 @@ function buildCombinedTranscriptHTML(r, semInfo, conductScore, semesterOrdinal) 
         <td style="padding:6px 8px;border:1px solid #333;text-align:center;width:18%">成績</td>
       </tr>
       ${rows}${blankRows}
-      <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">學業成績總平均</td><td style="padding:6px 10px;border:1px solid #333;text-align:center;font-weight:700">${r.avg!=null?r.avg:'—'}</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">學業成績總平均</td><td style="padding:6px 10px;border:1px solid #333;text-align:center;font-weight:700">${r.avg!=null?r.avg.toFixed(2):'—'}</td></tr>
       <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">總修學分</td><td style="padding:6px 10px;border:1px solid #333;text-align:center">${r.totalCredits}</td></tr>
       <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">實得學分</td><td style="padding:6px 10px;border:1px solid #333;text-align:center">${earnedCredits}</td></tr>
       <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">操行成績</td><td style="padding:6px 10px;border:1px solid #333;text-align:center;font-weight:700">${conductScore!=null?conductScore:'—'}</td></tr>
@@ -15431,7 +15532,7 @@ async function calcSemesterOrdinal(studentId, targetSemId) {
 async function downloadCombinedTranscriptPDF(idx) {
   const r = _gsumRows[idx];
   const semId = document.getElementById('gsum-sem-range').value;
-  if (semId === 'all') { showToast('請先選擇單一學期（不是累計）','error'); return; }
+  if (!gsumIsSingleSemester(semId)) { showToast('請先選擇單一學期（不是累計或整學年度）','error'); return; }
   showToast('📋 產生中…');
   await ensurePdfLibs();
 
@@ -15514,15 +15615,31 @@ async function downloadStudentTranscriptPDF(idx) {
 // 單一學生成績單的Excel內容（跟PDF排版一致），單一下載跟批次多工作頁共用
 function buildTranscriptAoa(r, semLabel) {
   const header = ['課程編號','課程名稱','選修別','學分','分數','等第'];
+  const distinctSems = [...new Set(r.courses.map(c=>c.semLabel).filter(Boolean))];
+  const isMultiSem = distinctSems.length > 1;
+
+  let courseRows;
+  if (isMultiSem) {
+    const groups = gsumGroupCoursesBySemester(r.courses);
+    courseRows = [];
+    groups.forEach(g => {
+      courseRows.push([`${g.semLabel} 學期（修讀${g.courses.length}門${g.totalCredits}學分，加權平均${g.avg!=null?g.avg.toFixed(2):'—'}，及格${g.pass}科／不及格${g.fail}科）`]);
+      courseRows.push(header);
+      g.courses.forEach(c => courseRows.push([c.code||'', c.name||'', REQ_ZH[c.reqType]||'', c.credits, c.score!=null?c.score:'', c.grade_label||'']));
+      courseRows.push([]);
+    });
+  } else {
+    courseRows = [header, ...r.courses.map(c => [c.code||'', c.name||'', REQ_ZH[c.reqType]||'', c.credits, c.score!=null?c.score:'', c.grade_label||''])];
+  }
+
   return [
     ['福智佛教學院'],
     [`${semLabel} 成績單`],
     ['系所', '佛法應用研究所', '學號', r.student.student_code||'', '姓名', r.student.name_zh||''],
-    ['加權平均', r.avg!=null?r.avg:'', '', '本學期修讀', gsumCreditsBreakdown(r)],
+    ['加權平均', r.avg!=null?r.avg.toFixed(2):'', '', '本學期修讀', gsumCreditsBreakdown(r)],
     ['及格科數', r.pass, '', '不及格科', r.fail],
     [],
-    header,
-    ...r.courses.map(c => [c.code||'', c.name||'', REQ_ZH[c.reqType]||'', c.credits, c.score!=null?c.score:'', c.grade_label||''])
+    ...courseRows
   ];
 }
 
@@ -15560,7 +15677,7 @@ async function downloadStudentTranscriptExcel(idx) {
 
 async function downloadAllCombinedTranscriptsPDF() {
   const semId = document.getElementById('gsum-sem-range').value;
-  if (semId === 'all') { showToast('請先選擇單一學期（不是累計）','error'); return; }
+  if (!gsumIsSingleSemester(semId)) { showToast('請先選擇單一學期（不是累計或整學年度）','error'); return; }
   const withGrades = _gsumRows.filter(r => r.courses.length);
   if (!withGrades.length) { showToast('目前沒有可產出成績單的學生','error'); return; }
   showToast(`📋 產生中，共 ${withGrades.length} 位，請稍候…`);
@@ -15662,7 +15779,7 @@ async function downloadAllTranscriptsExcel() {
 
 function viewStudentTranscript(idx) {
   const r = _gsumRows[idx];
-  let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--ink3)">學號：${r.student.student_code||''}　加權平均：<b style="color:var(--ink)">${r.avg!=null?r.avg:'尚無成績'}</b>　本學期修讀：${gsumCreditsBreakdown(r)}　及格${r.pass}科／不及格${r.fail}科</div>`;
+  let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--ink3)">學號：${r.student.student_code||''}　加權平均：<b style="color:var(--ink)">${r.avg!=null?r.avg.toFixed(2):'尚無成績'}</b>　本學期修讀：${gsumCreditsBreakdown(r)}　及格${r.pass}科／不及格${r.fail}科</div>`;
   if (!r.courses.length) {
     html += '<div style="color:var(--ink3);font-size:13px;padding:12px 0">目前範圍內查無已送出的成績</div>';
   } else {
@@ -15697,7 +15814,7 @@ async function exportGradeSummaryExcel() {
   const cohort = document.getElementById('gsum-cohort').value;
   const semLabel = document.getElementById('gsum-sem-range').selectedOptions[0]?.textContent || '';
   const header = ['排名','學號','姓名','已修科目數','繳交科目數','已修學分','加權平均','及格科數','不及格科數'];
-  const rows = _gsumRows.map(r => [r.rank||'', r.student.student_code||'', r.student.name_zh||'', r.enrolledCount, r.submittedCount, r.totalCredits, r.avg!=null?r.avg:'尚無成績', r.pass, r.fail]);
+  const rows = _gsumRows.map(r => [r.rank||'', r.student.student_code||'', r.student.name_zh||'', r.enrolledCount, r.submittedCount, r.totalCredits, r.avg!=null?r.avg.toFixed(2):'尚無成績', r.pass, r.fail]);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([[`${cohort}級 成績彙總（${semLabel}）`], header, ...rows]);
   XLSX.utils.book_append_sheet(wb, ws, '成績彙總');
@@ -15718,7 +15835,7 @@ async function loadGradesAdmin() {
 }
 
 /* 共用學期切換：同步觸發三個分頁的資料載入 */
-function onGradeSemesterChange() {
+async function onGradeSemesterChange() {
   const sel = document.getElementById('g-semester');
   const semId = sel.value;
   const label = sel.selectedOptions[0]?.textContent || '—';
@@ -15727,11 +15844,48 @@ function onGradeSemesterChange() {
     renderGradeScaleEditor(DEFAULT_GRADE_SCALE);
     document.getElementById('assign-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>';
     document.getElementById('status-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">請先選擇學期</td></tr>';
+    document.getElementById('g-sem-lock-area').innerHTML = '';
     return;
   }
   loadGradePeriod();
   loadGradeAssignments();
+  await loadSemesterLockStatus(semId); // 要先確定鎖定狀態，成績狀態表才能正確顯示退回按鈕
   loadGradeStatus();
+}
+
+// 學期成績鎖定狀態：學期結束、成績單寄出後，admin可以鎖定這個學期，鎖定後老師/admin都不能再退回或修改成績
+let _gsemLockCache = {}; // semId -> {grades_finalized, grades_finalized_at}
+async function loadSemesterLockStatus(semId) {
+  const { data } = await sb.from('semesters').select('grades_finalized,grades_finalized_at').eq('id', semId).maybeSingle();
+  _gsemLockCache[semId] = data || { grades_finalized:false, grades_finalized_at:null };
+  renderSemesterLockArea(semId);
+}
+function renderSemesterLockArea(semId) {
+  const info = _gsemLockCache[semId];
+  const area = document.getElementById('g-sem-lock-area');
+  if (!info) { area.innerHTML = ''; return; }
+  if (info.grades_finalized) {
+    const d = info.grades_finalized_at ? new Date(info.grades_finalized_at) : null;
+    const dstr = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : '';
+    area.innerHTML = `<span style="font-size:12.5px;color:var(--red);font-weight:600">🔒 本學期成績已鎖定${dstr?`（${dstr}）`:''}，無法退回/修改</span>
+      <button class="btn btn-sec btn-sm" onclick="toggleSemesterGradeLock('${semId}', false)">🔓 解鎖</button>`;
+  } else {
+    area.innerHTML = `<span style="font-size:12.5px;color:var(--ink3)">🔓 本學期成績尚未鎖定</span>
+      <button class="btn btn-sec btn-sm" onclick="toggleSemesterGradeLock('${semId}', true)">🔒 鎖定本學期成績</button>`;
+  }
+}
+async function toggleSemesterGradeLock(semId, lock) {
+  if (lock && !confirm('確定要鎖定本學期成績嗎？鎖定後「退回」功能會被關閉，老師跟admin都無法再修改已送出的成績，適合在成績單寄出、學期正式結束後執行。\n\n（之後如果真的需要修正，還是可以再次解鎖，不是不可逆的操作）')) return;
+  if (!lock && !confirm('確定要解鎖本學期成績嗎？解鎖後「退回」功能會恢復，請確認真的有修正需求再解鎖。')) return;
+  const payload = lock
+    ? { grades_finalized:true, grades_finalized_at:new Date().toISOString(), grades_finalized_by:window.ADMIN_USER_ID||null }
+    : { grades_finalized:false, grades_finalized_at:null, grades_finalized_by:null };
+  const { error } = await sb.from('semesters').update(payload).eq('id', semId);
+  if (error) { showToast('操作失敗：'+error.message,'error'); return; }
+  showToast(lock ? '已鎖定本學期成績' : '已解鎖本學期成績');
+  writeAuditLog('成績管理', lock?'鎖定學期成績':'解鎖學期成績', 'semesters', semId, '', '');
+  await loadSemesterLockStatus(semId);
+  loadGradeStatus(); // 重新渲染狀態表，讓退回按鈕跟著鎖定狀態更新
 }
 
 /* ── 等第表編輯器 ── */
@@ -16058,6 +16212,9 @@ function renderStatusTable() {
 
   if (!list.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">無符合條件的資料</td></tr>'; return; }
 
+  const curSemId = document.getElementById('g-semester').value;
+  const semLocked = !!_gsemLockCache[curSemId]?.grades_finalized;
+
   tbody.innerHTML = list.map(r => `<tr>
     <td>${r.label}</td>
     <td>${r.hasTeacher ? r.teacher : '<span style="color:var(--red);font-size:12px">⚠️ 未指定評分老師</span>'}</td>
@@ -16068,7 +16225,9 @@ function renderStatusTable() {
       <button class="btn btn-sec btn-sm" onclick="viewGradeEntries('${r.offering_id}','${r.label.replace(/'/g,"\\'")}','${(r.teacher||'未指定').replace(/'/g,"\\'")}')" title="檢視成績（唯讀）">👁 檢視</button>
       <button class="btn btn-sec btn-sm" onclick="downloadGradeImportTemplate('${r.offering_id}','${r.label.replace(/'/g,"\\'")}')" title="下載預填學號姓名的匯入範本" style="margin-left:4px">📥 範本</button>
       ${r.status==='submitted'
-        ? `<button class="btn btn-sec btn-sm" onclick="rejectGradeEntry('${r.offering_id}','${(r.teacher||'').replace(/'/g,"\\'")}')" title="退回給老師修正" style="margin-left:4px;color:var(--red);border-color:var(--red)">↩️ 退回</button>`
+        ? (semLocked
+            ? `<button class="btn btn-sec btn-sm" disabled title="本學期成績已鎖定，無法退回，需先在上方解鎖" style="margin-left:4px;opacity:.5;cursor:not-allowed">🔒 已鎖定</button>`
+            : `<button class="btn btn-sec btn-sm" onclick="rejectGradeEntry('${r.offering_id}','${(r.teacher||'').replace(/'/g,"\\'")}')" title="退回給老師修正" style="margin-left:4px;color:var(--red);border-color:var(--red)">↩️ 退回</button>`)
         : ''}
     </td>
   </tr>`).join('');
@@ -16351,6 +16510,8 @@ async function viewGradeEntries(offeringId, courseLabel, teacherName) {
 
 /* ↩️ 退回給老師修正（即解鎖，並可選填原因供未來擴充通知用）*/
 async function rejectGradeEntry(offeringId, teacherName) {
+  const curSemId = document.getElementById('g-semester').value;
+  if (_gsemLockCache[curSemId]?.grades_finalized) { showToast('本學期成績已鎖定，無法退回，請先在上方解鎖','error'); return; }
   const reason = prompt(`退回「${teacherName}」的成績給老師修正，可填寫原因（選填，老師暫不會收到通知，僅記錄於操作記錄）：`);
   if (reason === null) return; // 取消
   const { error } = await sb.from('grade_entries')
