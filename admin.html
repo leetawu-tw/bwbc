@@ -364,6 +364,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-label">行政效能</div>
         <div class="nav-item" data-perm="forms" onclick="showPage('forms',this)"><span class="nav-icon">📄</span>常用表單</div>
         <div class="nav-item" data-perm="lending" onclick="showPage('lending',this)"><span class="nav-icon">🔧</span>設備借用管理</div>
+        <div class="nav-item" data-perm="classrooms" onclick="showPage('room-booking',this)"><span class="nav-icon">🏫</span>教室借用申請</div>
         <div class="nav-item" data-perm="meetings" onclick="showPage('meetings',this)"><span class="nav-icon">📅</span>會議管理</div>
         <div class="nav-item" data-perm="todos" onclick="showPage('todos',this)"><span class="nav-icon">✅</span>待辦事務 <span class="badge badge-warn" id="todo-badge" style="margin-left:auto;display:none">0</span></div>
       </div>
@@ -789,6 +790,104 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <input type="number" id="lend-set-grace" class="finput" min="0" max="180">
               <p style="font-size:11.5px;color:var(--ink3);margin-top:4px">預約時間過後超過N分鐘還沒借，畫面標記為「橙色-預約逾期未取」</p>
               <button class="btn btn-pri" style="margin-top:12px" onclick="lendSaveSettings()">儲存設定</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▌教室借用申請 ▌-->
+      <div id="page-room-booking" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">🏫 教室借用申請</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:16px;margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:10px">🔍 查詢空教室</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <div><label class="flabel">日期</label><input type="date" class="finput" id="rb-query-date" style="width:150px"></div>
+            <div><label class="flabel">開始時間</label><input type="time" class="finput" id="rb-query-start" style="width:110px" value="09:00"></div>
+            <div><label class="flabel">結束時間</label><input type="time" class="finput" id="rb-query-end" style="width:110px" value="11:00"></div>
+            <button class="btn btn-pri" onclick="rbQueryAvailability()">查詢</button>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:8px 14px;margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12.5px">
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#22c55e"></div>有空，可申請</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#ef4444"></div>已排課，不可借用</div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#8b5cf6"></div>已被預約，不可借用</div>
+        </div>
+
+        <div id="rb-availability-list" style="margin-bottom:24px"></div>
+
+        <div class="panel-tabs" style="display:flex;border-bottom:1px solid var(--cr2);margin-bottom:16px;overflow-x:auto">
+          <button class="rb-tab active" data-tab="rb-tab-pending" onclick="rbSwitchTab('rb-tab-pending',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--navy);cursor:pointer;border-bottom:2px solid var(--navy);background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">待審核 <span id="rb-pending-badge"></span></button>
+          <button class="rb-tab" data-tab="rb-tab-mine" onclick="rbSwitchTab('rb-tab-mine',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">我的申請</button>
+          <button class="rb-tab" data-tab="rb-tab-all" onclick="rbSwitchTab('rb-tab-all',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">全部預約記錄</button>
+          <button class="rb-tab" data-tab="rb-tab-overview" onclick="rbSwitchTab('rb-tab-overview',this)" style="padding:10px 14px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap">📅 教室使用總覽</button>
+        </div>
+
+        <div id="rb-tab-pending" class="rb-panel-section">
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>教室</th><th>日期時段</th><th>用途</th><th>申請單位</th><th>借用人</th><th>聯絡方式</th><th>預估人數</th><th>送出時間</th><th>操作</th>
+            </tr></thead><tbody id="rb-pending-body"></tbody></table>
+          </div>
+        </div>
+
+        <div id="rb-tab-mine" class="rb-panel-section" style="display:none">
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>教室</th><th>日期時段</th><th>用途</th><th>狀態</th><th>審核意見</th><th>操作</th>
+            </tr></thead><tbody id="rb-mine-body"></tbody></table>
+          </div>
+        </div>
+
+        <div id="rb-tab-all" class="rb-panel-section" style="display:none">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+            <input class="fselect" id="rb-all-search" placeholder="🔍 搜尋教室/用途/借用人…" style="max-width:220px" oninput="rbRenderAllTable()">
+            <select class="fselect" id="rb-all-filter" style="max-width:140px" onchange="rbRenderAllTable()">
+              <option value="">全部狀態</option><option value="pending">待審核</option><option value="approved">已核准</option>
+              <option value="rejected">已駁回</option><option value="cancelled">已取消</option>
+            </select>
+            <span id="rb-all-count" style="font-size:12px;color:var(--ink3)"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>教室</th><th>日期時段</th><th>用途</th><th>申請單位</th><th>借用人</th><th>狀態</th><th>建立者</th><th>操作</th>
+            </tr></thead><tbody id="rb-all-body"></tbody></table>
+          </div>
+        </div>
+
+        <div id="rb-tab-overview" class="rb-panel-section" style="display:none">
+          <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+            <div style="flex:0 0 360px;min-width:300px">
+              <div style="font-size:12px;color:var(--ink3);margin-bottom:6px">共 <span id="rbo-list-count">0</span> 間教室，點選一列查看該教室的週曆</div>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr>
+                    <th onclick="rboSort('name')" class="sortable">教室 <span class="sort-icon" id="rbo-sort-name">⇅</span></th>
+                    <th onclick="rboSort('capacity')" class="sortable">容量 <span class="sort-icon" id="rbo-sort-capacity">⇅</span></th>
+                    <th onclick="rboSort('courseCount')" class="sortable">課程使用 <span class="sort-icon" id="rbo-sort-courseCount">⇅</span></th>
+                    <th onclick="rboSort('bookingCount')" class="sortable">預約使用 <span class="sort-icon" id="rbo-sort-bookingCount">⇅</span></th>
+                  </tr></thead>
+                  <tbody id="rbo-classroom-list"></tbody>
+                </table>
+              </div>
+            </div>
+            <div style="flex:1;min-width:320px">
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+                <div style="font-size:14px;font-weight:700" id="rbo-selected-room-label">👈 請從左側選擇教室</div>
+                <button class="btn btn-sec btn-sm" onclick="rboShiftWeek(-1)">◀ 上一週</button>
+                <div style="font-size:13px;font-weight:600;padding:0 4px" id="rbo-week-label"></div>
+                <button class="btn btn-sec btn-sm" onclick="rboShiftWeek(1)">下一週 ▶</button>
+                <button class="btn btn-sec btn-sm" onclick="rboGoToday()">回到本週</button>
+              </div>
+              <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:8px 14px;margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12.5px">
+                <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#3b82f6"></div>固定課表</div>
+                <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#8b5cf6"></div>教學期間內的教室借用</div>
+                <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#22c55e"></div>教學期間外的教室借用</div>
+              </div>
+              <div id="rbo-week-body"></div>
             </div>
           </div>
         </div>
@@ -2094,6 +2193,13 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div class="frow-2">
         <div><label class="flabel">開始日期</label><input class="finput" id="sem-start" type="date"></div>
         <div><label class="flabel">結束日期</label><input class="finput" id="sem-end" type="date"></div>
+      </div>
+      <div class="frow-2">
+        <div><label class="flabel">教學總週數</label><input class="finput" id="sem-teaching-weeks" type="number" min="1" max="30" value="18"></div>
+        <div></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink3);margin-top:-6px;line-height:1.5">
+        用於教室借用系統判斷「這天是不是教學期間」——教學起始日改用「📅行事曆」裡的「註冊日」事件（依本校規定，註冊日當天即為開學上課日），這裡只需要設定總共上幾週課，跟上面的「開始/結束日期」（行政學期範圍）是分開的概念
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
         <input type="checkbox" id="sem-current" style="width:15px;height:15px">
@@ -7523,6 +7629,7 @@ function openSemModal(id) {
   document.getElementById('sem-num').value=s?.semester_num||1;
   document.getElementById('sem-start').value=s?.start_date||'';
   document.getElementById('sem-end').value=s?.end_date||'';
+  document.getElementById('sem-teaching-weeks').value=s?.teaching_weeks||18;
   document.getElementById('sem-current').checked=s?.is_current||false;
   document.getElementById('sem-modal').classList.add('show');
 }
@@ -7534,10 +7641,11 @@ async function saveSem() {
   const num=+document.getElementById('sem-num').value;
   const start=document.getElementById('sem-start').value;
   const end=document.getElementById('sem-end').value;
+  const teachingWeeks=+document.getElementById('sem-teaching-weeks').value || 18;
   const isCurrent=document.getElementById('sem-current').checked;
   if (!year||!num) { showToast('請填寫學年和學期','error'); return; }
   const label=`${year}-${num}`;
-  const payload={academic_year:year,semester_num:num,label,start_date:start||null,end_date:end||null,is_current:isCurrent};
+  const payload={academic_year:year,semester_num:num,label,start_date:start||null,end_date:end||null,teaching_weeks:teachingWeeks,is_current:isCurrent};
   if (isCurrent) await sb.from('semesters').update({is_current:false}).neq('id',id||'00000000-0000-0000-0000-000000000000');
   let error;
   if (id) ({ error }=await sb.from('semesters').update(payload).eq('id',id));
@@ -9357,6 +9465,7 @@ function showPage(page, btn) {
   if (page==='payroll') loadPayrollPage();
   if (page==='users') loadUsers();
   if (page==='lending') lendLoadAll();
+  if (page==='room-booking') rbInit();
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -17394,6 +17503,727 @@ async function lendSaveSettings() {
   _lendSettings.return_buffer_minutes = buffer; _lendSettings.pickup_grace_minutes = grace;
   showToast('✅ 設定已儲存');
   lendRenderEquipment();
+}
+
+/* ══════════════════════════════════════════════════════════
+   🏫 教室借用申請
+   ══════════════════════════════════════════════════════════ */
+let _rbClassrooms = [], _rbAllBookings = [], _rbCurrentQuery = null;
+const RB_STATUS_LABEL = { pending:'待審核', approved:'已核准', rejected:'已駁回', cancelled:'已取消' };
+const RB_STATUS_COLOR = { pending:'#f59e0b', approved:'#22c55e', rejected:'#ef4444', cancelled:'#9ca3af' };
+
+function rbInit() {
+  const dateEl = document.getElementById('rb-query-date');
+  if (!dateEl.value) { const t=new Date(); dateEl.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; }
+  rbLoadPending();
+  rbLoadMine();
+  rbLoadAll();
+  rboInitOverview();
+}
+
+// ── 週次計算：依「註冊日」(不是學期行政起始日)推算某個日期是第幾教學週、單週還是雙週 ──
+function rbCalcWeekParity(regDay, bookingDateStr) {
+  const start = new Date(regDay+'T00:00:00');
+  const target = new Date(bookingDateStr+'T00:00:00');
+  const diffDays = Math.floor((target-start)/86400000);
+  if (diffDays < 0) return null;
+  const weekNum = Math.floor(diffDays/7)+1;
+  return weekNum % 2 === 1 ? 'odd' : 'even';
+}
+
+// 判斷某個日期是否落在這個學期實際的教學週期間內（註冊日 ~ 註冊日+教學週數-1天）
+// 如果這個學期還沒設定「註冊日」事件，保守退回用行政學期範圍(start_date~end_date)判斷，避免尚未補齊時整批誤判
+function rbIsWithinTeachingPeriod(semester, dateStr) {
+  if (!semester._regDay) return dateStr >= semester.start_date && dateStr <= semester.end_date;
+  const start = new Date(semester._regDay+'T00:00:00');
+  const end = new Date(start); end.setDate(end.getDate() + (semester.teaching_weeks||18)*7 - 1);
+  const target = new Date(dateStr+'T00:00:00');
+  return target >= start && target <= end;
+}
+
+// 判斷某個開課記錄的week_pattern，在指定日期是否真的會上課
+// （教學週期間之外一律視為不上課，即使週次算法本身湊巧符合也一樣）
+function rbOfferingActiveOnDate(offering, semester, dateStr) {
+  if (!rbIsWithinTeachingPeriod(semester, dateStr)) return false;
+  const wp = offering.week_pattern || 'every';
+  if (wp === 'every' || wp === 'intensive') return true; // intensive目前保守處理成每次都視為衝突
+  const regDay = semester._regDay || semester.start_date;
+  const parity = rbCalcWeekParity(regDay, dateStr);
+  return parity === wp;
+}
+
+// 找出某個日期落在哪個學期，並把該學期的「註冊日」事件一併撈出來附加成_regDay欄位
+// 教室借用系統所有查學期的地方，統一用這個函式，確保_regDay都有正確附加上去
+let _rbRegDayCache = {}; // semester_id -> 註冊日字串(YYYY-MM-DD)或null，避免同一個學期重複查詢
+async function rbGetSemesterWithRegDay(dateStr) {
+  const { data: sem } = await sb.from('semesters').select('*').lte('start_date', dateStr).gte('end_date', dateStr).maybeSingle();
+  if (!sem) return null;
+  if (!(sem.id in _rbRegDayCache)) {
+    const { data: ev } = await sb.from('semester_calendar_events').select('end_at').eq('semester_id', sem.id).eq('event_key','registration_day').maybeSingle();
+    _rbRegDayCache[sem.id] = ev?.end_at ? ev.end_at.slice(0,10) : null;
+  }
+  sem._regDay = _rbRegDayCache[sem.id];
+  return sem;
+}
+
+// ── 查詢空教室 ──
+async function rbQueryAvailability() {
+  const date = document.getElementById('rb-query-date').value;
+  const start = document.getElementById('rb-query-start').value;
+  const end = document.getElementById('rb-query-end').value;
+  if (!date || !start || !end) { showToast('請填寫完整的日期與時段','error'); return; }
+  if (end <= start) { showToast('結束時間必須晚於開始時間','error'); return; }
+  _rbCurrentQuery = { date, start, end };
+
+  const listEl = document.getElementById('rb-availability-list');
+  listEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">查詢中…</div>';
+
+  // 校內教室清單（校外is_offsite不納入這個系統）
+  const { data: rooms } = await sb.from('classrooms').select('*').eq('active',true).eq('is_offsite',false).order('building').order('code');
+  _rbClassrooms = rooms || [];
+
+  // 找出這個日期落在哪個學期(含註冊日)
+  const sem = await rbGetSemesterWithRegDay(date);
+
+  const dow = new Date(date+'T00:00:00').getDay(); // 0=Sun...6=Sat
+  let scheduleConflictRoomIds = new Set();
+  if (sem) {
+    const { data: offs } = await sb.from('course_offerings')
+      .select('classroom_id,day,start_time,end_time,week_pattern')
+      .eq('semester_id', sem.id).eq('is_active',true).eq('is_cancelled',false)
+      .eq('day', dow).not('classroom_id','is',null);
+    (offs||[]).forEach(o => {
+      if (!rbOfferingActiveOnDate(o, sem, date)) return;
+      if (o.start_time < end && o.end_time > start) scheduleConflictRoomIds.add(o.classroom_id);
+    });
+  }
+
+  // 已核准的教室預約（pending不卡位，只有approved才算衝突）
+  const { data: bookings } = await sb.from('classroom_bookings')
+    .select('classroom_id,start_time,end_time')
+    .eq('booking_date', date).eq('status','approved');
+  let bookingConflictRoomIds = new Set();
+  (bookings||[]).forEach(b => { if (b.start_time < end && b.end_time > start) bookingConflictRoomIds.add(b.classroom_id); });
+
+  const grp = {};
+  _rbClassrooms.forEach(r => { (grp[r.building||'（未分類）'] ||= []).push(r); });
+
+  let html = '';
+  Object.keys(grp).forEach(building => {
+    html += `<div style="margin-bottom:16px">
+      <div style="font-size:13.5px;font-weight:700;color:var(--ink2);margin-bottom:8px;border-left:4px solid var(--navy);padding-left:8px">${esc(building)}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">`;
+    grp[building].forEach(r => {
+      let status = 'available', label = '有空，可申請', color = '#22c55e';
+      if (scheduleConflictRoomIds.has(r.id)) { status='schedule'; label='已排課'; color='#ef4444'; }
+      else if (bookingConflictRoomIds.has(r.id)) { status='booked'; label='已被預約'; color='#8b5cf6'; }
+      const clickable = status === 'available';
+      html += `<div ${clickable?`onclick="rbOpenApplyModal('${r.id}','${esc(r.name)}')" style="cursor:pointer"`:'style="cursor:not-allowed;opacity:.75"'}
+        style="background:#fff;border:1.5px solid ${color}55;border-radius:10px;padding:12px;${clickable?'cursor:pointer':'cursor:not-allowed;opacity:.8'}">
+        <div style="width:9px;height:9px;border-radius:50%;background:${color};margin-bottom:6px"></div>
+        <div style="font-size:13.5px;font-weight:700">${esc(r.name)}</div>
+        <div style="font-size:10.5px;color:var(--ink3)">${r.floor?`${r.floor}樓・`:''}容納${r.capacity||'—'}人</div>
+        <div style="font-size:11.5px;font-weight:500;color:${color};margin-top:3px">${label}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  listEl.innerHTML = html || '<div style="text-align:center;padding:30px;color:var(--ink3)">目前沒有校內教室資料</div>';
+}
+
+// ── 送出申請彈窗 ──
+function rbOpenApplyModal(classroomId, classroomName) {
+  if (!_rbCurrentQuery) return;
+  const room = _rbClassrooms.find(r=>r.id===classroomId);
+  const html = `
+    <div style="background:#f5f5f0;border:1px solid var(--cr2);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12.5px">
+      <b>${esc(classroomName)}</b>（容納${room?.capacity||'—'}人）<br>
+      ${_rbCurrentQuery.date} ${_rbCurrentQuery.start}～${_rbCurrentQuery.end}
+    </div>
+    <label class="flabel">用途／活動名稱 *</label><input class="finput" id="rb-purpose" placeholder="例如：系學會期初會議">
+    <label class="flabel" style="margin-top:8px">申請單位</label><input class="finput" id="rb-unit" placeholder="例如：系學會、OO社">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <div><label class="flabel">借用人姓名 *</label><input class="finput" id="rb-organizer" value="${esc(window.ADMIN_NAME||'')}"></div>
+      <div><label class="flabel">預估人數</label><input type="number" class="finput" id="rb-headcount" min="1" placeholder="人數"></div>
+    </div>
+    <label class="flabel" style="margin-top:8px">聯絡方式 *</label><input class="finput" id="rb-contact" placeholder="手機、email、或LINE ID皆可">
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+      <input type="checkbox" id="rb-recurring" onchange="document.getElementById('rb-recurring-weeks-box').style.display=this.checked?'block':'none'">
+      <label for="rb-recurring" style="font-size:13px;cursor:pointer">重複預約（同一星期幾、同一時段，連續幾週）</label>
+    </div>
+    <div id="rb-recurring-weeks-box" style="display:none;margin-top:6px">
+      <label class="flabel">連續幾週（含本次）</label><input type="number" class="finput" id="rb-recurring-weeks" min="2" max="18" value="4" style="width:100px">
+    </div>
+    <label class="flabel" style="margin-top:8px">備註</label><input class="finput" id="rb-note" placeholder="（選填）">
+    <input type="hidden" id="rb-apply-classroom-id" value="${classroomId}">
+  `;
+  presShowSimpleModal('📝 教室借用申請', html, rbSubmitApplication);
+}
+
+async function rbSubmitApplication() {
+  const classroomId = document.getElementById('rb-apply-classroom-id').value;
+  const purpose = document.getElementById('rb-purpose').value.trim();
+  const unit = document.getElementById('rb-unit').value.trim();
+  const organizer = document.getElementById('rb-organizer').value.trim();
+  const headcount = document.getElementById('rb-headcount').value;
+  const contact = document.getElementById('rb-contact').value.trim();
+  const note = document.getElementById('rb-note').value.trim();
+  const isRecurring = document.getElementById('rb-recurring').checked;
+  const weeks = isRecurring ? parseInt(document.getElementById('rb-recurring-weeks').value,10) : 1;
+
+  if (!purpose) { showToast('請填寫用途／活動名稱','error'); return false; }
+  if (!organizer) { showToast('請填寫借用人姓名','error'); return false; }
+  if (!contact) { showToast('請填寫聯絡方式','error'); return false; }
+  if (isRecurring && (!weeks || weeks < 2)) { showToast('重複預約週數至少要2週','error'); return false; }
+
+  const { date, start, end } = _rbCurrentQuery;
+  const canAutoApprove = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
+  const recurrenceGroupId = isRecurring ? crypto.randomUUID() : null;
+
+  // 產生每一週的日期清單
+  const dates = [];
+  const base = new Date(date+'T00:00:00');
+  for (let i=0; i<weeks; i++) {
+    const d = new Date(base); d.setDate(d.getDate()+i*7);
+    dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  }
+
+  // 逐週檢查衝突（跟排課、跟其他已核准預約）
+  const conflicts = [];
+  for (const d of dates) {
+    const dow = new Date(d+'T00:00:00').getDay();
+    const sem = await rbGetSemesterWithRegDay(d);
+    if (sem) {
+      const { data: offs } = await sb.from('course_offerings').select('day,start_time,end_time,week_pattern')
+        .eq('semester_id', sem.id).eq('classroom_id', classroomId).eq('is_active',true).eq('is_cancelled',false).eq('day', dow);
+      const hasScheduleConflict = (offs||[]).some(o => rbOfferingActiveOnDate(o, sem, d) && o.start_time < end && o.end_time > start);
+      if (hasScheduleConflict) { conflicts.push(`${d}（已排課）`); continue; }
+    }
+    const { data: bks } = await sb.from('classroom_bookings').select('start_time,end_time')
+      .eq('classroom_id', classroomId).eq('booking_date', d).eq('status','approved');
+    const hasBookingConflict = (bks||[]).some(b => b.start_time < end && b.end_time > start);
+    if (hasBookingConflict) conflicts.push(`${d}（已被預約）`);
+  }
+  if (conflicts.length) {
+    showToast(`⚠️ 以下日期有衝突，已取消整批送出，請調整時段後再試：${conflicts.join('、')}`, 'error');
+    return false;
+  }
+
+  const rows = dates.map(d => ({
+    classroom_id: classroomId, booking_date: d, start_time: start, end_time: end,
+    purpose, organizer_unit: unit||null, organizer_name: organizer,
+    organizer_contact: contact, expected_headcount: headcount?parseInt(headcount,10):null,
+    note: note||null, created_by: window.ADMIN_USER_ID||null,
+    recurrence_group_id: recurrenceGroupId,
+    status: canAutoApprove ? 'approved' : 'pending',
+    reviewed_by: canAutoApprove ? (window.ADMIN_USER_ID||null) : null,
+    reviewed_at: canAutoApprove ? new Date().toISOString() : null,
+  }));
+  const { error } = await sb.from('classroom_bookings').insert(rows);
+  if (error) { showToast('送出失敗：'+error.message,'error'); return false; }
+
+  if (canAutoApprove) { showToast(`✅ 已直接核准（共${rows.length}筆）`); }
+  else { showToast(`✅ 申請已送出，共${rows.length}筆，請等候審核`); rbNotifyReviewers(rows); }
+
+  rbLoadPending(); rbLoadMine(); rbLoadAll();
+  rbQueryAvailability();
+  return true;
+}
+
+// ── email通知預留函式：目前先留空，等統一規劃email發送機制(Resend+Edge Function)時再實作 ──
+async function rbNotifyReviewers(newRows) { /* TODO: 送出申請時通知write權限審核者 */ }
+async function rbNotifyApplicant(booking, decision) { /* TODO: 核准/駁回時通知申請人，decision='approved'|'rejected' */ }
+
+// ── 頁籤切換 ──
+function rbSwitchTab(id, btn) {
+  document.querySelectorAll('.rb-panel-section').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.rb-tab').forEach(b=>{ b.classList.remove('active'); b.style.color='var(--ink3)'; b.style.borderBottomColor='transparent'; });
+  document.getElementById(id).style.display = 'block';
+  btn.classList.add('active'); btn.style.color='var(--navy)'; btn.style.borderBottomColor='var(--navy)';
+  if (id === 'rb-tab-overview') rboInitOverview();
+}
+
+function rbFmtDateRange(b) { return `${b.booking_date} ${b.start_time.slice(0,5)}～${b.end_time.slice(0,5)}`; }
+
+// ── 待審核 ──
+async function rbLoadPending() {
+  const canReview = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
+  const tb = document.getElementById('rb-pending-body');
+  if (!canReview) { tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--ink3)">只有具備教室管理權限的人可以審核申請</td></tr>'; document.getElementById('rb-pending-badge').textContent=''; return; }
+  const { data: rows } = await sb.from('classroom_bookings').select('*,classrooms(name)').eq('status','pending').order('booking_date');
+  document.getElementById('rb-pending-badge').textContent = rows?.length ? `(${rows.length})` : '';
+  tb.innerHTML = rows?.length ? rows.map(b => `<tr>
+      <td style="font-weight:600">${esc(b.classrooms?.name||'')}</td><td style="font-size:12px">${rbFmtDateRange(b)}</td>
+      <td>${esc(b.purpose)}</td><td style="font-size:12px">${esc(b.organizer_unit||'—')}</td>
+      <td>${esc(b.organizer_name)}</td><td style="font-size:12px">${esc(b.organizer_contact||'')}</td>
+      <td style="text-align:center">${b.expected_headcount||'—'}</td>
+      <td style="font-size:11px;color:var(--ink3)">${b.created_at?b.created_at.slice(0,16).replace('T',' '):''}</td>
+      <td style="white-space:nowrap"><button class="btn btn-pri btn-sm" onclick="rbApprove('${b.id}')">✅ 核准</button>
+      <button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="rbReject('${b.id}')">❌ 駁回</button></td>
+    </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--ink3)">目前沒有待審核的申請</td></tr>';
+}
+async function rbApprove(id) {
+  if (!confirm('確定要核准這筆教室借用申請嗎？')) return;
+  const { data: b } = await sb.from('classroom_bookings').select('*').eq('id',id).maybeSingle();
+  const { error } = await sb.from('classroom_bookings').update({ status:'approved', reviewed_by:window.ADMIN_USER_ID||null, reviewed_at:new Date().toISOString() }).eq('id', id);
+  if (error) { showToast('核准失敗：'+error.message,'error'); return; }
+  showToast('已核准'); if (b) rbNotifyApplicant(b,'approved');
+  rbLoadPending(); rbLoadAll();
+}
+async function rbReject(id) {
+  const reason = prompt('請填寫駁回原因（會讓申請人看到）：');
+  if (reason === null) return;
+  const { data: b } = await sb.from('classroom_bookings').select('*').eq('id',id).maybeSingle();
+  const { error } = await sb.from('classroom_bookings').update({ status:'rejected', reviewed_by:window.ADMIN_USER_ID||null, reviewed_at:new Date().toISOString(), review_comment:reason||null }).eq('id', id);
+  if (error) { showToast('駁回失敗：'+error.message,'error'); return; }
+  showToast('已駁回'); if (b) rbNotifyApplicant(b,'rejected');
+  rbLoadPending(); rbLoadAll();
+}
+
+// ── 我的申請 ──
+let _rbMineBookings = [];
+async function rbLoadMine() {
+  const tb = document.getElementById('rb-mine-body');
+  if (!window.ADMIN_USER_ID) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink3)">無法識別登入身份</td></tr>'; return; }
+  const { data: rows } = await sb.from('classroom_bookings').select('*,classrooms(name)').eq('created_by', window.ADMIN_USER_ID).order('booking_date',{ascending:false});
+  _rbMineBookings = rows || [];
+  const canManage = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
+  tb.innerHTML = _rbMineBookings.length ? _rbMineBookings.map(b => `<tr>
+      <td style="font-weight:600">${esc(b.classrooms?.name||'')}</td><td style="font-size:12px">${rbFmtDateRange(b)}</td>
+      <td>${esc(b.purpose)}</td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${RB_STATUS_COLOR[b.status]}22;color:${RB_STATUS_COLOR[b.status]};border:1px solid ${RB_STATUS_COLOR[b.status]}">${RB_STATUS_LABEL[b.status]}</span></td>
+      <td style="font-size:12px;color:var(--ink3)">${esc(b.review_comment||'')}</td>
+      <td style="white-space:nowrap">
+        ${canManage && ['pending','approved'].includes(b.status) ? `<button class="btn btn-sec btn-sm" onclick="rbOpenEditModal('${b.id}','mine')">✏️ 編輯</button>` : ''}
+        <button class="btn btn-sec btn-sm" onclick="rbOpenDuplicateModal('${b.id}','mine')">📋 複製</button>
+        ${['pending','approved'].includes(b.status) ? `<button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="rbCancelBooking('${b.id}')">取消</button>` : ''}
+      </td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink3)">尚無申請記錄</td></tr>';
+}
+
+// ── 全部預約記錄 ──
+async function rbLoadAll() {
+  const { data: rows } = await sb.from('classroom_bookings').select('*,classrooms(name)').order('booking_date',{ascending:false}).limit(500);
+  _rbAllBookings = rows || [];
+  rbRenderAllTable();
+}
+function rbRenderAllTable() {
+  const kw = (document.getElementById('rb-all-search')?.value||'').trim().toLowerCase();
+  const statusFilter = document.getElementById('rb-all-filter')?.value || '';
+  const canManage = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
+  let list = _rbAllBookings.filter(b => {
+    if (statusFilter && b.status !== statusFilter) return false;
+    if (kw) {
+      const hay = `${b.classrooms?.name||''} ${b.purpose||''} ${b.organizer_name||''}`.toLowerCase();
+      if (!hay.includes(kw)) return false;
+    }
+    return true;
+  });
+  document.getElementById('rb-all-count').textContent = `${list.length} 筆`;
+  const tb = document.getElementById('rb-all-body');
+  tb.innerHTML = list.length ? list.map(b => `<tr>
+      <td style="font-weight:600">${esc(b.classrooms?.name||'')}</td><td style="font-size:12px">${rbFmtDateRange(b)}</td>
+      <td>${esc(b.purpose)}</td><td style="font-size:12px">${esc(b.organizer_unit||'—')}</td>
+      <td>${esc(b.organizer_name)}</td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${RB_STATUS_COLOR[b.status]}22;color:${RB_STATUS_COLOR[b.status]};border:1px solid ${RB_STATUS_COLOR[b.status]}">${RB_STATUS_LABEL[b.status]}</span></td>
+      <td style="font-size:11px;color:var(--ink3)">${b.created_by===window.ADMIN_USER_ID?'（我）':''}</td>
+      <td style="white-space:nowrap">
+        ${(canManage && ['pending','approved'].includes(b.status)) ? `<button class="btn btn-sec btn-sm" onclick="rbOpenEditModal('${b.id}','all')">✏️ 編輯</button>` : ''}
+        <button class="btn btn-sec btn-sm" onclick="rbOpenDuplicateModal('${b.id}','all')">📋 複製</button>
+        ${(canManage && ['pending','approved'].includes(b.status)) ? `<button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="rbCancelBooking('${b.id}')">取消</button>` : ''}
+      </td>
+    </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--ink3)">無符合記錄</td></tr>';
+}
+
+// ── 複製預約：帶出原本的所有資料，日期跟教室可以重新選 ──
+async function rbOpenDuplicateModal(bookingId, source) {
+  const pool = source === 'mine' ? _rbMineBookings : _rbAllBookings;
+  const b = pool.find(x => x.id === bookingId);
+  if (!b) { showToast('找不到原始預約資料','error'); return; }
+  if (!_rbClassrooms.length) { // 還沒查詢過空教室的話，先載入完整教室清單，複製時才能自由選教室
+    const { data: rooms } = await sb.from('classrooms').select('*').eq('active',true).eq('is_offsite',false).order('building').order('code');
+    _rbClassrooms = rooms || [];
+  }
+  const roomOptions = _rbClassrooms;
+  const html = `
+    <div style="background:#f5f5f0;border:1px solid var(--cr2);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--ink3)">
+      複製自：${esc(b.classrooms?.name||'')}・${rbFmtDateRange(b)}・${esc(b.purpose)}
+    </div>
+    <label class="flabel">教室 *</label>
+    <select class="fselect" id="rbd-classroom">${roomOptions.length ? roomOptions.map(r=>`<option value="${r.id}" ${r.id===b.classroom_id?'selected':''}>${esc(r.name)}（容納${r.capacity||'—'}人）</option>`).join('') : `<option value="${b.classroom_id}">${esc(b.classrooms?.name||'（沿用原教室）')}</option>`}</select>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px">
+      <div><label class="flabel">日期 *</label><input type="date" class="finput" id="rbd-date" value="${b.booking_date}"></div>
+      <div><label class="flabel">開始 *</label><input type="time" class="finput" id="rbd-start" value="${b.start_time.slice(0,5)}"></div>
+      <div><label class="flabel">結束 *</label><input type="time" class="finput" id="rbd-end" value="${b.end_time.slice(0,5)}"></div>
+    </div>
+    <label class="flabel" style="margin-top:8px">用途／活動名稱 *</label><input class="finput" id="rbd-purpose" value="${esc(b.purpose)}">
+    <label class="flabel" style="margin-top:8px">申請單位</label><input class="finput" id="rbd-unit" value="${esc(b.organizer_unit||'')}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <div><label class="flabel">借用人姓名 *</label><input class="finput" id="rbd-organizer" value="${esc(b.organizer_name)}"></div>
+      <div><label class="flabel">預估人數</label><input type="number" class="finput" id="rbd-headcount" min="1" value="${b.expected_headcount||''}"></div>
+    </div>
+    <label class="flabel" style="margin-top:8px">聯絡方式 *</label><input class="finput" id="rbd-contact" value="${esc(b.organizer_contact||'')}">
+    <label class="flabel" style="margin-top:8px">備註</label><input class="finput" id="rbd-note" value="${esc(b.note||'')}">
+  `;
+  presShowSimpleModal('📋 複製教室借用申請', html, rbSubmitDuplicate);
+}
+
+async function rbSubmitDuplicate() {
+  const classroomId = document.getElementById('rbd-classroom').value;
+  const date = document.getElementById('rbd-date').value;
+  const start = document.getElementById('rbd-start').value;
+  const end = document.getElementById('rbd-end').value;
+  const purpose = document.getElementById('rbd-purpose').value.trim();
+  const unit = document.getElementById('rbd-unit').value.trim();
+  const organizer = document.getElementById('rbd-organizer').value.trim();
+  const headcount = document.getElementById('rbd-headcount').value;
+  const contact = document.getElementById('rbd-contact').value.trim();
+  const note = document.getElementById('rbd-note').value.trim();
+
+  if (!classroomId || !date || !start || !end) { showToast('請填寫完整的教室與時段','error'); return false; }
+  if (end <= start) { showToast('結束時間必須晚於開始時間','error'); return false; }
+  if (!purpose) { showToast('請填寫用途／活動名稱','error'); return false; }
+  if (!organizer) { showToast('請填寫借用人姓名','error'); return false; }
+  if (!contact) { showToast('請填寫聯絡方式','error'); return false; }
+
+  // 衝突檢查（跟正常送出申請同一套邏輯）
+  const dow = new Date(date+'T00:00:00').getDay();
+  const sem = await rbGetSemesterWithRegDay(date);
+  if (sem) {
+    const { data: offs } = await sb.from('course_offerings').select('day,start_time,end_time,week_pattern')
+      .eq('semester_id', sem.id).eq('classroom_id', classroomId).eq('is_active',true).eq('is_cancelled',false).eq('day', dow);
+    const hasScheduleConflict = (offs||[]).some(o => rbOfferingActiveOnDate(o, sem, date) && o.start_time < end && o.end_time > start);
+    if (hasScheduleConflict) { showToast('這個時段該教室已排課，無法借用','error'); return false; }
+  }
+  const { data: bks } = await sb.from('classroom_bookings').select('start_time,end_time')
+    .eq('classroom_id', classroomId).eq('booking_date', date).eq('status','approved');
+  const hasBookingConflict = (bks||[]).some(bk => bk.start_time < end && bk.end_time > start);
+  if (hasBookingConflict) { showToast('這個時段該教室已被預約，無法借用','error'); return false; }
+
+  const canAutoApprove = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
+  const row = {
+    classroom_id: classroomId, booking_date: date, start_time: start, end_time: end,
+    purpose, organizer_unit: unit||null, organizer_name: organizer,
+    organizer_contact: contact, expected_headcount: headcount?parseInt(headcount,10):null,
+    note: note||null, created_by: window.ADMIN_USER_ID||null,
+    status: canAutoApprove ? 'approved' : 'pending',
+    reviewed_by: canAutoApprove ? (window.ADMIN_USER_ID||null) : null,
+    reviewed_at: canAutoApprove ? new Date().toISOString() : null,
+  };
+  const { error } = await sb.from('classroom_bookings').insert(row);
+  if (error) { showToast('送出失敗：'+error.message,'error'); return false; }
+
+  showToast(canAutoApprove ? '✅ 已直接核准' : '✅ 申請已送出，請等候審核');
+  if (!canAutoApprove) rbNotifyReviewers([row]);
+  rbLoadPending(); rbLoadMine(); rbLoadAll();
+  return true;
+}
+
+// ── 編輯既有預約：可修改內容，也可以「順便加開後面連續幾週」──
+async function rbOpenEditModal(bookingId, source) {
+  const pool = source === 'mine' ? _rbMineBookings : _rbAllBookings;
+  const b = pool.find(x => x.id === bookingId);
+  if (!b) { showToast('找不到原始預約資料','error'); return; }
+  if (!_rbClassrooms.length) {
+    const { data: rooms } = await sb.from('classrooms').select('*').eq('active',true).eq('is_offsite',false).order('building').order('code');
+    _rbClassrooms = rooms || [];
+  }
+  const html = `
+    <label class="flabel">教室 *</label>
+    <select class="fselect" id="rbe-classroom">${_rbClassrooms.map(r=>`<option value="${r.id}" ${r.id===b.classroom_id?'selected':''}>${esc(r.name)}（容納${r.capacity||'—'}人）</option>`).join('')}</select>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px">
+      <div><label class="flabel">日期 *</label><input type="date" class="finput" id="rbe-date" value="${b.booking_date}"></div>
+      <div><label class="flabel">開始 *</label><input type="time" class="finput" id="rbe-start" value="${b.start_time.slice(0,5)}"></div>
+      <div><label class="flabel">結束 *</label><input type="time" class="finput" id="rbe-end" value="${b.end_time.slice(0,5)}"></div>
+    </div>
+    <label class="flabel" style="margin-top:8px">用途／活動名稱 *</label><input class="finput" id="rbe-purpose" value="${esc(b.purpose)}">
+    <label class="flabel" style="margin-top:8px">申請單位</label><input class="finput" id="rbe-unit" value="${esc(b.organizer_unit||'')}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <div><label class="flabel">借用人姓名 *</label><input class="finput" id="rbe-organizer" value="${esc(b.organizer_name)}"></div>
+      <div><label class="flabel">預估人數</label><input type="number" class="finput" id="rbe-headcount" min="1" value="${b.expected_headcount||''}"></div>
+    </div>
+    <label class="flabel" style="margin-top:8px">聯絡方式 *</label><input class="finput" id="rbe-contact" value="${esc(b.organizer_contact||'')}">
+    <label class="flabel" style="margin-top:8px">備註</label><input class="finput" id="rbe-note" value="${esc(b.note||'')}">
+    <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--cr2)">
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="rbe-extend" onchange="document.getElementById('rbe-extend-box').style.display=this.checked?'block':'none'">
+        <label for="rbe-extend" style="font-size:13px;cursor:pointer">順便加開後面連續幾週（同一星期幾、同一時段，從這筆之後開始算）</label>
+      </div>
+      <div id="rbe-extend-box" style="display:none;margin-top:6px">
+        <label class="flabel">再加開幾週</label><input type="number" class="finput" id="rbe-extend-weeks" min="1" max="17" value="2" style="width:100px">
+      </div>
+    </div>
+    <input type="hidden" id="rbe-booking-id" value="${b.id}">
+  `;
+  presShowSimpleModal('✏️ 編輯教室借用', html, rbSubmitEdit);
+}
+
+async function rbSubmitEdit() {
+  const id = document.getElementById('rbe-booking-id').value;
+  const classroomId = document.getElementById('rbe-classroom').value;
+  const date = document.getElementById('rbe-date').value;
+  const start = document.getElementById('rbe-start').value;
+  const end = document.getElementById('rbe-end').value;
+  const purpose = document.getElementById('rbe-purpose').value.trim();
+  const unit = document.getElementById('rbe-unit').value.trim();
+  const organizer = document.getElementById('rbe-organizer').value.trim();
+  const headcount = document.getElementById('rbe-headcount').value;
+  const contact = document.getElementById('rbe-contact').value.trim();
+  const note = document.getElementById('rbe-note').value.trim();
+  const doExtend = document.getElementById('rbe-extend').checked;
+  const extendWeeks = doExtend ? parseInt(document.getElementById('rbe-extend-weeks').value,10) : 0;
+
+  if (!classroomId || !date || !start || !end) { showToast('請填寫完整的教室與時段','error'); return false; }
+  if (end <= start) { showToast('結束時間必須晚於開始時間','error'); return false; }
+  if (!purpose) { showToast('請填寫用途／活動名稱','error'); return false; }
+  if (!organizer) { showToast('請填寫借用人姓名','error'); return false; }
+  if (!contact) { showToast('請填寫聯絡方式','error'); return false; }
+  if (doExtend && (!extendWeeks || extendWeeks < 1)) { showToast('加開週數至少要1週','error'); return false; }
+
+  // 這筆本身的衝突檢查（排除自己這一筆，不然會跟自己原本的時段誤判成衝突）
+  async function checkConflict(clsId, d, s, e, excludeId) {
+    const dow = new Date(d+'T00:00:00').getDay();
+    const sem = await rbGetSemesterWithRegDay(d);
+    if (sem) {
+      const { data: offs } = await sb.from('course_offerings').select('day,start_time,end_time,week_pattern')
+        .eq('semester_id', sem.id).eq('classroom_id', clsId).eq('is_active',true).eq('is_cancelled',false).eq('day', dow);
+      if ((offs||[]).some(o => rbOfferingActiveOnDate(o, sem, d) && o.start_time < e && o.end_time > s)) return '已排課';
+    }
+    let q = sb.from('classroom_bookings').select('id,start_time,end_time').eq('classroom_id', clsId).eq('booking_date', d).eq('status','approved');
+    const { data: bks } = await q;
+    if ((bks||[]).some(bk => bk.id !== excludeId && bk.start_time < e && bk.end_time > s)) return '已被預約';
+    return null;
+  }
+
+  const conflict = await checkConflict(classroomId, date, start, end, id);
+  if (conflict) { showToast(`這個時段${conflict}，無法儲存`,'error'); return false; }
+
+  const { error } = await sb.from('classroom_bookings').update({
+    classroom_id: classroomId, booking_date: date, start_time: start, end_time: end,
+    purpose, organizer_unit: unit||null, organizer_name: organizer,
+    organizer_contact: contact, expected_headcount: headcount?parseInt(headcount,10):null, note: note||null,
+  }).eq('id', id);
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return false; }
+
+  // 順便加開後續幾週
+  if (doExtend) {
+    const canAutoApprove = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
+    const base = new Date(date+'T00:00:00');
+    const conflicts = []; const newRows = [];
+    for (let i=1; i<=extendWeeks; i++) {
+      const d = new Date(base); d.setDate(d.getDate()+i*7);
+      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const c = await checkConflict(classroomId, ds, start, end, null);
+      if (c) { conflicts.push(`${ds}（${c}）`); continue; }
+      newRows.push({
+        classroom_id: classroomId, booking_date: ds, start_time: start, end_time: end,
+        purpose, organizer_unit: unit||null, organizer_name: organizer,
+        organizer_contact: contact, expected_headcount: headcount?parseInt(headcount,10):null, note: note||null,
+        created_by: window.ADMIN_USER_ID||null,
+        status: canAutoApprove ? 'approved' : 'pending',
+        reviewed_by: canAutoApprove ? (window.ADMIN_USER_ID||null) : null,
+        reviewed_at: canAutoApprove ? new Date().toISOString() : null,
+      });
+    }
+    if (newRows.length) {
+      const { error: e2 } = await sb.from('classroom_bookings').insert(newRows);
+      if (e2) showToast('本筆已儲存，但加開後續週次時失敗：'+e2.message,'error');
+    }
+    if (conflicts.length) showToast(`⚠️ 以下加開的週次有衝突、未建立：${conflicts.join('、')}`,'error');
+  }
+
+  showToast('✅ 已儲存');
+  rbLoadPending(); rbLoadMine(); rbLoadAll();
+  return true;
+}
+
+async function rbCancelBooking(id) {
+  if (!confirm('確定要取消這筆教室借用嗎？')) return;
+  const { error } = await sb.from('classroom_bookings').update({ status:'cancelled' }).eq('id', id);
+  if (error) { showToast('取消失敗：'+error.message,'error'); return; }
+  showToast('已取消');
+  rbLoadPending(); rbLoadMine(); rbLoadAll(); rbQueryAvailability();
+}
+
+// ── 教室使用總覽：左邊全部教室清單(含統計+排序)，右邊依選中的教室查看整週的固定課表+已核准預約 ──
+let _rboWeekOffset = 0; // 0=本週，-1=上週，+1=下週...
+let _rboSelectedClassroomId = null;
+let _rboSort = { field:'name', dir:1 };
+let _rboItemsFlat = [];
+
+async function rboInitOverview() {
+  if (!_rbClassrooms.length) {
+    const { data: rooms } = await sb.from('classrooms').select('*').eq('active',true).eq('is_offsite',false).order('building').order('code');
+    _rbClassrooms = rooms || [];
+  }
+  // 統計每間教室的「課程使用數」（目前有效的開課記錄數）跟「預約使用數」（未來的已核准預約數）
+  const { data: offs } = await sb.from('course_offerings').select('classroom_id').eq('is_active',true).eq('is_cancelled',false).not('classroom_id','is',null);
+  const courseCountMap = {};
+  (offs||[]).forEach(o => { courseCountMap[o.classroom_id] = (courseCountMap[o.classroom_id]||0)+1; });
+
+  const today = new Date(); const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const { data: bks } = await sb.from('classroom_bookings').select('classroom_id').eq('status','approved').gte('booking_date', todayStr);
+  const bookingCountMap = {};
+  (bks||[]).forEach(b => { bookingCountMap[b.classroom_id] = (bookingCountMap[b.classroom_id]||0)+1; });
+
+  _rbClassrooms.forEach(r => { r._courseCount = courseCountMap[r.id]||0; r._bookingCount = bookingCountMap[r.id]||0; });
+
+  if (!_rboSelectedClassroomId && _rbClassrooms.length) _rboSelectedClassroomId = _rbClassrooms[0].id;
+  rboRenderList();
+}
+
+function rboSort(field) {
+  if (_rboSort.field === field) _rboSort.dir *= -1; else { _rboSort.field = field; _rboSort.dir = 1; }
+  rboRenderList();
+}
+
+function rboRenderList() {
+  const fieldMap = { name:'name', capacity:'capacity', courseCount:'_courseCount', bookingCount:'_bookingCount' };
+  const f = fieldMap[_rboSort.field] || 'name';
+  const list = _rbClassrooms.slice().sort((a,b) => {
+    const av = a[f], bv = b[f];
+    const cmp = typeof av === 'number' && typeof bv === 'number' ? av-bv : String(av||'').localeCompare(String(bv||''));
+    return cmp*_rboSort.dir;
+  });
+  document.getElementById('rbo-list-count').textContent = list.length;
+  Object.keys(fieldMap).forEach(k => { const el=document.getElementById('rbo-sort-'+k); if (el) el.textContent = _rboSort.field===k ? (_rboSort.dir===1?'▲':'▼') : '⇅'; });
+
+  const tb = document.getElementById('rbo-classroom-list');
+  tb.innerHTML = list.map(r => `<tr onclick="rboSelectRoom('${r.id}')" style="cursor:pointer;${r.id===_rboSelectedClassroomId?'background:#EEF2FA':''}">
+      <td style="font-weight:600">${esc(r.name)}${r.building?`<div style="font-size:10.5px;color:var(--ink3);font-weight:400">${esc(r.building)}${r.floor?` ${r.floor}樓`:''}</div>`:''}</td>
+      <td style="text-align:center">${r.capacity||'—'}</td>
+      <td style="text-align:center">${r._courseCount||0}</td>
+      <td style="text-align:center">${r._bookingCount||0}</td>
+    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--ink3)">目前沒有校內教室資料</td></tr>';
+
+  rbRenderOverview();
+}
+
+function rboSelectRoom(classroomId) {
+  _rboSelectedClassroomId = classroomId;
+  rboRenderList();
+}
+
+function rboGetWeekStart() {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const day = now.getDay(); // 0=Sun...6=Sat
+  now.setDate(now.getDate()-day+_rboWeekOffset*7); // 直接退回本週的週日
+  return now;
+}
+function rboShiftWeek(delta) { _rboWeekOffset += delta; rbRenderOverview(); }
+function rboGoToday() { _rboWeekOffset = 0; rbRenderOverview(); }
+
+async function rbRenderOverview() {
+  const classroomId = _rboSelectedClassroomId;
+  const body = document.getElementById('rbo-week-body');
+  if (!classroomId) { body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">請先從左側選擇教室</div>'; return; }
+  const room = _rbClassrooms.find(r=>r.id===classroomId);
+  document.getElementById('rbo-selected-room-label').textContent = room ? `🏫 ${room.name}` : '';
+  body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">載入中…</div>';
+
+  const weekStart = rboGetWeekStart();
+  const days = [];
+  for (let i=0;i<7;i++) { const d=new Date(weekStart); d.setDate(d.getDate()+i); days.push(d); }
+  const fmtD = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const weekEnd = days[6];
+  document.getElementById('rbo-week-label').textContent = `${fmtD(weekStart)} ～ ${fmtD(weekEnd)}`;
+
+  // 這整週橫跨的學期可能不只一個(極少數情況，例如剛好卡在學期交接週)，先逐日查出對應學期
+  const dayInfo = {}; // dateStr -> {items:[{type,label,timeRange}]}
+  const semByDate = {}; // dateStr -> semester物件，後面判斷借用顏色也要用
+  days.forEach(d => dayInfo[fmtD(d)] = []);
+  for (const d of days) { semByDate[fmtD(d)] = await rbGetSemesterWithRegDay(fmtD(d)); }
+  const semIdsThisWeek = [...new Set(Object.values(semByDate).filter(Boolean).map(s=>s.id))];
+
+  // 固定課表：只抓「這間教室」+「這週橫跨的學期」的開課記錄，避免撈到其他學期同教室開過的舊課
+  let offs = [];
+  if (semIdsThisWeek.length) {
+    const { data } = await sb.from('course_offerings')
+      .select('id,day,start_time,end_time,week_pattern,req_type,target_cohort,courses(name_zh,code,credits)')
+      .eq('classroom_id', classroomId).eq('is_active',true).eq('is_cancelled',false).not('day','is',null)
+      .in('semester_id', semIdsThisWeek);
+    offs = data || [];
+  }
+  // 補撈這些開課記錄的授課老師（可能不只一位）
+  const offIds = [...new Set(offs.map(o=>o.id))];
+  let teacherByOffering = {};
+  if (offIds.length) {
+    const { data: ots } = await sb.from('offering_teachers').select('offering_id,sort_order,teachers(name_zh)').in('offering_id', offIds).order('sort_order');
+    (ots||[]).forEach(ot => { (teacherByOffering[ot.offering_id] ||= []).push(ot.teachers?.name_zh||''); });
+  }
+
+  _rboItemsFlat = []; // 每次重新渲染都重建，index當作點擊詳情的查詢key
+  for (const d of days) {
+    const ds = fmtD(d);
+    const dow = d.getDay();
+    const sem = semByDate[ds];
+    if (!sem) continue;
+    (offs||[]).filter(o=>o.day===dow).forEach(o => {
+      if (!rbOfferingActiveOnDate(o, sem, ds)) return;
+      const idx = _rboItemsFlat.length;
+      _rboItemsFlat.push({ kind:'course', name:o.courses?.name_zh||'', code:o.courses?.code||'', credits:o.courses?.credits, reqType:o.req_type, teachers:teacherByOffering[o.id]||[], weekPattern:o.week_pattern||'every', targetCohort:o.target_cohort, start:o.start_time, end:o.end_time, date:ds });
+      dayInfo[ds].push({ idx, label: `${o.courses?.name_zh||''}`, start:o.start_time, end:o.end_time, color:'#3b82f6' });
+    });
+  }
+
+  // 已核准的教室借用：教學期間內用紫色，教學期間外（例如還沒開學、或超過18週之後）用綠色
+  const { data: bookings } = await sb.from('classroom_bookings')
+    .select('booking_date,start_time,end_time,purpose,organizer_name,organizer_unit,organizer_contact,expected_headcount,note,reviewed_at')
+    .eq('classroom_id', classroomId).eq('status','approved')
+    .gte('booking_date', fmtD(weekStart)).lte('booking_date', fmtD(weekEnd));
+  (bookings||[]).forEach(b => {
+    const sem = semByDate[b.booking_date];
+    const withinTeaching = sem ? rbIsWithinTeachingPeriod(sem, b.booking_date) : false;
+    const color = withinTeaching ? '#8b5cf6' : '#22c55e';
+    const idx = _rboItemsFlat.length;
+    _rboItemsFlat.push({ kind:'booking', purpose:b.purpose, organizerName:b.organizer_name, organizerUnit:b.organizer_unit, organizerContact:b.organizer_contact, headcount:b.expected_headcount, note:b.note, reviewedAt:b.reviewed_at, start:b.start_time, end:b.end_time, date:b.booking_date });
+    (dayInfo[b.booking_date] ||= []).push({ idx, label:`${b.purpose}（${b.organizer_name}）`, start:b.start_time, end:b.end_time, color });
+  });
+
+  const DOW_LABEL = ['日','一','二','三','四','五','六'];
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">';
+  days.forEach(d => {
+    const ds = fmtD(d);
+    const items = (dayInfo[ds]||[]).sort((a,b)=>a.start.localeCompare(b.start));
+    const isToday = ds === fmtD(new Date());
+    html += `<div style="background:#fff;border:1px solid ${isToday?'var(--navy)':'var(--cr2)'};border-radius:10px;padding:10px">
+      <div style="font-size:12.5px;font-weight:700;margin-bottom:8px;${isToday?'color:var(--navy)':''}">週${DOW_LABEL[d.getDay()]} ${ds}${isToday?'（今天）':''}</div>
+      ${items.length ? items.map(it=>`
+        <div onclick="rboShowItemDetail(${it.idx})" style="cursor:pointer;border-left:3px solid ${it.color};padding:4px 8px;margin-bottom:6px;background:${it.color}11;border-radius:0 6px 6px 0" title="點擊查看詳細資料">
+          <div style="font-size:11px;color:var(--ink3)">${it.start.slice(0,5)}～${it.end.slice(0,5)}</div>
+          <div style="font-size:12.5px;font-weight:600">${esc(it.label)}</div>
+        </div>`).join('') : `<div style="font-size:12px;color:var(--ink3);padding:8px 0;text-align:center">全天無安排</div>`}
+    </div>`;
+  });
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+const RB_WEEKPATTERN_LABEL = { every:'每週', odd:'單週', even:'雙週', intensive:'集中' };
+function rboShowItemDetail(idx) {
+  const it = _rboItemsFlat[idx];
+  if (!it) return;
+  let html;
+  if (it.kind === 'course') {
+    html = `<div style="font-size:13px;line-height:1.9">
+      <div><b>${esc(it.name)}</b>（${esc(it.code)}）</div>
+      <div>日期時段：${it.date} ${it.start.slice(0,5)}～${it.end.slice(0,5)}</div>
+      <div>授課老師：${it.teachers.length?esc(it.teachers.join('、')):'—'}</div>
+      <div>選修別：${REQ_ZH?.[it.reqType]||it.reqType||'—'}　學分：${it.credits??'—'}</div>
+      <div>週次規則：${RB_WEEKPATTERN_LABEL[it.weekPattern]||it.weekPattern}${it.targetCohort?`　適用年級：${esc(it.targetCohort)}`:''}</div>
+    </div>`;
+  } else {
+    html = `<div style="font-size:13px;line-height:1.9">
+      <div><b>${esc(it.purpose)}</b></div>
+      <div>日期時段：${it.date} ${it.start.slice(0,5)}～${it.end.slice(0,5)}</div>
+      <div>申請單位：${esc(it.organizerUnit||'—')}</div>
+      <div>借用人：${esc(it.organizerName)}　聯絡方式：${esc(it.organizerContact||'—')}</div>
+      <div>預估人數：${it.headcount||'—'}</div>
+      ${it.note?`<div>備註：${esc(it.note)}</div>`:''}
+      ${it.reviewedAt?`<div style="color:var(--ink3);font-size:12px">核准時間：${it.reviewedAt.slice(0,16).replace('T',' ')}</div>`:''}
+    </div>`;
+  }
+  presShowSimpleModal(it.kind==='course' ? '📚 課程詳情' : '🏫 教室借用詳情', html, async()=>true);
 }
 
 checkAuth();
