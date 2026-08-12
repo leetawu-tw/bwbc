@@ -30,6 +30,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:#F7F6F3;color:#2C2C2A;line
 .course-badge{font-size:11px;padding:2px 9px;border-radius:20px;border:1px solid;flex-shrink:0;white-space:nowrap}
 .badge-req{background:#EEF2FA;color:#1B3A6B;border-color:#B5D4F4}
 .badge-sel{background:#f5f5f5;color:#666;border-color:#ddd}
+.badge-dig{background:#EEF2FA;color:#1B3A6B;border-color:#B5D4F4;display:inline-block;margin-top:4px}
 .loading{text-align:center;padding:60px;color:#888;font-size:14px}
 .empty-box{text-align:center;padding:50px;color:#aaa;font-size:14px}
 .error-box{background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:20px;text-align:center;color:#B91C1C;font-size:14px}
@@ -117,7 +118,7 @@ async function showCourseList(semId) {
   backLink.onclick = () => { location.href = location.pathname; };
 
   const { data: offs, error } = await client.from('course_offerings')
-    .select('id,courses(code,name_zh,req_type,credits),offering_teachers(sort_order,teachers(name_zh))')
+    .select('id,courses(code,name_zh,req_type,credits,is_digital),offering_teachers(sort_order,teachers(name_zh))')
     .eq('semester_id', semId).eq('is_active',true).eq('is_cancelled',false);
   if (error) { main.className='error-box'; main.textContent='載入失敗：'+error.message; return; }
   if (!offs || !offs.length) { main.className='empty-box'; main.textContent='這個學期目前沒有課程資料'; return; }
@@ -132,6 +133,7 @@ async function showCourseList(semId) {
         <div class="course-code">${esc(o.courses?.code||'')}</div>
         <div class="course-name">${esc(o.courses?.name_zh||'')}</div>
         ${teachers.length ? `<div class="course-teacher">授課老師：${esc(teachers.join('、'))}</div>` : ''}
+        ${o.courses?.is_digital ? `<span class="course-badge badge-dig">📱 數位課程</span>` : ''}
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div class="course-badge ${o.courses?.req_type==='req'?'badge-req':'badge-sel'}">${REQ_LABEL[o.courses?.req_type]||''}</div>
