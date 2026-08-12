@@ -365,6 +365,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="forms" onclick="showPage('forms',this)"><span class="nav-icon">📄</span>常用表單</div>
         <div class="nav-item" data-perm="lending" onclick="showPage('lending',this)"><span class="nav-icon">🔧</span>設備借用管理</div>
         <div class="nav-item" data-perm="classrooms" onclick="showPage('room-booking',this)"><span class="nav-icon">🏫</span>教室借用申請</div>
+        <div class="nav-item" data-perm="committees" onclick="showPage('committees',this)"><span class="nav-icon">🏛️</span>委員會管理</div>
         <div class="nav-item" data-perm="meetings" onclick="showPage('meetings',this)"><span class="nav-icon">📅</span>會議管理</div>
         <div class="nav-item" data-perm="todos" onclick="showPage('todos',this)"><span class="nav-icon">✅</span>待辦事務 <span class="badge badge-warn" id="todo-badge" style="margin-left:auto;display:none">0</span></div>
       </div>
@@ -890,6 +891,42 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <div id="rbo-week-body"></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ▌委員會管理 ▌-->
+      <div id="page-committees" style="display:none">
+        <div id="cmte-list-view">
+          <div class="page-hdr">
+            <div class="page-title">🏛️ 委員會管理</div>
+            <button class="btn btn-pri" id="cmte-btn-add" onclick="cmteOpenAddCommitteeModal()">＋ 新增委員會</button>
+          </div>
+          <div id="cmte-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px"></div>
+        </div>
+
+        <div id="cmte-detail-view" style="display:none">
+          <button class="btn btn-sec" onclick="cmteBackToList()" style="margin-bottom:14px">← 返回委員會列表</button>
+
+          <div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px;margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+              <div style="font-size:18px;font-weight:700" id="cmte-detail-name"></div>
+              <button class="btn btn-sec btn-sm" id="cmte-btn-edit-committee" onclick="cmteOpenEditCommitteeModal()">✏️ 編輯</button>
+            </div>
+            <div style="font-size:13px;color:var(--ink2);margin-top:8px;white-space:pre-wrap" id="cmte-detail-purpose"></div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+            <label class="flabel" style="margin:0">屆期</label>
+            <select class="fselect" id="cmte-term-select" style="width:180px" onchange="cmteOnTermChange()"></select>
+            <button class="btn btn-sec btn-sm" id="cmte-btn-add-term" onclick="cmteOpenAddTermModal()">＋ 新增屆期</button>
+            <button class="btn btn-sec btn-sm" id="cmte-btn-edit-term" onclick="cmteOpenEditTermModal()">✏️ 編輯這屆</button>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:15px;font-weight:700">組織與委員名單</div>
+            <button class="btn btn-sec btn-sm" id="cmte-btn-add-position" onclick="cmteOpenAddPositionModal()">＋ 新增職位</button>
+          </div>
+          <div id="cmte-positions-list" style="display:flex;flex-direction:column;gap:12px"></div>
         </div>
       </div>
 
@@ -9466,6 +9503,7 @@ function showPage(page, btn) {
   if (page==='users') loadUsers();
   if (page==='lending') lendLoadAll();
   if (page==='room-booking') rbInit();
+  if (page==='committees') cmteInit();
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -11997,7 +12035,7 @@ let _allUsers = [];
 let _usrSort = { field:'email', dir:1 };
 
 const PERM_KEYS = ['announcements','todos','meetings','courses','open_courses',
-                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','grade-summary','forms','logs','lending'];
+                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','grade-summary','forms','logs','lending','committees'];
 
 const PERM_LABELS = {
   announcements: '📢 公佈欄',
@@ -12017,6 +12055,7 @@ const PERM_LABELS = {
   'grade-summary': '🏆 成績彙總',
   logs:          '📜 操作記錄',
   lending:       '🔧 設備借用管理',
+  committees:    '🏛️ 委員會管理',
 };
 
 const PERM_LEVELS = ['none','read','write','admin'];
@@ -18224,6 +18263,378 @@ function rboShowItemDetail(idx) {
     </div>`;
   }
   presShowSimpleModal(it.kind==='course' ? '📚 課程詳情' : '🏫 教室借用詳情', html, async()=>true);
+}
+
+/* ══════════════════════════════════════════════════════════
+   🏛️ 委員會管理
+   ══════════════════════════════════════════════════════════ */
+let _cmteList = [];
+let _cmteCurrentId = null;
+let _cmteCurrentTerms = [];
+let _cmteCurrentTermId = null;
+let _cmtePositions = [];
+let _cmteMembers = [];
+const CMTE_TYPE_LABEL = { student:'學生', teacher:'教師', external:'校外人士' };
+
+function cmteCanWrite() { return typeof window.hasPerm === 'function' ? window.hasPerm('committees','write') : false; }
+
+async function cmteInit() {
+  cmteApplyPermButtons();
+  document.getElementById('cmte-list-view').style.display = 'block';
+  document.getElementById('cmte-detail-view').style.display = 'none';
+  await cmteLoadList();
+}
+
+function cmteApplyPermButtons() {
+  const canWrite = cmteCanWrite();
+  const addBtn = document.getElementById('cmte-btn-add');
+  if (addBtn) addBtn.style.display = canWrite ? '' : 'none';
+  ['cmte-btn-edit-committee','cmte-btn-add-term','cmte-btn-edit-term','cmte-btn-add-position'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = canWrite ? '' : 'none';
+  });
+}
+
+async function cmteLoadList() {
+  const grid = document.getElementById('cmte-card-grid');
+  grid.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3);grid-column:1/-1">載入中…</div>';
+  const { data: rows } = await sb.from('committees').select('*').eq('active',true).order('sort_order');
+  _cmteList = rows || [];
+  if (!_cmteList.length) { grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3);grid-column:1/-1;background:#fff;border:2px dashed var(--cr2);border-radius:12px">目前尚無委員會資料</div>'; return; }
+  grid.innerHTML = _cmteList.map(c => `
+    <div onclick="cmteOpenDetail('${c.id}')" style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:16px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(27,58,107,.1)'" onmouseout="this.style.boxShadow='none'">
+      <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px">🏛️ ${esc(c.name)}</div>
+      <div style="font-size:12px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(c.purpose||'（尚未填寫設置要點）')}</div>
+    </div>`).join('');
+}
+
+function cmteOpenAddCommitteeModal() {
+  const html = `
+    <label class="flabel">委員會名稱 *</label><input class="finput" id="cmte-add-name" placeholder="例如：校級課程委員會">
+    <label class="flabel" style="margin-top:8px">設置要點</label><textarea class="finput" id="cmte-add-purpose" rows="4" placeholder="（選填，之後也可以再編輯）" style="resize:vertical"></textarea>
+  `;
+  presShowSimpleModal('＋ 新增委員會', html, cmteSubmitAddCommittee);
+}
+async function cmteSubmitAddCommittee() {
+  const name = document.getElementById('cmte-add-name').value.trim();
+  const purpose = document.getElementById('cmte-add-purpose').value.trim();
+  if (!name) { showToast('請填寫委員會名稱','error'); return false; }
+  const { error } = await sb.from('committees').insert({ name, purpose: purpose||null, sort_order: (_cmteList.length+1)*10 });
+  if (error) { showToast('新增失敗：'+error.message,'error'); return false; }
+  showToast('✅ 已新增'); cmteLoadList(); return true;
+}
+
+function cmteOpenEditCommitteeModal() {
+  const c = _cmteList.find(x=>x.id===_cmteCurrentId); if (!c) return;
+  const html = `
+    <label class="flabel">委員會名稱 *</label><input class="finput" id="cmte-add-name" value="${esc(c.name)}">
+    <label class="flabel" style="margin-top:8px">設置要點</label><textarea class="finput" id="cmte-add-purpose" rows="5" style="resize:vertical">${esc(c.purpose||'')}</textarea>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--cr2)">
+      <button class="btn btn-sec btn-sm" style="color:var(--red);border-color:var(--red)" onclick="cmteDeleteCommittee('${c.id}')">🗑 刪除這個委員會（含全部職位/屆期/委員資料）</button>
+    </div>
+  `;
+  presShowSimpleModal('✏️ 編輯委員會', html, cmteSubmitEditCommittee);
+}
+async function cmteSubmitEditCommittee() {
+  const name = document.getElementById('cmte-add-name').value.trim();
+  const purpose = document.getElementById('cmte-add-purpose').value.trim();
+  if (!name) { showToast('請填寫委員會名稱','error'); return false; }
+  const { error } = await sb.from('committees').update({ name, purpose: purpose||null }).eq('id', _cmteCurrentId);
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return false; }
+  showToast('✅ 已儲存'); cmteOpenDetail(_cmteCurrentId); return true;
+}
+async function cmteDeleteCommittee(id) {
+  const c = _cmteList.find(x=>x.id===id);
+  if (!confirm(`確定要刪除「${c?.name}」嗎？這個委員會底下所有職位設定、屆期、委員名單都會一併刪除，無法復原！`)) return;
+  const { error } = await sb.from('committees').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  showToast('已刪除'); closeModal('pres-simple-modal'); cmteBackToList();
+}
+
+function cmteBackToList() {
+  document.getElementById('cmte-list-view').style.display = 'block';
+  document.getElementById('cmte-detail-view').style.display = 'none';
+  _cmteCurrentId = null;
+  cmteLoadList();
+}
+
+async function cmteOpenDetail(id) {
+  _cmteCurrentId = id;
+  document.getElementById('cmte-list-view').style.display = 'none';
+  document.getElementById('cmte-detail-view').style.display = 'block';
+  const c = _cmteList.find(x=>x.id===id) || (await sb.from('committees').select('*').eq('id',id).maybeSingle()).data;
+  document.getElementById('cmte-detail-name').textContent = `🏛️ ${c?.name||''}`;
+  document.getElementById('cmte-detail-purpose').textContent = c?.purpose || '（尚未填寫設置要點）';
+  cmteApplyPermButtons();
+  await cmteLoadTerms();
+}
+
+async function cmteLoadTerms() {
+  const { data: terms } = await sb.from('committee_terms').select('*').eq('committee_id', _cmteCurrentId).order('term_label',{ascending:false});
+  _cmteCurrentTerms = terms || [];
+  const sel = document.getElementById('cmte-term-select');
+  if (!_cmteCurrentTerms.length) {
+    sel.innerHTML = '<option value="">尚無屆期，請先新增</option>';
+    _cmteCurrentTermId = null;
+    document.getElementById('cmte-positions-list').innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">請先新增一個屆期，才能開始設定職位與委員</div>';
+    return;
+  }
+  sel.innerHTML = _cmteCurrentTerms.map(t=>`<option value="${t.id}">${esc(t.term_label)}${t.is_current?'（現在）':''}</option>`).join('');
+  _cmteCurrentTermId = (_cmteCurrentTerms.find(t=>t.is_current) || _cmteCurrentTerms[0]).id;
+  sel.value = _cmteCurrentTermId;
+  await cmteLoadPositionsAndMembers();
+}
+function cmteOnTermChange() {
+  _cmteCurrentTermId = document.getElementById('cmte-term-select').value;
+  cmteLoadPositionsAndMembers();
+}
+
+function cmteOpenAddTermModal() {
+  const html = `
+    <label class="flabel">屆期名稱 *</label><input class="finput" id="cmte-term-label" placeholder="例如：115學年度">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <div><label class="flabel">開始日期</label><input type="date" class="finput" id="cmte-term-start"></div>
+      <div><label class="flabel">結束日期</label><input type="date" class="finput" id="cmte-term-end"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:10px;cursor:pointer">
+      <input type="checkbox" id="cmte-term-current" checked><span>設為現在這屆</span>
+    </label>
+  `;
+  presShowSimpleModal('＋ 新增屆期', html, cmteSubmitAddTerm);
+}
+async function cmteSubmitAddTerm() {
+  const label = document.getElementById('cmte-term-label').value.trim();
+  const start = document.getElementById('cmte-term-start').value;
+  const end = document.getElementById('cmte-term-end').value;
+  const isCurrent = document.getElementById('cmte-term-current').checked;
+  if (!label) { showToast('請填寫屆期名稱','error'); return false; }
+  if (isCurrent) await sb.from('committee_terms').update({is_current:false}).eq('committee_id', _cmteCurrentId);
+  const { error } = await sb.from('committee_terms').insert({ committee_id:_cmteCurrentId, term_label:label, start_date:start||null, end_date:end||null, is_current:isCurrent });
+  if (error) { showToast('新增失敗：'+error.message,'error'); return false; }
+  showToast('✅ 已新增屆期'); await cmteLoadTerms(); return true;
+}
+
+function cmteOpenEditTermModal() {
+  const t = _cmteCurrentTerms.find(x=>x.id===_cmteCurrentTermId);
+  if (!t) { showToast('請先選擇一個屆期','error'); return; }
+  const html = `
+    <label class="flabel">屆期名稱 *</label><input class="finput" id="cmte-term-label" value="${esc(t.term_label)}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <div><label class="flabel">開始日期</label><input type="date" class="finput" id="cmte-term-start" value="${t.start_date||''}"></div>
+      <div><label class="flabel">結束日期</label><input type="date" class="finput" id="cmte-term-end" value="${t.end_date||''}"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:10px;cursor:pointer">
+      <input type="checkbox" id="cmte-term-current" ${t.is_current?'checked':''}><span>設為現在這屆</span>
+    </label>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--cr2)">
+      <button class="btn btn-sec btn-sm" style="color:var(--red);border-color:var(--red)" onclick="cmteDeleteTerm('${t.id}')">🗑 刪除這屆（含這屆全部委員名單）</button>
+    </div>
+    <input type="hidden" id="cmte-term-id" value="${t.id}">
+  `;
+  presShowSimpleModal('✏️ 編輯屆期', html, cmteSubmitEditTerm);
+}
+async function cmteSubmitEditTerm() {
+  const id = document.getElementById('cmte-term-id').value;
+  const label = document.getElementById('cmte-term-label').value.trim();
+  const start = document.getElementById('cmte-term-start').value;
+  const end = document.getElementById('cmte-term-end').value;
+  const isCurrent = document.getElementById('cmte-term-current').checked;
+  if (!label) { showToast('請填寫屆期名稱','error'); return false; }
+  if (isCurrent) await sb.from('committee_terms').update({is_current:false}).eq('committee_id', _cmteCurrentId);
+  const { error } = await sb.from('committee_terms').update({ term_label:label, start_date:start||null, end_date:end||null, is_current:isCurrent }).eq('id', id);
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return false; }
+  showToast('✅ 已儲存'); await cmteLoadTerms(); return true;
+}
+async function cmteDeleteTerm(termId) {
+  if (!confirm('確定要刪除這屆嗎？這屆底下的委員名單會一併刪除，無法復原！')) return;
+  const { error } = await sb.from('committee_terms').delete().eq('id', termId);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  showToast('已刪除'); closeModal('pres-simple-modal'); await cmteLoadTerms();
+}
+
+async function cmteLoadPositionsAndMembers() {
+  const list = document.getElementById('cmte-positions-list');
+  if (!_cmteCurrentTermId) return;
+  list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--ink3)">載入中…</div>';
+
+  const { data: positions } = await sb.from('committee_positions').select('*').eq('committee_id', _cmteCurrentId).order('sort_order');
+  _cmtePositions = positions || [];
+
+  const { data: members } = await sb.from('committee_members').select('*').eq('term_id', _cmteCurrentTermId);
+  _cmteMembers = members || [];
+
+  // 批次解析學生/教師姓名
+  const studentIds = [...new Set(_cmteMembers.filter(m=>m.member_type==='student').map(m=>m.student_id))];
+  const teacherIds = [...new Set(_cmteMembers.filter(m=>m.member_type==='teacher').map(m=>m.teacher_id))];
+  let studentMap = {}, teacherMap = {};
+  if (studentIds.length) { const { data } = await sb.from('students').select('id,name_zh,student_code').in('id',studentIds); (data||[]).forEach(s=>studentMap[s.id]=s); }
+  if (teacherIds.length) { const { data } = await sb.from('teachers').select('id,name_zh').in('id',teacherIds); (data||[]).forEach(t=>teacherMap[t.id]=t); }
+  _cmteMembers.forEach(m => {
+    if (m.member_type==='student') m._name = studentMap[m.student_id] ? `${studentMap[m.student_id].name_zh}（${studentMap[m.student_id].student_code}）` : '（查無此人）';
+    else if (m.member_type==='teacher') m._name = teacherMap[m.teacher_id]?.name_zh || '（查無此人）';
+    else m._name = `${m.external_name}${m.external_unit?`（${m.external_unit}）`:''}`;
+  });
+
+  if (!_cmtePositions.length) {
+    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3);background:#fff;border:2px dashed var(--cr2);border-radius:12px">尚未設定任何職位，點上方「＋新增職位」開始建立這個委員會的組織架構</div>';
+    return;
+  }
+
+  const canWrite = cmteCanWrite();
+  list.innerHTML = _cmtePositions.map(p => {
+    const members = _cmteMembers.filter(m=>m.position_id===p.id).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    const filled = members.length;
+    const full = filled >= p.headcount;
+    return `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:700">${esc(p.position_name)} <span style="font-size:12px;font-weight:400;color:${full?'var(--green)':'#c2410c'}">（${filled}／${p.headcount}人）</span></div>
+        ${canWrite ? `<div style="display:flex;gap:6px">
+          <button class="btn btn-sec btn-sm" onclick="cmteOpenAddMemberModal('${p.id}')">＋ 新增委員</button>
+          <button class="btn btn-sec btn-sm" onclick="cmteOpenEditPositionModal('${p.id}')">✏️ 編輯職位</button>
+        </div>` : ''}
+      </div>
+      ${members.length ? `<div style="display:flex;flex-direction:column;gap:6px">${members.map(m => `
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#f5f5f0;border-radius:8px;padding:8px 12px">
+          <div style="font-size:13px">${esc(m._name)} <span style="font-size:11px;color:var(--ink3)">（${CMTE_TYPE_LABEL[m.member_type]}）</span>${m.note?`<div style="font-size:11px;color:var(--ink3)">${esc(m.note)}</div>`:''}</div>
+          ${canWrite ? `<button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="cmteDeleteMember('${m.id}')">移除</button>` : ''}
+        </div>`).join('')}</div>` : `<div style="font-size:12.5px;color:var(--ink3);text-align:center;padding:6px 0">目前尚無委員</div>`}
+    </div>`;
+  }).join('');
+}
+
+function cmteOpenAddPositionModal() {
+  const html = `
+    <label class="flabel">職位名稱 *</label><input class="finput" id="cmte-pos-name" placeholder="例如：主席、教師代表、學生代表">
+    <label class="flabel" style="margin-top:8px">名額數 *</label><input type="number" class="finput" id="cmte-pos-headcount" min="1" value="1">
+  `;
+  presShowSimpleModal('＋ 新增職位', html, cmteSubmitAddPosition);
+}
+async function cmteSubmitAddPosition() {
+  const name = document.getElementById('cmte-pos-name').value.trim();
+  const headcount = parseInt(document.getElementById('cmte-pos-headcount').value,10);
+  if (!name) { showToast('請填寫職位名稱','error'); return false; }
+  if (!headcount || headcount < 1) { showToast('名額數至少要1人','error'); return false; }
+  const { error } = await sb.from('committee_positions').insert({ committee_id:_cmteCurrentId, position_name:name, headcount, sort_order:(_cmtePositions.length+1)*10 });
+  if (error) { showToast('新增失敗：'+error.message,'error'); return false; }
+  showToast('✅ 已新增職位'); await cmteLoadPositionsAndMembers(); return true;
+}
+function cmteOpenEditPositionModal(posId) {
+  const p = _cmtePositions.find(x=>x.id===posId); if (!p) return;
+  const html = `
+    <label class="flabel">職位名稱 *</label><input class="finput" id="cmte-pos-name" value="${esc(p.position_name)}">
+    <label class="flabel" style="margin-top:8px">名額數 *</label><input type="number" class="finput" id="cmte-pos-headcount" min="1" value="${p.headcount}">
+    <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--cr2)">
+      <button class="btn btn-sec btn-sm" style="color:var(--red);border-color:var(--red)" onclick="cmteDeletePosition('${p.id}')">🗑 刪除這個職位（含底下所有屆期的委員資料）</button>
+    </div>
+    <input type="hidden" id="cmte-pos-id" value="${p.id}">
+  `;
+  presShowSimpleModal('✏️ 編輯職位', html, cmteSubmitEditPosition);
+}
+async function cmteSubmitEditPosition() {
+  const id = document.getElementById('cmte-pos-id').value;
+  const name = document.getElementById('cmte-pos-name').value.trim();
+  const headcount = parseInt(document.getElementById('cmte-pos-headcount').value,10);
+  if (!name) { showToast('請填寫職位名稱','error'); return false; }
+  if (!headcount || headcount < 1) { showToast('名額數至少要1人','error'); return false; }
+  const { error } = await sb.from('committee_positions').update({ position_name:name, headcount }).eq('id', id);
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return false; }
+  showToast('✅ 已儲存'); await cmteLoadPositionsAndMembers(); return true;
+}
+async function cmteDeletePosition(posId) {
+  if (!confirm('確定要刪除這個職位嗎？這個職位在所有屆期底下的委員資料都會一併刪除，無法復原！')) return;
+  const { error } = await sb.from('committee_positions').delete().eq('id', posId);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  showToast('已刪除'); closeModal('pres-simple-modal'); await cmteLoadPositionsAndMembers();
+}
+
+// ── 新增委員：姓名/學號(教師email)雙欄位互相帶出，查無此人切換校外人士 ──
+let _cmteMemberLookup = null;
+function cmteOpenAddMemberModal(positionId) {
+  const p = _cmtePositions.find(x=>x.id===positionId); if (!p) return;
+  const filled = _cmteMembers.filter(m=>m.position_id===positionId).length;
+  _cmteMemberLookup = null;
+  const warnHtml = filled >= p.headcount ? `<div style="background:#fff7ed;border:1px solid #fdba74;color:#9a3412;padding:8px 10px;border-radius:8px;font-size:12px;margin-bottom:10px">⚠️ 這個職位名額（${p.headcount}人）已經額滿，新增這位會超出名額，請確認是否要繼續</div>` : '';
+  const html = `
+    ${warnHtml}
+    <div style="background:#f5f5f0;border:1px solid var(--cr2);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12.5px"><b>${esc(p.position_name)}</b>（${filled}／${p.headcount}人）</div>
+    <label class="flabel">姓名</label>
+    <input class="finput" id="cmte-mem-name" placeholder="輸入姓名" oninput="cmteOnMemberNameInput(this.value)">
+    <label class="flabel" style="margin-top:8px">學號／教師email <span style="font-size:11px;color:var(--ink3);font-weight:400">（填其中一個欄位，另一個會自動帶出；兩邊都查不到會切換成校外人士登記）</span></label>
+    <input class="finput" id="cmte-mem-code" placeholder="輸入學號或教師email" oninput="cmteOnMemberCodeInput(this.value)">
+    <div id="cmte-mem-found" style="font-size:12.5px;color:var(--green);margin-top:4px;display:none"></div>
+    <div id="cmte-mem-external-fields" style="display:none;margin-top:8px">
+      <label class="flabel">校外人士姓名 *</label><input class="finput" id="cmte-mem-ext-name" placeholder="姓名">
+      <label class="flabel" style="margin-top:6px">單位／身份</label><input class="finput" id="cmte-mem-ext-unit" placeholder="例如：學生家長、OO大學教授">
+    </div>
+    <label class="flabel" style="margin-top:8px">備註</label><input class="finput" id="cmte-mem-note" placeholder="（選填）">
+    <input type="hidden" id="cmte-mem-position-id" value="${positionId}">
+  `;
+  presShowSimpleModal('＋ 新增委員', html, cmteSubmitAddMember);
+}
+
+async function cmteOnMemberNameInput(val) {
+  val = val.trim();
+  const foundEl = document.getElementById('cmte-mem-found');
+  const extEl = document.getElementById('cmte-mem-external-fields');
+  if (val.length < 2) return;
+  const { data: stus } = await sb.from('students').select('id,student_code,name_zh').ilike('name_zh', `%${val}%`);
+  const { data: teas } = await sb.from('teachers').select('id,email,name_zh').ilike('name_zh', `%${val}%`);
+  const hits = [
+    ...(stus||[]).map(s=>({type:'student', id:s.id, name:s.name_zh, code:s.student_code})),
+    ...(teas||[]).filter(t=>t.email).map(t=>({type:'teacher', id:t.id, name:t.name_zh, code:t.email})),
+  ];
+  if (hits.length === 1) {
+    const h = hits[0];
+    _cmteMemberLookup = { type:h.type, id:h.id, name:h.name };
+    document.getElementById('cmte-mem-code').value = h.code;
+    foundEl.textContent = `✅ 找到：${h.name}（${h.type==='student'?'學生':'教師'}）`;
+    foundEl.style.color = 'var(--green)'; foundEl.style.display='block';
+    extEl.style.display='none';
+  } else if (hits.length > 1) {
+    foundEl.textContent = `找到 ${hits.length} 位符合「${val}」的人，請直接填寫學號或email確認是哪一位`;
+    foundEl.style.color = '#c2410c'; foundEl.style.display='block';
+  }
+}
+async function cmteOnMemberCodeInput(val) {
+  val = val.trim();
+  const foundEl = document.getElementById('cmte-mem-found');
+  const extEl = document.getElementById('cmte-mem-external-fields');
+  if (val.length < 2) { foundEl.style.display='none'; extEl.style.display='none'; _cmteMemberLookup=null; return; }
+  const { data: stu } = await sb.from('students').select('id,name_zh').eq('student_code', val).maybeSingle();
+  if (stu) { _cmteMemberLookup = {type:'student', id:stu.id, name:stu.name_zh}; document.getElementById('cmte-mem-name').value = stu.name_zh; foundEl.textContent = `✅ 找到：${stu.name_zh}（學生）`; foundEl.style.color='var(--green)'; foundEl.style.display='block'; extEl.style.display='none'; return; }
+  const { data: tea } = await sb.from('teachers').select('id,name_zh').eq('email', val).maybeSingle();
+  if (tea) { _cmteMemberLookup = {type:'teacher', id:tea.id, name:tea.name_zh}; document.getElementById('cmte-mem-name').value = tea.name_zh; foundEl.textContent = `✅ 找到：${tea.name_zh}（教師）`; foundEl.style.color='var(--green)'; foundEl.style.display='block'; extEl.style.display='none'; return; }
+  _cmteMemberLookup = null;
+  foundEl.textContent = '查無此人，請填寫下方校外人士資訊';
+  foundEl.style.color = '#c2410c'; foundEl.style.display='block';
+  extEl.style.display='block';
+}
+
+async function cmteSubmitAddMember() {
+  const positionId = document.getElementById('cmte-mem-position-id').value;
+  const note = document.getElementById('cmte-mem-note').value.trim();
+  let payload = { term_id:_cmteCurrentTermId, position_id:positionId, note: note||null };
+  if (_cmteMemberLookup) {
+    payload.member_type = _cmteMemberLookup.type;
+    payload[_cmteMemberLookup.type==='student'?'student_id':'teacher_id'] = _cmteMemberLookup.id;
+  } else {
+    const extName = document.getElementById('cmte-mem-ext-name')?.value.trim();
+    const extUnit = document.getElementById('cmte-mem-ext-unit')?.value.trim();
+    if (!extName) { showToast('請填寫校外人士姓名，或輸入正確的學號/教師email','error'); return false; }
+    payload.member_type = 'external';
+    payload.external_name = extName;
+    payload.external_unit = extUnit || null;
+  }
+  const { error } = await sb.from('committee_members').insert(payload);
+  if (error) { showToast('新增失敗：'+error.message,'error'); return false; }
+  showToast('✅ 已新增委員'); await cmteLoadPositionsAndMembers(); return true;
+}
+
+async function cmteDeleteMember(memberId) {
+  if (!confirm('確定要移除這位委員嗎？')) return;
+  const { error } = await sb.from('committee_members').delete().eq('id', memberId);
+  if (error) { showToast('移除失敗：'+error.message,'error'); return; }
+  showToast('已移除'); await cmteLoadPositionsAndMembers();
 }
 
 checkAuth();
