@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>課程大綱總覽 — 福智佛教學院</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:#F7F6F3;color:#2C2C2A;line-height:1.7}
+.topbar{background:#1B3A6B;color:#fff;padding:12px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+.topbar a{color:rgba(255,255,255,.75);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.topbar a:hover{color:#fff}
+.topbar-title{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600}
+.wrap{max-width:820px;margin:0 auto;padding:24px 20px 60px}
+.page-title{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:600;color:#1B3A6B;margin-bottom:18px}
+.sem-list{display:flex;flex-direction:column;gap:10px}
+.sem-card{background:#fff;border-radius:12px;border:1px solid #E8E8E8;padding:18px 20px;cursor:pointer;transition:border-color .15s,box-shadow .15s;display:flex;justify-content:space-between;align-items:center}
+.sem-card:hover{border-color:#1B3A6B;box-shadow:0 2px 8px rgba(27,58,107,.08)}
+.sem-card-title{font-size:15px;font-weight:600;color:#2C2C2A}
+.sem-card-sub{font-size:12px;color:#999;margin-top:3px}
+.sem-card-arrow{color:#1B3A6B;font-size:18px}
+.course-list{display:flex;flex-direction:column;gap:8px}
+.course-card{background:#fff;border-radius:10px;border:1px solid #E8E8E8;padding:14px 18px;cursor:pointer;transition:border-color .15s,box-shadow .15s;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.course-card:hover{border-color:#1B3A6B;box-shadow:0 2px 8px rgba(27,58,107,.08)}
+.course-code{font-family:monospace;font-size:11.5px;color:#999;margin-bottom:2px}
+.course-name{font-size:14px;font-weight:500;color:#2C2C2A}
+.course-teacher{font-size:12px;color:#888;margin-top:2px}
+.course-badge{font-size:11px;padding:2px 9px;border-radius:20px;border:1px solid;flex-shrink:0;white-space:nowrap}
+.badge-req{background:#EEF2FA;color:#1B3A6B;border-color:#B5D4F4}
+.badge-sel{background:#f5f5f5;color:#666;border-color:#ddd}
+.loading{text-align:center;padding:60px;color:#888;font-size:14px}
+.empty-box{text-align:center;padding:50px;color:#aaa;font-size:14px}
+.error-box{background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:20px;text-align:center;color:#B91C1C;font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a id="back-link" style="display:none">← 返回學期列表</a>
+  <div style="flex:1"></div>
+  <div class="topbar-title">福智佛教學院 · 課程大綱總覽</div>
+</div>
+
+<div class="wrap">
+  <div id="page-title" class="page-title">📚 各學期課程大綱</div>
+  <div id="main" class="loading">⏳ 載入中…</div>
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://pjyjpcumakxevxuxwcyx.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_Hxw2qfgBO5BTkX4wG4xeTQ_tEsPG3pc';
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth: { persistSession: false } });
+const REQ_LABEL = {req:'必修', sel:'選修', go:'二選一'};
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function init() {
+  const params = new URLSearchParams(location.search);
+  const semId = params.get('sem');
+  if (semId) {
+    await showCourseList(semId);
+  } else {
+    await showSemesterList();
+  }
+}
+
+async function showSemesterList() {
+  document.getElementById('page-title').textContent = '📚 各學期課程大綱';
+  document.getElementById('back-link').style.display = 'none';
+  const main = document.getElementById('main');
+  main.className = 'loading';
+  main.textContent = '⏳ 載入中…';
+
+  const { data: allSems, error } = await client.from('semesters').select('id,label,academic_year,semester_num,start_date,end_date')
+    .order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
+  if (error) { main.className='error-box'; main.textContent='載入失敗：'+error.message; return; }
+  if (!allSems || !allSems.length) { main.className='empty-box'; main.textContent='目前尚無學期資料'; return; }
+
+  // 只顯示「系統最早的學期」到「現在學期」為止（都不寫死，動態計算，之後不用回來改程式碼）
+  const todayStr = new Date().toISOString().slice(0,10);
+  let currentSem = allSems.find(s => s.start_date && s.end_date && s.start_date <= todayStr && todayStr <= s.end_date);
+  if (!currentSem) currentSem = allSems[0]; // 萬一今天沒有落在任何學期範圍內，保守退回用最新的一筆
+  const upperBound = currentSem.academic_year*10 + currentSem.semester_num;
+  const lowerBound = Math.min(...allSems.map(s => s.academic_year*10 + s.semester_num)); // 系統裡實際最早的學期
+
+  const sems = allSems.filter(s => {
+    const v = s.academic_year*10 + s.semester_num;
+    return v >= lowerBound && v <= upperBound;
+  });
+  if (!sems.length) { main.className='empty-box'; main.textContent='目前尚無符合範圍的學期資料'; return; }
+
+  main.className = 'sem-list';
+  main.innerHTML = sems.map(s => `
+    <div class="sem-card" onclick="location.href='?sem=${s.id}'">
+      <div>
+        <div class="sem-card-title">${esc(s.label)}學期課程大綱</div>
+        <div class="sem-card-sub">${s.academic_year}學年度 第${s.semester_num}學期</div>
+      </div>
+      <div class="sem-card-arrow">›</div>
+    </div>`).join('');
+}
+
+async function showCourseList(semId) {
+  const main = document.getElementById('main');
+  main.className = 'loading';
+  main.textContent = '⏳ 載入中…';
+
+  const { data: sem } = await client.from('semesters').select('label').eq('id', semId).maybeSingle();
+  document.getElementById('page-title').textContent = `📚 ${sem ? esc(sem.label) : ''}學期課程大綱`;
+  const backLink = document.getElementById('back-link');
+  backLink.style.display = 'flex';
+  backLink.onclick = () => { location.href = location.pathname; };
+
+  const { data: offs, error } = await client.from('course_offerings')
+    .select('id,courses(code,name_zh,req_type,credits),offering_teachers(sort_order,teachers(name_zh))')
+    .eq('semester_id', semId).eq('is_active',true).eq('is_cancelled',false);
+  if (error) { main.className='error-box'; main.textContent='載入失敗：'+error.message; return; }
+  if (!offs || !offs.length) { main.className='empty-box'; main.textContent='這個學期目前沒有課程資料'; return; }
+
+  const sorted = offs.slice().sort((a,b) => (a.courses?.code||'').localeCompare(b.courses?.code||''));
+  main.className = 'course-list';
+  main.innerHTML = sorted.map(o => {
+    const teachers = (o.offering_teachers||[]).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(t=>t.teachers?.name_zh).filter(Boolean);
+    return `
+    <div class="course-card" onclick="location.href='syllabus.html?id=${o.id}'">
+      <div>
+        <div class="course-code">${esc(o.courses?.code||'')}</div>
+        <div class="course-name">${esc(o.courses?.name_zh||'')}</div>
+        ${teachers.length ? `<div class="course-teacher">授課老師：${esc(teachers.join('、'))}</div>` : ''}
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="course-badge ${o.courses?.req_type==='req'?'badge-req':'badge-sel'}">${REQ_LABEL[o.courses?.req_type]||''}</div>
+        <div style="font-size:11.5px;color:#999;margin-top:5px">${o.courses?.credits??'—'}學分</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>

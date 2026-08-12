@@ -67,7 +67,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:#F7F6F3;color:#2C2C2A;line
 <body>
 
 <div class="topbar">
-  <a href="115CoursesManagement_LIVE_v4.html">← 返回課程總覽</a>
+  <a id="back-link" href="syllabus_index.html">← 返回課程總覽</a>
   <div style="flex:1"></div>
   <div class="topbar-title">福智佛教學院 · 課程大綱</div>
 </div>
@@ -105,6 +105,7 @@ async function init() {
   const c = courses[0];
 
   document.title = `${c.name_zh} — 課程大綱`;
+  if (c.semester_id) document.getElementById('back-link').href = `syllabus_index.html?sem=${c.semester_id}`;
 
   // 取得大綱
   const { data: syl } = await client.from('syllabi')
