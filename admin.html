@@ -288,6 +288,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .sydiff-col-hdr{font-size:11px;color:var(--ink3);margin-bottom:4px;font-weight:600}
 .sydiff-same .sydiff-cols{opacity:.55}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.6/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body>
 
@@ -1363,6 +1364,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <option value="completed">已完成</option>
               <option value="cancelled">已取消</option>
             </select>
+            <button class="btn btn-sec" id="mt-migrate-btn" style="display:none" onclick="mtMigrateOldMinutes()" title="把舊版Markdown會議記錄一次性轉換成新版格式，只需要執行一次">🔄 轉換舊記錄格式</button>
             <button class="btn btn-pri" onclick="openMeetingModal()">＋ 新增會議</button>
           </div>
         </div>
@@ -2053,33 +2055,13 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 
 <!-- ══ MODAL: 會議記錄 ══ -->
 <div class="modal-bg" id="meeting-minutes-modal">
-  <div class="modal" style="max-width:820px;width:95vw">
+  <div class="modal" style="max-width:900px;width:95vw">
     <div class="modal-hdr">
       <div class="modal-title" id="minutes-modal-title">📝 會議記錄</div>
       <button class="modal-close" onclick="closeModal('meeting-minutes-modal')">✕</button>
     </div>
     <div class="modal-body" style="padding:0">
-      <!-- 工具列 -->
-      <div style="display:flex;gap:4px;padding:10px 16px;border-bottom:1px solid var(--cr2);flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="mdInsert('# ','')">H1</button>
-        <button class="btn btn-sm" onclick="mdInsert('## ','')">H2</button>
-        <button class="btn btn-sm" onclick="mdInsert('### ','')">H3</button>
-        <button class="btn btn-sm" onclick="mdInsert('**','**')" style="font-weight:700">B</button>
-        <button class="btn btn-sm" onclick="mdInsert('*','*')" style="font-style:italic">I</button>
-        <button class="btn btn-sm" onclick="mdInsert('\n- ','')">清單</button>
-        <button class="btn btn-sm" onclick="mdInsert('\n1. ','')">編號</button>
-        <button class="btn btn-sm" onclick="mdInsert('\n> ','')">引用</button>
-        <button class="btn btn-sm" onclick="mdInsert('\n---\n','')">分隔線</button>
-        <button class="btn btn-sm" onclick="mdInsert('\t','')">→ 縮排</button>
-        <div style="margin-left:auto;display:flex;gap:4px">
-          <button class="btn btn-sm" id="minutes-preview-btn" onclick="toggleMinutesPreview()">👁 預覽</button>
-        </div>
-      </div>
-      <div style="display:flex;height:420px">
-        <textarea id="minutes-editor" style="flex:1;padding:16px;border:none;outline:none;font-family:monospace;font-size:13px;resize:none;line-height:1.8;border-right:1px solid var(--cr2)"
-          placeholder="# 會議記錄&#10;&#10;## 出席人員&#10;&#10;## 討論事項&#10;&#10;### 一、...&#10;&#10;## 決議事項&#10;&#10;## 下次會議"></textarea>
-        <div id="minutes-preview" style="flex:1;padding:16px;overflow-y:auto;font-size:13px;line-height:1.8;display:none"></div>
-      </div>
+      <textarea id="minutes-tinymce-textarea"></textarea>
     </div>
     <div class="modal-footer">
       <button class="btn btn-sec" onclick="closeModal('meeting-minutes-modal')">取消</button>
@@ -4883,6 +4865,8 @@ async function loadMeetings() {
     .select('*').order('meeting_date',{ascending:false});
   MEETINGS = data||[];
   filterMeetings();
+  const migBtn = document.getElementById('mt-migrate-btn');
+  if (migBtn) migBtn.style.display = window.ADMIN_ROLE === 'admin' ? '' : 'none';
 }
 
 function filterMeetings() {
@@ -6103,67 +6087,57 @@ async function printAttendanceSheet(meetingId) {
   w.document.close();
 }
 
-/* ── 會議記錄 Markdown 編輯器 ── */
+/* ── 會議記錄 Quill.js 富文字編輯器（支援表格、圖片） ── */
 let _minutesMeetingId = null;
+let _mtEditorReadyPromise = null;
+
+// 初始化TinyMCE（只需要做一次，之後每次開彈窗重複使用同一個editor實體，只是換內容）
+function mtEnsureTinyMCE() {
+  if (_mtEditorReadyPromise) return _mtEditorReadyPromise;
+  _mtEditorReadyPromise = new Promise((resolve) => {
+    tinymce.init({
+      selector: '#minutes-tinymce-textarea',
+      height: 460,
+      menubar: false,
+      branding: false,
+      plugins: 'table lists image',
+      toolbar: 'undo redo | blocks | fontfamily fontsize | bold italic underline | bullist numlist | blockquote | table | image | removeformat',
+      images_upload_handler: mtImageUploadHandler,
+      table_default_attributes: { border: '1' },
+      table_default_styles: { 'border-collapse':'collapse', width:'100%' },
+      setup: (editor) => {
+        editor.on('init', () => resolve(editor));
+      },
+    });
+  });
+  return _mtEditorReadyPromise;
+}
+
+// 圖片上傳：TinyMCE選好圖片後會呼叫這個函式，上傳到meeting-attachments這個bucket，回傳公開網址讓TinyMCE插入
+function mtImageUploadHandler(blobInfo) {
+  return new Promise(async (resolve, reject) => {
+    const file = blobInfo.blob();
+    const ext = (blobInfo.filename()||'png').split('.').pop();
+    const path = `${_minutesMeetingId}/${Date.now()}.${ext}`;
+    const { error } = await sb.storage.from('meeting-attachments').upload(path, file);
+    if (error) { reject('圖片上傳失敗：'+error.message); return; }
+    const { data: urlData } = sb.storage.from('meeting-attachments').getPublicUrl(path);
+    resolve(urlData.publicUrl);
+  });
+}
 
 async function openMinutesModal(id) {
   _minutesMeetingId = id;
   const m = MEETINGS.find(x=>x.id===id);
   document.getElementById('minutes-modal-title').textContent = `📝 會議記錄 — ${m?.title||''}`;
-  document.getElementById('minutes-editor').value = m?.minutes||'';
-  document.getElementById('minutes-preview').style.display = 'none';
-  document.getElementById('minutes-editor').style.display = '';
-  document.getElementById('minutes-preview-btn').textContent = '👁 預覽';
   openModal('meeting-minutes-modal');
-}
-
-function mdInsert(before, after) {
-  const ta = document.getElementById('minutes-editor');
-  const start = ta.selectionStart;
-  const end = ta.selectionEnd;
-  const sel = ta.value.substring(start, end);
-  ta.value = ta.value.substring(0,start) + before + sel + after + ta.value.substring(end);
-  ta.focus();
-  ta.selectionStart = start + before.length;
-  ta.selectionEnd = start + before.length + sel.length;
-  if (document.getElementById('minutes-preview').style.display!=='none') renderMinutesPreview();
-}
-
-function toggleMinutesPreview() {
-  const editor = document.getElementById('minutes-editor');
-  const preview = document.getElementById('minutes-preview');
-  const btn = document.getElementById('minutes-preview-btn');
-  if (preview.style.display==='none') {
-    renderMinutesPreview();
-    preview.style.display = '';
-    editor.style.flex = '0 0 50%';
-    btn.textContent = '✏️ 編輯';
-  } else {
-    preview.style.display = 'none';
-    editor.style.flex = '1';
-    btn.textContent = '👁 預覽';
-  }
-}
-
-function renderMinutesPreview() {
-  const md = document.getElementById('minutes-editor').value;
-  const html = md
-    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
-    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
-    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
-    .replace(/^---$/gm,'<hr>')
-    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
-    .replace(/^- (.+)$/gm,'<li>$1</li>')
-    .replace(/\n/g,'<br>');
-  document.getElementById('minutes-preview').innerHTML =
-    `<sty'+'le>h1,h2,h3{color:var(--navy);margin:8px 0 4px}blockquote{border-left:3px solid var(--cr2);padding-left:10px;color:var(--ink3)}li{margin-left:20px}</sty'+'le>${html}`;
+  const editor = await mtEnsureTinyMCE();
+  editor.setContent(m?.minutes || '');
 }
 
 async function saveMinutes() {
-  const minutes = document.getElementById('minutes-editor').value;
+  const editor = tinymce.get('minutes-tinymce-textarea');
+  const minutes = editor.getContent();
   await sb.from('meetings').update({minutes, updated_at:new Date().toISOString()}).eq('id',_minutesMeetingId);
   closeModal('meeting-minutes-modal');
   showToast('✅ 會議記錄已儲存');
@@ -6174,21 +6148,11 @@ async function saveMinutes() {
 
 function printMinutes() {
   const m = MEETINGS.find(x=>x.id===_minutesMeetingId);
-  const md = document.getElementById('minutes-editor').value;
-  const html = md
-    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
-    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
-    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
-    .replace(/^---$/gm,'<hr>')
-    .replace(/^\d+\. (.+)$/gm,'<li style="margin-left:20px">$1</li>')
-    .replace(/^- (.+)$/gm,'<li style="margin-left:20px">$1</li>')
-    .replace(/\n/g,'<br>');
+  const html = tinymce.get('minutes-tinymce-textarea').getContent();
   const w = window.open('','_blank');
   const css2 = 'body{font-family:"標楷體",serif;margin:30px 40px;font-size:14px;line-height:2}'
     + 'h1,h2,h3{color:#1B3A6B}blockquote{border-left:3px solid #ccc;padding-left:10px;color:#888}'
+    + 'table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px}img{max-width:100%}'
     + '@media print{body{margin:15px 20px}}';
   w.document.write('<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">'
     + '<title>會議記錄</title>'
@@ -6200,6 +6164,32 @@ function printMinutes() {
     + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt>'
     + '</bo'+'dy></ht'+'ml>');
   w.document.close();
+}
+
+// 一次性工具：把還沒轉換過的舊版Markdown會議記錄，批次轉成HTML搬進新編輯器（只需要對admin開放，執行一次即可）
+async function mtMigrateOldMinutes() {
+  if (!confirm('這會把所有還沒轉換過的舊版Markdown會議記錄，批次轉換成新版HTML格式。建議只執行一次，確定要繼續嗎？')) return;
+  const { data: rows } = await sb.from('meetings').select('id,minutes').not('minutes','is',null);
+  let converted = 0;
+  for (const r of (rows||[])) {
+    const md = r.minutes;
+    if (!md || md.trim()==='' || /<[a-z][\s\S]*>/i.test(md)) continue; // 已經是HTML(含標籤)的跳過，只轉換純Markdown文字
+    const html = md
+      .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+      .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+      .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,'<em>$1</em>')
+      .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
+      .replace(/^---$/gm,'<hr>')
+      .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+      .replace(/^- (.+)$/gm,'<li>$1</li>')
+      .replace(/\n/g,'<br>');
+    await sb.from('meetings').update({minutes:html}).eq('id', r.id);
+    converted++;
+  }
+  showToast(`✅ 已轉換 ${converted} 筆舊會議記錄`);
+  loadMeetings();
 }
 
 /* ════ 公佈欄 ANNOUNCEMENTS ════ */
