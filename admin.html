@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v7.2 2026-06-21 -->
+<!-- BWBC Admin v7.4 2026-08-14 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -44,7 +44,10 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .tb-logout:hover{background:rgba(255,255,255,.1)}
 
 .layout{display:flex;flex:1;overflow:hidden}
-.sidebar{width:200px;background:#fff;border-right:1px solid var(--cr2);padding:16px 0;flex-shrink:0;overflow-y:auto;height:100%}
+.sidebar{width:200px;background:#fff;border-right:1px solid var(--cr2);flex-shrink:0;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.sidebar-nav-scroll{flex:1;overflow-y:auto;padding:16px 0}
+.sidebar-footer{flex-shrink:0;padding:10px 14px;border-top:1px solid var(--cr2);font-size:11px;color:var(--ink3);cursor:pointer;text-align:center;line-height:1.7}
+.sidebar-footer:hover{background:var(--cr3)}
 .nav-section{margin-bottom:16px}
 .nav-label{font-size:10px;font-weight:500;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;padding:0 16px;margin-bottom:4px}
 .nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;color:var(--ink2);cursor:pointer;transition:all .15s;border-left:3px solid transparent}
@@ -314,6 +317,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
   <div class="layout">
     <!-- Sidebar -->
     <nav class="sidebar">
+      <div class="sidebar-nav-scroll">
       <div class="nav-section">
         <div class="nav-label">總覽</div>
         <div class="nav-item on" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span>儀表板</div>
@@ -365,6 +369,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div class="nav-section">
         <div class="nav-label">行政效能</div>
         <div class="nav-item" data-perm="forms" onclick="showPage('forms',this)"><span class="nav-icon">📄</span>常用表單</div>
+        <div class="nav-item" data-perm="regulations" onclick="showPage('regulations',this)"><span class="nav-icon">⚖️</span>相關法規查詢</div>
         <div class="nav-item" data-perm="lending" onclick="showPage('lending',this)"><span class="nav-icon">🔧</span>設備借用管理</div>
         <div class="nav-item" data-perm="classrooms" onclick="showPage('room-booking',this)"><span class="nav-icon">🏫</span>教室借用申請</div>
         <div class="nav-item" data-perm="committees" onclick="showPage('committees',this)"><span class="nav-icon">🏛️</span>委員會管理</div>
@@ -376,6 +381,11 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="announcements" onclick="showPage('announcements',this)"><span class="nav-icon">📢</span>公佈欄 <span class="badge badge-warn" id="ann-badge" style="margin-left:auto;display:none">0</span></div>
         <div class="nav-item" data-perm="semesters" onclick="showPage('semesters',this)"><span class="nav-icon">📆</span>學期管理</div>
         <div class="nav-item" data-perm="logs" onclick="showPage('audit',this)"><span class="nav-icon">📋</span>操作記錄</div>
+      </div>
+      </div>
+      <div class="sidebar-footer" onclick="openChangelog()">
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v7.4　2026-08-14</div>
+        <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
 
@@ -1193,6 +1203,65 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         </div>
       </div>
 
+      <!-- ▌相關法規查詢 ▌-->
+      <div id="page-regulations" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">⚖️ 相關法規查詢</div>
+          <div id="reg-admin-toolbar" style="margin-left:auto;display:none;gap:8px">
+            <button class="btn btn-sec" onclick="regAddCategory()">＋ 新增分類</button>
+            <button class="btn btn-pri" onclick="regOpenEditModal(null)">＋ 新增法規連結</button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:14px">
+          檔案存放在學校官網（各處室法規），這裡只管理顯示名稱、分類跟排序，點項目會連到官網原始檔案下載。
+        </div>
+        <div id="reg-list-wrap">
+          <div style="text-align:center;padding:60px;color:var(--ink3)">載入中…</div>
+        </div>
+      </div>
+
+      <!-- 法規連結 新增／編輯 -->
+      <div class="modal-bg" id="reg-edit-modal">
+        <div class="modal" style="max-width:560px">
+          <div class="modal-hdr">
+            <div class="modal-title" id="reg-edit-title">＋ 新增法規連結</div>
+            <button class="modal-close" onclick="closeModal('reg-edit-modal')">✕</button>
+          </div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+            <input type="hidden" id="reg-edit-id">
+            <div class="frow">
+              <label class="flabel">檔案連結（貼上官網下載連結）</label>
+              <input class="finput" id="reg-edit-url" placeholder="https://www.bwbc.edu.tw/..." oninput="regOnUrlInput()">
+            </div>
+            <div class="frow">
+              <label class="flabel">顯示名稱
+                <button onclick="regResetSuggestedName()" title="用系統從檔名判斷的建議名稱覆蓋"
+                  style="font-size:11px;padding:1px 8px;border:1px solid var(--cr2);background:#fff;border-radius:10px;cursor:pointer;margin-left:6px">🔄 重新產生建議名稱</button>
+              </label>
+              <input class="finput" id="reg-edit-name" placeholder="系統會依檔名自動建議，可自行修改">
+              <div id="reg-edit-suggested-hint" style="font-size:11px;color:var(--ink3);margin-top:3px"></div>
+            </div>
+            <div class="frow">
+              <label class="flabel">分類</label>
+              <select class="finput" id="reg-edit-category" onchange="regOnCategorySelectChange()"></select>
+              <div id="reg-edit-newcat-row" style="display:none;margin-top:6px;gap:6px">
+                <input class="finput" id="reg-edit-newcat-name" placeholder="輸入新分類名稱，按「新增」後會自動選取" style="flex:1">
+                <button class="btn btn-sec" onclick="regConfirmNewCategoryInline()" type="button">新增</button>
+              </div>
+            </div>
+            <div class="frow">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="reg-edit-visible" checked> 要顯示給一般使用者看
+              </label>
+            </div>
+          </div>
+          <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn" onclick="closeModal('reg-edit-modal')">取消</button>
+            <button class="btn btn-pri" onclick="regSaveEdit()">💾 儲存</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ▌成績登錄管理（學科）▌ -->
       <div id="page-grades" style="display:none">
         <div class="page-hdr">
@@ -1902,6 +1971,17 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <button class="btn" onclick="closeModal('usr-modal')">取消</button>
       <button class="btn btn-pri" onclick="saveUser()">💾 儲存</button>
     </div>
+  </div>
+</div>
+
+<!-- 更新紀錄 -->
+<div class="modal-bg" id="changelog-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-hdr">
+      <div class="modal-title">📋 更新紀錄</div>
+      <button class="modal-close" onclick="closeModal('changelog-modal')">✕</button>
+    </div>
+    <div id="changelog-body" style="padding:20px;display:flex;flex-direction:column;gap:18px;max-height:70vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -9675,6 +9755,44 @@ async function resolveConflict(id) {
 function openModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
+/* ── 版本與更新紀錄 ──
+   規則：每次有實質功能異動，在陣列最前面新增一筆（date/items），並同步更新：
+   1. 檔案最開頭的 <!-- BWBC Admin vX.X YYYY-MM-DD --> 註解
+   2. 側邊欄 #app-version-label 顯示的文字
+   從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
+const APP_CHANGELOG = [
+  {
+    version: 'v7.4', date: '2026-08-14',
+    items: [
+      '新增「相關法規查詢」（backlog #11）：檔案留在學校官網，系統只管理連結/顯示名稱/分類/排序，放在「行政效能」選單底下',
+      '新增法規連結時，系統會依貼上的檔案URL自動判斷建議顯示名稱，可手動修改，改壞了可按「重新產生建議名稱」還原',
+      '分類與項目排序皆用拖曳（不用箭頭），比照設備借用管理的既有拖拉排序方式',
+      '每筆法規可獨立設定「是否顯示」，未顯示的項目只有admin/staff（regulations寫權限）看得到',
+    ]
+  },
+  {
+    version: 'v7.3', date: '2026-08-14',
+    items: [
+      '新增「角色權限預設值」：admin可從「帳號管理」頁籤直接調整4組staff範本內容，不用改程式碼',
+      '「老師兼行政」範本補上常用表單／設備借用管理／教室借用／委員會管理／成績彙總等模組的權限',
+      '待辦事務「顯示已完成」改為預設不勾選，避免清單越堆越長、資訊過多',
+    ]
+  },
+];
+
+function openChangelog() {
+  const body = document.getElementById('changelog-body');
+  body.innerHTML = APP_CHANGELOG.map(entry => `
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px">${entry.version}　<span style="font-weight:400;color:var(--ink3);font-size:12px">${entry.date}</span></div>
+      <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
+        ${entry.items.map(it => `<li style="font-size:13px;color:var(--ink2);line-height:1.6">${it}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('<div style="border-top:1px dashed var(--cr2)"></div>');
+  openModal('changelog-modal');
+}
+
 // 工具列下拉選單（取代原本一長排按鈕）
 function toggleAdminDD(btn) {
   const menu = btn.nextElementSibling;
@@ -9725,6 +9843,7 @@ function showPage(page, btn) {
   if (page==='room-booking') rbInit();
   if (page==='committees') cmteInit();
   if (page==='distance-apps') initDistanceApps();
+  if (page==='regulations') regLoadAll();
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -12256,7 +12375,7 @@ let _allUsers = [];
 let _usrSort = { field:'email', dir:1 };
 
 const PERM_KEYS = ['announcements','todos','meetings','courses','open_courses',
-                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','grade-summary','forms','logs','lending','committees'];
+                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','grade-summary','forms','logs','lending','committees','regulations'];
 
 const PERM_LABELS = {
   announcements: '📢 公佈欄',
@@ -12277,6 +12396,7 @@ const PERM_LABELS = {
   logs:          '📜 操作記錄',
   lending:       '🔧 設備借用管理',
   committees:    '🏛️ 委員會管理',
+  regulations:   '⚖️ 相關法規查詢',
 };
 
 const PERM_LEVELS = ['none','read','write','admin'];
@@ -12311,7 +12431,7 @@ const DEFAULT_PERM_PRESETS = {
     courses:'read', open_courses:'read', classrooms:'read', teachers:'read',
     thesis:'read', students:'read', semesters:'read',
     surveys:'read', grades:'none', logs:'none',
-    scholarship:'read', forms:'read', lending:'read', committees:'read',
+    scholarship:'read', forms:'read', lending:'read', committees:'read', regulations:'read',
     'grade-summary':'none'
   },
   viewer: Object.fromEntries(PERM_KEYS.map(k => [k, 'read'])),
@@ -14597,6 +14717,320 @@ async function deleteForm(id, storagePath) {
   const row = document.getElementById('form-row-'+id);
   if (row) row.remove();
   showToast('✅ 已刪除');
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * ⚖️ 相關法規查詢（檔案留在學校官網，本系統只管理連結/顯示名稱/分類/排序）
+ * ════════════════════════════════════════════════════════════════════ */
+let _regCategories = [];
+let _regItems = [];
+
+async function regLoadAll() {
+  const wrap = document.getElementById('reg-list-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--ink3)">載入中…</div>';
+
+  const canWrite = typeof window.hasPerm === 'function' ? window.hasPerm('regulations','write') : true;
+  document.getElementById('reg-admin-toolbar').style.display = canWrite ? 'flex' : 'none';
+
+  const [{ data: cats, error: ce }, { data: items, error: ie }] = await Promise.all([
+    sb.from('regulation_categories').select('*').order('sort_order'),
+    sb.from('regulations').select('*').order('sort_order'),
+  ]);
+  if (ce || ie) { wrap.innerHTML = `<div style="text-align:center;padding:40px;color:#c0392b">載入失敗：${esc((ce||ie).message)}</div>`; return; }
+  _regCategories = cats || [];
+  _regItems = items || [];
+  regRender();
+}
+
+function regRender() {
+  const wrap = document.getElementById('reg-list-wrap');
+  const canWrite = typeof window.hasPerm === 'function' ? window.hasPerm('regulations','write') : true;
+
+  if (!_regCategories.length) {
+    wrap.innerHTML = canWrite
+      ? '<div style="text-align:center;padding:50px;color:var(--ink3);background:#fff;border:2px dashed var(--cr2);border-radius:12px">目前尚無分類，點「＋ 新增分類」開始建立</div>'
+      : '<div style="text-align:center;padding:50px;color:var(--ink3)">目前尚無資料</div>';
+    return;
+  }
+
+  const grp = {};
+  _regCategories.forEach(c => grp[c.id] = []);
+  _regItems.forEach(it => { if (grp[it.category_id]) grp[it.category_id].push(it); });
+
+  const ordered = _regCategories.slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  let html = '';
+  ordered.forEach(cat => {
+    const items = (grp[cat.id]||[]).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    const visibleItems = canWrite ? items : items.filter(it=>it.is_visible);
+    if (!canWrite && !visibleItems.length) return; // 一般使用者：這個分類完全沒有可看項目就不顯示分類標題
+
+    html += `<div style="margin-bottom:20px" data-reg-cat-section="${cat.id}">
+      <div ${canWrite?'draggable="true"':''} ${canWrite?`ondragstart="regCatDragStart(event,'${cat.id}')" ondragover="regCatDragOver(event)" ondrop="regCatDrop(event,'${cat.id}')"`:''}
+        style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink2);margin-bottom:8px;border-left:4px solid var(--navy);padding-left:8px;${canWrite?'cursor:grab;':''}user-select:none">
+        ${canWrite ? `<span style="color:var(--ink3);font-size:12px" title="拖曳調整分類順序">⠿</span>` : ''}
+        <span>${esc(cat.name)}</span>
+        <span style="font-size:11px;background:#f5f5f0;border:1px solid var(--cr2);border-radius:20px;padding:1px 8px;color:var(--ink3);font-weight:400">${visibleItems.length}</span>
+        ${canWrite ? `
+          <button onclick="event.stopPropagation();regRenameCategory('${cat.id}')" title="重新命名分類" style="margin-left:auto;font-size:11px;padding:2px 8px;border:1px solid var(--cr2);background:#fff;border-radius:5px;cursor:pointer">✏️ 改名</button>
+          <button onclick="event.stopPropagation();regDeleteCategory('${cat.id}')" title="刪除分類" style="font-size:11px;padding:2px 8px;border:1px solid #e0b0b0;color:#a83232;background:#fff;border-radius:5px;cursor:pointer">🗑</button>
+        ` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding-left:12px">`;
+
+    if (!visibleItems.length) {
+      html += `<div style="font-size:12.5px;color:var(--ink3);padding:6px 4px">（這個分類目前沒有項目）</div>`;
+    }
+    visibleItems.forEach(it => {
+      const hidden = !it.is_visible;
+      html += `<div class="reg-row" data-id="${it.id}" ${canWrite?'draggable="true"':''}
+        ${canWrite ? `ondragstart="regItemDragStart(event,'${it.id}')" ondragover="regItemDragOver(event)" ondrop="regItemDrop(event,'${it.id}')"` : ''}
+        style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:9px 12px;${hidden?'opacity:.55;':''}">
+        ${canWrite ? `<span style="color:var(--ink3);font-size:12px;cursor:grab" title="拖曳調整順序">⠿</span>` : ''}
+        <a href="${esc(it.file_url)}" target="_blank" rel="noopener" style="flex:1;font-size:13.5px;color:${hidden?'var(--ink3)':'var(--navy)'};text-decoration:none;display:flex;align-items:center;gap:6px">
+          <span style="font-size:12px">🔗</span>${esc(it.display_name)}
+        </a>
+        ${hidden ? `<span style="font-size:10.5px;color:var(--ink3);background:var(--cr3);padding:1px 7px;border-radius:10px">未顯示</span>` : ''}
+        ${canWrite ? `
+          <label style="display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ink3);cursor:pointer;white-space:nowrap">
+            <input type="checkbox" ${it.is_visible?'checked':''} onchange="regToggleVisible('${it.id}',this.checked)"> 顯示
+          </label>
+          <button onclick="regOpenEditModal('${it.id}')" title="編輯" style="font-size:11px;padding:2px 8px;border:1px solid var(--cr2);background:#fff;border-radius:5px;cursor:pointer">✏️</button>
+          <button onclick="regDeleteItem('${it.id}')" title="刪除" style="font-size:11px;padding:2px 8px;border:1px solid #e0b0b0;color:#a83232;background:#fff;border-radius:5px;cursor:pointer">🗑</button>
+        ` : ''}
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+
+  if (!html) html = '<div style="text-align:center;padding:50px;color:var(--ink3)">目前尚無資料</div>';
+  wrap.innerHTML = html;
+}
+
+/* ── 分類管理 ── */
+async function regAddCategory() {
+  const name = prompt('新分類名稱（例如：課務相關、學務相關…）');
+  if (!name || !name.trim()) return;
+  const maxOrder = _regCategories.reduce((m,c)=>Math.max(m,c.sort_order||0),0);
+  const { error } = await sb.from('regulation_categories').insert({ name: name.trim(), sort_order: maxOrder+10 });
+  if (error) { showToast('新增失敗：'+error.message,'error'); return; }
+  showToast('✅ 已新增分類');
+  regLoadAll();
+}
+
+async function regRenameCategory(id) {
+  const cat = _regCategories.find(c=>c.id===id);
+  if (!cat) return;
+  const name = prompt('分類名稱', cat.name);
+  if (name === null || !name.trim() || name.trim() === cat.name) return;
+  const { error } = await sb.from('regulation_categories').update({ name: name.trim() }).eq('id', id);
+  if (error) { showToast('更新失敗：'+error.message,'error'); return; }
+  showToast('✅ 已更新分類名稱');
+  regLoadAll();
+}
+
+async function regDeleteCategory(id) {
+  const count = _regItems.filter(it=>it.category_id===id).length;
+  if (count > 0) { showToast(`這個分類底下還有 ${count} 筆項目，請先移除或改分類後再刪除`,'error'); return; }
+  if (!confirm('確定刪除這個分類？')) return;
+  const { error } = await sb.from('regulation_categories').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  showToast('✅ 已刪除分類');
+  regLoadAll();
+}
+
+/* ── 拖曳排序：分類（整區）── */
+let _regDragCatSource = null;
+function regCatDragStart(e, id) { _regDragCatSource = id; e.dataTransfer.effectAllowed = 'move'; }
+function regCatDragOver(e) { e.preventDefault(); }
+async function regCatDrop(e, targetId) {
+  e.preventDefault();
+  const srcId = _regDragCatSource; _regDragCatSource = null;
+  if (!srcId || srcId === targetId) return;
+  const ordered = _regCategories.slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const srcIdx = ordered.findIndex(c=>c.id===srcId);
+  const tgtIdx = ordered.findIndex(c=>c.id===targetId);
+  if (srcIdx<0 || tgtIdx<0) return;
+  const [moved] = ordered.splice(srcIdx,1);
+  ordered.splice(tgtIdx,0,moved);
+  for (let i=0;i<ordered.length;i++) {
+    await sb.from('regulation_categories').update({ sort_order:(i+1)*10 }).eq('id', ordered[i].id);
+  }
+  showToast('✅ 分類順序已調整');
+  regLoadAll();
+}
+
+/* ── 拖曳排序：項目（同分類內）── */
+let _regDragItemSource = null;
+function regItemDragStart(e, id) { e.stopPropagation(); _regDragItemSource = id; e.dataTransfer.effectAllowed = 'move'; }
+function regItemDragOver(e) { e.preventDefault(); e.stopPropagation(); }
+async function regItemDrop(e, targetId) {
+  e.preventDefault(); e.stopPropagation();
+  const srcId = _regDragItemSource; _regDragItemSource = null;
+  if (!srcId || srcId === targetId) return;
+  const src = _regItems.find(x=>x.id===srcId);
+  const tgt = _regItems.find(x=>x.id===targetId);
+  if (!src || !tgt) return;
+  if (src.category_id !== tgt.category_id) { showToast('只能在同一個分類內調整順序（跨分類請拖曳分類標題，或編輯項目改分類）','error'); return; }
+  const sameCat = _regItems.filter(x=>x.category_id===src.category_id).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const srcIdx = sameCat.findIndex(x=>x.id===srcId);
+  const tgtIdx = sameCat.findIndex(x=>x.id===targetId);
+  const [moved] = sameCat.splice(srcIdx,1);
+  sameCat.splice(tgtIdx,0,moved);
+  for (let i=0;i<sameCat.length;i++) {
+    await sb.from('regulations').update({ sort_order:(i+1)*10 }).eq('id', sameCat[i].id);
+  }
+  showToast('✅ 順序已調整');
+  regLoadAll();
+}
+
+async function regToggleVisible(id, visible) {
+  const { error } = await sb.from('regulations').update({ is_visible: visible, updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { showToast('更新失敗：'+error.message,'error'); regLoadAll(); return; }
+  const it = _regItems.find(x=>x.id===id);
+  if (it) it.is_visible = visible;
+  regRender();
+}
+
+async function regDeleteItem(id) {
+  if (!confirm('確定刪除這筆法規連結？（不會刪除學校官網上的原始檔案，只是移除系統裡的這筆連結資料）')) return;
+  const { error } = await sb.from('regulations').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  showToast('✅ 已刪除');
+  regLoadAll();
+}
+
+/* ── 新增／編輯項目 ── */
+function regSuggestNameFromUrl(url) {
+  try {
+    const noQuery = url.split('?')[0].split('#')[0];
+    let filename = decodeURIComponent(noQuery.split('/').pop() || '').trim();
+    if (!filename) return '';
+    filename = filename.replace(/\.(pdf|docx?|xlsx?|pptx?|hwp|odt)$/i, '');
+    filename = filename
+      .replace(/^\d{2,4}[-_.]?\d{1,2}[-_.]?\d{1,2}[-_.]?\s*/, '')   // 開頭日期(西元或民國)
+      .replace(/[-_（(]?\s*(v|ver|版)\s*\d+(\.\d+)?\s*[)）]?$/i, '') // 結尾版本號
+      .replace(/[-_]?\d{6,8}$/, '')                                  // 結尾長串日期/編號
+      .replace(/^[-_\s]+|[-_\s]+$/g, '')
+      .replace(/[_]+/g, ' ')
+      .trim();
+    return filename;
+  } catch (e) { return ''; }
+}
+
+function regOnUrlInput() {
+  const url = document.getElementById('reg-edit-url').value.trim();
+  const nameInput = document.getElementById('reg-edit-name');
+  const hint = document.getElementById('reg-edit-suggested-hint');
+  if (!url) { hint.textContent = ''; return; }
+  const suggested = regSuggestNameFromUrl(url);
+  hint.textContent = suggested ? `系統建議：${suggested}` : '無法從連結判斷檔名，請手動輸入顯示名稱';
+  // 只有在名稱欄位還是空的，或還等於上一次的建議值時才自動帶入，避免蓋掉使用者已經手動改過的內容
+  if (!nameInput.dataset.userEdited && suggested) nameInput.value = suggested;
+  nameInput.dataset.lastSuggested = suggested || '';
+}
+
+function regResetSuggestedName() {
+  const hint = document.getElementById('reg-edit-suggested-hint');
+  const nameInput = document.getElementById('reg-edit-name');
+  const suggested = nameInput.dataset.lastSuggested || regSuggestNameFromUrl(document.getElementById('reg-edit-url').value.trim());
+  if (!suggested) { showToast('目前無法從連結判斷出建議名稱','error'); return; }
+  nameInput.value = suggested;
+  delete nameInput.dataset.userEdited;
+  showToast('✅ 已還原為系統建議名稱');
+}
+
+function regPopulateCategorySelect(selectedId) {
+  const catSelect = document.getElementById('reg-edit-category');
+  const opts = _regCategories.slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))
+    .map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  catSelect.innerHTML = opts + `<option value="__new__">＋ 新增分類…</option>`;
+  catSelect.value = selectedId || (_regCategories[0]?.id || '__new__');
+  document.getElementById('reg-edit-newcat-row').style.display = 'none';
+  document.getElementById('reg-edit-newcat-name').value = '';
+}
+
+function regOnCategorySelectChange() {
+  const isNew = document.getElementById('reg-edit-category').value === '__new__';
+  document.getElementById('reg-edit-newcat-row').style.display = isNew ? 'flex' : 'none';
+  if (isNew) document.getElementById('reg-edit-newcat-name').focus();
+}
+
+async function regConfirmNewCategoryInline() {
+  const nameInput = document.getElementById('reg-edit-newcat-name');
+  const name = nameInput.value.trim();
+  if (!name) { showToast('請輸入分類名稱','error'); return; }
+  const maxOrder = _regCategories.reduce((m,c)=>Math.max(m,c.sort_order||0),0);
+  const { data, error } = await sb.from('regulation_categories').insert({ name, sort_order: maxOrder+10 }).select().maybeSingle();
+  if (error) { showToast('新增分類失敗：'+error.message,'error'); return; }
+  _regCategories.push(data);
+  regPopulateCategorySelect(data.id);
+  showToast(`✅ 已新增分類「${name}」並自動選取`);
+}
+
+function regOpenEditModal(id) {
+  regPopulateCategorySelect();
+
+  const nameInput = document.getElementById('reg-edit-name');
+  delete nameInput.dataset.userEdited;
+  nameInput.oninput = () => { nameInput.dataset.userEdited = '1'; };
+
+  if (id) {
+    const it = _regItems.find(x=>x.id===id);
+    if (!it) return;
+    document.getElementById('reg-edit-title').textContent = '✏️ 編輯法規連結';
+    document.getElementById('reg-edit-id').value = it.id;
+    document.getElementById('reg-edit-url').value = it.file_url;
+    document.getElementById('reg-edit-name').value = it.display_name;
+    nameInput.dataset.lastSuggested = it.suggested_name || '';
+    document.getElementById('reg-edit-suggested-hint').textContent = it.suggested_name ? `系統建議：${it.suggested_name}` : '';
+    regPopulateCategorySelect(it.category_id || '');
+    document.getElementById('reg-edit-visible').checked = !!it.is_visible;
+  } else {
+    document.getElementById('reg-edit-title').textContent = '＋ 新增法規連結';
+    document.getElementById('reg-edit-id').value = '';
+    document.getElementById('reg-edit-url').value = '';
+    document.getElementById('reg-edit-name').value = '';
+    document.getElementById('reg-edit-suggested-hint').textContent = '';
+    document.getElementById('reg-edit-visible').checked = true;
+  }
+  openModal('reg-edit-modal');
+}
+
+async function regSaveEdit() {
+  const id = document.getElementById('reg-edit-id').value;
+  const url = document.getElementById('reg-edit-url').value.trim();
+  const display_name = document.getElementById('reg-edit-name').value.trim();
+  const category_id = document.getElementById('reg-edit-category').value || null;
+  const is_visible = document.getElementById('reg-edit-visible').checked;
+  const suggested_name = document.getElementById('reg-edit-name').dataset.lastSuggested || regSuggestNameFromUrl(url);
+
+  if (!url) { showToast('請填入檔案連結','error'); return; }
+  if (!display_name) { showToast('請填入顯示名稱','error'); return; }
+  if (!category_id) { showToast('請選擇分類（如果還沒有分類，可以直接在下拉選單選「＋ 新增分類…」）','error'); return; }
+  if (category_id === '__new__') { showToast('請先在下方輸入新分類名稱並按「新增」','error'); return; }
+
+  try {
+    if (id) {
+      const { error } = await sb.from('regulations').update({
+        file_url: url, display_name, category_id, is_visible, suggested_name,
+        updated_at: new Date().toISOString()
+      }).eq('id', id);
+      if (error) throw error;
+      showToast('✅ 已更新');
+    } else {
+      const maxOrder = _regItems.filter(it=>it.category_id===category_id).reduce((m,it)=>Math.max(m,it.sort_order||0),0);
+      const { error } = await sb.from('regulations').insert({
+        file_url: url, display_name, category_id, is_visible, suggested_name,
+        sort_order: maxOrder+10, created_by: window.ADMIN_USER_ID || null
+      });
+      if (error) throw error;
+      showToast('✅ 已新增');
+    }
+    closeModal('reg-edit-modal');
+    regLoadAll();
+  } catch (e) {
+    showToast('儲存失敗：'+e.message,'error');
+  }
 }
 
 async function renderScholarshipHome() {
