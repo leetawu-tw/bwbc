@@ -344,6 +344,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="courses" onclick="showPage('courses',this)"><span class="nav-icon">📚</span>課程管理</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('teachers',this)"><span class="nav-icon">👤</span>教師管理</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('payroll',this)"><span class="nav-icon">💰</span>兼課鐘點費核銷</div>
+        <div class="nav-item" data-perm="courses" onclick="showPage('distance-apps',this)"><span class="nav-icon">💻</span>遠距教學課程申請</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('advisors',this)"><span class="nav-icon">🎓</span>班級導師管理</div>
         <div class="nav-item" data-perm="classrooms" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
         <div class="nav-item" data-perm="students" onclick="showPage('students',this)"><span class="nav-icon">🧑‍🎓</span>學生資料</div>
@@ -623,6 +624,24 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div id="payroll-list-general" style="margin-top:8px"></div>
         </details>
         <div id="payroll-total-general" style="text-align:right;font-size:13px;font-weight:600;margin-top:4px"></div>
+      </div>
+
+      <!-- ▌遠距教學課程申請 ▌-->
+      <div id="page-distance-apps" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">💻 遠距教學課程申請</div>
+          <div style="margin-left:auto">
+            <select class="fselect" id="da-semester" style="width:160px" onchange="loadDistanceApps()"></select>
+          </div>
+        </div>
+        <div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">
+          只列出標記為「數位課程」的開課記錄。這裡填的「開課單位／開課班級數／預計總修課人數」，會用於「數位報部大綱」的下載內容。
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>課程代碼</th><th>課程名稱</th><th>授課教師</th><th>開課單位</th><th>開課班級數</th><th>預計總修課人數</th><th>操作</th>
+          </tr></thead><tbody id="da-body"></tbody></table>
+        </div>
       </div>
 
       <!-- ▌班級導師管理 ▌-->
@@ -2518,7 +2537,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div id="sy-subtitle" style="font-size:11px;opacity:.65"></div>
     </div>
     <div id="sy-save-msg" style="font-size:12px;opacity:.7"></div>
-    <button class="btn btn-sec" onclick="exportFilledSyllabus(SY.offering_id)">⬇ 下載填好的大綱(Word)</button>
+    <button class="btn btn-sec" onclick="exportFilledSyllabus(SY.offering_id)">⬇ 下載校內大綱(Word)</button>
+    <button class="btn btn-sec" onclick="exportSyllabusPdf(SY.offering_id,'general')">⬇ 下載校內大綱(PDF)</button>
     <button class="btn btn-gold" onclick="saveSyllabus()">💾 儲存大綱</button>
   </div>
   <div class="sy-body">
@@ -5798,28 +5818,46 @@ function fillDynamicTableRows(xmlDoc, markerText, rowsData, buildCells) {
   if (!templateTr) return; // 範本裡找不到這個標記列，跳過不處理
   const parent = templateTr.parentNode;
 
-  // 範本表格除了表頭（第一列）跟帶標記的那一列，其餘所有預留空白列全部先清掉，
-  // 不然填完資料後面會殘留一堆沒處理過的舊空白列
+  // 範本表格裡，帶標記的那一列之前的所有列都算表頭（可能不只一層，例如「授課方式及時數」上下兩層合併表頭），
+  // 都要保留；只清掉標記列「之後」殘留的舊空白預留列，不然填完資料後面會殘留一堆沒處理過的舊空白列
   const allRowsInTable = Array.from(parent.getElementsByTagName('w:tr')).filter(tr => tr.parentNode === parent);
-  const headerRow = allRowsInTable[0];
-  allRowsInTable.forEach(tr => {
-    if (tr !== headerRow && tr !== templateTr) parent.removeChild(tr);
+  const markerIdx = allRowsInTable.indexOf(templateTr);
+  allRowsInTable.forEach((tr, i) => {
+    if (i > markerIdx) parent.removeChild(tr); // 只刪標記列後面的，前面不管幾層表頭都保留
   });
 
   // 把一格文字寫進儲存格，文字裡的 \n 換行符轉成真正的 Word <w:br/>，不是塞進同一個w:t裡面
   function setCellText(tc, text) {
     let p = tc.getElementsByTagName('w:p')[0];
     if (!p) { p = xmlDoc.createElementNS(NS,'w:p'); tc.appendChild(p); }
+    // 決定新文字要套用的字型設定，依序嘗試三種來源，避免Word退回用文件預設字型(通常是新細明體)：
+    // 1. 這格本來就有文字的話，直接沿用那段文字的字型
+    // 2. 這格是空的（例如「授課內容」這種待填欄），改抓段落本身的預設格式(<w:pPr><w:rPr>)
+    // 3. 上面兩個都抓不到，直接寫死標楷體
+    const existingR = p.getElementsByTagName('w:r')[0];
+    let existingRPr = existingR ? existingR.getElementsByTagName('w:rPr')[0] : null;
+    if (!existingRPr) {
+      const pPr = p.getElementsByTagName('w:pPr')[0];
+      existingRPr = pPr ? pPr.getElementsByTagName('w:rPr')[0] : null;
+    }
+    if (!existingRPr) {
+      existingRPr = xmlDoc.createElementNS(NS,'w:rPr');
+      const rFonts = xmlDoc.createElementNS(NS,'w:rFonts');
+      rFonts.setAttribute('w:ascii','標楷體'); rFonts.setAttribute('w:eastAsia','標楷體'); rFonts.setAttribute('w:hAnsi','標楷體');
+      existingRPr.appendChild(rFonts);
+    }
     // 清掉這個段落裡所有既有的 w:r（避免殘留原本標記文字的run）
     Array.from(p.getElementsByTagName('w:r')).forEach(r => r.parentNode.removeChild(r));
     const lines = String(text).split('\n');
     lines.forEach((line, idx) => {
       if (idx > 0) {
         const brRun = xmlDoc.createElementNS(NS,'w:r');
+        brRun.appendChild(existingRPr.cloneNode(true));
         brRun.appendChild(xmlDoc.createElementNS(NS,'w:br'));
         p.appendChild(brRun);
       }
       const r = xmlDoc.createElementNS(NS,'w:r');
+      r.appendChild(existingRPr.cloneNode(true));
       const t = xmlDoc.createElementNS(NS,'w:t');
       t.setAttribute('xml:space','preserve');
       t.textContent = line;
@@ -5838,7 +5876,18 @@ function fillDynamicTableRows(xmlDoc, markerText, rowsData, buildCells) {
   parent.removeChild(templateTr); // 移除原本帶標記的列本身
 }
 
-function buildCheckbox(checked, label) { return (checked?'■':'☐') + label; }
+function buildCheckbox(checked, label) { return (checked?'☒':'☐') + label; }
+
+// 課程代碼解析：第3碼=學制(1大學/2碩士/3博士)，第4碼=必選修(1必修/2選修)
+// 例：AD21040 → 第3碼2=碩士班，第4碼1=必修
+function parseCourseCode(code) {
+  if (!code || code.length < 4) return { level: null, reqType: null };
+  const levelDigit = code[2], reqDigit = code[3];
+  return {
+    level: {'1':'bachelor','2':'master','3':'phd'}[levelDigit] || null,
+    reqType: {'1':'req','2':'sel'}[reqDigit] || null,
+  };
+}
 
 async function buildFilledSyllabusBlob(offeringId) {
   const o = OFFERINGS.find(x=>x.offering_id===offeringId);
@@ -5896,8 +5945,15 @@ async function buildFilledSyllabusBlob(offeringId) {
 
   const objectives = joinBr((d.objectives||[]).map((o,i)=>`${i+1}. ${o.text||o}`));
   const methods = joinBr((d.methods||[]).map((m,i)=>`${i+1}. ${m.text||m}`));
-  const bibReq = joinBr((d.bibliography?.required||[]).map((b,i)=>`${i+1}. ${b}`));
-  const bibOpt = joinBr((d.bibliography?.optional||[]).map((b,i)=>`${i+1}. ${b}`));
+  const bibReqList = d.bibliography?.required||[];
+  const bibOptList = d.bibliography?.optional||[];
+  const bibReq = joinBr(bibReqList.map((b,i)=>`${i+1}. ${b}`));
+  const bibOpt = joinBr(bibOptList.map((b,i)=>`${bibReqList.length+i+1}. ${b}`)); // 編號接續必讀繼續往下算，不重新從1開始
+  // digital_output.docx用的是單一{{BIBLIOGRAPHY}}佔位符（不像general_output.docx分開兩個佔位符），
+  // 沿用digital_report_output.docx同一套做法：必讀/參考標題+內容都組進同一段文字裡
+  const bibLines = [];
+  if (bibReqList.length) { bibLines.push('必讀'); bibReqList.forEach((b,i)=>bibLines.push(`${i+1}. ${b}`)); }
+  if (bibOptList.length) { bibLines.push('參考'); bibOptList.forEach((b,i)=>bibLines.push(`${bibReqList.length+i+1}. ${b}`)); }
 
   // raw：值本身已經escape好、可能含真正的<w:br/>標記，最後置換時不能再escape一次
   let rawReplacements = {
@@ -5984,7 +6040,7 @@ async function buildFilledSyllabusBlob(offeringId) {
       '{{HOURS_SYNC_WEEKS}}': escapeXml(hb.sync_weeks?String(hb.sync_weeks):''),
       '{{HOURS_SYNC_HOURS}}': escapeXml(hb.sync_hours?String(hb.sync_hours):''),
       '{{HOURS_OTHER}}': '',
-      '{{BIBLIOGRAPHY}}': [bibReq,bibOpt].filter(Boolean).join('<w:br/>'),
+      '{{BIBLIOGRAPHY}}': joinBr(bibLines),
       '{{INTERACTION_METHODS}}': joinBr(interactionLines),
       '{{ASSIGNMENT_METHODS}}': joinBr(assignmentOpts),
       '{{ASSESSMENT}}': joinBr(assessmentItems),
@@ -6013,6 +6069,144 @@ async function exportFilledSyllabus(offeringId) {
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
   showToast('✅ 已下載：'+result.fileName);
+}
+
+// ── 數位報部大綱（官方遠距教學課程申請書格式）──
+async function buildDigitalReportBlob(offeringId) {
+  const o = OFFERINGS.find(x=>x.offering_id===offeringId);
+  if (!o) return null;
+  if (!o.is_digital) return { error: '這門課不是數位課程，沒有數位報部大綱' };
+
+  const { data: syl } = await sb.from('syllabi').select('*').eq('offering_id',offeringId).maybeSingle();
+  const d = syl || {};
+  const di = d.digital_info || {};
+
+  const [{ data: ot }, { data: staff }, { data: app }] = await Promise.all([
+    sb.from('offering_teachers').select('teachers(name_zh,teacher_type)').eq('offering_id', offeringId),
+    sb.from('offering_staff').select('role').eq('offering_id', offeringId),
+    sb.from('distance_course_applications').select('*').eq('offering_id', offeringId).maybeSingle(),
+  ]);
+  const teacherNames = (ot||[]).map(t=>t.teachers?.name_zh||'?').join('、') || '（尚未指派）';
+  const hasTA = (staff||[]).some(s=>s.role==='ta');
+
+  const { data: signed, error: sErr } = await sb.storage.from('syllabus-templates').createSignedUrl('digital_report_output.docx', 60);
+  if (sErr || !signed) { return { error: '找不到數位報部大綱範本，請確認已上傳 digital_report_output.docx 到 syllabus-templates' }; }
+  const templateBuf = await (await fetch(signed.signedUrl, { cache:'no-store' })).arrayBuffer();
+  const zip = await JSZip.loadAsync(templateBuf);
+  const xmlDoc = new DOMParser().parseFromString(await zip.file('word/document.xml').async('string'), 'application/xml');
+
+  const weeksWithData = (d.weeks||[]).filter(w=>w.title||w.content);
+  const weekModeCount = {inperson:0,async:0,sync:0};
+  (d.weeks||[]).forEach(w=>{ if(w.mode && weekModeCount[w.mode]!==undefined) weekModeCount[w.mode]++; });
+  const hoursPerWeek = o.credits || 0;
+  const hb = {
+    inperson_weeks: weekModeCount.inperson, inperson_hours: weekModeCount.inperson*hoursPerWeek,
+    async_weeks: weekModeCount.async, async_hours: weekModeCount.async*hoursPerWeek,
+    sync_weeks: weekModeCount.sync, sync_hours: weekModeCount.sync*hoursPerWeek,
+  };
+  fillDynamicTableRows(xmlDoc, 'DGTL_WEEK_TABLE', weeksWithData, w => [
+    String(w.week), w.content || w.title || '',
+    w.mode==='inperson' ? hoursPerWeek : '',
+    w.mode==='async' ? hoursPerWeek : '',
+    w.mode==='sync' ? hoursPerWeek : ''
+  ]);
+
+  let xml = new XMLSerializer().serializeToString(xmlDoc);
+  const joinBr = (items) => items.map(escapeXml).join('<w:br/>');
+
+  // 課程代碼解析(第3碼學制/第4碼必選修)，跟digital_info.program_level交叉比對，決定碩士班 vs 碩士在職專班
+  const parsed = parseCourseCode(o.code);
+  const isMasterInservice = (di.program_level||[]).includes('masters_inservice');
+  const reqType = parsed.reqType || o.req_type; // 代碼解析不出來時退回用courses.req_type
+
+  const im = di.interaction_methods||{};
+  const am = di.assignment_methods||{};
+  const override = di.ta_needed_override;
+  const finalTA = (d.ta_needed===true || d.ta_needed===false) ? d.ta_needed
+                : (override==='yes' ? true : override==='no' ? false : hasTA);
+
+  const objectives = joinBr((d.objectives||[]).map((o2,i)=>`${i+1}. ${o2.text||o2}`));
+  const bibReqList = d.bibliography?.required||[];
+  const bibOptList = d.bibliography?.optional||[];
+  const bibLines = [];
+  if (bibReqList.length) { bibLines.push('必讀'); bibReqList.forEach((b,i)=>bibLines.push(`${i+1}. ${b}`)); }
+  if (bibOptList.length) { bibLines.push('參考'); bibOptList.forEach((b,i)=>bibLines.push(`${bibReqList.length+i+1}. ${b}`)); } // 編號接續必讀繼續往下算，不重新從1開始
+  const assessmentItems = (d.assessment||[]).map(a=>`${a.name||''}（${a.pct!=null?a.pct:0}%）${a.desc?'　'+a.desc:''}`);
+
+  const rawReplacements = {
+    // 開課學年學期
+    '{{ACADEMIC_YEAR}}': escapeXml(o.academic_year!=null?String(o.academic_year):''),
+    '{{SEM1_BOX}}': buildCheckbox(o.semester_num===1,''), '{{SEM2_BOX}}': buildCheckbox(o.semester_num===2,''), '{{SEM_OTHER_BOX}}': buildCheckbox(false,''),
+    '{{FIRST_APP_YES_BOX}}': buildCheckbox(!!di.is_first_application,''), '{{FIRST_APP_NO_BOX}}': buildCheckbox(!di.is_first_application,''),
+    // 開課單位／課程基本
+    '{{DEPARTMENT_UNIT}}': escapeXml(app?.department_unit||'佛法應用研究所'),
+    '{{COURSE_NAME}}': escapeXml(o.name_zh||''), '{{COURSE_NAME_EN}}': escapeXml(o.name_en||''),
+    '{{COURSE_CODE}}': escapeXml(o.code||''), '{{CREDITS}}': escapeXml(o.credits!=null?String(o.credits):''),
+    '{{REQ_BOX}}': buildCheckbox(reqType==='req',''), '{{SEL_BOX}}': buildCheckbox(reqType==='sel'||reqType==='go',''), '{{OTHER_REQ_BOX}}': buildCheckbox(false,''),
+    '{{TEACHER_NAME}}': escapeXml(teacherNames),
+    // 師資來源：固定院系所聘任
+    '{{STAFF_DEPT_BOX}}': buildCheckbox(true,''), '{{STAFF_GE_BOX}}': buildCheckbox(false,''), '{{STAFF_OTHER_BOX}}': buildCheckbox(false,''),
+    // 教學型態：非同步+同步+實體全部勾選（本校遠距課程慣例）
+    '{{MODE_ASYNC_BOX}}': buildCheckbox(true,''), '{{MODE_SYNC_BOX}}': buildCheckbox(true,''), '{{MODE_INPERSON_BOX}}': buildCheckbox(true,''),
+    // 課程學制：代碼解析出大學/碩士/博士，碩士的話再依digital_info區分一般碩士班/在職專班
+    '{{LEVEL_BACHELOR_BOX}}': buildCheckbox(parsed.level==='bachelor',''),
+    '{{LEVEL_MASTER_BOX}}': buildCheckbox(parsed.level==='master' && !isMasterInservice,''),
+    '{{LEVEL_MASTER_IS_BOX}}': buildCheckbox(parsed.level==='master' && isMasterInservice,''),
+    '{{LEVEL_PHD_BOX}}': buildCheckbox(parsed.level==='phd',''),
+    // 科目類別：固定專業科目
+    '{{CAT_COMMON_BOX}}': buildCheckbox(false,''), '{{CAT_GE_BOX}}': buildCheckbox(false,''), '{{CAT_PRO_BOX}}': buildCheckbox(true,''), '{{CAT_OTHER_BOX}}': buildCheckbox(false,''),
+    '{{CLASS_COUNT}}': escapeXml(app?.class_count!=null?String(app.class_count):''),
+    '{{EXPECTED_HEADCOUNT}}': escapeXml(app?.expected_headcount!=null?String(app.expected_headcount):''),
+    '{{ENG_YES_BOX}}': buildCheckbox(!!di.full_english,''), '{{ENG_NO_BOX}}': buildCheckbox(!di.full_english,''),
+    // 非同步平台網址／教學計畫連結：全校統一固定值
+    '{{SYNC_TEAMS_BOX}}': buildCheckbox(di.sync_platform==='teams',''), '{{SYNC_MEET_BOX}}': buildCheckbox(di.sync_platform==='meet',''),
+    '{{SYNC_OTHER_BOX}}': buildCheckbox(di.sync_platform==='other',''), '{{SYNC_OTHER_TEXT}}': escapeXml(di.sync_platform_other||''), '{{SYNC_NONE_BOX}}': buildCheckbox(!di.sync_platform,''),
+    '{{PLAN_OTHER_BOX}}': buildCheckbox(false,''),
+    '{{TA_YES_BOX}}': buildCheckbox(finalTA,''), '{{TA_NO_BOX}}': buildCheckbox(!finalTA,''),
+    // 教學計畫
+    '{{OBJECTIVES}}': objectives,
+    '{{COHORT_NOTE}}': escapeXml(d.cohort_note||''), '{{PREREQUISITE_NOTE}}': escapeXml(d.prerequisite_note||''),
+    '{{HOURS_INPERSON_BOX}}': buildCheckbox((hb.inperson_weeks||0)>0,''), '{{HOURS_INPERSON_WEEKS}}': escapeXml(hb.inperson_weeks?String(hb.inperson_weeks):''), '{{HOURS_INPERSON_HOURS}}': escapeXml(hb.inperson_hours?String(hb.inperson_hours):''),
+    '{{HOURS_ASYNC_BOX}}': buildCheckbox((hb.async_weeks||0)>0,''), '{{HOURS_ASYNC_WEEKS}}': escapeXml(hb.async_weeks?String(hb.async_weeks):''), '{{HOURS_ASYNC_HOURS}}': escapeXml(hb.async_hours?String(hb.async_hours):''),
+    '{{HOURS_SYNC_BOX}}': buildCheckbox((hb.sync_weeks||0)>0,''), '{{HOURS_SYNC_WEEKS}}': escapeXml(hb.sync_weeks?String(hb.sync_weeks):''), '{{HOURS_SYNC_HOURS}}': escapeXml(hb.sync_hours?String(hb.sync_hours):''),
+    '{{HOURS_OTHER_BOX}}': buildCheckbox(false,''),
+    '{{BIBLIOGRAPHY}}': joinBr(bibLines),
+    '{{IM_OFFICE_BOX}}': buildCheckbox(!!im.office_hours,''), '{{IM_OFFICE_TEXT}}': escapeXml(im.office_hours||''),
+    '{{IM_EMAIL_BOX}}': buildCheckbox(!!im.email,''), '{{IM_EMAIL_TEXT}}': escapeXml(im.email||''),
+    '{{IM_EXT_BOX}}': buildCheckbox(!!im.ext,''), '{{IM_EXT_TEXT}}': escapeXml(im.ext||''),
+    '{{IM_GROUP_BOX}}': buildCheckbox(!!im.group,''), '{{IM_GROUP_TEXT}}': escapeXml(im.group||''), '{{IM_OTHER_BOX}}': buildCheckbox(!!im.other,''), '{{IM_OTHER_TEXT}}': escapeXml(im.other||''),
+    '{{AM_INTRO_BOX}}': buildCheckbox(!!am.online_intro,''), '{{AM_REALTIME_BOX}}': buildCheckbox(!!am.online_realtime,''),
+    '{{AM_UPLOAD_BOX}}': buildCheckbox(!!am.file_upload,''), '{{AM_QUIZ_BOX}}': buildCheckbox(!!am.online_quiz,''),
+    '{{AM_GRADE_BOX}}': buildCheckbox(!!am.grade_query,''), '{{AM_OTHER_BOX}}': buildCheckbox(!!am.other,''), '{{AM_OTHER_TEXT}}': escapeXml(am.other||''),
+    '{{ASSESSMENT}}': joinBr(assessmentItems),
+    '{{NOTES}}': escapeXml(di.notes_supplement||''),
+  };
+
+  for (const [key, val] of Object.entries(rawReplacements)) {
+    xml = xml.split(key).join(val);
+  }
+  zip.file('word/document.xml', xml);
+  const blob = await zip.generateAsync({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const fileName = `${o.semester_label}_${o.code}${o.name_zh}數位報部大綱.docx`;
+  return { blob, fileName };
+}
+
+async function exportDigitalReportSyllabus(offeringId) {
+  const result = await buildDigitalReportBlob(offeringId);
+  if (!result) { showToast('找不到這門開課記錄','error'); return; }
+  if (result.error) { showToast(result.error,'error'); return; }
+  const url = URL.createObjectURL(result.blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = result.fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('✅ 已下載：'+result.fileName);
+}
+
+// PDF版本尚未實作（需要另外做HTML版型+html2canvas轉換，是獨立的一塊工作）
+// 先做成明確提示，不要讓按鈕悄悄沒反應
+function exportSyllabusPdf(offeringId, type) {
+  showToast('PDF下載功能尚未完成，請先使用Word版本，PDF會在下一批更新加入','error');
 }
 
 // 一鍵下載目前學期全部課程的大綱（有填的用填好的內容，沒填的就是空白範本），逐個觸發下載（不打包zip）
@@ -9494,6 +9688,7 @@ function showPage(page, btn) {
   if (page==='lending') lendLoadAll();
   if (page==='room-booking') rbInit();
   if (page==='committees') cmteInit();
+  if (page==='distance-apps') initDistanceApps();
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -18625,6 +18820,96 @@ async function cmteDeleteMember(memberId) {
   const { error } = await sb.from('committee_members').delete().eq('id', memberId);
   if (error) { showToast('移除失敗：'+error.message,'error'); return; }
   showToast('已移除'); await cmteLoadPositionsAndMembers();
+}
+
+/* ══════════════════════════════════════════════════════════
+   💻 遠距教學課程申請
+   ══════════════════════════════════════════════════════════ */
+let _daOfferings = [];
+let _daAppsMap = {}; // offering_id -> {department_unit, class_count, expected_headcount}
+
+async function initDistanceApps() {
+  const { data: sems } = await sb.from('semesters').select('label').order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
+  const sel = document.getElementById('da-semester');
+  sel.innerHTML = (sems||[]).map(s=>`<option value="${s.label}">${s.label}</option>`).join('');
+  const cur = document.getElementById('sem-filter')?.value;
+  if (cur && (sems||[]).some(s=>s.label===cur)) sel.value = cur;
+  await loadDistanceApps();
+}
+
+async function loadDistanceApps() {
+  const semLabel = document.getElementById('da-semester').value;
+  const tb = document.getElementById('da-body');
+  tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--ink3)">載入中…</td></tr>';
+
+  const { data: offs } = await sb.from('v_course_schedule').select('*')
+    .eq('semester_label', semLabel).eq('is_digital', true).order('code');
+  _daOfferings = offs || [];
+  if (!_daOfferings.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--ink3)">這個學期沒有標記為數位課程的開課記錄</td></tr>'; return; }
+
+  const offeringIds = _daOfferings.map(o=>o.offering_id);
+  const { data: apps } = await sb.from('distance_course_applications').select('*').in('offering_id', offeringIds);
+  _daAppsMap = {};
+  (apps||[]).forEach(a => { _daAppsMap[a.offering_id] = a; });
+
+  const { data: ots } = await sb.from('v_offering_teachers').select('offering_id,name_zh').in('offering_id', offeringIds);
+  const teacherNameMap = {};
+  (ots||[]).forEach(t => { (teacherNameMap[t.offering_id] ||= []).push(t.name_zh); });
+
+  const canWrite = typeof window.hasPerm === 'function' ? window.hasPerm('courses','write') : false;
+  tb.innerHTML = _daOfferings.map(o => {
+    const app = _daAppsMap[o.offering_id];
+    return `<tr>
+      <td style="font-family:monospace;font-size:12px">${esc(o.code)}</td>
+      <td style="font-weight:600">${esc(o.name_zh)}</td>
+      <td style="font-size:12.5px">${esc((teacherNameMap[o.offering_id]||[]).join('、')||'（尚未指派）')}</td>
+      <td>${esc(app?.department_unit||'佛法應用研究所')}</td>
+      <td style="text-align:center">${app?.class_count ?? '—'}</td>
+      <td style="text-align:center">${app?.expected_headcount ?? '—'}</td>
+      <td style="white-space:nowrap">
+        ${canWrite ? `<button class="btn btn-sec btn-sm" onclick="daOpenEditModal('${o.offering_id}')">✏️ 編輯</button>` : ''}
+        <button class="btn btn-sec btn-sm" onclick="exportDigitalReportSyllabus('${o.offering_id}')">⬇ Word</button>
+        <button class="btn btn-sec btn-sm" onclick="exportSyllabusPdf('${o.offering_id}','report')">⬇ PDF</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function daOpenEditModal(offeringId) {
+  const o = _daOfferings.find(x=>x.offering_id===offeringId);
+  const app = _daAppsMap[offeringId];
+  const html = `
+    <div style="background:#f5f5f0;border:1px solid var(--cr2);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12.5px"><b>${esc(o.name_zh)}</b>（${esc(o.code)}）</div>
+    <label class="flabel">開課單位（學院/系所/中心）*</label>
+    <input class="finput" id="da-dept" value="${esc(app?.department_unit||'佛法應用研究所')}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <div><label class="flabel">開課班級數</label><input type="number" class="finput" id="da-class-count" min="0" value="${app?.class_count??''}"></div>
+      <div><label class="flabel">預計總修課人數</label><input type="number" class="finput" id="da-headcount" min="0" value="${app?.expected_headcount??''}"></div>
+    </div>
+    <input type="hidden" id="da-offering-id" value="${offeringId}">
+  `;
+  presShowSimpleModal('✏️ 編輯遠距教學課程申請資料', html, daSubmitEdit);
+}
+
+async function daSubmitEdit() {
+  const offeringId = document.getElementById('da-offering-id').value;
+  const dept = document.getElementById('da-dept').value.trim();
+  const classCount = document.getElementById('da-class-count').value;
+  const headcount = document.getElementById('da-headcount').value;
+  if (!dept) { showToast('請填寫開課單位','error'); return false; }
+  const payload = {
+    offering_id: offeringId,
+    department_unit: dept,
+    class_count: classCount ? parseInt(classCount,10) : null,
+    expected_headcount: headcount ? parseInt(headcount,10) : null,
+    updated_at: new Date().toISOString(),
+    updated_by: window.ADMIN_USER_ID || null,
+  };
+  const { error } = await sb.from('distance_course_applications').upsert(payload, { onConflict: 'offering_id' });
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return false; }
+  showToast('✅ 已儲存');
+  await loadDistanceApps();
+  return true;
 }
 
 checkAuth();
