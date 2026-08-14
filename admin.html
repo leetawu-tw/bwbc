@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v7.4 2026-08-14 -->
+<!-- BWBC Admin v7.7 2026-08-15 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -384,7 +384,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v7.4　2026-08-14</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v7.7　2026-08-15</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -1204,60 +1204,85 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
 
       <!-- ▌相關法規查詢 ▌-->
-      <div id="page-regulations" style="display:none">
+      <div id="page-regulations" style="display:none;flex-direction:column;gap:10px">
         <div class="page-hdr">
           <div class="page-title">⚖️ 相關法規查詢</div>
-          <div id="reg-admin-toolbar" style="margin-left:auto;display:none;gap:8px">
+          <div id="reg-admin-toolbar" style="margin-left:auto;display:none;gap:8px;align-items:center">
+            <span id="reg-gsignin-status" style="font-size:11px;color:var(--ink3)">🔒 尚未登入Google</span>
+            <button class="btn btn-sec" onclick="regManageFolders()">🗂 管理處室資料夾</button>
             <button class="btn btn-sec" onclick="regAddCategory()">＋ 新增分類</button>
-            <button class="btn btn-pri" onclick="regOpenEditModal(null)">＋ 新增法規連結</button>
+            <button class="btn btn-pri" onclick="regRefreshDrivePool()">🔄 重新整理Drive清單</button>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--ink3);margin-bottom:14px">
-          檔案存放在學校官網（各處室法規），這裡只管理顯示名稱、分類跟排序，點項目會連到官網原始檔案下載。
+        <div style="font-size:12px;color:var(--ink3)">
+          檔案留在學校 Google Drive 上，本系統只管理「要不要顯示」「顯示名稱」「分類」跟「排序」。<span id="reg-admin-hint" style="display:none">左邊是Drive上偵測到、還沒展示的檔案（勾選後按「加入右側」，或直接拖到右邊）；右邊是目前會顯示給使用者看的清單。</span>
         </div>
-        <div id="reg-list-wrap">
-          <div style="text-align:center;padding:60px;color:var(--ink3)">載入中…</div>
+
+        <!-- admin 雙容器 -->
+        <div id="reg-admin-panes" style="display:none;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+          <div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:8px;color:var(--ink2)">
+              📂 Drive 上的檔案 <span id="reg-pool-count" style="font-weight:400;font-size:11px;color:var(--ink3)"></span>
+              <button onclick="regAddSelectedToRight()" id="reg-add-selected-btn" disabled
+                style="margin-left:auto;font-size:12px;padding:4px 12px;border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:5px;cursor:pointer;opacity:.4">➡️ 加入右側</button>
+            </div>
+            <div id="reg-pool-wrap" style="max-height:calc(100vh - 280px);overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:4px"></div>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--ink2)">✅ 目前展示的法規清單</div>
+            <div id="reg-list-wrap" style="max-height:calc(100vh - 280px);overflow-y:auto;padding-right:4px"></div>
+          </div>
         </div>
+
+        <!-- 一般使用者：單一唯讀清單 -->
+        <div id="reg-user-wrap"></div>
       </div>
 
-      <!-- 法規連結 新增／編輯 -->
-      <div class="modal-bg" id="reg-edit-modal">
+      <!-- 批次加入右側：設定分類 + 個別調整顯示名稱 -->
+      <div class="modal-bg" id="reg-batch-add-modal">
         <div class="modal" style="max-width:560px">
           <div class="modal-hdr">
-            <div class="modal-title" id="reg-edit-title">＋ 新增法規連結</div>
-            <button class="modal-close" onclick="closeModal('reg-edit-modal')">✕</button>
+            <div class="modal-title">➡️ 加入展示清單</div>
+            <button class="modal-close" onclick="closeModal('reg-batch-add-modal')">✕</button>
           </div>
-          <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
-            <input type="hidden" id="reg-edit-id">
+          <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow-y:auto">
             <div class="frow">
-              <label class="flabel">檔案連結（貼上官網下載連結）</label>
-              <input class="finput" id="reg-edit-url" placeholder="https://www.bwbc.edu.tw/..." oninput="regOnUrlInput()">
-            </div>
-            <div class="frow">
-              <label class="flabel">顯示名稱
-                <button onclick="regResetSuggestedName()" title="用系統從檔名判斷的建議名稱覆蓋"
-                  style="font-size:11px;padding:1px 8px;border:1px solid var(--cr2);background:#fff;border-radius:10px;cursor:pointer;margin-left:6px">🔄 重新產生建議名稱</button>
-              </label>
-              <input class="finput" id="reg-edit-name" placeholder="系統會依檔名自動建議，可自行修改">
-              <div id="reg-edit-suggested-hint" style="font-size:11px;color:var(--ink3);margin-top:3px"></div>
-            </div>
-            <div class="frow">
-              <label class="flabel">分類</label>
-              <select class="finput" id="reg-edit-category" onchange="regOnCategorySelectChange()"></select>
-              <div id="reg-edit-newcat-row" style="display:none;margin-top:6px;gap:6px">
-                <input class="finput" id="reg-edit-newcat-name" placeholder="輸入新分類名稱，按「新增」後會自動選取" style="flex:1">
-                <button class="btn btn-sec" onclick="regConfirmNewCategoryInline()" type="button">新增</button>
+              <label class="flabel">分類（這批全部套用同一個分類，之後可個別再改）</label>
+              <select class="finput" id="reg-batch-category" onchange="regOnBatchCategoryChange()"></select>
+              <div id="reg-batch-newcat-row" style="display:none;margin-top:6px;gap:6px">
+                <input class="finput" id="reg-batch-newcat-name" placeholder="輸入新分類名稱，按「新增」後會自動選取" style="flex:1">
+                <button class="btn btn-sec" type="button" onclick="regConfirmNewCategoryInline('batch')">新增</button>
               </div>
             </div>
             <div class="frow">
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-                <input type="checkbox" id="reg-edit-visible" checked> 要顯示給一般使用者看
-              </label>
+              <label class="flabel">顯示名稱（預設用檔名，可個別修改）</label>
+              <div id="reg-batch-items-list" style="display:flex;flex-direction:column;gap:8px"></div>
             </div>
           </div>
           <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
-            <button class="btn" onclick="closeModal('reg-edit-modal')">取消</button>
-            <button class="btn btn-pri" onclick="regSaveEdit()">💾 儲存</button>
+            <button class="btn" onclick="closeModal('reg-batch-add-modal')">取消</button>
+            <button class="btn btn-pri" onclick="regConfirmBatchAdd()">💾 確認加入</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 處室資料夾管理 -->
+      <div class="modal-bg" id="reg-folders-modal">
+        <div class="modal" style="max-width:600px">
+          <div class="modal-hdr">
+            <div class="modal-title">🗂 管理處室資料夾</div>
+            <button class="modal-close" onclick="closeModal('reg-folders-modal')">✕</button>
+          </div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow-y:auto">
+            <div style="font-size:12px;color:var(--ink3);background:var(--cr3);padding:10px 12px;border-radius:6px">
+              每個項目對應一個Google Drive資料夾（=一個處室）。系統只會掃描直接放在資料夾裡的檔案，子資料夾會跳過（畫面上會顯示提示，不會誤判成法規檔案）。資料夾要先在Google Drive設定成「知道連結的任何人」可檢視，系統才讀得到。
+            </div>
+            <div id="reg-folders-list" style="display:flex;flex-direction:column;gap:8px"></div>
+            <div style="display:flex;gap:6px;border-top:1px dashed var(--cr2);padding-top:12px">
+              <input class="finput" id="reg-newfolder-dept" placeholder="處室名稱（例如：教務處）" style="flex:1">
+              <input class="finput" id="reg-newfolder-id" placeholder="Drive資料夾ID或分享連結" style="flex:1.4">
+              <button class="btn btn-pri" onclick="regAddSourceFolder()">＋ 新增</button>
+            </div>
           </div>
         </div>
       </div>
@@ -9762,6 +9787,34 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v7.7', date: '2026-08-15',
+    items: [
+      '「相關法規查詢」修正Google Drive查詢範圍：加上supportsAllDrives參數，解決共用雲端硬碟裡的檔案掃描不到的問題',
+      '左側Drive檔案池：改成點整行就能切換選取，不用再精準點中小小的checkbox',
+      '左側Drive檔案池：每筆都加上「👁 線上看」連結，加入右側之前就能先預覽內容',
+      '拖曳檔案到右側分類改成直接完成加入，不用再跳modal確認',
+      '修正右側清單拖曳排序失效的問題：項目裡的連結會讓瀏覽器誤判成在拖曳連結本身，導致排序抓不到來源',
+      '右側清單項目改成單行顯示，跟左側視覺密度一致',
+    ]
+  },
+  {
+    version: 'v7.6', date: '2026-08-15',
+    items: [
+      '「相關法規查詢」的Drive掃描機制改用Google登入授權（OAuth），取代原本的API金鑰方式——實測發現金鑰單獨查詢資料夾清單會回傳空結果，即使資料夾是公開分享的',
+      '只有admin點「🔄 重新整理Drive清單」時需要登入一次（跳出Google授權彈窗），一般使用者瀏覽展示清單完全不需要登入',
+      '登入狀態只存在瀏覽器記憶體，重新整理頁面需要重新登入（安全考量，不寫入localStorage）',
+    ]
+  },
+  {
+    version: 'v7.5', date: '2026-08-15',
+    items: [
+      '「相關法規查詢」全面改版：從手動貼URL改成直接讀取學校Google Drive各處室資料夾，畫面變成左右雙容器——左邊是Drive上偵測到的檔案、右邊是目前展示清單，勾選/拖曳即可加入',
+      '新增「🗂 管理處室資料夾」：admin可自行增減要掃描的Drive資料夾（=承辦單位），已預先帶入7個處室',
+      '每筆展示項目的「承辦單位」自動取自來源Drive資料夾名稱，「分類」則仍由admin自訂，兩者是獨立欄位',
+      '從展示清單移除的項目會自動回到左側Drive池子（灰階標示「已加入」，移除後恢復可選）',
+    ]
+  },
+  {
     version: 'v7.4', date: '2026-08-14',
     items: [
       '新增「相關法規查詢」（backlog #11）：檔案留在學校官網，系統只管理連結/顯示名稱/分類/排序，放在「行政效能」選單底下',
@@ -9812,7 +9865,7 @@ document.addEventListener('click', (e) => {
 function showPage(page, btn) {
   document.querySelectorAll('[id^="page-"]').forEach(el=>el.style.display='none');
   const pageEl=document.getElementById('page-'+page);
-  if (pageEl) pageEl.style.display = (page==='semesters'||page==='students'||page==='users') ? 'flex' : '';
+  if (pageEl) pageEl.style.display = (page==='semesters'||page==='students'||page==='users'||page==='regulations') ? 'flex' : '';
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('on'));
   if (btn) btn.classList.add('on');
   if (page==='offerings') loadOfferings();
@@ -14720,36 +14773,103 @@ async function deleteForm(id, storagePath) {
 }
 
 /* ════════════════════════════════════════════════════════════════════
- * ⚖️ 相關法規查詢（檔案留在學校官網，本系統只管理連結/顯示名稱/分類/排序）
+ * ⚖️ 相關法規查詢
+ * 檔案留在學校 Google Drive（各處室資料夾皆已設為「知道連結的任何人」可檢視）。
+ * ⚠️ 實測發現：Drive API的files.list(列出資料夾內容)即使資料夾公開分享，單純API金鑰查詢仍會回傳空結果，
+ * 必須是「已登入的身分」才查得到清單內容(這是Google的限制，跟瀏覽器打開分享連結能看是兩套機制)。
+ * 因此改用 Google Identity Services 的 OAuth 彈窗登入：只有admin按「🔑 登入Google」時需要授權一次，
+ * 一般使用者瀏覽展示清單完全不需要登入。
+ * 本系統只管理：要不要顯示／顯示名稱／分類（admin自訂）／承辦單位（自動＝來源資料夾名稱）／排序。
  * ════════════════════════════════════════════════════════════════════ */
-let _regCategories = [];
-let _regItems = [];
 
-async function regLoadAll() {
-  const wrap = document.getElementById('reg-list-wrap');
-  wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--ink3)">載入中…</div>';
+// OAuth用戶端ID：Google Cloud Console →「Google Auth Platform」→「用戶端」→ 建立「網頁應用程式」類型 → 複製用戶端ID貼在這裡
+// (只有ID，不是「用戶端密碼」——密碼不需要，也絕對不要放進前端程式碼)
+const GOOGLE_OAUTH_CLIENT_ID = '259627457362-oou3un8vjo8c5nv4iho2refsgdjgsheq.apps.googleusercontent.com';
+const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 
-  const canWrite = typeof window.hasPerm === 'function' ? window.hasPerm('regulations','write') : true;
-  document.getElementById('reg-admin-toolbar').style.display = canWrite ? 'flex' : 'none';
+let _regAccessToken = null;   // 登入後拿到的存取權杖，只存在記憶體(重新整理頁面就需要重新登入，安全考量刻意不存localStorage)
+let _regTokenClient = null;
+let _regGisReady = false;
 
-  const [{ data: cats, error: ce }, { data: items, error: ie }] = await Promise.all([
-    sb.from('regulation_categories').select('*').order('sort_order'),
-    sb.from('regulations').select('*').order('sort_order'),
-  ]);
-  if (ce || ie) { wrap.innerHTML = `<div style="text-align:center;padding:40px;color:#c0392b">載入失敗：${esc((ce||ie).message)}</div>`; return; }
-  _regCategories = cats || [];
-  _regItems = items || [];
-  regRender();
+function regLoadGisScript() {
+  return new Promise((resolve, reject) => {
+    if (_regGisReady && window.google?.accounts?.oauth2) { resolve(); return; }
+    const existing = document.getElementById('gis-script');
+    if (existing) { existing.addEventListener('load', () => { _regGisReady = true; resolve(); }); return; }
+    const s = document.createElement('script');
+    s.id = 'gis-script';
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = () => { _regGisReady = true; resolve(); };
+    s.onerror = () => reject(new Error('Google登入元件載入失敗，請檢查網路連線'));
+    document.head.appendChild(s);
+  });
 }
 
-function regRender() {
-  const wrap = document.getElementById('reg-list-wrap');
+// 確保已登入並拿到有效token，沒登入過會跳出Google授權彈窗(第一次需要admin手動同意)
+async function regEnsureSignedIn() {
+  if (_regAccessToken) return _regAccessToken;
+  await regLoadGisScript();
+  return new Promise((resolve, reject) => {
+    if (!_regTokenClient) {
+      _regTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_OAUTH_CLIENT_ID,
+        scope: GOOGLE_DRIVE_SCOPE,
+        callback: (resp) => {
+          if (resp.error) { reject(new Error(resp.error_description || resp.error)); return; }
+          _regAccessToken = resp.access_token;
+          const statusEl = document.getElementById('reg-gsignin-status');
+          if (statusEl) statusEl.textContent = '✅ 已登入Google，可以掃描';
+          resolve(_regAccessToken);
+        },
+        error_callback: (err) => { reject(new Error(err?.message || '登入視窗被關閉或被瀏覽器封鎖彈窗')); },
+      });
+    }
+    _regTokenClient.requestAccessToken({ prompt: '' });
+  });
+}
+
+let _regCategories = [];
+let _regItems = [];
+let _regFolders = [];
+let _regDrivePool = [];        // 目前從Drive掃到、還沒加入展示清單的檔案
+let _regPoolSelected = new Set();
+let _regPendingBatch = [];     // 批次加入modal暫存的項目
+
+async function regLoadAll() {
   const canWrite = typeof window.hasPerm === 'function' ? window.hasPerm('regulations','write') : true;
+  document.getElementById('reg-admin-toolbar').style.display = canWrite ? 'flex' : 'none';
+  document.getElementById('reg-admin-panes').style.display = canWrite ? 'grid' : 'none';
+  document.getElementById('reg-admin-hint').style.display = canWrite ? 'inline' : 'none';
+  document.getElementById('reg-user-wrap').style.display = canWrite ? 'none' : '';
+
+  const [{ data: cats, error: ce }, { data: items, error: ie }, { data: folders, error: fe }] = await Promise.all([
+    sb.from('regulation_categories').select('*').order('sort_order'),
+    sb.from('regulations').select('*').order('sort_order'),
+    canWrite ? sb.from('regulation_source_folders').select('*').order('sort_order') : Promise.resolve({ data: [] }),
+  ]);
+  if (ce || ie || fe) {
+    const wrap = document.getElementById(canWrite ? 'reg-list-wrap' : 'reg-user-wrap');
+    wrap.innerHTML = `<div style="text-align:center;padding:40px;color:#c0392b">載入失敗：${esc((ce||ie||fe).message)}</div>`;
+    return;
+  }
+  _regCategories = cats || [];
+  _regItems = items || [];
+  _regFolders = folders || [];
+  _regPoolSelected.clear();
+
+  regRenderRight();
+  if (canWrite) await regRefreshDrivePool(); // 一進頁面就自動掃一次
+}
+
+/* ── 右側：目前展示的清單（依分類分組） ── */
+function regRenderRight() {
+  const canWrite = typeof window.hasPerm === 'function' ? window.hasPerm('regulations','write') : true;
+  const wrap = document.getElementById(canWrite ? 'reg-list-wrap' : 'reg-user-wrap');
 
   if (!_regCategories.length) {
     wrap.innerHTML = canWrite
-      ? '<div style="text-align:center;padding:50px;color:var(--ink3);background:#fff;border:2px dashed var(--cr2);border-radius:12px">目前尚無分類，點「＋ 新增分類」開始建立</div>'
-      : '<div style="text-align:center;padding:50px;color:var(--ink3)">目前尚無資料</div>';
+      ? '<div style="text-align:center;padding:40px;color:var(--ink3);background:#fff;border:2px dashed var(--cr2);border-radius:12px">目前尚無分類，點「＋ 新增分類」開始建立</div>'
+      : '<div style="text-align:center;padding:40px;color:var(--ink3)">目前尚無資料</div>';
     return;
   }
 
@@ -14762,7 +14882,7 @@ function regRender() {
   ordered.forEach(cat => {
     const items = (grp[cat.id]||[]).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
     const visibleItems = canWrite ? items : items.filter(it=>it.is_visible);
-    if (!canWrite && !visibleItems.length) return; // 一般使用者：這個分類完全沒有可看項目就不顯示分類標題
+    if (!canWrite && !visibleItems.length) return;
 
     html += `<div style="margin-bottom:20px" data-reg-cat-section="${cat.id}">
       <div ${canWrite?'draggable="true"':''} ${canWrite?`ondragstart="regCatDragStart(event,'${cat.id}')" ondragover="regCatDragOver(event)" ondrop="regCatDrop(event,'${cat.id}')"`:''}
@@ -14775,40 +14895,309 @@ function regRender() {
           <button onclick="event.stopPropagation();regDeleteCategory('${cat.id}')" title="刪除分類" style="font-size:11px;padding:2px 8px;border:1px solid #e0b0b0;color:#a83232;background:#fff;border-radius:5px;cursor:pointer">🗑</button>
         ` : ''}
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;padding-left:12px">`;
+      <div style="display:flex;flex-direction:column;gap:6px;padding-left:12px" ${canWrite?`ondragover="regItemDragOver(event)" ondrop="regItemDropOnCategory(event,'${cat.id}')"`:''}>`;
 
     if (!visibleItems.length) {
-      html += `<div style="font-size:12.5px;color:var(--ink3);padding:6px 4px">（這個分類目前沒有項目）</div>`;
+      html += `<div style="font-size:12.5px;color:var(--ink3);padding:6px 4px">（這個分類目前沒有項目，可以從左邊拖檔案過來）</div>`;
     }
     visibleItems.forEach(it => {
       const hidden = !it.is_visible;
       html += `<div class="reg-row" data-id="${it.id}" ${canWrite?'draggable="true"':''}
         ${canWrite ? `ondragstart="regItemDragStart(event,'${it.id}')" ondragover="regItemDragOver(event)" ondrop="regItemDrop(event,'${it.id}')"` : ''}
-        style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:9px 12px;${hidden?'opacity:.55;':''}">
-        ${canWrite ? `<span style="color:var(--ink3);font-size:12px;cursor:grab" title="拖曳調整順序">⠿</span>` : ''}
-        <a href="${esc(it.file_url)}" target="_blank" rel="noopener" style="flex:1;font-size:13.5px;color:${hidden?'var(--ink3)':'var(--navy)'};text-decoration:none;display:flex;align-items:center;gap:6px">
-          <span style="font-size:12px">🔗</span>${esc(it.display_name)}
+        style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:8px 10px;${hidden?'opacity:.55;':''}">
+        ${canWrite ? `<span style="color:var(--ink3);font-size:12px;cursor:grab;flex-shrink:0" title="拖曳調整順序">⠿</span>` : ''}
+        <a href="${esc(it.file_url)}" target="_blank" rel="noopener" draggable="false" style="flex:1;font-size:13px;color:${hidden?'var(--ink3)':'var(--navy)'};text-decoration:none;display:flex;align-items:center;gap:6px;overflow:hidden;min-width:0">
+          <span style="font-size:12px;flex-shrink:0">🔗</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.display_name)}</span>
+          <span style="font-size:10.5px;color:var(--ink3);font-weight:400;flex-shrink:0">· ${esc(it.department_name||'')}</span>
         </a>
-        ${hidden ? `<span style="font-size:10.5px;color:var(--ink3);background:var(--cr3);padding:1px 7px;border-radius:10px">未顯示</span>` : ''}
+        ${hidden ? `<span style="font-size:10.5px;color:var(--ink3);background:var(--cr3);padding:1px 7px;border-radius:10px;flex-shrink:0">未顯示</span>` : ''}
         ${canWrite ? `
-          <label style="display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ink3);cursor:pointer;white-space:nowrap">
+          <label style="display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ink3);cursor:pointer;white-space:nowrap;flex-shrink:0">
             <input type="checkbox" ${it.is_visible?'checked':''} onchange="regToggleVisible('${it.id}',this.checked)"> 顯示
           </label>
-          <button onclick="regOpenEditModal('${it.id}')" title="編輯" style="font-size:11px;padding:2px 8px;border:1px solid var(--cr2);background:#fff;border-radius:5px;cursor:pointer">✏️</button>
-          <button onclick="regDeleteItem('${it.id}')" title="刪除" style="font-size:11px;padding:2px 8px;border:1px solid #e0b0b0;color:#a83232;background:#fff;border-radius:5px;cursor:pointer">🗑</button>
+          <button onclick="regRenameItem('${it.id}')" title="修改顯示名稱" style="font-size:11px;padding:2px 8px;border:1px solid var(--cr2);background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0">✏️</button>
+          <button onclick="regDeleteItem('${it.id}')" title="從展示清單移除（會回到左邊Drive清單）" style="font-size:11px;padding:2px 8px;border:1px solid #e0b0b0;color:#a83232;background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0">🗑</button>
         ` : ''}
       </div>`;
     });
     html += `</div></div>`;
   });
 
-  if (!html) html = '<div style="text-align:center;padding:50px;color:var(--ink3)">目前尚無資料</div>';
+  if (!html) html = '<div style="text-align:center;padding:40px;color:var(--ink3)">目前尚無資料</div>';
   wrap.innerHTML = html;
+}
+
+/* ── 左側：從 Google Drive 即時掃描 ── */
+async function regRefreshDrivePool() {
+  const poolWrap = document.getElementById('reg-pool-wrap');
+  if (!_regFolders.length) {
+    poolWrap.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3);background:#fff;border:2px dashed var(--cr2);border-radius:12px">尚未設定任何處室資料夾，點「🗂 管理處室資料夾」新增</div>';
+    document.getElementById('reg-pool-count').textContent = '';
+    return;
+  }
+  poolWrap.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">🔑 準備登入Google（第一次會跳出授權視窗，請允許彈出視窗）…</div>';
+  try {
+    await regEnsureSignedIn();
+  } catch (e) {
+    poolWrap.innerHTML = `<div style="text-align:center;padding:30px;color:#c0392b;background:#fff;border:2px dashed #e0b0b0;border-radius:12px">Google登入失敗：${esc(e.message)}<br><br><button onclick="regRefreshDrivePool()" style="margin-top:8px;font-size:12px;padding:4px 12px;border:1px solid var(--cr2);background:#fff;border-radius:5px;cursor:pointer">🔄 重試</button></div>`;
+    return;
+  }
+  poolWrap.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">🔄 掃描中…</div>';
+
+  const importedIds = new Set(_regItems.map(it => it.drive_file_id).filter(Boolean));
+  const results = [];
+  for (const folder of _regFolders.slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))) {
+    try {
+      const files = await regFetchDriveFolder(folder.drive_folder_id);
+      const subfolders = files.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+      // 已加入右側展示清單的檔案不濾掉，保留顯示但標記imported=true(畫面上會變灰階、不能再選)
+      const realFiles = files
+        .filter(f => f.mimeType !== 'application/vnd.google-apps.folder')
+        .map(f => ({ ...f, _imported: importedIds.has(f.id) }));
+      results.push({ folder, files: realFiles, subfolderCount: subfolders.length, subfolderNames: subfolders.map(s=>s.name) });
+    } catch (e) {
+      results.push({ folder, files: [], error: e.message });
+    }
+  }
+  _regDrivePool = results;
+  regRenderPool();
+}
+
+async function regFetchDriveFolder(folderId) {
+  const token = await regEnsureSignedIn();
+  // supportsAllDrives + includeItemsFromAllDrives：讓查詢也涵蓋「共用雲端硬碟」裡的檔案，
+  // 否則files.list預設只搜尋「我的雲端硬碟」，共用雲端硬碟的內容會被排除且不會有任何錯誤訊息(查得到但空白)
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`'${folderId}' in parents and trashed=false`)}&fields=${encodeURIComponent('files(id,name,mimeType,webViewLink)')}&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) _regAccessToken = null; // token過期或被撤銷，下次會重新跳登入
+    throw new Error(data?.error?.message || `HTTP ${res.status}`);
+  }
+  return data.files || [];
+}
+
+function regRenderPool() {
+  const poolWrap = document.getElementById('reg-pool-wrap');
+  let totalAvailable = 0; // 只統計「還沒加入」的
+  let html = '';
+  _regDrivePool.forEach(({ folder, files, error, subfolderCount, subfolderNames }) => {
+    const availableCount = files.filter(f=>!f._imported).length;
+    totalAvailable += availableCount;
+    html += `<div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        📁 ${esc(folder.department_name)}
+        <span style="font-size:11px;color:var(--ink3);font-weight:400">${availableCount} 筆未加入（共 ${files.length} 筆）</span>
+      </div>`;
+    if (error) {
+      html += `<div style="font-size:12px;color:#c0392b;padding:6px 4px">掃描失敗：${esc(error)}</div>`;
+    } else {
+      if (subfolderCount) {
+        html += `<div style="font-size:11px;color:var(--ink3);padding:3px 4px 6px">📂 有 ${subfolderCount} 個子資料夾未掃描（${subfolderNames.map(esc).join('、')}）</div>`;
+      }
+      if (!files.length && !subfolderCount) {
+        html += `<div style="font-size:12px;color:var(--ink3);padding:6px 4px">（沒有檔案）</div>`;
+      }
+      files.forEach(f => {
+        const viewUrl = f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`;
+        if (f._imported) {
+          html += `<div class="reg-pool-row" data-fid="${f.id}"
+            style="display:flex;align-items:center;gap:8px;background:var(--cr3);border:1px solid var(--cr2);border-radius:8px;padding:8px 10px;margin-bottom:6px;opacity:.55">
+            <input type="checkbox" disabled>
+            <span style="font-size:13px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1" title="${esc(f.name)}">📄 ${esc(f.name)}</span>
+            <a href="${esc(viewUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:10.5px;color:var(--navy);flex-shrink:0;text-decoration:none;white-space:nowrap">👁 線上看</a>
+            <span style="font-size:10.5px;color:var(--ink3);background:#fff;border:1px solid var(--cr2);padding:1px 7px;border-radius:10px;flex-shrink:0">已加入</span>
+          </div>`;
+        } else {
+          const checked = _regPoolSelected.has(f.id);
+          html += `<div class="reg-pool-row" data-fid="${f.id}" draggable="true"
+            ondragstart="regPoolDragStart(event,'${f.id}')"
+            onclick="regTogglePoolRow('${f.id}')"
+            style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid ${checked?'var(--navy)':'var(--cr2)'};border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer">
+            <input type="checkbox" ${checked?'checked':''} style="pointer-events:none">
+            <span style="font-size:13px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1" title="${esc(f.name)}">📄 ${esc(f.name)}</span>
+            <a href="${esc(viewUrl)}" target="_blank" rel="noopener" draggable="false" onclick="event.stopPropagation()" style="font-size:10.5px;color:var(--navy);flex-shrink:0;text-decoration:none;white-space:nowrap">👁 線上看</a>
+          </div>`;
+        }
+      });
+    }
+    html += `</div>`;
+  });
+  poolWrap.innerHTML = html || '<div style="text-align:center;padding:30px;color:var(--ink3)">沒有資料</div>';
+  document.getElementById('reg-pool-count').textContent = `共 ${totalAvailable} 筆未加入`;
+  regUpdatePoolAddButton();
+}
+
+// 整行點擊即可切換選取(不用精準點中checkbox)，checkbox改成純視覺提示(pointer-events:none)避免點兩下互相打架
+function regTogglePoolRow(fileId) {
+  const checked = !_regPoolSelected.has(fileId);
+  if (checked) _regPoolSelected.add(fileId); else _regPoolSelected.delete(fileId);
+  const row = document.querySelector(`.reg-pool-row[data-fid="${fileId}"]`);
+  if (row) {
+    row.style.borderColor = checked ? 'var(--navy)' : 'var(--cr2)';
+    const cb = row.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = checked;
+  }
+  regUpdatePoolAddButton();
+}
+
+function regUpdatePoolAddButton() {
+  const btn = document.getElementById('reg-add-selected-btn');
+  const has = _regPoolSelected.size > 0;
+  btn.disabled = !has;
+  btn.style.opacity = has ? '1' : '.4';
+  btn.style.cursor = has ? 'pointer' : 'not-allowed';
+  btn.textContent = has ? `➡️ 加入右側（${_regPoolSelected.size}筆）` : '➡️ 加入右側';
+}
+
+/* 找出某個Drive檔案目前屬於哪個處室資料夾（regRenderPool階段的_regDrivePool裡查） */
+function regFindPoolFile(fileId) {
+  for (const grp of _regDrivePool) {
+    const f = grp.files.find(x => x.id === fileId);
+    if (f) return { file: f, folder: grp.folder };
+  }
+  return null;
+}
+
+/* ── 拖曳：從左側池子拖到右側 ── */
+let _regDragPoolFileId = null;
+function regPoolDragStart(e, fileId) {
+  // 如果拖曳的這筆本身有被勾選，且勾選不只一筆，整批一起拖；否則只拖這一筆
+  if (!_regPoolSelected.has(fileId)) { _regPoolSelected.clear(); _regPoolSelected.add(fileId); regRenderPool(); }
+  _regDragPoolFileId = fileId;
+  e.dataTransfer.effectAllowed = 'copy';
+}
+function regItemDropOnCategory(e, categoryId) {
+  e.preventDefault();
+  const draggedId = _regDragPoolFileId;
+  _regDragPoolFileId = null;
+  if (!draggedId) return;
+  // 拖曳到分類＝直接完成加入(不跳modal)：如果拖的這筆本身有被勾選、且勾選不只一筆，整批一起加入這個分類
+  const ids = _regPoolSelected.has(draggedId) ? Array.from(_regPoolSelected) : [draggedId];
+  regInsertPoolSelection(categoryId, ids);
+}
+
+// 直接把選取的Drive檔案加入指定分類，顯示名稱預設用檔名(去掉副檔名)，之後可在右側清單裡再改名
+async function regInsertPoolSelection(categoryId, fileIds) {
+  const category = _regCategories.find(c => c.id === categoryId);
+  if (!category) { showToast('找不到這個分類','error'); return; }
+
+  const items = fileIds.map(fid => {
+    const found = regFindPoolFile(fid);
+    if (!found) return null;
+    return {
+      drive_file_id: found.file.id,
+      source_folder_id: found.folder.id,
+      department_name: found.folder.department_name,
+      category_id: categoryId,
+      file_url: found.file.webViewLink || `https://drive.google.com/file/d/${found.file.id}/view`,
+      display_name: found.file.name.replace(/\.[^.]+$/, ''),
+      is_visible: true,
+    };
+  }).filter(Boolean);
+  if (!items.length) { showToast('找不到選取的檔案，請重新整理Drive清單','error'); return; }
+
+  const maxOrder = _regItems.filter(it => it.category_id === categoryId).reduce((m,it) => Math.max(m, it.sort_order||0), 0);
+  const rows = items.map((it,i) => ({ ...it, sort_order: maxOrder + (i+1)*10, created_by: window.ADMIN_USER_ID || null }));
+
+  const { error } = await sb.from('regulations').insert(rows);
+  if (error) { showToast('加入失敗：'+error.message,'error'); return; }
+  showToast(`✅ 已加入「${category.name}」，共 ${rows.length} 筆`);
+  _regPoolSelected.clear();
+  regLoadAll();
+}
+
+function regAddSelectedToRight() {
+  if (!_regPoolSelected.size) return;
+  regOpenBatchAddModal(null);
+}
+
+function regOpenBatchAddModal(presetCategoryId) {
+  _regPendingBatch = Array.from(_regPoolSelected).map(fid => {
+    const found = regFindPoolFile(fid);
+    if (!found) return null;
+    return {
+      drive_file_id: found.file.id,
+      original_name: found.file.name,
+      display_name: found.file.name.replace(/\.[^.]+$/, ''),
+      file_url: found.file.webViewLink || `https://drive.google.com/file/d/${found.file.id}/view`,
+      source_folder_id: found.folder.id,
+      department_name: found.folder.department_name,
+    };
+  }).filter(Boolean);
+  if (!_regPendingBatch.length) { showToast('找不到選取的檔案，請重新整理Drive清單','error'); return; }
+
+  regPopulateCategorySelect('reg-batch-category', presetCategoryId);
+  document.getElementById('reg-batch-newcat-row').style.display = 'none';
+
+  const list = document.getElementById('reg-batch-items-list');
+  list.innerHTML = _regPendingBatch.map((it,i) => `
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <input class="finput" style="font-size:12.5px" value="${esc(it.display_name)}" oninput="_regPendingBatch[${i}].display_name=this.value">
+      <span style="font-size:10.5px;color:var(--ink3)">📁 ${esc(it.department_name)}</span>
+    </div>`).join('');
+
+  openModal('reg-batch-add-modal');
+}
+
+async function regConfirmBatchAdd() {
+  const category_id = document.getElementById('reg-batch-category').value;
+  if (!category_id || category_id === '__new__') { showToast('請先選好或新增分類','error'); return; }
+  if (!_regPendingBatch.length) return;
+
+  const maxOrder = _regItems.filter(it=>it.category_id===category_id).reduce((m,it)=>Math.max(m,it.sort_order||0),0);
+  const rows = _regPendingBatch.map((it,i) => ({
+    drive_file_id: it.drive_file_id,
+    source_folder_id: it.source_folder_id,
+    department_name: it.department_name,
+    category_id,
+    file_url: it.file_url,
+    display_name: it.display_name.trim() || it.original_name,
+    is_visible: true,
+    sort_order: maxOrder + (i+1)*10,
+    created_by: window.ADMIN_USER_ID || null,
+  }));
+
+  const { error } = await sb.from('regulations').insert(rows);
+  if (error) { showToast('加入失敗：'+error.message,'error'); return; }
+  showToast(`✅ 已加入 ${rows.length} 筆`);
+  closeModal('reg-batch-add-modal');
+  _regPoolSelected.clear();
+  _regPendingBatch = [];
+  regLoadAll();
+}
+
+async function regRenameItem(id) {
+  const it = _regItems.find(x=>x.id===id);
+  if (!it) return;
+  const name = prompt('顯示名稱', it.display_name);
+  if (name === null || !name.trim() || name.trim() === it.display_name) return;
+  const { error } = await sb.from('regulations').update({ display_name: name.trim(), updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { showToast('更新失敗：'+error.message,'error'); return; }
+  showToast('✅ 已更新');
+  regLoadAll();
+}
+
+async function regToggleVisible(id, visible) {
+  const { error } = await sb.from('regulations').update({ is_visible: visible, updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { showToast('更新失敗：'+error.message,'error'); regLoadAll(); return; }
+  const it = _regItems.find(x=>x.id===id);
+  if (it) it.is_visible = visible;
+  regRenderRight();
+}
+
+async function regDeleteItem(id) {
+  if (!confirm('確定從展示清單移除？（不會刪除Drive上的原始檔案，這筆檔案會重新出現在左邊的Drive清單裡）')) return;
+  const { error } = await sb.from('regulations').delete().eq('id', id);
+  if (error) { showToast('移除失敗：'+error.message,'error'); return; }
+  showToast('✅ 已移除，已回到左側Drive清單');
+  regLoadAll();
 }
 
 /* ── 分類管理 ── */
 async function regAddCategory() {
-  const name = prompt('新分類名稱（例如：課務相關、學務相關…）');
+  const name = prompt('新分類名稱');
   if (!name || !name.trim()) return;
   const maxOrder = _regCategories.reduce((m,c)=>Math.max(m,c.sort_order||0),0);
   const { error } = await sb.from('regulation_categories').insert({ name: name.trim(), sort_order: maxOrder+10 });
@@ -14838,7 +15227,34 @@ async function regDeleteCategory(id) {
   regLoadAll();
 }
 
-/* ── 拖曳排序：分類（整區）── */
+function regPopulateCategorySelect(selectId, selectedId) {
+  const sel = document.getElementById(selectId);
+  const opts = _regCategories.slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))
+    .map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  sel.innerHTML = opts + `<option value="__new__">＋ 新增分類…</option>`;
+  sel.value = selectedId || (_regCategories[0]?.id || '__new__');
+}
+
+function regOnBatchCategoryChange() {
+  const isNew = document.getElementById('reg-batch-category').value === '__new__';
+  document.getElementById('reg-batch-newcat-row').style.display = isNew ? 'flex' : 'none';
+  if (isNew) document.getElementById('reg-batch-newcat-name').focus();
+}
+
+async function regConfirmNewCategoryInline() {
+  const nameInput = document.getElementById('reg-batch-newcat-name');
+  const name = nameInput.value.trim();
+  if (!name) { showToast('請輸入分類名稱','error'); return; }
+  const maxOrder = _regCategories.reduce((m,c)=>Math.max(m,c.sort_order||0),0);
+  const { data, error } = await sb.from('regulation_categories').insert({ name, sort_order: maxOrder+10 }).select().maybeSingle();
+  if (error) { showToast('新增分類失敗：'+error.message,'error'); return; }
+  _regCategories.push(data);
+  regPopulateCategorySelect('reg-batch-category', data.id);
+  document.getElementById('reg-batch-newcat-row').style.display = 'none';
+  showToast(`✅ 已新增分類「${name}」並自動選取`);
+}
+
+/* ── 拖曳排序：分類（整區，右側清單內） ── */
 let _regDragCatSource = null;
 function regCatDragStart(e, id) { _regDragCatSource = id; e.dataTransfer.effectAllowed = 'move'; }
 function regCatDragOver(e) { e.preventDefault(); }
@@ -14859,18 +15275,29 @@ async function regCatDrop(e, targetId) {
   regLoadAll();
 }
 
-/* ── 拖曳排序：項目（同分類內）── */
+/* ── 拖曳排序：項目（同分類內，右側清單內） ── */
 let _regDragItemSource = null;
 function regItemDragStart(e, id) { e.stopPropagation(); _regDragItemSource = id; e.dataTransfer.effectAllowed = 'move'; }
 function regItemDragOver(e) { e.preventDefault(); e.stopPropagation(); }
 async function regItemDrop(e, targetId) {
   e.preventDefault(); e.stopPropagation();
+
+  // 如果拖的是左側Drive池子的檔案(不是既有項目排序)，落在某個項目正上方也視同「加入這個項目所在的分類」
+  if (_regDragPoolFileId) {
+    const draggedId = _regDragPoolFileId; _regDragPoolFileId = null;
+    const tgt = _regItems.find(x=>x.id===targetId);
+    if (!tgt) return;
+    const ids = _regPoolSelected.has(draggedId) ? Array.from(_regPoolSelected) : [draggedId];
+    regInsertPoolSelection(tgt.category_id, ids);
+    return;
+  }
+
   const srcId = _regDragItemSource; _regDragItemSource = null;
   if (!srcId || srcId === targetId) return;
   const src = _regItems.find(x=>x.id===srcId);
   const tgt = _regItems.find(x=>x.id===targetId);
   if (!src || !tgt) return;
-  if (src.category_id !== tgt.category_id) { showToast('只能在同一個分類內調整順序（跨分類請拖曳分類標題，或編輯項目改分類）','error'); return; }
+  if (src.category_id !== tgt.category_id) { showToast('只能在同一個分類內調整順序（跨分類請拖曳分類標題，或改用移除後重新加入）','error'); return; }
   const sameCat = _regItems.filter(x=>x.category_id===src.category_id).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const srcIdx = sameCat.findIndex(x=>x.id===srcId);
   const tgtIdx = sameCat.findIndex(x=>x.id===targetId);
@@ -14883,155 +15310,58 @@ async function regItemDrop(e, targetId) {
   regLoadAll();
 }
 
-async function regToggleVisible(id, visible) {
-  const { error } = await sb.from('regulations').update({ is_visible: visible, updated_at: new Date().toISOString() }).eq('id', id);
-  if (error) { showToast('更新失敗：'+error.message,'error'); regLoadAll(); return; }
-  const it = _regItems.find(x=>x.id===id);
-  if (it) it.is_visible = visible;
-  regRender();
+/* ── 處室資料夾管理 ── */
+function regManageFolders() {
+  regRenderFoldersList();
+  openModal('reg-folders-modal');
 }
 
-async function regDeleteItem(id) {
-  if (!confirm('確定刪除這筆法規連結？（不會刪除學校官網上的原始檔案，只是移除系統裡的這筆連結資料）')) return;
-  const { error } = await sb.from('regulations').delete().eq('id', id);
+function regRenderFoldersList() {
+  const wrap = document.getElementById('reg-folders-list');
+  if (!_regFolders.length) { wrap.innerHTML = '<div style="font-size:12.5px;color:var(--ink3);text-align:center;padding:20px">尚未設定任何處室資料夾</div>'; return; }
+  wrap.innerHTML = _regFolders.slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(f => `
+    <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--cr2);border-radius:6px;padding:8px 10px">
+      <span style="font-size:13px;font-weight:600;flex:1">📁 ${esc(f.department_name)}</span>
+      <span style="font-size:10.5px;color:var(--ink3);font-family:monospace">${esc(f.drive_folder_id)}</span>
+      <button onclick="regDeleteSourceFolder('${f.id}')" style="font-size:11px;padding:2px 8px;border:1px solid #e0b0b0;color:#a83232;background:#fff;border-radius:5px;cursor:pointer">🗑</button>
+    </div>`).join('');
+}
+
+// 允許貼「純ID」或整串分享連結（自動擷取ID）
+function regExtractFolderId(input) {
+  const s = input.trim();
+  const m = s.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  return s;
+}
+
+async function regAddSourceFolder() {
+  const dept = document.getElementById('reg-newfolder-dept').value.trim();
+  const raw = document.getElementById('reg-newfolder-id').value.trim();
+  if (!dept || !raw) { showToast('請填入處室名稱與Drive資料夾ID／連結','error'); return; }
+  const folderId = regExtractFolderId(raw);
+  const maxOrder = _regFolders.reduce((m,f)=>Math.max(m,f.sort_order||0),0);
+  const { error } = await sb.from('regulation_source_folders').insert({ department_name: dept, drive_folder_id: folderId, sort_order: maxOrder+10 });
+  if (error) { showToast('新增失敗：'+error.message,'error'); return; }
+  showToast('✅ 已新增處室資料夾');
+  document.getElementById('reg-newfolder-dept').value = '';
+  document.getElementById('reg-newfolder-id').value = '';
+  const { data: folders } = await sb.from('regulation_source_folders').select('*').order('sort_order');
+  _regFolders = folders || [];
+  regRenderFoldersList();
+  regRefreshDrivePool();
+}
+
+async function regDeleteSourceFolder(id) {
+  if (!confirm('確定刪除這個處室資料夾設定？（不會動到Drive上的檔案，只是系統不再掃描這個資料夾）')) return;
+  const { error } = await sb.from('regulation_source_folders').delete().eq('id', id);
   if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  _regFolders = _regFolders.filter(f=>f.id!==id);
+  regRenderFoldersList();
   showToast('✅ 已刪除');
-  regLoadAll();
+  regRefreshDrivePool();
 }
 
-/* ── 新增／編輯項目 ── */
-function regSuggestNameFromUrl(url) {
-  try {
-    const noQuery = url.split('?')[0].split('#')[0];
-    let filename = decodeURIComponent(noQuery.split('/').pop() || '').trim();
-    if (!filename) return '';
-    filename = filename.replace(/\.(pdf|docx?|xlsx?|pptx?|hwp|odt)$/i, '');
-    filename = filename
-      .replace(/^\d{2,4}[-_.]?\d{1,2}[-_.]?\d{1,2}[-_.]?\s*/, '')   // 開頭日期(西元或民國)
-      .replace(/[-_（(]?\s*(v|ver|版)\s*\d+(\.\d+)?\s*[)）]?$/i, '') // 結尾版本號
-      .replace(/[-_]?\d{6,8}$/, '')                                  // 結尾長串日期/編號
-      .replace(/^[-_\s]+|[-_\s]+$/g, '')
-      .replace(/[_]+/g, ' ')
-      .trim();
-    return filename;
-  } catch (e) { return ''; }
-}
-
-function regOnUrlInput() {
-  const url = document.getElementById('reg-edit-url').value.trim();
-  const nameInput = document.getElementById('reg-edit-name');
-  const hint = document.getElementById('reg-edit-suggested-hint');
-  if (!url) { hint.textContent = ''; return; }
-  const suggested = regSuggestNameFromUrl(url);
-  hint.textContent = suggested ? `系統建議：${suggested}` : '無法從連結判斷檔名，請手動輸入顯示名稱';
-  // 只有在名稱欄位還是空的，或還等於上一次的建議值時才自動帶入，避免蓋掉使用者已經手動改過的內容
-  if (!nameInput.dataset.userEdited && suggested) nameInput.value = suggested;
-  nameInput.dataset.lastSuggested = suggested || '';
-}
-
-function regResetSuggestedName() {
-  const hint = document.getElementById('reg-edit-suggested-hint');
-  const nameInput = document.getElementById('reg-edit-name');
-  const suggested = nameInput.dataset.lastSuggested || regSuggestNameFromUrl(document.getElementById('reg-edit-url').value.trim());
-  if (!suggested) { showToast('目前無法從連結判斷出建議名稱','error'); return; }
-  nameInput.value = suggested;
-  delete nameInput.dataset.userEdited;
-  showToast('✅ 已還原為系統建議名稱');
-}
-
-function regPopulateCategorySelect(selectedId) {
-  const catSelect = document.getElementById('reg-edit-category');
-  const opts = _regCategories.slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))
-    .map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
-  catSelect.innerHTML = opts + `<option value="__new__">＋ 新增分類…</option>`;
-  catSelect.value = selectedId || (_regCategories[0]?.id || '__new__');
-  document.getElementById('reg-edit-newcat-row').style.display = 'none';
-  document.getElementById('reg-edit-newcat-name').value = '';
-}
-
-function regOnCategorySelectChange() {
-  const isNew = document.getElementById('reg-edit-category').value === '__new__';
-  document.getElementById('reg-edit-newcat-row').style.display = isNew ? 'flex' : 'none';
-  if (isNew) document.getElementById('reg-edit-newcat-name').focus();
-}
-
-async function regConfirmNewCategoryInline() {
-  const nameInput = document.getElementById('reg-edit-newcat-name');
-  const name = nameInput.value.trim();
-  if (!name) { showToast('請輸入分類名稱','error'); return; }
-  const maxOrder = _regCategories.reduce((m,c)=>Math.max(m,c.sort_order||0),0);
-  const { data, error } = await sb.from('regulation_categories').insert({ name, sort_order: maxOrder+10 }).select().maybeSingle();
-  if (error) { showToast('新增分類失敗：'+error.message,'error'); return; }
-  _regCategories.push(data);
-  regPopulateCategorySelect(data.id);
-  showToast(`✅ 已新增分類「${name}」並自動選取`);
-}
-
-function regOpenEditModal(id) {
-  regPopulateCategorySelect();
-
-  const nameInput = document.getElementById('reg-edit-name');
-  delete nameInput.dataset.userEdited;
-  nameInput.oninput = () => { nameInput.dataset.userEdited = '1'; };
-
-  if (id) {
-    const it = _regItems.find(x=>x.id===id);
-    if (!it) return;
-    document.getElementById('reg-edit-title').textContent = '✏️ 編輯法規連結';
-    document.getElementById('reg-edit-id').value = it.id;
-    document.getElementById('reg-edit-url').value = it.file_url;
-    document.getElementById('reg-edit-name').value = it.display_name;
-    nameInput.dataset.lastSuggested = it.suggested_name || '';
-    document.getElementById('reg-edit-suggested-hint').textContent = it.suggested_name ? `系統建議：${it.suggested_name}` : '';
-    regPopulateCategorySelect(it.category_id || '');
-    document.getElementById('reg-edit-visible').checked = !!it.is_visible;
-  } else {
-    document.getElementById('reg-edit-title').textContent = '＋ 新增法規連結';
-    document.getElementById('reg-edit-id').value = '';
-    document.getElementById('reg-edit-url').value = '';
-    document.getElementById('reg-edit-name').value = '';
-    document.getElementById('reg-edit-suggested-hint').textContent = '';
-    document.getElementById('reg-edit-visible').checked = true;
-  }
-  openModal('reg-edit-modal');
-}
-
-async function regSaveEdit() {
-  const id = document.getElementById('reg-edit-id').value;
-  const url = document.getElementById('reg-edit-url').value.trim();
-  const display_name = document.getElementById('reg-edit-name').value.trim();
-  const category_id = document.getElementById('reg-edit-category').value || null;
-  const is_visible = document.getElementById('reg-edit-visible').checked;
-  const suggested_name = document.getElementById('reg-edit-name').dataset.lastSuggested || regSuggestNameFromUrl(url);
-
-  if (!url) { showToast('請填入檔案連結','error'); return; }
-  if (!display_name) { showToast('請填入顯示名稱','error'); return; }
-  if (!category_id) { showToast('請選擇分類（如果還沒有分類，可以直接在下拉選單選「＋ 新增分類…」）','error'); return; }
-  if (category_id === '__new__') { showToast('請先在下方輸入新分類名稱並按「新增」','error'); return; }
-
-  try {
-    if (id) {
-      const { error } = await sb.from('regulations').update({
-        file_url: url, display_name, category_id, is_visible, suggested_name,
-        updated_at: new Date().toISOString()
-      }).eq('id', id);
-      if (error) throw error;
-      showToast('✅ 已更新');
-    } else {
-      const maxOrder = _regItems.filter(it=>it.category_id===category_id).reduce((m,it)=>Math.max(m,it.sort_order||0),0);
-      const { error } = await sb.from('regulations').insert({
-        file_url: url, display_name, category_id, is_visible, suggested_name,
-        sort_order: maxOrder+10, created_by: window.ADMIN_USER_ID || null
-      });
-      if (error) throw error;
-      showToast('✅ 已新增');
-    }
-    closeModal('reg-edit-modal');
-    regLoadAll();
-  } catch (e) {
-    showToast('儲存失敗：'+e.message,'error');
-  }
-}
 
 async function renderScholarshipHome() {
   const wrap = document.getElementById('scholarship-wrap');
