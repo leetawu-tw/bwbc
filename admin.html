@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v7.7 2026-08-15 -->
+<!-- BWBC Admin v7.8 2026-08-15 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -384,7 +384,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v7.7　2026-08-15</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v7.8　2026-08-15</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -9787,6 +9787,12 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v7.8', date: '2026-08-15',
+    items: [
+      '「相關法規查詢」右側展示清單也加上明顯的「👁 線上看」連結（之前點名稱本身雖然可以連過去，但沒有清楚標示），admin畫面跟一般使用者看到的清單都同步生效',
+    ]
+  },
+  {
     version: 'v7.7', date: '2026-08-15',
     items: [
       '「相關法規查詢」修正Google Drive查詢範圍：加上supportsAllDrives參數，解決共用雲端硬碟裡的檔案掃描不到的問題',
@@ -14906,11 +14912,11 @@ function regRenderRight() {
         ${canWrite ? `ondragstart="regItemDragStart(event,'${it.id}')" ondragover="regItemDragOver(event)" ondrop="regItemDrop(event,'${it.id}')"` : ''}
         style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:8px 10px;${hidden?'opacity:.55;':''}">
         ${canWrite ? `<span style="color:var(--ink3);font-size:12px;cursor:grab;flex-shrink:0" title="拖曳調整順序">⠿</span>` : ''}
-        <a href="${esc(it.file_url)}" target="_blank" rel="noopener" draggable="false" style="flex:1;font-size:13px;color:${hidden?'var(--ink3)':'var(--navy)'};text-decoration:none;display:flex;align-items:center;gap:6px;overflow:hidden;min-width:0">
-          <span style="font-size:12px;flex-shrink:0">🔗</span>
+        <span style="flex:1;font-size:13px;color:${hidden?'var(--ink3)':'var(--ink2)'};display:flex;align-items:center;gap:6px;overflow:hidden;min-width:0">
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.display_name)}</span>
           <span style="font-size:10.5px;color:var(--ink3);font-weight:400;flex-shrink:0">· ${esc(it.department_name||'')}</span>
-        </a>
+        </span>
+        <a href="${esc(it.file_url)}" target="_blank" rel="noopener" draggable="false" style="font-size:11.5px;color:var(--navy);text-decoration:none;white-space:nowrap;flex-shrink:0">👁 線上看</a>
         ${hidden ? `<span style="font-size:10.5px;color:var(--ink3);background:var(--cr3);padding:1px 7px;border-radius:10px;flex-shrink:0">未顯示</span>` : ''}
         ${canWrite ? `
           <label style="display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ink3);cursor:pointer;white-space:nowrap;flex-shrink:0">
