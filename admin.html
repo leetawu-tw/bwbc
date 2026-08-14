@@ -1011,24 +1011,60 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div class="page-title">👥 帳號管理</div>
           <span style="font-size:12px;color:var(--ink3);margin-left:12px">(只有 admin 能進入此頁)</span>
         </div>
-        <div id="usr-stats" style="font-size:12px;color:var(--ink3);padding:0 4px"></div>
-        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow:auto;max-height:calc(100vh - 230px)">
-          <table style="border-collapse:collapse;min-width:1000px;width:max-content">
-            <thead>
-              <tr style="background:var(--navy);color:#fff" class="sticky-thead">
-                <th class="usr-th" onclick="usrSort('email')">Email <span class="sort-icon" id="usr-sort-email">⇅</span></th>
-                <th class="usr-th" onclick="usrSort('_display_name')">顯示名稱 <span class="sort-icon" id="usr-sort-_display_name">⇅</span></th>
-                <th class="usr-th" onclick="usrSort('role')" style="text-align:center">角色 <span class="sort-icon" id="usr-sort-role">⇅</span></th>
-                <th class="usr-th" onclick="usrSort('_irole_str')">院內職務 <span class="sort-icon" id="usr-sort-_irole_str">⇅</span></th>
-                <th class="usr-th">權限 ({模組數})</th>
-                <th class="usr-th" onclick="usrSort('created_at')" style="text-align:center">建立 <span class="sort-icon" id="usr-sort-created_at">⇅</span></th>
-                <th class="sticky-thead-th" style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
-              </tr>
-            </thead>
-            <tbody id="usr-tbody">
-              <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--ink3)">載入中…</td></tr>
-            </tbody>
-          </table>
+        <div style="display:flex;gap:6px;border-bottom:1px solid var(--cr2);padding:0 2px">
+          <button id="usr-tab-list" onclick="switchUsrView('list')"
+            style="padding:9px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--navy);color:var(--navy)">📋 帳號列表</button>
+          <button id="usr-tab-presets" onclick="switchUsrView('presets')"
+            style="padding:9px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--ink3)">⚙️ 角色權限預設值</button>
+        </div>
+
+        <div id="usr-view-list" style="display:flex;flex-direction:column;gap:12px">
+          <div id="usr-stats" style="font-size:12px;color:var(--ink3);padding:0 4px"></div>
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow:auto;max-height:calc(100vh - 260px)">
+            <table style="border-collapse:collapse;min-width:1000px;width:max-content">
+              <thead>
+                <tr style="background:var(--navy);color:#fff" class="sticky-thead">
+                  <th class="usr-th" onclick="usrSort('email')">Email <span class="sort-icon" id="usr-sort-email">⇅</span></th>
+                  <th class="usr-th" onclick="usrSort('_display_name')">顯示名稱 <span class="sort-icon" id="usr-sort-_display_name">⇅</span></th>
+                  <th class="usr-th" onclick="usrSort('role')" style="text-align:center">角色 <span class="sort-icon" id="usr-sort-role">⇅</span></th>
+                  <th class="usr-th" onclick="usrSort('_irole_str')">院內職務 <span class="sort-icon" id="usr-sort-_irole_str">⇅</span></th>
+                  <th class="usr-th">權限 ({模組數})</th>
+                  <th class="usr-th" onclick="usrSort('created_at')" style="text-align:center">建立 <span class="sort-icon" id="usr-sort-created_at">⇅</span></th>
+                  <th class="sticky-thead-th" style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
+                </tr>
+              </thead>
+              <tbody id="usr-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--ink3)">載入中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="usr-view-presets" style="display:none;flex-direction:column;gap:14px">
+          <div style="font-size:12.5px;color:var(--ink3);background:var(--cr3);padding:10px 12px;border-radius:6px">
+            這裡設定的是「角色」的預設權限範圍——每個角色一組固定範本，之後在「帳號列表」編輯個別帳號時可以直接套用，再視需要個別微調。<strong>改這裡不會自動更新已經套用過的帳號</strong>，要更新既有帳號要回到帳號列表重新套用或手動調整。
+          </div>
+          <div id="preset-mgr-tabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+          <div id="preset-mgr-grid"></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;border-top:1px dashed var(--cr2);padding-top:12px">
+            <span style="font-size:11px;color:var(--ink3)">全部設為:</span>
+            <button onclick="setAllPresetMgr('none')" style="padding:3px 8px;font-size:11px;border:1px solid var(--cr2);background:#fff;border-radius:4px;cursor:pointer">無</button>
+            <button onclick="setAllPresetMgr('read')" style="padding:3px 8px;font-size:11px;border:1px solid var(--cr2);background:#fff;border-radius:4px;cursor:pointer">讀</button>
+            <button onclick="setAllPresetMgr('write')" style="padding:3px 8px;font-size:11px;border:1px solid var(--cr2);background:#fff;border-radius:4px;cursor:pointer">寫</button>
+            <button onclick="setAllPresetMgr('admin')" style="padding:3px 8px;font-size:11px;border:1px solid var(--cr2);background:#fff;border-radius:4px;cursor:pointer">全</button>
+            <span style="flex:1"></span>
+            <button class="btn btn-pri" onclick="savePresetManager()">💾 儲存此範本</button>
+          </div>
+          <div style="font-size:12px;color:var(--ink3);background:var(--cr3);padding:12px 14px;border-radius:6px;line-height:1.9">
+            <strong style="color:var(--ink2)">為什麼這裡沒有 teacher／student？</strong><br>
+            這4組範本只服務 <strong>staff</strong> 角色，其他角色不透過這套「模組讀/寫/全」矩陣控制：
+            <ul style="margin:6px 0 0 18px;padding:0">
+              <li><strong>admin</strong>：永遠擁有全部權限，不需要範本</li>
+              <li><strong>staff（行政人員）</strong>：需要「這個人能看哪些模組、能不能寫」的彈性設定，所以才有這4組範本讓你套用</li>
+              <li><strong>teacher（教師）</strong>：走的是完全獨立的 teacher.html 老師入口，看到的功能是寫死的（自己的課、自己的學生成績），不是透過這套權限矩陣控制</li>
+              <li><strong>student（學生）</strong>：走 student.html 學生入口，一樣是寫死的（只能看自己的資料），也不透過這套矩陣控制</li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -1416,7 +1452,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div class="page-title">✅ 待辦事務</div>
           <div style="display:flex;gap:8px;align-items:center">
             <label style="font-size:13px;color:var(--ink3);display:flex;align-items:center;gap:4px;cursor:pointer">
-              <input type="checkbox" id="todo-show-done" onchange="renderTodos()" checked> 顯示已完成
+              <input type="checkbox" id="todo-show-done" onchange="renderTodos()"> 顯示已完成
             </label>
           </div>
           <div style="margin-left:auto;display:flex;gap:6px">
@@ -6693,7 +6729,7 @@ async function loadTodos() {
 
 function renderTodos() {
   const userId = window.ADMIN_USER_ID||'';
-  const showDone = document.getElementById('todo-show-done')?.checked ?? true;
+  const showDone = document.getElementById('todo-show-done')?.checked ?? false;
   const now = new Date();
   const shared   = TODOS_ALL.filter(t=>t.is_shared && (showDone||!t.is_done));
   const personal = TODOS_ALL.filter(t=>!t.is_shared && (showDone||!t.is_done));
@@ -12267,13 +12303,16 @@ function normalizePerm(v) {
   return 'none';
 }
 
-const PERM_PRESETS = {
+// 內建預設值（DB讀取失敗時的後備，或DB尚未建表時仍可正常運作）
+const DEFAULT_PERM_PRESETS = {
   admin: Object.fromEntries(PERM_KEYS.map(k => [k, 'admin'])),
   teacher_staff: {
     announcements:'write', todos:'write', meetings:'write',
     courses:'read', open_courses:'read', classrooms:'read', teachers:'read',
     thesis:'read', students:'read', semesters:'read',
-    surveys:'read', grades:'none', logs:'none'
+    surveys:'read', grades:'none', logs:'none',
+    scholarship:'read', forms:'read', lending:'read', committees:'read',
+    'grade-summary':'none'
   },
   viewer: Object.fromEntries(PERM_KEYS.map(k => [k, 'read'])),
   staff_empty: Object.fromEntries(PERM_KEYS.map(k => [k, 'none'])),
@@ -12284,10 +12323,31 @@ const PRESET_NAMES = {
   viewer:'主管唯讀（全部讀）',
   staff_empty:'從零開始（全部無）',
 };
+// runtime版本：頁面載入時會嘗試從 permission_presets 表覆蓋，admin可從「⚙️ 角色權限預設值」畫面調整並存回DB
+let PERM_PRESETS = JSON.parse(JSON.stringify(DEFAULT_PERM_PRESETS));
+let _permPresetsLoaded = false;
+
+async function loadPermissionPresets() {
+  try {
+    const { data, error } = await sb.from('permission_presets').select('*');
+    if (error) throw error;
+    if (data && data.length) {
+      data.forEach(row => {
+        PERM_PRESETS[row.preset_key] = row.permissions || {};
+        if (row.preset_name) PRESET_NAMES[row.preset_key] = row.preset_name;
+      });
+    }
+  } catch (e) {
+    console.warn('讀取權限範本失敗，改用內建預設值（可能是 permission_presets 表尚未建立）', e);
+  }
+  _permPresetsLoaded = true;
+}
 
 async function loadUsers() {
   const tbody = document.getElementById('usr-tbody');
   tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--ink3)">載入中…</td></tr>';
+
+  await loadPermissionPresets();
 
   try {
     const { data: users, error } = await sb.from('users').select('*').order('created_at', { ascending:true });
@@ -12447,6 +12507,98 @@ function applyPresetTemplate(presetKey) {
   if (!confirm(`套用「${PRESET_NAMES[presetKey]}」範本?\n\n會覆蓋目前所有權限設定。`)) return;
   PERM_KEYS.forEach(key => setPermLevel(key, preset[key] || 'none'));
   showToast(`✅ 已套用「${PRESET_NAMES[presetKey]}」`);
+}
+
+/* ── 帳號管理頁面：帳號列表 / 角色權限預設值 兩個view切換 ── */
+function switchUsrView(view) {
+  const isList = view === 'list';
+  document.getElementById('usr-view-list').style.display = isList ? 'flex' : 'none';
+  document.getElementById('usr-view-presets').style.display = isList ? 'none' : 'flex';
+
+  const tabList = document.getElementById('usr-tab-list');
+  const tabPresets = document.getElementById('usr-tab-presets');
+  tabList.style.borderBottomColor = isList ? 'var(--navy)' : 'transparent';
+  tabList.style.color = isList ? 'var(--navy)' : 'var(--ink3)';
+  tabPresets.style.borderBottomColor = isList ? 'transparent' : 'var(--navy)';
+  tabPresets.style.color = isList ? 'var(--ink3)' : 'var(--navy)';
+
+  if (!isList) {
+    renderPresetMgrTabs();
+    renderPresetMgrGrid(_presetMgrCurrentKey);
+  }
+}
+
+/* ── 角色權限預設值：admin可從畫面調整4組角色範本內容，存進 permission_presets 表 ── */
+let _presetMgrCurrentKey = 'admin';
+
+function renderPresetMgrTabs() {
+  const tabsEl = document.getElementById('preset-mgr-tabs');
+  if (!tabsEl) return;
+  tabsEl.innerHTML = Object.keys(PERM_PRESETS).map(key => {
+    const active = key === _presetMgrCurrentKey;
+    return `<button onclick="switchPresetMgrTab('${key}')"
+      style="padding:5px 12px;font-size:12px;border-radius:5px;cursor:pointer;font-weight:500;
+      border:1px solid ${active?'#1565C0':'var(--cr2)'};
+      background:${active?'#E3F2FD':'#fff'};
+      color:${active?'#1565C0':'var(--ink2)'}">${PRESET_NAMES[key]||key}</button>`;
+  }).join('');
+}
+
+function switchPresetMgrTab(key) {
+  _presetMgrCurrentKey = key;
+  renderPresetMgrTabs();
+  renderPresetMgrGrid(key);
+}
+
+function renderPresetMgrGrid(key) {
+  const grid = document.getElementById('preset-mgr-grid');
+  if (!grid) return;
+  const perms = PERM_PRESETS[key] || {};
+  grid.innerHTML = `<div style="padding:8px 10px;background:var(--cr3);border-radius:6px">` +
+    PERM_KEYS.map(k => {
+      const cur = normalizePerm(perms[k]);
+      return `<div class="perm-row" data-mgr-key="${k}">
+        <div class="perm-label">${PERM_LABELS[k]||k}</div>
+        <div class="perm-levels">
+          ${PERM_LEVELS.map(lv =>
+            `<label class="lv-${lv} ${cur===lv?'on':''}" onclick="setPresetMgrLevel('${k}','${lv}')">${PERM_LEVEL_LABEL[lv]}</label>`
+          ).join('')}
+        </div>
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+function setPresetMgrLevel(key, lv) {
+  const row = document.querySelector(`#preset-mgr-grid .perm-row[data-mgr-key="${key}"]`);
+  if (!row) return;
+  row.querySelectorAll('.perm-levels label').forEach(l => l.classList.remove('on'));
+  const target = row.querySelector('.lv-' + lv);
+  if (target) target.classList.add('on');
+}
+
+function setAllPresetMgr(level) {
+  PERM_KEYS.forEach(key => setPresetMgrLevel(key, level));
+}
+
+async function savePresetManager() {
+  const key = _presetMgrCurrentKey;
+  const perms = {};
+  document.querySelectorAll('#preset-mgr-grid .perm-row').forEach(row => {
+    const k = row.dataset.mgrKey;
+    const onLabel = row.querySelector('.perm-levels label.on');
+    const m = onLabel ? onLabel.className.match(/lv-(\w+)/) : null;
+    perms[k] = m ? m[1] : 'none';
+  });
+  try {
+    const { error } = await sb.from('permission_presets')
+      .update({ permissions: perms, updated_at: new Date().toISOString(), updated_by: window.ADMIN_USER_ID || null })
+      .eq('preset_key', key);
+    if (error) throw error;
+    PERM_PRESETS[key] = perms;
+    showToast(`✅ 已儲存「${PRESET_NAMES[key]||key}」範本`);
+  } catch (e) {
+    showToast('❌ 儲存失敗：' + e.message);
+  }
 }
 
 async function saveUser() {
