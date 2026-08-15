@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v2.4 2026-06-21 -->
+<!-- BWBC Student v2.5 2026-08-15 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -236,6 +236,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-thesis" onclick="showSection('thesis')">📝 畢業論文</div>
       <div class="side-item" id="nav-survey" onclick="showSection('survey')">📋 意見調查</div>
       <div class="side-item" id="nav-forms" onclick="showSection('forms')">📄 常用表單</div>
+      <div class="side-item" id="nav-regulations" onclick="showSection('regulations')">⚖️ 相關法規查詢</div>
     </div>
 
     <!-- 右側主內容 -->
@@ -420,6 +421,12 @@ input{font-family:inherit}
       <div id="sec-forms" class="t-section">
         <div class="section-title">📄 常用表單</div>
         <div id="forms-list-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── 相關法規查詢 ── -->
+      <div id="sec-regulations" class="t-section">
+        <div class="section-title">⚖️ 相關法規查詢</div>
+        <div id="regulations-list-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
 
       <!-- ── TA申請 ── -->
@@ -2296,6 +2303,7 @@ function showSection(id) {
   if (id === 'thesis') { loadThesisView(); loadEthicsReviewSection(); }
   if (id === 'survey') loadStudentSurveys();
   if (id === 'forms') loadFormsSection();
+  if (id === 'regulations') loadRegulationsSectionS();
   if (id === 'ta-apply') loadTaApplySection();
   if (id === 'print-sheet') loadPrintSheetView();
   if (id === 'attendance') loadAttendanceOfferings();
@@ -3079,6 +3087,49 @@ function renderFormRowS(f) {
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       ${canView ? `<a href="javascript:void(0)" onclick="openViewer('${encodeURIComponent(url)}','${ext}','${safeFn}')" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:3px 10px;border-radius:20px;background:var(--navy3);color:var(--navy);text-decoration:none;border:1px solid rgba(43,95,160,.2)">👁 線上看</a>` : ''}
       <a href="${url}" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 10px;background:var(--cr3);border-radius:20px;color:var(--ink);text-decoration:none">📎 ${f.title}</a>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════════════
+ * ⚖️ 相關法規查詢（學生端：唯讀，只看admin設定為「顯示」的清單，依分類分組）
+ * 檔案來源是學校Google Drive（admin後台管理），這裡只讀regulations/regulation_categories兩張表
+ * ════════════════════════════════════════════════════════ */
+async function loadRegulationsSectionS() {
+  const wrap = document.getElementById('regulations-list-wrap');
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  try {
+    const [{ data: cats, error: ce }, { data: items, error: ie }] = await Promise.all([
+      sb.from('regulation_categories').select('*').order('sort_order'),
+      sb.from('regulations').select('*').eq('is_visible', true).order('sort_order'),
+    ]);
+    if (ce || ie) throw (ce || ie);
+
+    const grp = {};
+    (cats||[]).forEach(c => grp[c.id] = []);
+    (items||[]).forEach(it => { if (grp[it.category_id]) grp[it.category_id].push(it); });
+
+    let html = '';
+    (cats||[]).forEach(cat => {
+      const list = grp[cat.id] || [];
+      if (!list.length) return; // 空分類不顯示，避免清單充滿空白區塊
+      html += `<div style="background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:18px;margin-bottom:16px">
+        <div style="font-weight:600;font-size:15px;margin-bottom:12px;color:var(--navy)">${cat.name}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${list.map(it => renderRegulationRowS(it)).join('')}
+        </div>
+      </div>`;
+    });
+    wrap.innerHTML = html || '<div style="color:var(--ink3);font-size:13px;padding:20px">目前尚無公開的法規資料</div>';
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);padding:20px;font-size:13px">載入失敗：${e.message}</div>`;
+  }
+}
+
+function renderRegulationRowS(it) {
+  return `
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <a href="${it.file_url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:3px 10px;border-radius:20px;background:var(--navy3);color:var(--navy);text-decoration:none;border:1px solid rgba(43,95,160,.2)">👁 線上看</a>
+      <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 10px;background:var(--cr3);border-radius:20px;color:var(--ink)">📎 ${it.display_name}<span style="color:var(--ink3);font-size:10.5px">· ${it.department_name||''}</span></span>
     </div>`;
 }
 

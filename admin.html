@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v7.9 2026-08-15 -->
+<!-- BWBC Admin v8.0 2026-08-15 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -342,6 +342,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </div>
         </div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('conflicts',this)"><span class="nav-icon">⚠️</span>衝堂警示 <span class="badge badge-warn" id="conflict-badge" style="margin-left:auto;display:none">0</span></div>
+        <div class="nav-item" data-perm="courses" onclick="showPage('staff-arrange',this)"><span class="nav-icon">🗂</span>課程幹部安排</div>
       </div>
       <div class="nav-section">
         <div class="nav-label">資料管理</div>
@@ -384,7 +385,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v7.9　2026-08-15</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v8.0　2026-08-15</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -522,6 +523,62 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             </tr></thead>
             <tbody id="conflicts-body"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ▌課程幹部安排 ▌-->
+      <div id="page-staff-arrange" style="display:none;flex-direction:column;gap:12px">
+        <div class="page-hdr">
+          <div class="page-title">🗂 課程幹部安排</div>
+        </div>
+        <div style="display:flex;gap:6px;border-bottom:1px solid var(--cr2);padding:0 2px">
+          <button id="sa-tab-missing" onclick="saSwitchTab('missing')"
+            style="padding:9px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--navy);color:var(--navy)">⚠️ 缺人提醒</button>
+          <button id="sa-tab-list" onclick="saSwitchTab('list')"
+            style="padding:9px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--ink3)">📋 現有指派</button>
+        </div>
+
+        <!-- 缺人提醒：只看目前學期，不提供學期切換 -->
+        <div id="sa-view-missing" style="display:flex;flex-direction:column;gap:16px">
+          <div style="font-size:12px;color:var(--ink3)" id="sa-missing-sem-label"></div>
+          <div>
+            <div style="font-weight:700;font-size:13.5px;color:var(--ink2);margin-bottom:8px">📢 視聽／小天使／點名者 缺人 <span id="sa-missing-staff-count" style="font-weight:400;color:var(--ink3);font-size:12px"></span></div>
+            <div id="sa-missing-staff-wrap" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:13.5px;color:var(--ink2);margin-bottom:8px">🙋 TA 缺人（大綱已開放申請，但還沒配對成功） <span id="sa-missing-ta-count" style="font-weight:400;color:var(--ink3);font-size:12px"></span></div>
+            <div id="sa-missing-ta-wrap" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+
+        <!-- 現有指派總表 -->
+        <div id="sa-view-list" style="display:none;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input class="finput" id="sa-list-search" placeholder="搜尋姓名或學號…" style="max-width:200px" oninput="saRenderListTable()">
+            <select class="finput" id="sa-list-role-filter" style="max-width:140px" onchange="saRenderListTable()">
+              <option value="">全部角色</option>
+              <option value="ta">TA</option>
+              <option value="av">視聽</option>
+              <option value="angel">小天使</option>
+              <option value="recorder">點名者</option>
+            </select>
+            <label style="font-size:12.5px;color:var(--ink3);display:flex;align-items:center;gap:5px;cursor:pointer;margin-left:auto">
+              <input type="checkbox" id="sa-list-show-all-sem" onchange="saLoadAll()"> 顯示所有學期（含過去）
+            </label>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th class="usr-th" onclick="saSort('semester_label')">學期 <span class="sort-icon" id="sa-sort-semester_label">⇅</span></th>
+                <th class="usr-th" onclick="saSort('course_name')">課程 <span class="sort-icon" id="sa-sort-course_name">⇅</span></th>
+                <th class="usr-th" onclick="saSort('role')" style="text-align:center">角色 <span class="sort-icon" id="sa-sort-role">⇅</span></th>
+                <th class="usr-th" onclick="saSort('student_name')">姓名/學號 <span class="sort-icon" id="sa-sort-student_name">⇅</span></th>
+                <th class="usr-th" onclick="saSort('created_at')" style="text-align:center">指派時間 <span class="sort-icon" id="sa-sort-created_at">⇅</span></th>
+                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
+              </tr></thead>
+              <tbody id="sa-list-tbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--ink3)">載入中…</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -9701,6 +9758,33 @@ async function rejectTaApplication(appId) {
   } catch (e) { showToast('操作失敗：'+e.message, 'error'); }
 }
 
+// ══ 全系統共用：移除課程幹部指派(offering_staff) ══
+// 用在：TA配對頁、課程幹部安排總覽，兩處共用同一份邏輯，以後只要改一次、兩邊永遠一致
+// 特別處理：如果移除的是TA、而且這個人是透過「TA申請」配對來的，順便把申請狀態改回「待審核」，
+// 避免ta_applications留著「已配對成功」的孤兒資料、跟實際指派狀態對不上
+async function removeOfferingStaffAssignment(staffId, {skipConfirm=false, confirmMsg='確定移除這筆指派嗎？'} = {}) {
+  if (!skipConfirm && !confirm(confirmMsg)) return { cancelled: true };
+  try {
+    const { data: staffRow, error: fetchErr } = await sb.from('offering_staff')
+      .select('id, offering_id, student_id, role').eq('id', staffId).maybeSingle();
+    if (fetchErr) return { error: fetchErr };
+    if (!staffRow) return { error: { message: '找不到這筆指派資料（可能已經被移除過）' } };
+
+    if (staffRow.role === 'ta') {
+      const { error: appErr } = await sb.from('ta_applications')
+        .update({ status: 'pending' })
+        .eq('offering_id', staffRow.offering_id).eq('student_id', staffRow.student_id).eq('status', 'matched');
+      if (appErr) console.warn('[removeOfferingStaffAssignment] 回復ta_applications狀態失敗(不影響主要刪除動作)', appErr);
+    }
+
+    const { error } = await sb.from('offering_staff').delete().eq('id', staffId);
+    if (error) return { error };
+    return { success: true, removedRole: staffRow.role };
+  } catch (e) {
+    return { error: e };
+  }
+}
+
 // 行政直接指定（不經過申請流程，用在admin/老師已經知道要找誰的課）
 async function designateTa(offeringId) {
   const sel = document.getElementById(`ta-designate-sel-${offeringId}`);
@@ -9719,13 +9803,231 @@ async function designateTa(offeringId) {
 
 // 移除TA指派（不論是配對來的還是直接指定的，都是同一張offering_staff表，共用同一個移除功能）
 async function removeTaAssignment(staffId) {
-  if (!confirm('確定移除這位TA的指派嗎？')) return;
+  const result = await removeOfferingStaffAssignment(staffId, { confirmMsg: '確定移除這位TA的指派嗎？' });
+  if (result.cancelled) return;
+  if (result.error) { showToast('移除失敗：'+result.error.message, 'error'); return; }
+  showToast('已移除');
+  loadTaMatchTable();
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 🗂 課程幹部安排：⚠️缺人提醒(只看目前學期) + 📋現有指派總表(預設目前學期,可切換含過去)
+ * 沿用既有的 offering_staff / ta_applications / syllabi 表，不需要新增資料庫結構
+ * ════════════════════════════════════════════════════════════════════ */
+let _saCurrentSem = null;
+let _saAllRows = [];       // 現有指派總表：扁平化後的資料
+let _saSortKey = 'semester_label';
+let _saSortDir = 1;
+
+async function saInit() {
+  saSwitchTab('missing');
+  _saCurrentSem = await getCurrentSemesterByDate();
+  await saLoadMissing();
+  await saLoadAll();
+}
+
+function saSwitchTab(tab) {
+  const isMissing = tab === 'missing';
+  document.getElementById('sa-view-missing').style.display = isMissing ? 'flex' : 'none';
+  document.getElementById('sa-view-list').style.display = isMissing ? 'none' : 'flex';
+  const tabMissing = document.getElementById('sa-tab-missing');
+  const tabList = document.getElementById('sa-tab-list');
+  tabMissing.style.borderBottomColor = isMissing ? 'var(--navy)' : 'transparent';
+  tabMissing.style.color = isMissing ? 'var(--navy)' : 'var(--ink3)';
+  tabList.style.borderBottomColor = isMissing ? 'transparent' : 'var(--navy)';
+  tabList.style.color = isMissing ? 'var(--ink3)' : 'var(--navy)';
+}
+
+/* ── ⚠️ 缺人提醒：只看目前學期 ── */
+async function saLoadMissing() {
+  const staffWrap = document.getElementById('sa-missing-staff-wrap');
+  const taWrap = document.getElementById('sa-missing-ta-wrap');
+  staffWrap.innerHTML = taWrap.innerHTML = '<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">載入中…</div>';
+
+  if (!_saCurrentSem) {
+    document.getElementById('sa-missing-sem-label').textContent = '找不到目前學期，無法檢查缺人狀況';
+    staffWrap.innerHTML = taWrap.innerHTML = '';
+    return;
+  }
+  document.getElementById('sa-missing-sem-label').textContent = `目前檢查學期：${_saCurrentSem.label}`;
+
+  const { data: offs } = await sb.from('course_offerings')
+    .select('id, courses(name_zh, code)')
+    .eq('semester_id', _saCurrentSem.id).eq('is_active', true);
+  const offList = offs || [];
+  const offIds = offList.map(o => o.id);
+  if (!offIds.length) {
+    staffWrap.innerHTML = '<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">這個學期還沒有開課記錄</div>';
+    taWrap.innerHTML = '';
+    return;
+  }
+
+  const [{ data: staffRows }, { data: syls }] = await Promise.all([
+    sb.from('offering_staff').select('offering_id, role').in('offering_id', offIds),
+    sb.from('syllabi').select('offering_id, ta_open_for_apply').in('offering_id', offIds),
+  ]);
+
+  const roleSetByOffering = {};
+  (staffRows||[]).forEach(r => {
+    if (!roleSetByOffering[r.offering_id]) roleSetByOffering[r.offering_id] = new Set();
+    roleSetByOffering[r.offering_id].add(r.role);
+  });
+  const taOpenSet = new Set((syls||[]).filter(s=>s.ta_open_for_apply).map(s=>s.offering_id));
+
+  // ⚠️ 視聽／小天使／點名者：完全沒有任一位就列出
+  const rolesToCheck = [['av','視聽'],['angel','小天使'],['recorder','點名者']];
+  const staffMissing = [];
+  offList.forEach(o => {
+    const have = roleSetByOffering[o.id] || new Set();
+    const missing = rolesToCheck.filter(([key])=>!have.has(key));
+    if (missing.length) staffMissing.push({ offering: o, missing });
+  });
+
+  // ⚠️ TA：大綱已開放申請、但完全沒有人被配對(role='ta')才算缺
+  const taMissing = offList.filter(o => taOpenSet.has(o.id) && !(roleSetByOffering[o.id]||new Set()).has('ta'));
+
+  document.getElementById('sa-missing-staff-count').textContent = `（${staffMissing.length}門）`;
+  document.getElementById('sa-missing-ta-count').textContent = `（${taMissing.length}門）`;
+
+  staffWrap.innerHTML = staffMissing.length ? staffMissing.map(({offering, missing}) => `
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:13px"><strong>${esc(offering.courses?.code||'')}</strong> ${esc(offering.courses?.name_zh||'')} — 缺：${missing.map(([,label])=>label).join('、')}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <select id="sa-fill-sel-${offering.id}" class="finput" style="flex:1;min-width:160px;font-size:12.5px"></select>
+        <select id="sa-fill-role-${offering.id}" class="finput" style="width:110px;font-size:12.5px">
+          ${missing.map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}
+        </select>
+        <button class="btn btn-pri btn-sm" onclick="saQuickAssign('${offering.id}')">＋ 指派</button>
+      </div>
+    </div>`).join('') : '<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">目前沒有缺人的課程 🎉</div>';
+
+  taWrap.innerHTML = taMissing.length ? taMissing.map(o => `
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:10px 14px;font-size:13px">
+      <strong>${esc(o.courses?.code||'')}</strong> ${esc(o.courses?.name_zh||'')} — 大綱已開放TA申請，但還沒有人配對成功，請到「TA配對」頁面處理
+    </div>`).join('') : '<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">目前沒有待處理的TA缺額 🎉</div>';
+
+  // 就地新增用的學生下拉選單，沿用系統既有的全體學生快取(STUDENTS_ALL)，如果還沒載入過就臨時查一次
+  if (staffMissing.length) {
+    let studentOptions = STUDENTS_ALL;
+    if (!studentOptions || !studentOptions.length) {
+      const { data } = await sb.from('students').select('id,name_zh,student_code').eq('status','active').order('student_code');
+      studentOptions = data || [];
+    }
+    const optHtml = '<option value="">選擇學生…</option>' + studentOptions.map(s=>`<option value="${s.id}">${esc(s.name_zh)}（${esc(s.student_code)}）</option>`).join('');
+    staffMissing.forEach(({offering}) => {
+      const sel = document.getElementById(`sa-fill-sel-${offering.id}`);
+      if (sel) sel.innerHTML = optHtml;
+    });
+  }
+}
+
+async function saQuickAssign(offeringId) {
+  const studentSel = document.getElementById(`sa-fill-sel-${offeringId}`);
+  const roleSel = document.getElementById(`sa-fill-role-${offeringId}`);
+  const studentId = studentSel.value;
+  const role = roleSel.value;
+  if (!studentId) { showToast('請先選擇學生','error'); return; }
   try {
-    const { error } = await sb.from('offering_staff').delete().eq('id', staffId);
-    if (error) { showToast('移除失敗：'+error.message, 'error'); return; }
-    showToast('已移除');
-    loadTaMatchTable();
+    const { error } = await sb.from('offering_staff').insert({ offering_id: offeringId, student_id: studentId, role });
+    if (error) {
+      if (error.message.includes('duplicate') || error.code === '23505') { showToast('這位學生已經是這個角色了','error'); return; }
+      showToast('指派失敗：'+error.message, 'error'); return;
+    }
+    showToast('✅ 已指派');
+    saLoadMissing();
+    if (document.getElementById('sa-list-tbody')) saLoadAll(); // 順便讓現有指派總表也同步(如果使用者之後切過去看)
   } catch (e) { showToast('操作失敗：'+e.message, 'error'); }
+}
+
+/* ── 📋 現有指派總表 ── */
+async function saLoadAll() {
+  const tbody = document.getElementById('sa-list-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--ink3)">載入中…</td></tr>';
+
+  const showAllSem = document.getElementById('sa-list-show-all-sem').checked;
+
+  let offQuery = sb.from('course_offerings').select('id, semester_id, day, start_time, end_time, semesters(label), courses(name_zh, code)');
+  if (!showAllSem) {
+    if (!_saCurrentSem) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--ink3)">找不到目前學期</td></tr>'; return; }
+    offQuery = offQuery.eq('semester_id', _saCurrentSem.id);
+  }
+  const { data: offs, error: oe } = await offQuery;
+  if (oe) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#c0392b">載入失敗：${esc(oe.message)}</td></tr>`; return; }
+
+  const offMap = {}; (offs||[]).forEach(o => offMap[o.id] = o);
+  const offIds = (offs||[]).map(o=>o.id);
+  if (!offIds.length) { _saAllRows = []; saRenderListTable(); return; }
+
+  const { data: staffRows, error: se } = await sb.from('offering_staff')
+    .select('id, offering_id, role, created_at, students(name_zh, student_code)')
+    .in('offering_id', offIds);
+  if (se) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#c0392b">載入失敗：${esc(se.message)}</td></tr>`; return; }
+
+  const dayMap = {1:'週一',2:'週二',3:'週三',4:'週四',5:'週五',6:'週六',0:'週日'};
+  _saAllRows = (staffRows||[]).map(r => {
+    const off = offMap[r.offering_id];
+    if (!off) return null;
+    return {
+      staff_id: r.id,
+      semester_label: off.semesters?.label || '',
+      course_name: `${off.courses?.code||''} ${off.courses?.name_zh||''}`,
+      course_time: off.day ? `${dayMap[off.day]||''} ${(off.start_time||'').slice(0,5)}-${(off.end_time||'').slice(0,5)}` : '',
+      role: r.role,
+      student_name: r.students?.name_zh || '',
+      student_code: r.students?.student_code || '',
+      created_at: r.created_at,
+    };
+  }).filter(Boolean);
+
+  saRenderListTable();
+}
+
+function saSort(key) {
+  if (_saSortKey === key) _saSortDir *= -1; else { _saSortKey = key; _saSortDir = 1; }
+  document.querySelectorAll('#page-staff-arrange .sort-icon').forEach(el=>el.textContent='⇅');
+  const icon = document.getElementById('sa-sort-'+key);
+  if (icon) icon.textContent = _saSortDir === 1 ? '↑' : '↓';
+  saRenderListTable();
+}
+
+function saRenderListTable() {
+  const tbody = document.getElementById('sa-list-tbody');
+  const search = (document.getElementById('sa-list-search').value||'').trim().toLowerCase();
+  const roleFilter = document.getElementById('sa-list-role-filter').value;
+
+  let rows = _saAllRows.slice();
+  if (roleFilter) rows = rows.filter(r => r.role === roleFilter);
+  if (search) rows = rows.filter(r => r.student_name.toLowerCase().includes(search) || r.student_code.toLowerCase().includes(search));
+
+  rows.sort((a,b) => {
+    const av = a[_saSortKey] ?? '', bv = b[_saSortKey] ?? '';
+    if (av < bv) return -1*_saSortDir;
+    if (av > bv) return 1*_saSortDir;
+    return 0;
+  });
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--ink3)">沒有符合條件的資料</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td style="padding:8px 14px">${esc(r.semester_label)}</td>
+      <td style="padding:8px 14px">${esc(r.course_name)}${r.course_time?`<div style="font-size:11px;color:var(--ink3)">${esc(r.course_time)}</div>`:''}</td>
+      <td style="padding:8px 14px;text-align:center">${STAFF_ROLE_LABEL[r.role]||r.role}</td>
+      <td style="padding:8px 14px">${esc(r.student_name)}<span style="font-size:11px;color:var(--ink3)">（${esc(r.student_code)}）</span></td>
+      <td style="padding:8px 14px;text-align:center;font-size:12px;color:var(--ink3)">${r.created_at ? new Date(r.created_at).toLocaleDateString('zh-TW') : ''}</td>
+      <td style="padding:8px 14px;text-align:center"><button onclick="saRemoveAssignment('${r.staff_id}')" style="font-size:11px;padding:3px 10px;border:1px solid #e0b0b0;color:#a83232;background:#fff;border-radius:5px;cursor:pointer">🗑 移除</button></td>
+    </tr>`).join('');
+}
+
+async function saRemoveAssignment(staffId) {
+  const result = await removeOfferingStaffAssignment(staffId, { confirmMsg: '確定移除這筆課程幹部指派嗎？' });
+  if (result.cancelled) return;
+  if (result.error) { showToast('移除失敗：'+result.error.message, 'error'); return; }
+  showToast('✅ 已移除');
+  saLoadAll();
+  saLoadMissing();
 }
 
 async function runConflictCheck(silent=false) {
@@ -9786,6 +10088,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    2. 側邊欄 #app-version-label 顯示的文字
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v8.0', date: '2026-08-15',
+    items: [
+      '新增獨立功能「🗂 課程幹部安排」（放在課程管理選單底下）：⚠️缺人提醒（只看目前學期，分「視聽/小天使/點名者」跟「TA」兩組規則）+ 📋現有指派總表（預設目前學期，可切換含過去學期，用來清理舊資料）',
+      '缺人提醒清單可以就地指派，不用跳去開課記錄編輯視窗',
+      '把TA配對頁跟課程幹部安排共用的「移除指派」邏輯合併成同一個函式（removeOfferingStaffAssignment），順便修正舊漏洞：移除TA時若原本是透過「TA申請」配對來的，同步把申請狀態改回待審核，避免留下狀態對不上的孤兒資料',
+    ]
+  },
   {
     version: 'v7.9', date: '2026-08-15',
     items: [
@@ -9877,7 +10187,7 @@ document.addEventListener('click', (e) => {
 function showPage(page, btn) {
   document.querySelectorAll('[id^="page-"]').forEach(el=>el.style.display='none');
   const pageEl=document.getElementById('page-'+page);
-  if (pageEl) pageEl.style.display = (page==='semesters'||page==='students'||page==='users'||page==='regulations') ? 'flex' : '';
+  if (pageEl) pageEl.style.display = (page==='semesters'||page==='students'||page==='users'||page==='regulations'||page==='staff-arrange') ? 'flex' : '';
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('on'));
   if (btn) btn.classList.add('on');
   if (page==='offerings') loadOfferings();
@@ -9909,6 +10219,7 @@ function showPage(page, btn) {
   if (page==='committees') cmteInit();
   if (page==='distance-apps') initDistanceApps();
   if (page==='regulations') regLoadAll();
+  if (page==='staff-arrange') saInit();
 }
 
 /* ════════════════════════════════════════════════════════════════════
