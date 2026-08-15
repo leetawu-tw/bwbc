@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v7.8 2026-08-15 -->
+<!-- BWBC Admin v7.9 2026-08-15 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -384,7 +384,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v7.8　2026-08-15</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v7.9　2026-08-15</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -9786,6 +9786,12 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    2. 側邊欄 #app-version-label 顯示的文字
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v7.9', date: '2026-08-15',
+    items: [
+      '修正「教室借用申請→教室使用總覽」查不到課程的bug：查詢語法誤用了course_offerings表不存在的req_type欄位（該欄位其實在courses表），導致整個查詢被資料庫拒絕、靜默回傳空清單，畫面顯示「全天無安排」但實際上是查詢失敗，不是真的沒課',
+    ]
+  },
   {
     version: 'v7.8', date: '2026-08-15',
     items: [
@@ -19284,10 +19290,11 @@ async function rbRenderOverview() {
   // 固定課表：只抓「這間教室」+「這週橫跨的學期」的開課記錄，避免撈到其他學期同教室開過的舊課
   let offs = [];
   if (semIdsThisWeek.length) {
-    const { data } = await sb.from('course_offerings')
-      .select('id,day,start_time,end_time,week_pattern,req_type,target_cohort,courses(name_zh,code,credits)')
+    const { data, error } = await sb.from('course_offerings')
+      .select('id,day,start_time,end_time,week_pattern,target_cohort,courses(name_zh,code,credits,req_type)')
       .eq('classroom_id', classroomId).eq('is_active',true).eq('is_cancelled',false).not('day','is',null)
       .in('semester_id', semIdsThisWeek);
+    if (error) console.error('[教室使用總覽] 開課查詢失敗', error);
     offs = data || [];
   }
   // 補撈這些開課記錄的授課老師（可能不只一位）
@@ -19307,7 +19314,7 @@ async function rbRenderOverview() {
     (offs||[]).filter(o=>o.day===dow).forEach(o => {
       if (!rbOfferingActiveOnDate(o, sem, ds)) return;
       const idx = _rboItemsFlat.length;
-      _rboItemsFlat.push({ kind:'course', name:o.courses?.name_zh||'', code:o.courses?.code||'', credits:o.courses?.credits, reqType:o.req_type, teachers:teacherByOffering[o.id]||[], weekPattern:o.week_pattern||'every', targetCohort:o.target_cohort, start:o.start_time, end:o.end_time, date:ds });
+      _rboItemsFlat.push({ kind:'course', name:o.courses?.name_zh||'', code:o.courses?.code||'', credits:o.courses?.credits, reqType:o.courses?.req_type, teachers:teacherByOffering[o.id]||[], weekPattern:o.week_pattern||'every', targetCohort:o.target_cohort, start:o.start_time, end:o.end_time, date:ds });
       dayInfo[ds].push({ idx, label: `${o.courses?.name_zh||''}`, start:o.start_time, end:o.end_time, color:'#3b82f6' });
     });
   }
