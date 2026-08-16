@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v2.7 2026-08-15 -->
+<!-- BWBC Student v2.8 2026-08-15 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -138,7 +138,10 @@ input{font-family:inherit}
 .toast.error{background:var(--red);color:#fff}
 
 /* ── SIDE NAV ── */
-.side-nav{width:140px;flex-shrink:0;background:#fff;border-right:1px solid var(--cr2);padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+.side-nav{width:140px;flex-shrink:0;background:#fff;border-right:1px solid var(--cr2);position:sticky;top:52px;height:calc(100vh - 52px);display:flex;flex-direction:column;overflow:hidden}
+.side-nav-scroll{flex:1;overflow-y:auto;padding:16px 0}
+.side-nav-footer{flex-shrink:0;padding:10px 12px;border-top:1px solid var(--cr2);font-size:10.5px;color:var(--ink3);cursor:pointer;text-align:center;line-height:1.7}
+.side-nav-footer:hover{background:var(--cr3)}
 .side-nav-label{font-size:11px;font-weight:600;color:#888;padding:0 16px 8px;letter-spacing:.05em}
 .side-item{padding:10px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;color:var(--ink2);border-left:3px solid transparent;transition:all .15s}
 .side-item:hover{background:var(--cr3);color:var(--navy)}
@@ -227,6 +230,7 @@ input{font-family:inherit}
   <div style="display:flex;min-height:calc(100vh - 52px)">
     <!-- 左側導覽 -->
     <div class="side-nav">
+      <div class="side-nav-scroll">
       <div class="side-nav-label">功能選單</div>
       <div class="side-item" id="nav-ann"    onclick="showSection('ann')">📢 公佈欄</div>
       <div class="side-item" id="nav-select" onclick="showSection('select')">📚 選課</div>
@@ -237,6 +241,11 @@ input{font-family:inherit}
       <div class="side-item" id="nav-survey" onclick="showSection('survey')">📋 意見調查</div>
       <div class="side-item" id="nav-forms" onclick="showSection('forms')">📄 常用表單</div>
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')">⚖️ 相關法規查詢</div>
+      </div>
+      <div class="side-nav-footer" onclick="openChangelogS()">
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v2.8　2026-08-15</div>
+        <div style="text-decoration:underline">📋 更新紀錄</div>
+      </div>
     </div>
 
     <!-- 右側主內容 -->
@@ -487,6 +496,17 @@ input{font-family:inherit}
     <div id="th-modal-body" style="padding:20px"></div>
   </div>
 </div>
+
+<!-- 更新紀錄 -->
+<div id="changelog-modal-s" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:480px;margin:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="background:var(--navy);color:#fff;padding:14px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;gap:10px">
+      <div style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;flex:1">📋 更新紀錄</div>
+      <button onclick="closeChangelogS()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="changelog-body-s" style="padding:20px;display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto"></div>
+  </div>
+</div>
 </div>
 
 <script>
@@ -590,6 +610,56 @@ function resolveReqType(baseReqType, overrides, cohort) {
     r.cohort_from != null && cohort >= r.cohort_from && (r.cohort_to == null || cohort <= r.cohort_to)
   );
   return rule ? rule.req_type : baseReqType;
+}
+
+/* ── 版本與更新紀錄 ──
+   規則：每次有實質功能異動，在陣列最前面新增一筆，並同步更新：
+   1. 檔案最開頭的 <!-- BWBC Student vX.X YYYY-MM-DD --> 註解
+   2. 側邊欄 #app-version-label-s 顯示的文字
+   從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
+const APP_CHANGELOG_S = [
+  {
+    version: 'v2.8', date: '2026-08-15',
+    items: [
+      '側邊欄新增版本資訊區塊（固定在最下方）+ 更新紀錄視窗，跟admin.html同樣的設計，方便之後追蹤異動',
+    ]
+  },
+  {
+    version: 'v2.7', date: '2026-08-15',
+    items: [
+      '套用「必選修依屆別覆寫」：選課頁、已選課程、畢業學分試算/進度條、歷年已選課程、選課單列印，同一堂開課依自己屆別正確顯示必修或選修',
+      '修正一個既有的HTML結構bug（#app-screen外層容器少了關閉標籤，非近期異動造成，這次順便掃出來修掉）',
+    ]
+  },
+  {
+    version: 'v2.6', date: '2026-08-15',
+    items: [
+      '修正「課堂點名」（點名負責人身分）查詢沒有依學期過濾的bug，避免舊學期/未來學期的殘留指派資料誤顯示出來',
+    ]
+  },
+  {
+    version: 'v2.5', date: '2026-08-15',
+    items: [
+      '新增「相關法規查詢」唯讀顯示頁：依分類分組列出，每筆有「👁 線上看」連結，只顯示admin端設定為公開的項目',
+    ]
+  },
+];
+
+function openChangelogS() {
+  const body = document.getElementById('changelog-body-s');
+  body.innerHTML = APP_CHANGELOG_S.map(entry => `
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px">${entry.version}　<span style="font-weight:400;color:var(--ink3);font-size:12px">${entry.date}</span></div>
+      <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
+        ${entry.items.map(it => `<li style="font-size:13px;color:var(--ink2);line-height:1.6">${it}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('<div style="border-top:1px dashed var(--cr2)"></div>');
+  document.getElementById('changelog-modal-s').style.display = 'flex';
+}
+
+function closeChangelogS() {
+  document.getElementById('changelog-modal-s').style.display = 'none';
 }
 
 async function getCurrentSemesterByDate() {
