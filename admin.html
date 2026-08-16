@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v8.0 2026-08-15 -->
+<!-- BWBC Admin v8.2 2026-08-15 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -385,7 +385,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v8.0　2026-08-15</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v8.2　2026-08-15</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -3087,6 +3087,14 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <span style="font-size:13px">勾選＝這門課的點名出缺席要列入成績計算（依授課教師個別決定）</span>
         </label>
       </div>
+      <div class="frow">
+        <label class="flabel" style="margin-bottom:6px">必選修依屆別覆寫（選填）</label>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:8px">
+          用在「同一堂實際上課，不同屆別的畢業規劃表把它歸類成不同性質」的情境（例如這學期開課對115級是必修、對113/114級是選修）。<strong>不設定的話完全比照課程本身的必選修設定，不影響任何現有課程</strong>。
+        </div>
+        <div id="om-req-override-rows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+        <button type="button" class="btn btn-sec btn-sm" onclick="addReqOverrideRow()">＋ 新增屆別規則</button>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-sec" onclick="closeModal('offering-modal')">取消</button>
@@ -3434,6 +3442,7 @@ async function getCurrentSemesterByDate() {
 let COURSES_ALL = [];  // 課程主檔
 let currentOfferingTeachers = [];
 let currentOfferingStaff = [];
+let currentOfferingReqOverrides = []; // 必選修依屆別覆寫規則：[{cohort_from, cohort_to, req_type}]
 const STAFF_ROLE_LABEL = {ta:'TA', av:'視聽', angel:'小天使', recorder:'點名者'};
 
 /* ════ AUTH ════ */
@@ -8421,6 +8430,8 @@ async function editOffering(id) {
   currentOfferingStaff=os?os.map(s=>({id:s.id,student_id:s.student_id,name:`${s.students?.student_code||''} ${s.students?.name_zh||'?'}`,role:s.role})):[];
   renderOfferingStaffChips();
   document.getElementById('om-attendance-affects-grade').checked=!!o.attendance_affects_grade;
+  currentOfferingReqOverrides = Array.isArray(o.req_type_overrides) ? JSON.parse(JSON.stringify(o.req_type_overrides)) : [];
+  renderReqOverrideRows();
   ['om-day','om-start','om-end'].forEach(id=>{ document.getElementById(id).oninput=updateTimeRaw; });
   document.getElementById('om-course-sel-wrap').style.display='none';
   document.getElementById('om-title').textContent=`編輯：${o.name_zh}`;
@@ -8478,6 +8489,74 @@ function addOfferingStaff() {
 }
 function removeOfferingStaff(idx) { currentOfferingStaff.splice(idx,1); renderOfferingStaffChips(); }
 
+/* ── 必選修依屆別覆寫（開課記錄modal內）── */
+function renderReqOverrideRows() {
+  const wrap = document.getElementById('om-req-override-rows');
+  if (!wrap) return;
+  if (!currentOfferingReqOverrides.length) {
+    wrap.innerHTML = '<div style="font-size:11.5px;color:var(--ink3)">目前沒有設定覆寫規則，完全比照課程本身的必選修</div>';
+    return;
+  }
+  wrap.innerHTML = currentOfferingReqOverrides.map((r,i) => `
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:12px;color:var(--ink3)">屆別</span>
+      <input type="number" class="finput" style="width:70px" value="${r.cohort_from??''}" placeholder="從" onchange="updateReqOverrideField(${i},'cohort_from',this.value)">
+      <span style="font-size:12px;color:var(--ink3)">～</span>
+      <input type="number" class="finput" style="width:70px" value="${r.cohort_to??''}" placeholder="到(空=不限)" onchange="updateReqOverrideField(${i},'cohort_to',this.value)">
+      <span style="font-size:12px;color:var(--ink3)">→</span>
+      <select class="fselect" style="width:90px" onchange="updateReqOverrideField(${i},'req_type',this.value)">
+        <option value="req" ${r.req_type==='req'?'selected':''}>必修</option>
+        <option value="sel" ${r.req_type==='sel'?'selected':''}>選修</option>
+      </select>
+      <button type="button" onclick="removeReqOverrideRow(${i})" style="font-size:11px;padding:2px 8px;border:1px solid #e0b0b0;color:#a83232;background:#fff;border-radius:5px;cursor:pointer">🗑</button>
+    </div>`).join('');
+}
+
+function addReqOverrideRow() {
+  currentOfferingReqOverrides.push({ cohort_from: null, cohort_to: null, req_type: 'req' });
+  renderReqOverrideRows();
+}
+
+function removeReqOverrideRow(idx) {
+  currentOfferingReqOverrides.splice(idx, 1);
+  renderReqOverrideRows();
+}
+
+function updateReqOverrideField(idx, field, value) {
+  if (field === 'cohort_from' || field === 'cohort_to') {
+    currentOfferingReqOverrides[idx][field] = value === '' ? null : parseInt(value);
+  } else {
+    currentOfferingReqOverrides[idx][field] = value;
+  }
+}
+
+// 儲存前直接讀取畫面上「當下實際顯示」的值，不依賴change事件是否確實觸發過——
+// 徹底避免「選了選修卻存成必修」這類因為事件時序而漏接使用者操作的問題，存的保證就是畫面上看到的
+function collectReqOverridesFromDOM() {
+  const rows = document.querySelectorAll('#om-req-override-rows > div');
+  const result = [];
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input[type="number"]');
+    const select = row.querySelector('select');
+    if (inputs.length < 2 || !select) return;
+    const cohort_from = inputs[0].value === '' ? null : parseInt(inputs[0].value);
+    const cohort_to = inputs[1].value === '' ? null : parseInt(inputs[1].value);
+    if (cohort_from == null) return; // 沒填「從」屆別的規則視為無效，不存
+    result.push({ cohort_from, cohort_to, req_type: select.value });
+  });
+  return result;
+}
+
+// 全系統共用：依學生屆別、開課記錄的覆寫規則，算出「這個學生看這門開課」實際的必選修類別
+// 找不到命中的規則、或根本沒設定覆寫，就照課程本身的req_type(原本的行為，完全不受影響)
+function resolveReqType(baseReqType, overrides, cohort) {
+  if (!overrides || !Array.isArray(overrides) || !overrides.length || cohort == null) return baseReqType;
+  const rule = overrides.find(r =>
+    r.cohort_from != null && cohort >= r.cohort_from && (r.cohort_to == null || cohort <= r.cohort_to)
+  );
+  return rule ? rule.req_type : baseReqType;
+}
+
 // 填入「課程幹部」學生下拉選單（全部學生，不限選課名單）
 async function populateStaffStudentSelect() {
   if (!STUDENTS_ALL.length) await loadStudents();
@@ -8515,12 +8594,14 @@ async function saveOffering() {
     // 取得 semester_id
     const { data:semData }=await sb.from('semesters').select('id').eq('label',semLabel).single();
     if (!semData) { showToast('找不到學期資料','error'); return; }
+    const validOverrides = collectReqOverridesFromDOM();
     const payload={
       course_id:courseId, semester_id:semData.id,
       day:day?parseInt(day):null, start_time:st||null, end_time:et||null,
       time_raw:raw||null, classroom_id:clId, week_pattern:pattern,
       target_cohort:cohort?parseInt(cohort):null,
-      attendance_affects_grade:document.getElementById('om-attendance-affects-grade').checked
+      attendance_affects_grade:document.getElementById('om-attendance-affects-grade').checked,
+      req_type_overrides: validOverrides.length ? validOverrides : null
     };
     const { data:newRow, error }=await sb.from('course_offerings').insert(payload).select('id').single();
     if (error) { showToast('❌ 新增失敗：'+error.message,'error'); return; }
@@ -8539,11 +8620,13 @@ async function saveOffering() {
     writeAuditLog('開課記錄','新增開課','course_offerings',newRow.id,`${payload.course_code||''} ${semLabel}`,`${payload.time_raw||''} ${payload.classroom_code||''}`)
   } else {
     // 編輯開課
+    const validOverrides = collectReqOverridesFromDOM();
     const { error }=await sb.from('course_offerings').update({
       day:day?parseInt(day):null, start_time:st||null, end_time:et||null,
       time_raw:raw||null, classroom_id:clId, week_pattern:pattern,
       target_cohort: cohort ? parseInt(cohort) : null,
-      attendance_affects_grade:document.getElementById('om-attendance-affects-grade').checked
+      attendance_affects_grade:document.getElementById('om-attendance-affects-grade').checked,
+      req_type_overrides: validOverrides.length ? validOverrides : null
     }).eq('id',id);
     if (error) { showToast('❌ 儲存失敗：'+error.message,'error'); return; }
     const courseId=OFFERINGS.find(o=>o.offering_id===id)?.course_id;
@@ -8560,7 +8643,8 @@ async function saveOffering() {
     }
     closeModal('offering-modal'); showToast('✅ 開課資料已更新');
     await loadOfferings(); runConflictCheck(true);
-    writeAuditLog('開課記錄','編輯開課','course_offerings',editId,`${payload.course_code||''} ${semLabel}`,`${payload.time_raw||''} ${payload.classroom_code||''}`)
+    const offRow = OFFERINGS.find(o=>o.offering_id===id);
+    writeAuditLog('開課記錄','編輯開課','course_offerings',id,`${offRow?.code||''} ${offRow?.semester_label||''}`,`${offRow?.time_raw||''} ${offRow?.classroom_code||''}`)
   }
 }
 
@@ -8584,6 +8668,8 @@ async function openNewOffering() {
   renderOfferingStaffChips();
   await populateStaffStudentSelect();
   document.getElementById('om-attendance-affects-grade').checked=false;
+  currentOfferingReqOverrides=[];
+  renderReqOverrideRows();
   // 顯示課程選擇區
   document.getElementById('om-course-sel-wrap').style.display='';
   // 載入啟用中的課程
@@ -10088,6 +10174,21 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    2. 側邊欄 #app-version-label 顯示的文字
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v8.2', date: '2026-08-15',
+    items: [
+      '修正「必選修依屆別覆寫」的存檔bug：改成儲存前直接讀取畫面上實際顯示的值，不再依賴瀏覽器change事件是否確實觸發，避免「選了選修卻存成必修」這類事件時序問題',
+    ]
+  },
+  {
+    version: 'v8.1', date: '2026-08-15',
+    items: [
+      '新增「必選修依屆別覆寫」：解決「同一堂開課，不同屆別的畢業規劃表把它歸類成不同性質」的情境（例如AD21008這學期開課，115級是必修、113/114級是選修），設定在開課記錄編輯視窗，選填、不設定完全不影響任何現有課程',
+      '成績彙總的必選修學分統計已套用覆寫規則',
+      '（student.html同步更新，詳見該檔案版本紀錄）',
+      '修正student.html一個既有的HTML結構bug（#app-screen外層容器少了關閉標籤，非本次異動造成，這次順便掃出來修掉）',
+    ]
+  },
   {
     version: 'v8.0', date: '2026-08-15',
     items: [
@@ -16788,7 +16889,7 @@ async function loadGradeSummaryTable() {
     const offeringIds = [...new Set((entries||[]).map(e=>e.offering_id))];
     let offMap = {};
     if (offeringIds.length) {
-      const { data: offs } = await sb.from('course_offerings').select('id,course_id,semester_id').in('id', offeringIds);
+      const { data: offs } = await sb.from('course_offerings').select('id,course_id,semester_id,req_type_overrides').in('id', offeringIds);
       const courseIds = [...new Set((offs||[]).map(o=>o.course_id))];
       const { data: courses } = await sb.from('courses').select('id,name_zh,code,credits,req_type').in('id', courseIds);
       const cMap = {}; (courses||[]).forEach(c=>cMap[c.id]=c);
@@ -16813,7 +16914,7 @@ async function loadGradeSummaryTable() {
       const credits = off?.course?.credits || 0;
       if (credits <= 0) return; // 沒有學分的課不計入加權（理論上不該發生，防呆）
       (byStudent[e.student_id] ||= { courses:[] });
-      byStudent[e.student_id].courses.push({ name: off.course?.name_zh||'', code: off.course?.code||'', reqType: off.course?.req_type||'', credits, score: e.score, grade_label: e.grade_label, semesterId: off.semester_id, semLabel: off.semLabel||'' });
+      byStudent[e.student_id].courses.push({ name: off.course?.name_zh||'', code: off.course?.code||'', reqType: resolveReqType(off.course?.req_type||'', off.req_type_overrides, parseInt(cohort)), credits, score: e.score, grade_label: e.grade_label, semesterId: off.semester_id, semLabel: off.semLabel||'' });
     });
 
     // 5b) 加權平均只計「去重複」後的成績：同一個課程代碼補修過，只取最高分那次計入累計/整學年度平均，

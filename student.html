@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v2.5 2026-08-15 -->
+<!-- BWBC Student v2.7 2026-08-15 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -487,6 +487,7 @@ input{font-family:inherit}
     <div id="th-modal-body" style="padding:20px"></div>
   </div>
 </div>
+</div>
 
 <script>
 function openThModal(title, bodyHtml) {
@@ -580,6 +581,17 @@ async function passwordLogin() {
 // 找「現在學期」：依日期判斷（start_date~end_date包含今天），不依賴is_current
 // （is_current只給admin排課範圍用，不保證跟今天日期同步）。
 // 跟admin.html/teacher.html同名同邏輯，三個portal共用同一套判斷方式，避免各自寫一份互相不同步。
+// 依學生屆別、開課記錄的覆寫規則，算出「這個學生看這門開課」實際的必選修類別
+// 找不到命中的規則、或根本沒設定覆寫，就照課程本身的req_type(原本的行為，完全不受影響)
+// 跟admin.html裡的同名函式邏輯完全一致，各自獨立一份因為是不同檔案
+function resolveReqType(baseReqType, overrides, cohort) {
+  if (!overrides || !Array.isArray(overrides) || !overrides.length || cohort == null) return baseReqType;
+  const rule = overrides.find(r =>
+    r.cohort_from != null && cohort >= r.cohort_from && (r.cohort_to == null || cohort <= r.cohort_to)
+  );
+  return rule ? rule.req_type : baseReqType;
+}
+
 async function getCurrentSemesterByDate() {
   const { data: allSems } = await sb.from('semesters').select('id,label,start_date,end_date').order('start_date');
   if (!allSems?.length) return null;
@@ -770,7 +782,11 @@ async function loadStudentTimeline() {
 // 檢查目前學生是不是任何一門課的「點名者」，是的話才顯示左側「課堂點名」入口
 async function checkAttendanceRecorderStatus() {
   try {
-    const { data } = await sb.from('offering_staff').select('id').eq('student_id', ME.id).eq('role', 'recorder').limit(1);
+    const curSem = await getCurrentSemesterByDate();
+    if (!curSem) return;
+    const { data } = await sb.from('offering_staff')
+      .select('id, course_offerings!inner(semester_id)')
+      .eq('student_id', ME.id).eq('role', 'recorder').eq('course_offerings.semester_id', curSem.id).limit(1);
     if (data && data.length > 0) {
       document.getElementById('nav-attendance').style.display = '';
     }
@@ -807,17 +823,22 @@ async function loadAttendanceOfferings() {
   if (!monthInput.value) monthInput.value = todayYM();
 
   const { data, error } = await sb.from('offering_staff')
-    .select('offering_id, course_offerings(id, day, start_time, end_time, courses(name_zh))')
+    .select('offering_id, course_offerings(id, day, start_time, end_time, semester_id, courses(name_zh))')
     .eq('student_id', ME.id).eq('role', 'recorder');
   if (error) { showToast('載入課程失敗：'+error.message, 'error'); return; }
 
-  ATT_OFFERINGS = (data||[]).map(r => ({
-    offering_id: r.offering_id,
-    day: r.course_offerings?.day,
-    start_time: r.course_offerings?.start_time,
-    end_time: r.course_offerings?.end_time,
-    name_zh: r.course_offerings?.courses?.name_zh || '（課程名稱待確認）'
-  }));
+  // 只保留「目前學期」的點名者資格：跟teacher.html「課堂點名」查看頁一樣，統一用共用的getCurrentSemesterByDate()判斷，
+  // 避免舊學期/未來學期殘留的點名負責人指派資料，在還沒開學或已經過了的學期也跑出來讓學生誤以為要點名
+  const curSem = await getCurrentSemesterByDate();
+  ATT_OFFERINGS = (data||[])
+    .filter(r => curSem && r.course_offerings?.semester_id === curSem.id)
+    .map(r => ({
+      offering_id: r.offering_id,
+      day: r.course_offerings?.day,
+      start_time: r.course_offerings?.start_time,
+      end_time: r.course_offerings?.end_time,
+      name_zh: r.course_offerings?.courses?.name_zh || '（課程名稱待確認）'
+    }));
 
   if (!ATT_OFFERINGS.length) {
     sel.innerHTML = '<option value="">— 您目前不是任何課程的點名者 —</option>';
@@ -1214,9 +1235,9 @@ async function loadGraduationProgress() {
   }
 
   const offeringIds = allEnr.map(e=>e.offering_id);
-  // 查 course_offerings 取得 course_id 和 group_id
+  // 查 course_offerings 取得 course_id 和 group_id，順便帶必選修覆寫規則(部分課程對不同屆別歸類不同，例如AD21008對115級是必修、113/114級是選修)
   const { data:offerings } = await sb.from('course_offerings')
-    .select('id, course_id, group_id')
+    .select('id, course_id, group_id, req_type_overrides')
     .in('id', offeringIds);
   const courseIds = [...new Set((offerings||[]).map(o=>o.course_id))];
   const groupIds  = [...new Set((offerings||[]).map(o=>o.group_id).filter(Boolean))];
@@ -1235,7 +1256,7 @@ async function loadGraduationProgress() {
     const g = co.group_id ? groupLookup[co.group_id] : null;
     if (!c) return;
     courseMap[co.id] = {
-      req_type:            c.req_type,
+      req_type:            resolveReqType(c.req_type, co.req_type_overrides, ME.cohort),
       credits:             c.credits,
       group_name:          g?.name || null,
       group_required_count: g?.required_count || null,
@@ -1628,7 +1649,8 @@ async function loadAvailableCourses(showAllCohorts = false) {
     const axBg    = AX_BG[c.axis_code]||'#EEF2FA';
     const teachers = (teacherMap[c.offering_id]||[]).join('、');
     const en = MY_ENROLLMENTS[c.offering_id];
-    const reqBadge = c.req_type ? `<span class="badge badge-${c.req_type==='req'?'req':c.req_type==='go'?'go':'sel'}">${REQ_ZH[c.req_type]||''}</span>` : '';
+    const effectiveReq = resolveReqType(c.req_type, c.req_type_overrides, ME.cohort);
+    const reqBadge = effectiveReq ? `<span class="badge badge-${effectiveReq==='req'?'req':effectiveReq==='go'?'go':'sel'}">${REQ_ZH[effectiveReq]||''}</span>` : '';
     const isCross = c.target_cohort && c.target_cohort !== ME.cohort;
     const crossBadge = isCross ? `<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:#FFF3E0;color:#B05010;border:1px solid #F0C080">${c.target_cohort}級課程</span>` : '';
     const hasSyl = sylSet.has(c.offering_id);
@@ -1843,7 +1865,7 @@ async function renderEnrolled(list, canEnroll = CAN_ENROLL, canDrop = CAN_DROP) 
   const ids = active.map(e=>e.offering_id);
   const { data:courses } = await sb.from('v_course_schedule').select('*').in('offering_id',ids);
   const courseMap = {};
-  (courses||[]).forEach(c=>{ courseMap[c.offering_id]=c; });
+  (courses||[]).forEach(c=>{ courseMap[c.offering_id]={ ...c, req_type: resolveReqType(c.req_type, c.req_type_overrides, ME.cohort) }; });
 
   // 排序
   const REQ_ORDER = {req:0,go:1,sel:2};
@@ -2029,7 +2051,7 @@ async function loadHistory() {
   const ids = allEnr.map(e=>e.offering_id);
   // 直接查 course_offerings + courses，避免 v_course_schedule is_active 過濾
   const { data:offsData } = await sb.from('course_offerings')
-    .select('id, course_id, semester_id, time_raw, semesters(label), courses(code, name_zh, credits, req_type, course_axes(code))')
+    .select('id, course_id, semester_id, time_raw, req_type_overrides, semesters(label), courses(code, name_zh, credits, req_type, course_axes(code))')
     .in('id', ids);
   const courseMap = {};
   (offsData||[]).forEach(o=>{
@@ -2040,7 +2062,7 @@ async function loadHistory() {
       code:           c.code,
       name_zh:        c.name_zh,
       credits:        c.credits,
-      req_type:       c.req_type,
+      req_type:       resolveReqType(c.req_type, o.req_type_overrides, ME.cohort),
       axis_code:      c.course_axes?.code||'',
       semester_label: o.semesters?.label||'',
       time_raw:       o.time_raw||'',
@@ -2198,7 +2220,7 @@ async function loadPrintSheetView() {
 
   const rows = (courses||[]).map(c => {
     const teachers = (teacherMap[c.offering_id]||[]).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-    return { code:c.code, name_zh:c.name_zh, credits:c.credits, req_type:c.req_type,
+    return { code:c.code, name_zh:c.name_zh, credits:c.credits, req_type:resolveReqType(c.req_type, c.req_type_overrides, ME.cohort),
               time_raw:c.time_raw, classroom_name:c.classroom_name,
               teacherNames: teachers.map(t=>t.name_zh).join('、') };
   });
