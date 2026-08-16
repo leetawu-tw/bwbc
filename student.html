@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v2.8 2026-08-15 -->
+<!-- BWBC Student v3.1 2026-08-15 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -243,7 +243,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')">⚖️ 相關法規查詢</div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v2.8　2026-08-15</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.1　2026-08-15</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -507,6 +507,7 @@ input{font-family:inherit}
     <div id="changelog-body-s" style="padding:20px;display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto"></div>
   </div>
 </div>
+
 </div>
 
 <script>
@@ -618,6 +619,28 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.1', date: '2026-08-15',
+    items: [
+      '超修控制改回簡單版：加選重新硬擋12學分上限（v3.0曾改成不擋+放棄順序+審核機制，考量開學前時間壓力與複雜度，決定先用簡單版試行，完整流程的程式碼已備份保留，之後有需要可以重啟）',
+      '保留「重修已不及格的同一門課，學分不列入12學分上限計算」這項邏輯',
+      '真正需要超修的少數情況，改成admin端「手動加選」處理（不經過學生自己選課），詳見admin.html changelog',
+    ]
+  },
+  {
+    version: 'v3.0', date: '2026-08-15',
+    items: [
+      '新增「超修控制」機制：加選不再硬擋12學分上限，超修時會出現橫幅提醒，可設定「若審核未過的放棄順序」（拖曳排序），加退選截止時系統自動依此順序退課到上限內',
+      '重修已不及格的同一門課，學分不列入12學分上限計算',
+    ]
+  },
+  {
+    version: 'v2.9', date: '2026-08-15',
+    items: [
+      '選課單列印：底部「本次共修XX門課、含XX門必修XX門選修、共XX學分」改由系統自動計算，不用學生手動填空',
+      '選課單列印：屆別（13/14/15級）改由系統依學生實際屆別自動標記',
+    ]
+  },
   {
     version: 'v2.8', date: '2026-08-15',
     items: [
@@ -1778,7 +1801,7 @@ async function enrollCourse(offeringId, credits) {
 
   // 取出想加選課程資訊
   const { data:newCourse } = await sb.from('v_course_schedule')
-    .select('code,name_zh,day,start_time,end_time,week_pattern,credits')
+    .select('code,name_zh,day,start_time,end_time,week_pattern,credits,course_id')
     .eq('offering_id', offeringId).single();
 
   // ── 課程名稱重複檢查（跨所有學期歷史）──
@@ -1828,10 +1851,12 @@ async function enrollCourse(offeringId, credits) {
 
   if (enrolledIds.length) {
     const { data:enrolled } = await sb.from('v_course_schedule')
-      .select('code,name_zh,day,start_time,end_time,week_pattern,credits')
+      .select('code,name_zh,day,start_time,end_time,week_pattern,credits,course_id')
       .in('offering_id', enrolledIds);
 
-    currentCredits = (enrolled||[]).reduce((s,c)=>s+c.credits, 0);
+    // 重修已不及格的同一門課，學分不列入12學分上限計算
+    const failedIds = await getFailedCourseIds();
+    currentCredits = (enrolled||[]).reduce((s,c)=> s + (failedIds.has(c.course_id) ? 0 : c.credits), 0);
 
     if (newCourse?.day && newCourse?.start_time && newCourse?.end_time
         && newCourse?.week_pattern !== 'intensive') {
@@ -1852,11 +1877,13 @@ async function enrollCourse(offeringId, credits) {
     return;
   }
 
-  // ── 學分上限檢查 ──
+  // ── 學分上限檢查（重修已不及格的同一門課，學分不計入）──
   const maxNormal = SETTING?.max_credits_normal || 12;
-  const newTotal = currentCredits + credits;
+  const failedIdsForNew = await getFailedCourseIds();
+  const newCourseIsExempt = newCourse?.course_id && failedIdsForNew.has(newCourse.course_id);
+  const newTotal = currentCredits + (newCourseIsExempt ? 0 : credits);
   if (newTotal > maxNormal) {
-    showToast(`加選後將達 ${newTotal} 學分，超過上限 ${maxNormal} 學分，無法加選。如需超修請洽行政辦公室申請。`, 'error');
+    showToast(`加選後將達 ${newTotal} 學分，超過上限 ${maxNormal} 學分，無法加選。如需超修請洽行政辦公室申請所長同意。`, 'error');
     return;
   }
 
@@ -1907,6 +1934,18 @@ async function dropCourse(offeringId) {
   showToast('已退選');
   await loadMyEnrollments();
   await loadAvailableCourses();
+}
+
+/* ── 重修已不及格的同一門課，學分不列入12學分上限計算 ── */
+let _failedCourseIds = null; // cache，避免每次都重查
+
+async function getFailedCourseIds() {
+  if (_failedCourseIds) return _failedCourseIds;
+  const { data } = await sb.from('grade_entries')
+    .select('offering_id, course_offerings(course_id)')
+    .eq('student_id', ME.id).eq('grade_type','academic').eq('status','submitted').eq('grade_label','不及格');
+  _failedCourseIds = new Set((data||[]).map(r=>r.course_offerings?.course_id).filter(Boolean));
+  return _failedCourseIds;
 }
 
 /* ════ RENDER ENROLLED ════ */
@@ -2351,6 +2390,11 @@ function printMyCourseSheet() {
     + '</tr>'
   ).join('');
 
+  const totalCourses = rows.length;
+  const reqCount = rows.filter(r => r.req_type === 'req').length;
+  const selCount = totalCourses - reqCount; // 'sel'跟'go'(選修二選一)都算選修
+  const totalCredits = rows.reduce((sum, r) => sum + (Number(r.credits) || 0), 0);
+
   const bodyHtml = ''
     + '<h2>福智佛教學院 佛法應用研究所</h2>'
     + `<h3>${CURRENT_SEM_LABEL}學年${CURRENT_SEM_LABEL.endsWith('-1')?'上':'下'}學期 選課單（個人）</h3>`
@@ -2362,9 +2406,9 @@ function printMyCourseSheet() {
     + '</tr></thead>'
     + `<tbody>${tableRows}</tbody>`
     + '</table>'
-    + '<div class="summary-box">本次共修(　　)門課：含(　　)門必修課、(　　)門選修課，共(　　)學分。<br>'
+    + `<div class="summary-box">本次共修(　${totalCourses}　)門課：含(　${reqCount}　)門必修課、(　${selCount}　)門選修課，共(　${totalCredits}　)學分。<br>`
     + '符合本校修業規定、選課辦法之規定(前兩年每學期不得少於 2 學分，最多不得超過 12 學分，若需增加學分者須所長同意。)</div>'
-    + `<div class="cohort-line">□13級□14級□15級　學號：${ME.student_code||''}　姓名：${ME.name_zh||''}</div>`
+    + `<div class="cohort-line">${['13','14','15'].map(y => (String(ME.cohort||'').slice(-2)===y?'■':'□')+y+'級').join('')}　學號：${ME.student_code||''}　姓名：${ME.name_zh||''}</div>`
     + '<table class="sign-table"><tr>'
     + '<td>學生簽名<br>Student Signature</td>'
     + '<td>佛應所助理<br>Dept./Institute Administrative Assistant</td>'

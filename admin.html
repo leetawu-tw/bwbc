@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v8.2 2026-08-15 -->
+<!-- BWBC Admin v8.16 2026-08-15 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -385,7 +385,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v8.2　2026-08-15</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v8.16　2026-08-15</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -1833,7 +1833,10 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 
       <!-- 目前選課（可針對個別課程直接處理停修，不用整體變更學籍狀態） -->
       <div id="stu-enrollments-wrap" style="display:none;margin-top:14px;border-top:1px solid var(--cr2);padding-top:14px">
-        <div class="flabel" style="margin:0 0 8px">🎓 目前選課</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="flabel" style="margin:0">🎓 目前選課</div>
+          <button class="btn btn-sec btn-sm" onclick="openManualEnrollForm(document.getElementById('stu-id').value)">＋ 手動加選（不受學分上限限制）</button>
+        </div>
         <div id="stu-enrollments-list" style="font-size:12.5px;color:var(--ink3)">載入中…</div>
       </div>
 
@@ -10115,7 +10118,6 @@ async function saRemoveAssignment(staffId) {
   saLoadAll();
   saLoadMissing();
 }
-
 async function runConflictCheck(silent=false) {
   if (!silent) showToast('⏳ 執行衝堂偵測中…');
   const semId=await getSemesterId();
@@ -10174,6 +10176,109 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    2. 側邊欄 #app-version-label 顯示的文字
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v8.16', date: '2026-08-15',
+    items: [
+      '「📊 全部成績單Excel」的工作頁順序改成依學號排序，之前是沿用畫面上的排名順序（加權平均高到低），跟工作頁分頁不容易對照',
+    ]
+  },
+  {
+    version: 'v8.15', date: '2026-08-15',
+    items: [
+      'Excel成績單「分數」欄加大（8→12）、「等第」欄縮小（12→9），比例更平衡',
+      '提醒：v8.10已修正過「本學期修讀」欄位被合併儲存格吃掉內容的bug，如果之後又看到這個問題，請確認是不是用了舊版下載的Excel檔案在測試，需要重新產生一次新的下載',
+    ]
+  },
+  {
+    version: 'v8.14', date: '2026-08-15',
+    items: [
+      'PDF成績單「成績」欄寬度加大（88px→120px），讓「70（中等｜及格）」這類較長的成績文字有更充裕的顯示空間',
+    ]
+  },
+  {
+    version: 'v8.13', date: '2026-08-15',
+    items: [
+      '成績彙總主表格補上欄位排序功能（排名/學號/姓名/已修科目數/繳交科目數/已修學分/加權平均/及格不及格，皆可點擊排序），這張表格原本完全沒有排序功能，違反系統「所有表格皆可排序」的統一規範，這次補齊',
+      '排序改變顯示順序後，「查看/PDF/Excel」等操作按鈕仍正確對應到原本那位學生（用物件參照比對，不受排序影響）',
+    ]
+  },
+  {
+    version: 'v8.12', date: '2026-08-15',
+    items: [
+      '修正成績單彈窗表格缺少捲動軸的疏漏：之前調整欄寬時，忘記照系統既有規範（conventions.md規則3）把table包進標準的.tbl-wrap容器，導致表格內容萬一又超出範圍時沒有捲軸可以捲動查看，只會被裁切看不到。這次補上.tbl-wrap（max-height:50vh），符合overflow單軸設定的既有規則（要max-height+overflow:auto同時設定才會真正生效）',
+    ]
+  },
+  {
+    version: 'v8.11', date: '2026-08-15',
+    items: [
+      'Excel「加權平均／及格科數／不及格科」這列，改成靠左對齊：SheetJS免費版無法直接寫入對齊樣式，改用「把數字轉成文字型態存入」的方式讓Excel預設就靠左顯示（Excel預設文字靠左、數字靠右，及格科數/不及格科原本是數字型態才會靠右，跟旁邊的加權平均文字對不齊）',
+      '已用Node驗證轉換後的儲存格型態確實是文字(t:\'s\')，不是還在用數字型態(t:\'n\')',
+    ]
+  },
+  {
+    version: 'v8.10', date: '2026-08-15',
+    items: [
+      '修正v8.7 Excel排版改善時引入的資料流失bug：「本學期修讀」那一列，內容其實放在B欄，但整列被合併成A~F欄，Excel合併儲存格的規則是「只保留最左邊那格的值」，導致B欄那串「11門28學分…」的實際內容被合併動作直接丟掉，畫面看起來變成空白',
+      '修法：「本學期修讀」改成只合併B~F欄（值的位置），A欄的「本學期修讀」標籤獨立留著，兩邊都不會被吃掉',
+      '這次用Node實際安裝xlsx@0.18.5（跟瀏覽器CDN載入的同一版本）跑了一次完整的「寫入→讀回」測試，不只是邏輯推理，確認合併儲存格範圍正確、B欄內容真的沒有消失',
+    ]
+  },
+  {
+    version: 'v8.9', date: '2026-08-15',
+    items: [
+      '修正成績單彈出視窗表格溢出邊界的問題：彈窗容器只有460px寬，但「成績」欄文字（如「70（中等｜及格）」）比原本設定的欄寬還長，加上不換行設定，導致撐破邊界跑到視窗外',
+      '調整欄寬分配：縮小課程名稱欄，把空間讓給成績欄；並把所有欄位的「不換行」改成「文字過長自動換行」，徹底避免以後又有更長的文字內容把邊界撐破',
+    ]
+  },
+  {
+    version: 'v8.8', date: '2026-08-15',
+    items: [
+      'PDF單學期成績單頂部資訊表格重新排版：「本學期修讀」獨立一整列（因為文字變長，含「實得X門Y學分」），「加權平均／及格科數／不及格科數」三項合併在同一列顯示',
+    ]
+  },
+  {
+    version: 'v8.7', date: '2026-08-15',
+    items: [
+      '成績單/成績彙總：不及格科目改用紅色底色+紅字整列標示，一目了然（畫面彈窗、PDF單學期版、PDF整學年度版全部同步）',
+      'Excel成績單排版改善：標題列（福智佛教學院／XXX成績單／本學期修讀）合併橫跨整列置中，多學期分段標題也合併橫跨整列，不再只塞在A欄看起來跑版',
+      'Excel不及格科目在「等第」欄加上⚠符號強化辨識（SheetJS免費版不支援寫入色底，用符號補強視覺標註）',
+      '已用node模擬驗證合併儲存格的行號計算正確，不會合併錯行',
+    ]
+  },
+  {
+    version: 'v8.6', date: '2026-08-15',
+    items: [
+      '調整v8.5的顯示格式：「修讀X門Y學分」維持顯示含不及格的完整選課全貌（不是被實得數字取代），改成句尾另外並列「，實得X門Y學分」（排除不及格、真正採計進畢業學分的數字），兩個數字並存不互相取代',
+      '已用實際案例（114-1學期6門課含1門不及格）手算驗證：修正後正確顯示「修讀6門15學分，加權平均78.32，及格5科／不及格1科，實得5門12學分」',
+      '影響範圍同v8.5：成績彙總畫面表格、PDF成績單（單學期版＋整學年度逐學期小計）、Excel匯出',
+    ]
+  },
+  {
+    version: 'v8.5', date: '2026-08-15',
+    items: [
+      '修正成績彙總/成績單的重大計算bug：「本學期修讀X門Y學分」這類顯示，之前誤把不及格科目的學分也算進去了，正確做法是不及格不採計學分',
+      '根本原因：「加權平均的分母」（本來就該含不及格）跟「顯示/採計用的已修學分」（該排除不及格）共用同一個變數，這次拆成attemptedCredits(含不及格,只用於算加權平均)跟totalCredits(排除不及格,用於畫面/PDF/Excel顯示)兩個獨立變數',
+      '影響範圍：成績彙總畫面表格、PDF成績單（單學期版＋整學年度逐學期小計）、Excel匯出，全部一併修正，確保三處數字一致',
+      '單一學期正式成績單原本設計的「總修學分／實得學分」兩行分開顯示邏輯（本來就是對的），這次順便補上正確的attemptedCredits來源，避免被上面那個修正誤傷變成兩行數字一樣',
+    ]
+  },
+  {
+    version: 'v8.4', date: '2026-08-15',
+    items: [
+      '超修控制改回簡單版：移除「🚨 超修審核」頁面跟整套放棄順序/審核/自動退課機制（v8.3曾做過完整版，考量開學前時間壓力與複雜度，決定先用簡單版試行，完整流程的程式碼已備份保留，之後有需要可以重啟）',
+      '學生端加選重新硬擋12學分上限（重修已不及格的同一門課仍不列入計算，這項保留）',
+      '新增「學生資料→目前選課」的「＋ 手動加選（不受學分上限限制）」：真正需要超修的少數情況（例如所長已同意），改由admin直接手動加選，不經過學生自己選課的硬擋，並記錄核准依據備註',
+    ]
+  },
+  {
+    version: 'v8.3', date: '2026-08-15',
+    items: [
+      '新增「超修控制」機制：加選不再硬擋12學分上限，改成超修時橫幅提醒，學生可設定「若審核未過的放棄順序」（拖曳排序），加退選截止時系統自動依此順序退課到上限內',
+      '重修已不及格的同一門課，學分不列入12學分上限計算',
+      '新增admin「🚨 超修審核」頁面，列出目前超修中、待審核的學生，可核准/取消核准',
+      '（student.html同步更新，詳見該檔案版本紀錄）',
+    ]
+  },
   {
     version: 'v8.2', date: '2026-08-15',
     items: [
@@ -12186,6 +12291,53 @@ function openWithdrawEnrollmentForm(enrollmentId, courseName, studentId) {
       <textarea class="finput" id="wd-reason" rows="2"></textarea></div>
     <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="submitWithdrawEnrollment('${enrollmentId}','${studentId}')">確認停修</button>`;
   openThModal('停修申請', html);
+}
+
+/* ── 手動加選：admin直接把學生加進某門課，不受12學分上限限制（用於所長同意超修等情境）── */
+async function openManualEnrollForm(studentId) {
+  if (!studentId) { showToast('請先儲存學生資料再使用這個功能','error'); return; }
+  const curSem = await getCurrentSemesterByDate();
+  if (!curSem) { showToast('找不到目前學期','error'); return; }
+
+  const { data: offs } = await sb.from('v_course_schedule')
+    .select('offering_id, code, name_zh, credits').eq('semester_label', curSem.label).order('code');
+
+  const optionsHtml = (offs||[]).map(o=>`<option value="${o.offering_id}">${o.code} ${o.name_zh}（${o.credits}學分）</option>`).join('');
+  const html = `
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:12px">
+      直接把這位學生加進「${curSem.label}」的某門課，<strong>不受12學分上限檢查</strong>，用於所長已核准超修等特殊情況。
+    </div>
+    <div class="frow"><label class="flabel">課程 *</label>
+      <select class="finput" id="me-offering-sel">${optionsHtml || '<option value="">目前學期沒有開課記錄</option>'}</select>
+    </div>
+    <div class="frow"><label class="flabel">核准依據 / 備註（選填，建議填寫，例如：所長口頭同意，2026/08/20）</label>
+      <textarea class="finput" id="me-note" rows="2" placeholder="例：因故超修，經○○所長同意，2026/08/20"></textarea>
+    </div>
+    <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="submitManualEnroll('${studentId}','${curSem.id}')">確認加選</button>`;
+  openThModal('手動加選', html);
+}
+
+async function submitManualEnroll(studentId, semesterId) {
+  const offeringId = document.getElementById('me-offering-sel').value;
+  const note = document.getElementById('me-note').value.trim() || null;
+  if (!offeringId) { showToast('請選擇課程','error'); return; }
+  try {
+    const { error } = await sb.from('enrollments').insert({
+      student_id: studentId, offering_id: offeringId, semester_id: semesterId,
+      status: 'confirmed',
+      over_credit_request: true,          // 標記這筆是超過一般學分上限的特殊加選，方便日後查核
+      approved_by: window.ADMIN_USER_ID || null,
+      approved_at: new Date().toISOString(),
+      director_note: note,
+    });
+    if (error) {
+      if (error.message.includes('duplicate') || error.code === '23505') { showToast('這位學生已經選過這門課了','error'); return; }
+      showToast('加選失敗：'+error.message, 'error'); return;
+    }
+    closeThModal();
+    showToast('✅ 已手動加選成功');
+    loadStudentEnrollmentsForWithdraw(studentId);
+  } catch (e) { showToast('操作失敗：'+e.message, 'error'); }
 }
 
 async function submitWithdrawEnrollment(enrollmentId, studentId) {
@@ -16926,20 +17078,23 @@ async function loadGradeSummaryTable() {
         if (!bestByCode[key] || c.score > bestByCode[key].score) bestByCode[key] = c;
       });
       const counted = Object.values(bestByCode);
-      b.totalScoreCredits = 0; b.totalCredits = 0;
-      b.reqCredits = 0; b.selCredits = 0; b.reqCount = 0; b.selCount = 0;
+      b.totalScoreCredits = 0; b.attemptedCredits = 0;   // attemptedCredits：「修讀」總數，含不及格(跟reqCredits/selCredits同一口徑，才能對得起來)
+      b.totalCredits = 0;                                 // totalCredits：「實得」總數，排除不及格，真正採計進畢業學分的
+      b.reqCredits = 0; b.selCredits = 0; b.reqCount = 0; b.selCount = 0; // 必選修門數/學分：含不及格，對應外層「修讀」的必選修細項
       b.pass = 0; b.fail = 0;
       counted.forEach(c => {
         b.totalScoreCredits += c.score * c.credits;
-        b.totalCredits += c.credits;
+        b.attemptedCredits += c.credits;
         if (c.reqType === 'req') { b.reqCredits += c.credits; b.reqCount++; } else { b.selCredits += c.credits; b.selCount++; }
-        if (c.grade_label !== '不及格') b.pass++; else b.fail++;
+        if (c.grade_label === '不及格') { b.fail++; return; }
+        b.pass++;
+        b.totalCredits += c.credits; // 只有及格的才採計進「實得」
       });
     });
 
     const rows = _gsumStudents.map(s => {
       const b = byStudent[s.id];
-      const avg = b && b.totalCredits > 0 ? (b.totalScoreCredits / b.totalCredits) : null;
+      const avg = b && b.attemptedCredits > 0 ? (b.totalScoreCredits / b.attemptedCredits) : null;
       const courses = (b?.courses || []).slice().sort((a,c) => (a.code||'').localeCompare(c.code||''));
       // avgCents是整數（分數*100取四捨五入），用整數比較同分/排序才不會有浮點數誤差問題
       // （例如兩個人的平均分數理論上不同，但經過.toFixed(2)/浮點數運算後可能被誤判成同一個值，反之亦然）
@@ -16948,6 +17103,7 @@ async function loadGradeSummaryTable() {
         student: s,
         avg: avgCents!=null ? avgCents/100 : null,
         avgCents,
+        attemptedCredits: b?.attemptedCredits || 0, // 含不及格的「總修學分」，跟totalCredits(排除不及格的「實得學分」)分開，兩者用途不同不能混用
         totalCredits: b?.totalCredits || 0,
         reqCredits: b?.reqCredits || 0, selCredits: b?.selCredits || 0,
         reqCount: b?.reqCount || 0, selCount: b?.selCount || 0,
@@ -16985,19 +17141,44 @@ async function loadGradeSummaryTable() {
 function renderGradeSummaryTable() {
   const wrap = document.getElementById('gsum-summary-wrap');
   const medal = r => r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank;
+
+  // 依目前排序狀態排列（沒有指定排序key時，維持loadGradeSummaryTable算好的名次順序，不用另外處理）
+  let rows = _gsumRows.slice();
+  if (_gsumSortKey) {
+    const key = _gsumSortKey;
+    rows.sort((a,b) => {
+      let av, bv;
+      if (key === 'rank') { av = a.rank ?? 999999; bv = b.rank ?? 999999; }
+      else if (key === 'student_code') { av = a.student.student_code||''; bv = b.student.student_code||''; }
+      else if (key === 'name_zh') { av = a.student.name_zh||''; bv = b.student.name_zh||''; }
+      else if (key === 'avg') { av = a.avg ?? -1; bv = b.avg ?? -1; }
+      else { av = a[key] ?? 0; bv = b[key] ?? 0; }
+      if (av < bv) return -1*_gsumSortDir;
+      if (av > bv) return 1*_gsumSortDir;
+      return 0;
+    });
+  }
+
+  const th = (key, label, align='center') => {
+    const active = _gsumSortKey === key;
+    const icon = active ? (_gsumSortDir===1?'↑':'↓') : '⇅';
+    return `<th class="usr-th ${active?(_gsumSortDir===1?'sort-asc':'sort-desc'):''}" style="text-align:${align}" onclick="gsumSortBy('${key}')">${label} <span class="sort-icon">${icon}</span></th>`;
+  };
+
   let html = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)">
     <thead><tr style="background:var(--navy);color:#fff">
-      <th style="padding:10px 14px;text-align:center;font-size:12.5px">排名</th>
-      <th style="padding:10px 14px;text-align:left;font-size:12.5px">學號</th>
-      <th style="padding:10px 14px;text-align:left;font-size:12.5px">姓名</th>
-      <th style="padding:10px 14px;text-align:center;font-size:12.5px">已修科目數</th>
-      <th style="padding:10px 14px;text-align:center;font-size:12.5px">繳交科目數</th>
-      <th style="padding:10px 14px;text-align:center;font-size:12.5px">已修學分</th>
-      <th style="padding:10px 14px;text-align:center;font-size:12.5px">加權平均</th>
-      <th style="padding:10px 14px;text-align:center;font-size:12.5px">及格/不及格</th>
-      <th style="padding:10px 14px;text-align:center;font-size:12.5px">成績單</th>
+      ${th('rank','排名')}
+      ${th('student_code','學號','left')}
+      ${th('name_zh','姓名','left')}
+      ${th('enrolledCount','已修科目數')}
+      ${th('submittedCount','繳交科目數')}
+      ${th('totalCredits','已修學分')}
+      ${th('avg','加權平均')}
+      ${th('pass','及格/不及格')}
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">成績單</th>
     </tr></thead><tbody>`;
-  _gsumRows.forEach((r,i) => {
+  rows.forEach((r) => {
+    const i = _gsumRows.indexOf(r); // 下載/查看按鈕要用原始_gsumRows的index，排序後仍要對應到正確的那位學生
     const top3 = r.rank && r.rank<=3;
     const incomplete = r.enrolledCount > r.submittedCount;
     html += `<tr style="border-top:1px solid var(--cr2);${top3?'background:var(--navy3)':''}">
@@ -17015,6 +17196,13 @@ function renderGradeSummaryTable() {
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
+}
+
+let _gsumSortKey = null; // null時維持原始名次順序
+let _gsumSortDir = 1;
+function gsumSortBy(key) {
+  if (_gsumSortKey === key) _gsumSortDir *= -1; else { _gsumSortKey = key; _gsumSortDir = 1; }
+  renderGradeSummaryTable();
 }
 // 判斷目前選的範圍是不是「單一學期」（不是全部、也不是整學年度），只有這種情況才適合產生「單學期總成績單」
 function gsumIsSingleSemester(semRange) {
@@ -17042,8 +17230,9 @@ async function ensurePdfLibs() {
 
 // 分數跟等第一起顯示，不要只顯示等第把分數藏起來
 // 已修學分細分文字，PDF/Excel/畫面彈窗三處共用，確保格式永遠一致
+// 「修讀」＝含不及格的全部選課(attemptedCredits)；「實得」＝排除不及格、真正採計進畢業學分的(totalCredits)，兩者都要顯示，不是互相取代
 function gsumCreditsBreakdown(r) {
-  return `${r.submittedCount} 門${r.totalCredits}學分（${r.reqCount}門必修 ${r.reqCredits}學分，${r.selCount}門選修${r.selCredits}學分）`;
+  return `${r.submittedCount} 門${r.attemptedCredits}學分（${r.reqCount}門必修 ${r.reqCredits}學分，${r.selCount}門選修${r.selCredits}學分），實得${r.pass}門${r.totalCredits}學分`;
 }
 
 function gsumGradeDisplay(c) {
@@ -17057,16 +17246,19 @@ function gsumGroupCoursesBySemester(courses) {
   const bySem = {};
   courses.forEach(c => {
     const key = c.semLabel || '未知學期';
-    (bySem[key] ||= { semLabel: key, courses: [], totalScoreCredits:0, totalCredits:0, reqCredits:0, selCredits:0, reqCount:0, selCount:0, pass:0, fail:0 });
+    (bySem[key] ||= { semLabel: key, courses: [], totalScoreCredits:0, attemptedCredits:0, totalCredits:0, reqCredits:0, selCredits:0, reqCount:0, selCount:0, pass:0, fail:0 });
     const g = bySem[key];
     g.courses.push(c);
-    if (c.score != null) { g.totalScoreCredits += c.score * c.credits; g.totalCredits += c.credits; }
+    if (c.score != null) { g.totalScoreCredits += c.score * c.credits; g.attemptedCredits += c.credits; }
+    // 必選修門數/學分：含不及格，對應「修讀」總數的細項（跟外層attemptedCredits同一口徑，加總才會兜得起來）
     if (c.reqType === 'req') { g.reqCredits += c.credits; g.reqCount++; } else { g.selCredits += c.credits; g.selCount++; }
-    if (c.grade_label !== '不及格') g.pass++; else g.fail++;
+    if (c.grade_label === '不及格') { g.fail++; return; }
+    g.pass++;
+    g.totalCredits += c.credits; // 「實得」總數：只有及格的才採計
   });
   return Object.values(bySem).sort((a,b) => a.semLabel.localeCompare(b.semLabel)).map(g => ({
     ...g,
-    avg: g.totalCredits > 0 ? g.totalScoreCredits / g.totalCredits : null,
+    avg: g.attemptedCredits > 0 ? g.totalScoreCredits / g.attemptedCredits : null,
   }));
 }
 
@@ -17082,23 +17274,28 @@ function buildTranscriptHTML(r, semLabel) {
         <th style="padding:8px 10px;border:1px solid #1B3A6B">學分</th>
         <th style="padding:8px 10px;border:1px solid #1B3A6B">成績</th>
       </tr></thead>`;
-  const courseRowHtml = c => `
-    <tr>
-      <td style="padding:8px 10px;border:1px solid #ccc;font-family:monospace;white-space:nowrap">${c.code}</td>
-      <td style="padding:8px 10px;border:1px solid #ccc;word-break:break-all;white-space:normal">${c.name}</td>
-      <td style="padding:8px 10px;border:1px solid #ccc;text-align:center;white-space:nowrap">${REQ_ZH[c.reqType]||''}</td>
-      <td style="padding:8px 10px;border:1px solid #ccc;text-align:center;white-space:nowrap">${c.credits}</td>
-      <td style="padding:8px 6px;border:1px solid #ccc;text-align:center;font-weight:600;white-space:nowrap;font-size:12px">${gsumGradeDisplay(c)}</td>
+  const courseRowHtml = c => {
+    const isFail = c.grade_label === '不及格';
+    const rowStyle = isFail ? 'background:#FDECEA' : '';
+    const textColor = isFail ? 'color:#C62828;font-weight:700' : '';
+    return `
+    <tr style="${rowStyle}">
+      <td style="padding:8px 10px;border:1px solid #ccc;font-family:monospace;white-space:nowrap;${textColor}">${c.code}</td>
+      <td style="padding:8px 10px;border:1px solid #ccc;word-break:break-all;white-space:normal;${textColor}">${c.name}</td>
+      <td style="padding:8px 10px;border:1px solid #ccc;text-align:center;white-space:nowrap;${textColor}">${REQ_ZH[c.reqType]||''}</td>
+      <td style="padding:8px 10px;border:1px solid #ccc;text-align:center;white-space:nowrap;${textColor}">${c.credits}</td>
+      <td style="padding:8px 6px;border:1px solid #ccc;text-align:center;font-weight:600;white-space:nowrap;font-size:12px;${textColor}">${gsumGradeDisplay(c)}</td>
     </tr>`;
+  };
 
   let courseSection;
   if (isMultiSem) {
     // 整學年度：依學期分組，各自一個小標題+表格+小計
     const groups = gsumGroupCoursesBySemester(r.courses);
     courseSection = groups.map(g => `
-      <div style="font-size:13px;font-weight:700;color:#1B3A6B;margin:16px 0 6px">${g.semLabel} 學期（本學期修讀 ${g.courses.length} 門 ${g.totalCredits} 學分；加權平均 ${g.avg!=null?g.avg.toFixed(2):'—'}；及格 ${g.pass} 科／不及格 ${g.fail} 科）</div>
+      <div style="font-size:13px;font-weight:700;color:#1B3A6B;margin:16px 0 6px">${g.semLabel} 學期（修讀 ${g.courses.length} 門 ${g.attemptedCredits} 學分，加權平均 ${g.avg!=null?g.avg.toFixed(2):'—'}，及格 ${g.pass} 科／不及格 ${g.fail} 科，實得${g.pass}門${g.totalCredits}學分）</div>
       <table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
-        <colgroup><col style="width:80px"><col><col style="width:50px"><col style="width:42px"><col style="width:88px"></colgroup>
+        <colgroup><col style="width:80px"><col><col style="width:50px"><col style="width:42px"><col style="width:120px"></colgroup>
         ${courseTableHead}
         <tbody>${g.courses.map(courseRowHtml).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;border:1px solid #ccc;color:#888">查無成績記錄</td></tr>`}</tbody>
       </table>`).join('');
@@ -17106,7 +17303,7 @@ function buildTranscriptHTML(r, semLabel) {
     const rows = r.courses.map(courseRowHtml).join('');
     courseSection = `
       <table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
-        <colgroup><col style="width:80px"><col><col style="width:50px"><col style="width:42px"><col style="width:88px"></colgroup>
+        <colgroup><col style="width:80px"><col><col style="width:50px"><col style="width:42px"><col style="width:120px"></colgroup>
         ${courseTableHead}
         <tbody>${rows || `<tr><td colspan="5" style="padding:16px;text-align:center;border:1px solid #ccc;color:#888">查無成績記錄</td></tr>`}</tbody>
       </table>`;
@@ -17123,18 +17320,19 @@ function buildTranscriptHTML(r, semLabel) {
       <div style="text-align:right;font-size:11px;color:#999;white-space:nowrap">列印日期：${new Date().toLocaleDateString('zh-TW')}</div>
     </div>
 
-    <table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:13px;table-layout:fixed">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:13px">
       <tr>
-        <td style="padding:4px 8px;width:20%;color:#666">學號</td><td style="padding:4px 8px;width:30%;font-weight:700">${r.student.student_code||''}</td>
-        <td style="padding:4px 8px;width:20%;color:#666">姓名</td><td style="padding:4px 8px;width:30%;font-weight:700">${r.student.name_zh||''}</td>
+        <td style="padding:4px 8px;width:15%;color:#666">學號</td><td style="padding:4px 8px;width:35%;font-weight:700">${r.student.student_code||''}</td>
+        <td style="padding:4px 8px;width:15%;color:#666">姓名</td><td style="padding:4px 8px;width:35%;font-weight:700">${r.student.name_zh||''}</td>
       </tr>
       <tr>
-        <td style="padding:4px 8px;color:#666">本學期修讀</td><td style="padding:4px 8px;font-weight:700">${gsumCreditsBreakdown(r)}</td>
-        <td style="padding:4px 8px;color:#666">加權平均</td><td style="padding:4px 8px;font-weight:700">${r.avg!=null?r.avg.toFixed(2):'尚無成績'}</td>
+        <td style="padding:4px 8px;color:#666;white-space:nowrap">本學期修讀</td>
+        <td style="padding:4px 8px;font-weight:700" colspan="3">${gsumCreditsBreakdown(r)}</td>
       </tr>
       <tr>
-        <td style="padding:4px 8px;color:#666">及格科數</td><td style="padding:4px 8px;font-weight:700">${r.pass}</td>
-        <td style="padding:4px 8px;color:#666">不及格科數</td><td style="padding:4px 8px;font-weight:700">${r.fail}</td>
+        <td style="padding:4px 8px;color:#666;white-space:nowrap">加權平均</td><td style="padding:4px 8px;font-weight:700">${r.avg!=null?r.avg.toFixed(2):'尚無成績'}</td>
+        <td style="padding:4px 8px;color:#666;white-space:nowrap">及格科數</td><td style="padding:4px 8px;font-weight:700">${r.pass}</td>
+        <td style="padding:4px 8px;color:#666;white-space:nowrap">不及格科數</td><td style="padding:4px 8px;font-weight:700">${r.fail}</td>
       </tr>
     </table>
 
@@ -17146,13 +17344,18 @@ function buildTranscriptHTML(r, semLabel) {
 const CONDUCT_FOOTNOTE_SHORT = '必表必修　選表選修　暑表暑期重修　*表不及格　+表成績未到　W表停修';
 
 function buildCombinedTranscriptHTML(r, semInfo, conductScore, semesterOrdinal) {
-  const rows = r.courses.map(c => `
-    <tr>
-      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;white-space:nowrap">${REQ_ZH[c.reqType]||''}</td>
-      <td style="padding:6px 8px;border:1px solid #ccc;word-break:break-all">${c.name}</td>
-      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;white-space:nowrap">${c.credits}</td>
-      <td style="padding:6px 6px;border:1px solid #ccc;text-align:center;font-weight:600;white-space:nowrap">${c.score}</td>
-    </tr>`).join('');
+  const rows = r.courses.map(c => {
+    const isFail = c.grade_label === '不及格';
+    const rowStyle = isFail ? 'background:#FDECEA' : '';
+    const textColor = isFail ? 'color:#C62828;font-weight:700' : '';
+    return `
+    <tr style="${rowStyle}">
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;white-space:nowrap;${textColor}">${REQ_ZH[c.reqType]||''}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;word-break:break-all;${textColor}">${c.name}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;white-space:nowrap;${textColor}">${c.credits}</td>
+      <td style="padding:6px 6px;border:1px solid #ccc;text-align:center;font-weight:600;white-space:nowrap;${textColor}">${c.score}${isFail?'（不及格）':''}</td>
+    </tr>`;
+  }).join('');
   const blankRows = Array.from({length: Math.max(0, 8 - r.courses.length)}).map(() => `
     <tr><td style="padding:6px 8px;border:1px solid #ccc">&nbsp;</td><td style="padding:6px 8px;border:1px solid #ccc"></td><td style="padding:6px 8px;border:1px solid #ccc"></td><td style="padding:6px 8px;border:1px solid #ccc"></td></tr>`).join('');
   const fmtDate = d => d ? `${d.slice(0,4)}年${d.slice(5,7)}月${d.slice(8,10)}日` : '';
@@ -17179,7 +17382,7 @@ function buildCombinedTranscriptHTML(r, semInfo, conductScore, semesterOrdinal) 
       </tr>
       ${rows}${blankRows}
       <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">學業成績總平均</td><td style="padding:6px 10px;border:1px solid #333;text-align:center;font-weight:700">${r.avg!=null?r.avg.toFixed(2):'—'}</td></tr>
-      <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">總修學分</td><td style="padding:6px 10px;border:1px solid #333;text-align:center">${r.totalCredits}</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">總修學分</td><td style="padding:6px 10px;border:1px solid #333;text-align:center">${r.attemptedCredits}</td></tr>
       <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">實得學分</td><td style="padding:6px 10px;border:1px solid #333;text-align:center">${earnedCredits}</td></tr>
       <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">操行成績</td><td style="padding:6px 10px;border:1px solid #333;text-align:center;font-weight:700">${conductScore!=null?conductScore:'—'}</td></tr>
     </table>
@@ -17291,42 +17494,60 @@ function buildTranscriptAoa(r, semLabel) {
   const distinctSems = [...new Set(r.courses.map(c=>c.semLabel).filter(Boolean))];
   const isMultiSem = distinctSems.length > 1;
 
+  // 不及格加上⚠符號強化辨識（SheetJS免費版不支援寫入紅色背景，用文字符號補強視覺標註）
+  const gradeCell = c => c.grade_label === '不及格' ? `⚠ ${c.grade_label}` : (c.grade_label||'');
+  const courseRow = c => [c.code||'', c.name||'', REQ_ZH[c.reqType]||'', c.credits, c.score!=null?c.score:'', gradeCell(c)];
+
   let courseRows;
+  const semHeaderRowIdxs = []; // 記錄哪幾列是「XXX學期（修讀...)」這種分段標題，之後要合併橫跨整列
   if (isMultiSem) {
     const groups = gsumGroupCoursesBySemester(r.courses);
     courseRows = [];
     groups.forEach(g => {
-      courseRows.push([`${g.semLabel} 學期（修讀${g.courses.length}門${g.totalCredits}學分，加權平均${g.avg!=null?g.avg.toFixed(2):'—'}，及格${g.pass}科／不及格${g.fail}科）`]);
+      semHeaderRowIdxs.push(courseRows.length);
+      courseRows.push([`${g.semLabel} 學期（修讀${g.courses.length}門${g.attemptedCredits}學分，加權平均${g.avg!=null?g.avg.toFixed(2):'—'}，及格${g.pass}科／不及格${g.fail}科，實得${g.pass}門${g.totalCredits}學分）`]);
       courseRows.push(header);
-      g.courses.forEach(c => courseRows.push([c.code||'', c.name||'', REQ_ZH[c.reqType]||'', c.credits, c.score!=null?c.score:'', c.grade_label||'']));
+      g.courses.forEach(c => courseRows.push(courseRow(c)));
       courseRows.push([]);
     });
   } else {
-    courseRows = [header, ...r.courses.map(c => [c.code||'', c.name||'', REQ_ZH[c.reqType]||'', c.credits, c.score!=null?c.score:'', c.grade_label||''])];
+    courseRows = [header, ...r.courses.map(courseRow)];
   }
 
-  return [
-    ['福智佛教學院'],
-    [`${semLabel} 成績單`],
+  const aoa = [
+    ['福智佛教學院', '', '', '', '', ''],
+    [`${semLabel} 成績單`, '', '', '', '', ''],
     ['系所', '佛法應用研究所', '學號', r.student.student_code||'', '姓名', r.student.name_zh||''],
-    ['加權平均', r.avg!=null?r.avg.toFixed(2):'', '', '本學期修讀', gsumCreditsBreakdown(r)],
-    ['及格科數', r.pass, '', '不及格科', r.fail],
+    ['加權平均', r.avg!=null?r.avg.toFixed(2):'', '及格科數', String(r.pass), '不及格科', String(r.fail)],
+    ['本學期修讀', gsumCreditsBreakdown(r), '', '', '', ''],
     [],
     ...courseRows
   ];
+  // 標題列合併橫跨整列(A~F)置中：這幾列本身只有一個值放在A欄，B~F本來就是空的，合併不會流失資料
+  aoa._titleMergeRows = [0, 1]; // 福智佛教學院／XXX成績單
+  // 「本學期修讀」這列不一樣：A欄是標籤、B欄才是真正的長文字內容，若直接合併A~F會導致合併儲存格只保留A欄的值、
+  // B欄那串「11門28學分…」的內容會被Excel的合併規則直接丟掉——所以只合併B~F(值本身)，A欄的標籤獨立留著
+  aoa._labelValueMergeRows = [4];
+  aoa._semHeaderRows = semHeaderRowIdxs.map(i => i + 6); // +6：前面固定有6列(index 0~5，含空白列)才進入courseRows，這幾列也是單一值放A欄，合併整列安全
+  return aoa;
 }
 
-// 設定欄寬，課程名稱欄加大讓大部分課程名稱能完整顯示在一行內
-// （SheetJS免費版不支援寫入「自動換行」儲存格樣式，加寬欄位是目前能做到最可靠的改善方式）
-function applyTranscriptColWidths(ws) {
+// 設定欄寬，課程名稱欄加大讓大部分課程名稱能完整顯示在一行內；標題/分段標題列合併橫跨A~F欄，避免只塞在A欄看起來跑版
+// （SheetJS免費版不支援寫入儲存格底色/框線樣式，合併儲存格是目前能做到最可靠的排版改善方式）
+function applyTranscriptColWidths(ws, aoa) {
   ws['!cols'] = [
     { wch: 12 }, // 課程編號
     { wch: 32 }, // 課程名稱
-    { wch: 8 },  // 選修別
-    { wch: 12 }, // 學分（此欄在header列同時要放8位數學號，所以加寬）
-    { wch: 8 },  // 分數
-    { wch: 8 },  // 等第
+    { wch: 10 }, // 選修別
+    { wch: 10 }, // 學分
+    { wch: 12 }, // 分數
+    { wch: 9 },  // 等第（含⚠符號跟不及格文字）
   ];
+  const merges = [];
+  (aoa?._titleMergeRows||[]).forEach(row => merges.push({ s:{r:row,c:0}, e:{r:row,c:5} }));
+  (aoa?._labelValueMergeRows||[]).forEach(row => merges.push({ s:{r:row,c:1}, e:{r:row,c:5} })); // 只合併B~F(值)，A欄標籤不動
+  (aoa?._semHeaderRows||[]).forEach(row => merges.push({ s:{r:row,c:0}, e:{r:row,c:5} }));
+  if (merges.length) ws['!merges'] = merges;
 }
 
 async function downloadStudentTranscriptExcel(idx) {
@@ -17341,8 +17562,9 @@ async function downloadStudentTranscriptExcel(idx) {
   }
   const semLabel = currentGsumSemLabel();
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(buildTranscriptAoa(r, semLabel));
-  applyTranscriptColWidths(ws);
+  const aoa = buildTranscriptAoa(r, semLabel);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  applyTranscriptColWidths(ws, aoa);
   XLSX.utils.book_append_sheet(wb, ws, '成績單');
   XLSX.writeFile(wb, `${semLabel} 成績單-${r.student.student_code}-${r.student.name_zh}.xlsx`);
   showToast('✅ 已下載');
@@ -17423,7 +17645,8 @@ async function downloadAllTranscriptsPDF() {
 }
 
 async function downloadAllTranscriptsExcel() {
-  const withGrades = _gsumRows.filter(r => r.courses.length);
+  const withGrades = _gsumRows.filter(r => r.courses.length)
+    .slice().sort((a,b) => (a.student.student_code||'').localeCompare(b.student.student_code||''));
   if (!withGrades.length) { showToast('目前沒有可產出成績單的學生','error'); return; }
   if (typeof XLSX === 'undefined') {
     await new Promise((res, rej) => {
@@ -17442,8 +17665,9 @@ async function downloadAllTranscriptsExcel() {
     let sheetName = String(r.student.student_code || r.student.name_zh || 'unknown').slice(0, 31);
     while (usedNames.has(sheetName)) sheetName = (sheetName + '_').slice(0, 31);
     usedNames.add(sheetName);
-    const ws = XLSX.utils.aoa_to_sheet(buildTranscriptAoa(r, semLabel));
-    applyTranscriptColWidths(ws);
+    const aoa = buildTranscriptAoa(r, semLabel);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    applyTranscriptColWidths(ws, aoa);
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });
   XLSX.writeFile(wb, `${cohort}級_${semLabel}_全體成績單.xlsx`);
@@ -17456,19 +17680,22 @@ function viewStudentTranscript(idx) {
   if (!r.courses.length) {
     html += '<div style="color:var(--ink3);font-size:13px;padding:12px 0">目前範圍內查無已送出的成績</div>';
   } else {
-    html += `<table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
-      <colgroup><col style="width:90px"><col><col style="width:60px"><col style="width:50px"><col style="width:60px"></colgroup>
-      <thead><tr style="background:var(--cr3)"><th style="padding:6px 8px;text-align:left">課程編號</th><th style="padding:6px 8px;text-align:left">課程名稱</th><th style="padding:6px 8px;text-align:center">選修別</th><th style="padding:6px 8px;text-align:center">學分</th><th style="padding:6px 8px;text-align:center">成績</th></tr></thead><tbody>`;
+    html += `<div class="tbl-wrap" style="max-height:50vh"><table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
+      <colgroup><col style="width:64px"><col style="width:130px"><col style="width:40px"><col style="width:34px"><col style="width:88px"></colgroup>
+      <thead><tr style="background:var(--cr3)"><th style="padding:6px 4px;text-align:left">課程編號</th><th style="padding:6px 4px;text-align:left">課程名稱</th><th style="padding:6px 4px;text-align:center">選修別</th><th style="padding:6px 4px;text-align:center">學分</th><th style="padding:6px 4px;text-align:center">成績</th></tr></thead><tbody>`;
     r.courses.forEach(c => {
-      html += `<tr style="border-top:1px solid var(--cr2)">
-        <td style="padding:6px 8px;font-family:monospace;white-space:nowrap">${c.code}</td>
-        <td style="padding:6px 8px;word-break:break-all">${c.name}</td>
-        <td style="padding:6px 8px;text-align:center;white-space:nowrap">${REQ_ZH[c.reqType]||''}</td>
-        <td style="padding:6px 8px;text-align:center;white-space:nowrap">${c.credits}</td>
-        <td style="padding:6px 8px;text-align:center;font-weight:600;white-space:nowrap">${gsumGradeDisplay(c)}</td>
+      const isFail = c.grade_label === '不及格';
+      const rowStyle = isFail ? 'background:#FDECEA' : '';
+      const textColor = isFail ? 'color:#C62828;font-weight:700' : '';
+      html += `<tr style="border-top:1px solid var(--cr2);${rowStyle}">
+        <td style="padding:6px 4px;font-family:monospace;font-size:11px;word-break:break-all;${textColor}">${c.code}</td>
+        <td style="padding:6px 4px;word-break:break-all;${textColor}">${c.name}</td>
+        <td style="padding:6px 4px;text-align:center;font-size:11px;${textColor}">${REQ_ZH[c.reqType]||''}</td>
+        <td style="padding:6px 4px;text-align:center;${textColor}">${c.credits}</td>
+        <td style="padding:6px 4px;text-align:center;font-weight:600;font-size:11px;word-break:break-all;${textColor}">${gsumGradeDisplay(c)}</td>
       </tr>`;
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
   }
   html += `<div style="margin-top:14px;text-align:right"><button class="btn btn-sec btn-sm" onclick="downloadStudentTranscriptExcel(${idx})">📊 下載Excel</button> <button class="btn btn-pri btn-sm" onclick="downloadStudentTranscriptPDF(${idx})">📄 下載PDF</button></div>`;
   openThModal(`${r.student.name_zh} 成績單`, html);
