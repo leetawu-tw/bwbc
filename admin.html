@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v8.16 2026-08-15 -->
+<!-- BWBC Admin v9.5 2026-09-06 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -165,7 +165,7 @@ input.search:focus{outline:none;border-color:var(--navy2)}
 .week-row{border-bottom:1px solid var(--cr2);padding:8px 0}
 .week-row:last-child{border-bottom:none}
 .week-expand{background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink3);padding:2px 6px;transition:transform .2s}
-.week-detail{display:none;padding-top:8px}
+.week-detail{display:block;padding-top:8px}
 
 /* Sortable headers */
 th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
@@ -385,7 +385,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v8.16　2026-08-15</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v9.5　2026-09-06</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -2810,6 +2810,9 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div class="sy-section">
       <div class="sy-section-hdr" onclick="toggleSection('wk')"><span class="sy-section-title">📅 教學進度（週次）</span><span id="wk-arrow">▼</span></div>
       <div class="sy-section-body" id="wk-body">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+          <button type="button" onclick="toggleAllWeekDetails()" id="wk-toggle-all-btn" style="font-size:11.5px;padding:4px 10px;border:1px solid var(--cr2);background:#fff;border-radius:6px;cursor:pointer;color:var(--ink3)">▼ 全部收合</button>
+        </div>
         <div style="display:grid;grid-template-columns:48px 1fr 140px 110px 32px;gap:8px;padding:0 2px;margin-bottom:6px" id="sy-wk-header">
           <div style="font-size:11px;color:var(--ink3)">週次</div>
           <div style="font-size:11px;color:var(--ink3)">主題</div>
@@ -2821,6 +2824,39 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div id="sy-wk-mode-summary" style="margin-top:10px;font-size:12px;color:var(--ink2)"></div>
       </div>
     </div>
+    <div class="sy-section">
+      <div class="sy-section-hdr" onclick="toggleSection('interact')"><span class="sy-section-title">🗣 師生互動與作業繳交（各類課程皆適用）</span><span id="interact-arrow">▼</span></div>
+      <div class="sy-section-body" id="interact-body">
+        <label class="flabel">師生互動討論方式</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" id="sy-d-im-board" checked>教學平臺討論區</label>
+          <input class="finput" id="sy-d-im-office" placeholder="教師線上(網路)辦公室時間（選填）">
+          <input class="finput" id="sy-d-im-email" placeholder="教師電子信箱（選填）">
+          <input class="finput" id="sy-d-im-ext" placeholder="教師校內分機（選填）">
+          <input class="finput" id="sy-d-im-group" placeholder="開課社群群組（選填）">
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;grid-column:span 2"><span style="color:var(--ink3)">☐其他：</span><input class="finput" id="sy-d-im-other" placeholder="請說明（選填，有填才會勾選）" style="flex:1"></div>
+        </div>
+
+        <label class="flabel">作業繳交方式（可多選）</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;font-size:13px">
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-intro">線上說明作業內容</label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-realtime">線上即時作業填答</label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-upload">作業檔案上傳及下載</label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-quiz">線上測驗</label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-grade">成績查詢</label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-report">報告</label>
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px"><span style="color:var(--ink3)">☐其他：</span><input class="finput" id="sy-d-am-other" placeholder="請說明（選填，有填才會勾選）" style="flex:1"></div>
+        </div>
+
+        <label class="flabel">教材大綱（主題/單元清單，自由文字，每行一項，選填）</label>
+        <textarea class="finput" id="sy-d-material-outline" rows="4" style="width:100%;resize:vertical" placeholder="例：&#10;1. 社會與行為科學研究內涵與歷程&#10;2. 文獻探討及實例&#10;3. 調查研究法及實例"></textarea>
+
+        <label class="flabel" style="margin-top:10px">上課注意事項（自由文字，選填）</label>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">偏「上課當下」需要準備的事項，例：請自備筆記型電腦、需安裝OO軟體</div>
+        <textarea class="finput" id="sy-d-class-notes" rows="2" style="width:100%;resize:vertical"></textarea>
+      </div>
+    </div>
+
     <div class="sy-section" id="sy-digital-section" style="display:none">
       <div class="sy-section-hdr" onclick="toggleSection('digital')"><span class="sy-section-title">💻 數位課程（遠距教學）申請書資訊</span><span id="digital-arrow">▼</span></div>
       <div class="sy-section-body" id="digital-body">
@@ -2866,30 +2902,35 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <label class="flabel">教學計畫檔案連結網址</label>
         <input class="finput" id="sy-d-plan-url" style="margin-bottom:10px">
 
-        <label class="flabel">師生互動討論方式</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" id="sy-d-im-board" checked>教學平臺討論區</label>
-          <input class="finput" id="sy-d-im-office" placeholder="教師辦公室時間（選填）">
-          <input class="finput" id="sy-d-im-email" placeholder="教師電子信箱（選填）">
-          <input class="finput" id="sy-d-im-ext" placeholder="教師校內分機（選填）">
-          <input class="finput" id="sy-d-im-group" placeholder="開課社群群組（選填）">
-          <input class="finput" id="sy-d-im-other" placeholder="其他（選填）">
-        </div>
-
-        <label class="flabel">作業繳交方式（可多選）</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;font-size:13px">
-          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-intro">線上說明作業內容</label>
-          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-realtime">線上即時作業填答</label>
-          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-upload">作業檔案上傳及下載</label>
-          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-quiz">線上測驗</label>
-          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-am-grade">成績查詢</label>
-          <input class="finput" id="sy-d-am-other" placeholder="其他（選填）">
-        </div>
-
         <label class="flabel">教學時數拆分（自動依「教學進度」每週的教學型態統計，不用手動填）</label>
         <div id="sy-d-hours-auto" style="background:var(--cr3);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12.5px"></div>
 
-        <label class="flabel">修課注意事項或其他補充</label>
+        <label class="flabel" style="margin-top:10px">學習管理系統功能（預設全部提供，如有不提供的項目請取消勾選）</label>
+        <div style="background:var(--cr3);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-size:11.5px;color:var(--ink3);margin-bottom:6px">系統管理者功能</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;font-size:12.5px">
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-admin-personal" checked>個人資料</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-admin-course" checked>課程資訊</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-admin-other" checked>其他相關資料管理</label>
+          </div>
+          <div style="font-size:11.5px;color:var(--ink3);margin-bottom:6px">教師(助教)、學生功能</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12.5px">
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-news" checked>最新消息發佈、瀏覽</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-materials" checked>教材內容設計、觀看、下載</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-grades" checked>成績系統管理及查詢</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-quiz" checked>線上測驗、發佈</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-info" checked>學習資訊</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-interactive" checked>互動式學習設計（聊天室/討論區）</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-activities" checked>各種教學活動之功能呈現</label>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;white-space:nowrap"><input type="checkbox" id="sy-d-lms-other-check">其他相關功能：</label>
+            <input class="finput" id="sy-d-lms-other-text" placeholder="請說明（選填，有填才會勾選）" style="flex:1" oninput="document.getElementById('sy-d-lms-other-check').checked = !!this.value.trim()">
+          </div>
+        </div>
+
+        <label class="flabel" style="margin-top:10px">十三、修課注意事項或其他補充（自由文字，選填，數位申請書專用；一般課程請用下方「備註」欄）</label>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">偏「選課/修課規劃」層面的提醒，例：本課程與OO課程擇一修習、需完成平台註冊</div>
         <textarea class="finput" id="sy-d-notes-supp" rows="2" style="width:100%;resize:vertical"></textarea>
       </div>
     </div>
@@ -6010,6 +6051,13 @@ function escapeXml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// 老師/admin輸入教學目標、參考書目等清單時，常常會自己打開頭編號（例如「1. 」「1、」「(1)」），
+// 但系統本來就會自動幫每一項加編號，兩個疊在一起會變成「1. 1. XXX」這種重複編號。
+// 這個函式清掉使用者自己打的開頭編號，不管有沒有打都能正確顯示，不用要求老師改變輸入習慣
+function stripLeadingNumber(text) {
+  return String(text||'').replace(/^[\(（]?\d+[\.．、\)）]\s*/, '');
+}
+
 // HTML escape（給 innerHTML 渲染用，跟 escapeXml 不同情境：這個不用管 docx XML，純粹避免使用者文字裡的 < > & 被當成HTML標籤）
 function esc(str) {
   return String(str==null?'':str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -6018,6 +6066,20 @@ function esc(str) {
 /* ════ 課程大綱輸出（套版產生Word，含動態表格列） ════ */
 
 // 在 document.xml 的 DOM 裡，找到內含 markerText 的表格列(w:tr)，依 rowsData 動態複製/填值
+// 校內大綱(general_output.docx)專用：某個欄位完全沒填時，把「標題段落」跟「內容段落」一起從文件移除，
+// 不要留著空白標題卡在那裡看起來像漏採，也不用印「（未勾選任何選項）」這種在正式文件裡顯得突兀的字樣。
+// 必須在xmlDoc序列化成字串「之前」呼叫(DOM還沒轉成純文字，才能用previousElementSibling抓到標題段落)
+function removeSectionIfEmpty(xmlDoc, markerTag, isEmpty) {
+  if (!isEmpty) return;
+  const allP = Array.from(xmlDoc.getElementsByTagName('w:p'));
+  const contentP = allP.find(p => p.textContent.includes('{{'+markerTag+'}}'));
+  if (!contentP) return; // 這份範本根本沒有這個標籤(例如舊版digital_output.docx)，什麼都不用做
+  const headingP = contentP.previousElementSibling;
+  const parent = contentP.parentNode;
+  parent.removeChild(contentP);
+  if (headingP && headingP.tagName === 'w:p' && headingP.parentNode === parent) parent.removeChild(headingP);
+}
+
 function fillDynamicTableRows(xmlDoc, markerText, rowsData, buildCells) {
   const NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
   const trs = Array.from(xmlDoc.getElementsByTagName('w:tr'));
@@ -6029,11 +6091,16 @@ function fillDynamicTableRows(xmlDoc, markerText, rowsData, buildCells) {
   const parent = templateTr.parentNode;
 
   // 範本表格裡，帶標記的那一列之前的所有列都算表頭（可能不只一層，例如「授課方式及時數」上下兩層合併表頭），
-  // 都要保留；只清掉標記列「之後」殘留的舊空白預留列，不然填完資料後面會殘留一堆沒處理過的舊空白列
+  // 都要保留；標記列「之後」的舊空白預留列（例如第2~18週的空白列）要清掉，但只清到遇到「還含有其他{{}}標籤」的列為止
+  // （例如「各類別總時數」加總列本身也是要保留、事後另外用一般字串取代方式填值的，不能被這個清除邏輯誤刪）
   const allRowsInTable = Array.from(parent.getElementsByTagName('w:tr')).filter(tr => tr.parentNode === parent);
   const markerIdx = allRowsInTable.indexOf(templateTr);
+  let stopDeleting = false;
   allRowsInTable.forEach((tr, i) => {
-    if (i > markerIdx) parent.removeChild(tr); // 只刪標記列後面的，前面不管幾層表頭都保留
+    if (i <= markerIdx) return;
+    if (stopDeleting) return; // 已經遇到保留列，之後全部不動
+    if (tr.textContent.includes('{{')) { stopDeleting = true; return; } // 這列是保留給其他標籤用的，不刪、且後面也不再刪
+    parent.removeChild(tr);
   });
 
   // 把一格文字寫進儲存格，文字裡的 \n 換行符轉成真正的 Word <w:br/>，不是塞進同一個w:t裡面
@@ -6087,6 +6154,9 @@ function fillDynamicTableRows(xmlDoc, markerText, rowsData, buildCells) {
 }
 
 function buildCheckbox(checked, label) { return (checked?'☒':'☐') + label; }
+// 數位報部大綱官方範本明確要求「表單勾選使用符號■」，跟校內大綱共用的buildCheckbox(☒/☐)不一樣，
+// 另外獨立一個函式，只給buildDigitalReportBlob()用，不動到buildCheckbox避免影響校內大綱那份文件
+function buildCheckboxSquare(checked, label) { return (checked?'■':'□') + label; }
 
 // 課程代碼解析：第3碼=學制(1大學/2碩士/3博士)，第4碼=必選修(1必修/2選修)
 // 例：AD21040 → 第3碼2=碩士班，第4碼1=必修
@@ -6146,24 +6216,64 @@ async function buildFilledSyllabusBlob(offeringId) {
     ]);
   }
 
+  // 師生互動/作業繳交/教材大綱/上課注意事項這4項，任何課程都該有，不是數位課程專屬概念，
+  // 所以跟isDigital區塊拆開，搬到序列化之前先算好——這樣才能在還是DOM的階段，把「完全沒填」的欄位整段標題+內容一起刪掉，
+  // 而不是留著空白標題卡在那裡，或印出「（未勾選任何選項）」這種在正式文件裡顯得突兀的字樣
+  const di = d.digital_info || {};
+  const im = di.interaction_methods||{};
+  const interactionLines = ['教學平臺討論區'];
+  if (im.office_hours) interactionLines.push('教師辦公室時間：'+im.office_hours);
+  if (im.email) interactionLines.push('教師電子信箱：'+im.email);
+  if (im.ext) interactionLines.push('教師校內分機：'+im.ext);
+  if (im.group) interactionLines.push('開課社群群組：'+im.group);
+  if (im.other) interactionLines.push('其他：'+im.other);
+
+  const am = di.assignment_methods||{};
+  const assignmentOpts = [];
+  if (am.online_intro) assignmentOpts.push('提供線上說明作業內容');
+  if (am.online_realtime) assignmentOpts.push('線上即時作業填答');
+  if (am.file_upload) assignmentOpts.push('作業檔案上傳及下載');
+  if (am.report) assignmentOpts.push('報告');
+  if (am.online_quiz) assignmentOpts.push('線上測驗');
+  if (am.grade_query) assignmentOpts.push('成績查詢');
+  if (am.other) assignmentOpts.push('其他：'+am.other);
+  // 完全沒勾選時，不再印「（未勾選任何選項）」這種字樣，改成把整段標題+內容從文件裡拿掉(見下面removeSectionIfEmpty)
+
+  // 只有校內大綱(general_output.docx/digital_output.docx)才做「空白就整段隱藏」，
+  // 官方報部文件(digital_report_output.docx)是固定格式的申請書，走另一個函式buildDigitalReportBlob，不會被這裡影響
+  removeSectionIfEmpty(xmlDoc, 'ASSIGNMENT_METHODS', assignmentOpts.length === 0);
+  removeSectionIfEmpty(xmlDoc, 'MATERIAL_OUTLINE', !((di.material_outline||'').trim()));
+  removeSectionIfEmpty(xmlDoc, 'CLASS_NOTES', !((di.class_notes||'').trim()));
+
   // 序列化回字串，接著做一般文字置換
   let xml = new XMLSerializer().serializeToString(xmlDoc);
 
   // Word的文字節點裡 \n 不會變成換行，必須塞真正的 <w:br/> 標記才會換行；
   // 這裡先把每一項分別escape，再用 <w:br/> 接起來（不能整段交給最後迴圈再escape，否則<w:br/>會被跟著轉成文字）
-  const joinBr = (items) => items.map(escapeXml).join('<w:br/>');
+  // <w:br/>不能直接塞進<w:t>文字內容裡(這是不合法的XML巢狀結構，w:t只能放純文字)，
+  // 正確做法是用它「關閉目前的文字節點與run、插入一個只放<w:br/>的獨立run、再開一個新的run與文字節點」，
+  // 這樣代入到範本原本的<w:t>{{TAG}}</w:t>位置時，前後才能跟原本的<w:r><w:t>...</w:t></w:r>正確接起來
+  const joinBr = (items) => items.map(escapeXml).join('</w:t></w:r><w:r><w:br/></w:r><w:r><w:t xml:space="preserve">');
 
-  const objectives = joinBr((d.objectives||[]).map((o,i)=>`${i+1}. ${o.text||o}`));
-  const methods = joinBr((d.methods||[]).map((m,i)=>`${i+1}. ${m.text||m}`));
-  const bibReqList = d.bibliography?.required||[];
-  const bibOptList = d.bibliography?.optional||[];
-  const bibReq = joinBr(bibReqList.map((b,i)=>`${i+1}. ${b}`));
-  const bibOpt = joinBr(bibOptList.map((b,i)=>`${bibReqList.length+i+1}. ${b}`)); // 編號接續必讀繼續往下算，不重新從1開始
+  const objectives = joinBr((d.objectives||[]).map((o,i)=>`${i+1}. ${stripLeadingNumber(o.text||o)}`));
+  const methods = joinBr((d.methods||[]).map((m,i)=>`${i+1}. ${stripLeadingNumber(m.text||m)}`));
+  // 過濾掉空白項目(例如老師點了「+新增參考書目」但沒實際打字)，避免出現「參考 / 2.」這種後面沒內容的空白編號
+  const bibReqList = (d.bibliography?.required||[]).filter(b=>(b||'').trim());
+  const bibOptList = (d.bibliography?.optional||[]).filter(b=>(b||'').trim());
+  const bibReq = joinBr(bibReqList.map((b,i)=>`${i+1}. ${stripLeadingNumber(b)}`));
+  const bibOpt = joinBr(bibOptList.map((b,i)=>`${bibReqList.length+i+1}. ${stripLeadingNumber(b)}`)); // 編號接續必讀繼續往下算，不重新從1開始
   // digital_output.docx用的是單一{{BIBLIOGRAPHY}}佔位符（不像general_output.docx分開兩個佔位符），
   // 沿用digital_report_output.docx同一套做法：必讀/參考標題+內容都組進同一段文字裡
   const bibLines = [];
-  if (bibReqList.length) { bibLines.push('必讀'); bibReqList.forEach((b,i)=>bibLines.push(`${i+1}. ${b}`)); }
-  if (bibOptList.length) { bibLines.push('參考'); bibOptList.forEach((b,i)=>bibLines.push(`${bibReqList.length+i+1}. ${b}`)); }
+  if (bibReqList.length) { bibLines.push('必讀'); bibReqList.forEach((b,i)=>bibLines.push(`${i+1}. ${stripLeadingNumber(b)}`)); }
+  if (bibOptList.length) { bibLines.push('參考'); bibOptList.forEach((b,i)=>bibLines.push(`${bibReqList.length+i+1}. ${stripLeadingNumber(b)}`)); }
+
+  const assessmentItems = assessment.map(a=>`${a.name||''}（${a.pct!=null?a.pct:0}%）${a.desc?'　'+a.desc:''}`);
+  // NOTES：d.notes跟ta_requirement_note都可能是使用者自己打的多行內容(textarea輸入)，
+  // 各自先用\n拆開再攤平成一個陣列，才能正確套用joinBr產生真正的<w:br/>換行(不能直接join('\n')後escapeXml，
+  // 那樣換行符號只是原始字元留在XML文字節點裡，Word不會當成真正的換行，全部會擠成一段)
+  const notesLines = [d.notes, d.ta_requirement_note ? `教學助理條件：${d.ta_requirement_note}` : '']
+    .filter(Boolean).flatMap(s => s.split('\n')).filter(Boolean);
 
   // raw：值本身已經escape好、可能含真正的<w:br/>標記，最後置換時不能再escape一次
   let rawReplacements = {
@@ -6175,11 +6285,16 @@ async function buildFilledSyllabusBlob(offeringId) {
     '{{COHORT_NOTE}}': escapeXml(d.cohort_note||''), '{{PREREQUISITE_NOTE}}': escapeXml(d.prerequisite_note||''),
     '{{OVERVIEW}}': escapeXml(d.overview_zh||''), '{{OBJECTIVES}}': objectives, '{{METHODS}}': methods,
     '{{BIB_REQUIRED}}': bibReq, '{{BIB_OPTIONAL}}': bibOpt,
-    '{{NOTES}}': escapeXml([d.notes, d.ta_requirement_note ? `教學助理條件：${d.ta_requirement_note}` : ''].filter(Boolean).join('\n'))
+    '{{NOTES}}': joinBr(notesLines),
+    // 這幾項不分課程類型都共用同一份資料(digital_info裡的欄位，儘管命名沿用舊有的di變數，實際上任何課程都會存取)
+    '{{INTERACTION_METHODS}}': joinBr(interactionLines),
+    '{{ASSIGNMENT_METHODS}}': joinBr(assignmentOpts),
+    '{{ASSESSMENT}}': joinBr(assessmentItems),
+    '{{MATERIAL_OUTLINE}}': joinBr((di.material_outline||'').split('\n').filter(Boolean)),
+    '{{CLASS_NOTES}}': joinBr((di.class_notes||'').split('\n').filter(Boolean)),
   };
 
   if (isDigital) {
-    const di = d.digital_info || {};
     const autoMode = Object.entries(weekModeCount).sort((a,b)=>b[1]-a[1])[0][0];
     // 教學時數拆分改成自動計算：週數=該模式統計出來的週數，總時數=週數×每週學分時數，不再讓admin手動輸入
     const hb = {
@@ -6190,25 +6305,6 @@ async function buildFilledSyllabusBlob(offeringId) {
     const weeksSummaryItems = (d.weeks||[]).filter(w=>w.title||w.content)
       .map(w=>`第${w.week}週｜主題：${w.title||''}｜說明：${w.content||''}`);
 
-    const im = di.interaction_methods||{};
-    const interactionLines = ['教學平臺討論區'];
-    if (im.office_hours) interactionLines.push('教師辦公室時間：'+im.office_hours);
-    if (im.email) interactionLines.push('教師電子信箱：'+im.email);
-    if (im.ext) interactionLines.push('教師校內分機：'+im.ext);
-    if (im.group) interactionLines.push('開課社群群組：'+im.group);
-    if (im.other) interactionLines.push('其他：'+im.other);
-
-    const am = di.assignment_methods||{};
-    const assignmentOpts = [];
-    if (am.online_intro) assignmentOpts.push('提供線上說明作業內容');
-    if (am.online_realtime) assignmentOpts.push('線上即時作業填答');
-    if (am.file_upload) assignmentOpts.push('作業檔案上傳及下載');
-    if (am.online_quiz) assignmentOpts.push('線上測驗');
-    if (am.grade_query) assignmentOpts.push('成績查詢');
-    if (am.other) assignmentOpts.push('其他：'+am.other);
-    if (!assignmentOpts.length) assignmentOpts.push('（未勾選任何選項）');
-
-    const assessmentItems = assessment.map(a=>`${a.name||''}（${a.pct!=null?a.pct:0}%）${a.desc?'　'+a.desc:''}`);
     // 教學助理需求判斷優先順序：共同欄位(d.ta_needed，admin/老師明確指定) > 數位申請書裡的舊覆寫欄位 > 自動偵測(offering_staff有沒有指派TA)
     const override = di.ta_needed_override;
     const finalTA = (d.ta_needed===true || d.ta_needed===false) ? d.ta_needed
@@ -6251,9 +6347,6 @@ async function buildFilledSyllabusBlob(offeringId) {
       '{{HOURS_SYNC_HOURS}}': escapeXml(hb.sync_hours?String(hb.sync_hours):''),
       '{{HOURS_OTHER}}': '',
       '{{BIBLIOGRAPHY}}': joinBr(bibLines),
-      '{{INTERACTION_METHODS}}': joinBr(interactionLines),
-      '{{ASSIGNMENT_METHODS}}': joinBr(assignmentOpts),
-      '{{ASSESSMENT}}': joinBr(assessmentItems),
       '{{NOTES_SUPPLEMENT}}': escapeXml([di.notes_supplement, d.ta_requirement_note ? `教學助理條件：${d.ta_requirement_note}` : ''].filter(Boolean).join('\n'))
     });
   }
@@ -6315,14 +6408,20 @@ async function buildDigitalReportBlob(offeringId) {
     sync_weeks: weekModeCount.sync, sync_hours: weekModeCount.sync*hoursPerWeek,
   };
   fillDynamicTableRows(xmlDoc, 'DGTL_WEEK_TABLE', weeksWithData, w => [
-    String(w.week), w.content || w.title || '',
+    // 授課內容欄：主題(title)優先，內容說明(content)只在沒有主題時當備援。
+    // 原本寫成 content優先、title備援，但實務上「內容說明」常常只是老師/admin先打「請說明」這種提示文字等之後補，
+    // 一旦內容說明有填任何字(包含這種提示文字)，就會蓋掉真正有意義的週次主題，導致大部分週次顯示「請說明」而不是實際主題
+    String(w.week), w.title || w.content || '', w.activity || '',
     w.mode==='inperson' ? hoursPerWeek : '',
     w.mode==='async' ? hoursPerWeek : '',
     w.mode==='sync' ? hoursPerWeek : ''
   ]);
 
   let xml = new XMLSerializer().serializeToString(xmlDoc);
-  const joinBr = (items) => items.map(escapeXml).join('<w:br/>');
+  // <w:br/>不能直接塞進<w:t>文字內容裡(這是不合法的XML巢狀結構，w:t只能放純文字)，
+  // 正確做法是用它「關閉目前的文字節點與run、插入一個只放<w:br/>的獨立run、再開一個新的run與文字節點」，
+  // 這樣代入到範本原本的<w:t>{{TAG}}</w:t>位置時，前後才能跟原本的<w:r><w:t>...</w:t></w:r>正確接起來
+  const joinBr = (items) => items.map(escapeXml).join('</w:t></w:r><w:r><w:br/></w:r><w:r><w:t xml:space="preserve">');
 
   // 課程代碼解析(第3碼學制/第4碼必選修)，跟digital_info.program_level交叉比對，決定碩士班 vs 碩士在職專班
   const parsed = parseCourseCode(o.code);
@@ -6335,61 +6434,109 @@ async function buildDigitalReportBlob(offeringId) {
   const finalTA = (d.ta_needed===true || d.ta_needed===false) ? d.ta_needed
                 : (override==='yes' ? true : override==='no' ? false : hasTA);
 
-  const objectives = joinBr((d.objectives||[]).map((o2,i)=>`${i+1}. ${o2.text||o2}`));
-  const bibReqList = d.bibliography?.required||[];
-  const bibOptList = d.bibliography?.optional||[];
+  const objectives = joinBr((d.objectives||[]).map((o2,i)=>`${i+1}. ${stripLeadingNumber(o2.text||o2)}`));
+  // 過濾掉空白項目(例如老師點了「+新增參考書目」但沒實際打字)，避免出現「參考 / 2.」這種後面沒內容的空白編號
+  const bibReqList = (d.bibliography?.required||[]).filter(b=>(b||'').trim());
+  const bibOptList = (d.bibliography?.optional||[]).filter(b=>(b||'').trim());
   const bibLines = [];
-  if (bibReqList.length) { bibLines.push('必讀'); bibReqList.forEach((b,i)=>bibLines.push(`${i+1}. ${b}`)); }
-  if (bibOptList.length) { bibLines.push('參考'); bibOptList.forEach((b,i)=>bibLines.push(`${bibReqList.length+i+1}. ${b}`)); } // 編號接續必讀繼續往下算，不重新從1開始
+  if (bibReqList.length) { bibLines.push('必讀'); bibReqList.forEach((b,i)=>bibLines.push(`${i+1}. ${stripLeadingNumber(b)}`)); }
+  if (bibOptList.length) { bibLines.push('參考'); bibOptList.forEach((b,i)=>bibLines.push(`${bibReqList.length+i+1}. ${stripLeadingNumber(b)}`)); } // 編號接續必讀繼續往下算，不重新從1開始
   const assessmentItems = (d.assessment||[]).map(a=>`${a.name||''}（${a.pct!=null?a.pct:0}%）${a.desc?'　'+a.desc:''}`);
+
+  // 六、七：面授/線上同步的次數跟時數，直接沿用上面已經算好的hb(週次模式統計)，不用重新算一次
+  const lms = di.lms || {};
+  // 九：師生互動－「其他」這行，把舊資料裡的group(社群群組，新版表單已經拿掉這個選項)併進來，避免資料憑空消失
+  const imOtherCombined = [im.other, im.group ? `社群群組：${im.group}` : ''].filter(Boolean).join('　');
+  // 七：每週時數 = (面授總時數A + 線上同步總時數B) ÷ 18週，四捨五入到小數點後2位，避免0.1+0.2那種浮點數誤差
+  const weeklyHours = Math.round((((hb.inperson_hours||0)+(hb.sync_hours||0))/18 + Number.EPSILON) * 100) / 100;
 
   const rawReplacements = {
     // 開課學年學期
     '{{ACADEMIC_YEAR}}': escapeXml(o.academic_year!=null?String(o.academic_year):''),
-    '{{SEM1_BOX}}': buildCheckbox(o.semester_num===1,''), '{{SEM2_BOX}}': buildCheckbox(o.semester_num===2,''), '{{SEM_OTHER_BOX}}': buildCheckbox(false,''),
-    '{{FIRST_APP_YES_BOX}}': buildCheckbox(!!di.is_first_application,''), '{{FIRST_APP_NO_BOX}}': buildCheckbox(!di.is_first_application,''),
+    '{{SEM1_BOX}}': buildCheckboxSquare(o.semester_num===1,''), '{{SEM2_BOX}}': buildCheckboxSquare(o.semester_num===2,''), '{{SEM_OTHER_BOX}}': buildCheckboxSquare(false,''),
+    '{{FIRST_APP_YES_BOX}}': buildCheckboxSquare(!!di.is_first_application,''), '{{FIRST_APP_NO_BOX}}': buildCheckboxSquare(!di.is_first_application,''),
     // 開課單位／課程基本
     '{{DEPARTMENT_UNIT}}': escapeXml(app?.department_unit||'佛法應用研究所'),
     '{{COURSE_NAME}}': escapeXml(o.name_zh||''), '{{COURSE_NAME_EN}}': escapeXml(o.name_en||''),
     '{{COURSE_CODE}}': escapeXml(o.code||''), '{{CREDITS}}': escapeXml(o.credits!=null?String(o.credits):''),
-    '{{REQ_BOX}}': buildCheckbox(reqType==='req',''), '{{SEL_BOX}}': buildCheckbox(reqType==='sel'||reqType==='go',''), '{{OTHER_REQ_BOX}}': buildCheckbox(false,''),
+    '{{REQ_BOX}}': buildCheckboxSquare(reqType==='req',''), '{{SEL_BOX}}': buildCheckboxSquare(reqType==='sel'||reqType==='go',''), '{{OTHER_REQ_BOX}}': buildCheckboxSquare(false,''),
     '{{TEACHER_NAME}}': escapeXml(teacherNames),
-    // 師資來源：固定院系所聘任
-    '{{STAFF_DEPT_BOX}}': buildCheckbox(true,''), '{{STAFF_GE_BOX}}': buildCheckbox(false,''), '{{STAFF_OTHER_BOX}}': buildCheckbox(false,''),
+    // 師資來源：固定院系所聘任（新版表單拿掉了「通識教育委員會聘任」這個選項）
+    '{{STAFF_DEPT_BOX}}': buildCheckboxSquare(true,''), '{{STAFF_OTHER_BOX}}': buildCheckboxSquare(false,''),
     // 教學型態：非同步+同步+實體全部勾選（本校遠距課程慣例）
-    '{{MODE_ASYNC_BOX}}': buildCheckbox(true,''), '{{MODE_SYNC_BOX}}': buildCheckbox(true,''), '{{MODE_INPERSON_BOX}}': buildCheckbox(true,''),
+    '{{MODE_ASYNC_BOX}}': buildCheckboxSquare(true,''), '{{MODE_SYNC_BOX}}': buildCheckboxSquare(true,''), '{{MODE_INPERSON_BOX}}': buildCheckboxSquare(true,''),
     // 課程學制：代碼解析出大學/碩士/博士，碩士的話再依digital_info區分一般碩士班/在職專班
-    '{{LEVEL_BACHELOR_BOX}}': buildCheckbox(parsed.level==='bachelor',''),
-    '{{LEVEL_MASTER_BOX}}': buildCheckbox(parsed.level==='master' && !isMasterInservice,''),
-    '{{LEVEL_MASTER_IS_BOX}}': buildCheckbox(parsed.level==='master' && isMasterInservice,''),
-    '{{LEVEL_PHD_BOX}}': buildCheckbox(parsed.level==='phd',''),
+    '{{LEVEL_BACHELOR_BOX}}': buildCheckboxSquare(parsed.level==='bachelor',''),
+    '{{LEVEL_MASTER_BOX}}': buildCheckboxSquare(parsed.level==='master' && !isMasterInservice,''),
+    '{{LEVEL_MASTER_IS_BOX}}': buildCheckboxSquare(parsed.level==='master' && isMasterInservice,''),
+    '{{LEVEL_PHD_BOX}}': buildCheckboxSquare(parsed.level==='phd',''),
     // 科目類別：固定專業科目
-    '{{CAT_COMMON_BOX}}': buildCheckbox(false,''), '{{CAT_GE_BOX}}': buildCheckbox(false,''), '{{CAT_PRO_BOX}}': buildCheckbox(true,''), '{{CAT_OTHER_BOX}}': buildCheckbox(false,''),
+    '{{CAT_COMMON_BOX}}': buildCheckboxSquare(false,''), '{{CAT_GE_BOX}}': buildCheckboxSquare(false,''), '{{CAT_PRO_BOX}}': buildCheckboxSquare(true,''), '{{CAT_OTHER_BOX}}': buildCheckboxSquare(false,''),
     '{{CLASS_COUNT}}': escapeXml(app?.class_count!=null?String(app.class_count):''),
     '{{EXPECTED_HEADCOUNT}}': escapeXml(app?.expected_headcount!=null?String(app.expected_headcount):''),
-    '{{ENG_YES_BOX}}': buildCheckbox(!!di.full_english,''), '{{ENG_NO_BOX}}': buildCheckbox(!di.full_english,''),
+    '{{ENG_YES_BOX}}': buildCheckboxSquare(!!di.full_english,''), '{{ENG_NO_BOX}}': buildCheckboxSquare(!di.full_english,''),
     // 非同步平台網址／教學計畫連結：全校統一固定值
-    '{{SYNC_TEAMS_BOX}}': buildCheckbox(di.sync_platform==='teams',''), '{{SYNC_MEET_BOX}}': buildCheckbox(di.sync_platform==='meet',''),
-    '{{SYNC_OTHER_BOX}}': buildCheckbox(di.sync_platform==='other',''), '{{SYNC_OTHER_TEXT}}': escapeXml(di.sync_platform_other||''), '{{SYNC_NONE_BOX}}': buildCheckbox(!di.sync_platform,''),
-    '{{PLAN_OTHER_BOX}}': buildCheckbox(false,''),
-    '{{TA_YES_BOX}}': buildCheckbox(finalTA,''), '{{TA_NO_BOX}}': buildCheckbox(!finalTA,''),
-    // 教學計畫
+    '{{ASYNC_PLATFORM_URL}}': escapeXml(di.async_platform_url||''),
+    '{{SYNC_TEAMS_BOX}}': buildCheckboxSquare(di.sync_platform==='teams',''), '{{SYNC_MEET_BOX}}': buildCheckboxSquare(di.sync_platform==='meet',''),
+    '{{SYNC_OTHER_BOX}}': buildCheckboxSquare(di.sync_platform==='other',''), '{{SYNC_OTHER_TEXT}}': escapeXml(di.sync_platform_other||''), '{{SYNC_NONE_BOX}}': buildCheckboxSquare(!di.sync_platform,''),
+    '{{PLAN_OTHER_BOX}}': buildCheckboxSquare(false,''),
+    '{{TA_YES_BOX}}': buildCheckboxSquare(finalTA,''), '{{TA_NO_BOX}}': buildCheckboxSquare(!finalTA,''),
+
+    // 一、課程概述
+    '{{OVERVIEW}}': escapeXml(d.overview_zh||''),
+    // 二、教學目標
     '{{OBJECTIVES}}': objectives,
+    // 三、教材大綱（新增欄位，自由文字，支援換行）
+    '{{MATERIAL_OUTLINE}}': joinBr((di.material_outline||'').split('\n').filter(Boolean)),
+    // 四、適合修習對象（含先備能力）
     '{{COHORT_NOTE}}': escapeXml(d.cohort_note||''), '{{PREREQUISITE_NOTE}}': escapeXml(d.prerequisite_note||''),
-    '{{HOURS_INPERSON_BOX}}': buildCheckbox((hb.inperson_weeks||0)>0,''), '{{HOURS_INPERSON_WEEKS}}': escapeXml(hb.inperson_weeks?String(hb.inperson_weeks):''), '{{HOURS_INPERSON_HOURS}}': escapeXml(hb.inperson_hours?String(hb.inperson_hours):''),
-    '{{HOURS_ASYNC_BOX}}': buildCheckbox((hb.async_weeks||0)>0,''), '{{HOURS_ASYNC_WEEKS}}': escapeXml(hb.async_weeks?String(hb.async_weeks):''), '{{HOURS_ASYNC_HOURS}}': escapeXml(hb.async_hours?String(hb.async_hours):''),
-    '{{HOURS_SYNC_BOX}}': buildCheckbox((hb.sync_weeks||0)>0,''), '{{HOURS_SYNC_WEEKS}}': escapeXml(hb.sync_weeks?String(hb.sync_weeks):''), '{{HOURS_SYNC_HOURS}}': escapeXml(hb.sync_hours?String(hb.sync_hours):''),
-    '{{HOURS_OTHER_BOX}}': buildCheckbox(false,''),
+    // 五、進度表總時數加總列，沿用既有的HOURS_*_HOURS標籤
+    '{{HOURS_INPERSON_HOURS}}': escapeXml(hb.inperson_hours?String(hb.inperson_hours):'0'),
+    '{{HOURS_ASYNC_HOURS}}': escapeXml(hb.async_hours?String(hb.async_hours):'0'),
+    '{{HOURS_SYNC_HOURS}}': escapeXml(hb.sync_hours?String(hb.sync_hours):'0'),
+
+    // 六、教學方式：1/2/4固定打勾（描述Moodle平台既有能力），3/5用週次表統計出的面授/同步次數與時數，6其他固定不勾
+    '{{TM_MATERIAL_BOX}}': buildCheckboxSquare(true,''), '{{TM_ASSISTANT_BOX}}': buildCheckboxSquare(true,''), '{{TM_ASYNC_BOX}}': buildCheckboxSquare(true,''),
+    '{{TM_INPERSON_BOX}}': buildCheckboxSquare((hb.inperson_weeks||0)>0,''), '{{TM_INPERSON_COUNT}}': escapeXml(hb.inperson_weeks?String(hb.inperson_weeks):''), '{{TM_HOURS_A}}': escapeXml(hb.inperson_hours?String(hb.inperson_hours):''),
+    '{{TM_SYNC_BOX}}': buildCheckboxSquare((hb.sync_weeks||0)>0,''), '{{TM_SYNC_COUNT}}': escapeXml(hb.sync_weeks?String(hb.sync_weeks):''), '{{TM_HOURS_B}}': escapeXml(hb.sync_hours?String(hb.sync_hours):''),
+    '{{TM_OTHER_BOX}}': buildCheckboxSquare(false,''), '{{TM_OTHER_TEXT}}': '',
+
+    // 七、每週時數 = (A+B)÷18週
+    '{{WEEKLY_HOURS}}': escapeXml(String(weeklyHours)),
+
+    // 八、學習管理系統：11個子項，預設全部勾選(來自digital_info.lms，UI裡admin可自行取消)，只有「其他」需要有文字才勾選
+    '{{LMS_ADMIN_PERSONAL_BOX}}': buildCheckboxSquare(lms.admin_personal!==false,''),
+    '{{LMS_ADMIN_COURSE_BOX}}': buildCheckboxSquare(lms.admin_course!==false,''),
+    '{{LMS_ADMIN_OTHER_BOX}}': buildCheckboxSquare(lms.admin_other!==false,''),
+    '{{LMS_NEWS_BOX}}': buildCheckboxSquare(lms.news!==false,''),
+    '{{LMS_MATERIALS_BOX}}': buildCheckboxSquare(lms.materials!==false,''),
+    '{{LMS_GRADES_BOX}}': buildCheckboxSquare(lms.grades!==false,''),
+    '{{LMS_QUIZ_BOX}}': buildCheckboxSquare(lms.quiz!==false,''),
+    '{{LMS_INFO_BOX}}': buildCheckboxSquare(lms.info!==false,''),
+    '{{LMS_INTERACTIVE_BOX}}': buildCheckboxSquare(lms.interactive!==false,''),
+    '{{LMS_ACTIVITIES_BOX}}': buildCheckboxSquare(lms.activities!==false,''),
+    '{{LMS_OTHER_BOX}}': buildCheckboxSquare(!!(lms.other_text||'').trim(),''), '{{LMS_OTHER_TEXT}}': escapeXml(lms.other_text||''),
+
     '{{BIBLIOGRAPHY}}': joinBr(bibLines),
-    '{{IM_OFFICE_BOX}}': buildCheckbox(!!im.office_hours,''), '{{IM_OFFICE_TEXT}}': escapeXml(im.office_hours||''),
-    '{{IM_EMAIL_BOX}}': buildCheckbox(!!im.email,''), '{{IM_EMAIL_TEXT}}': escapeXml(im.email||''),
-    '{{IM_EXT_BOX}}': buildCheckbox(!!im.ext,''), '{{IM_EXT_TEXT}}': escapeXml(im.ext||''),
-    '{{IM_GROUP_BOX}}': buildCheckbox(!!im.group,''), '{{IM_GROUP_TEXT}}': escapeXml(im.group||''), '{{IM_OTHER_BOX}}': buildCheckbox(!!im.other,''), '{{IM_OTHER_TEXT}}': escapeXml(im.other||''),
-    '{{AM_INTRO_BOX}}': buildCheckbox(!!am.online_intro,''), '{{AM_REALTIME_BOX}}': buildCheckbox(!!am.online_realtime,''),
-    '{{AM_UPLOAD_BOX}}': buildCheckbox(!!am.file_upload,''), '{{AM_QUIZ_BOX}}': buildCheckbox(!!am.online_quiz,''),
-    '{{AM_GRADE_BOX}}': buildCheckbox(!!am.grade_query,''), '{{AM_OTHER_BOX}}': buildCheckbox(!!am.other,''), '{{AM_OTHER_TEXT}}': escapeXml(am.other||''),
+
+    // 九、師生互動方式：線上辦公室時間套用既有im.office_hours；一般辦公室時間固定不勾；Email+分機合併一行；
+    // 其他把舊的group(社群群組，新版表單拿掉這個選項)併進來，避免資料憑空消失
+    '{{IM_ONLINE_OFFICE_BOX}}': buildCheckboxSquare(!!im.office_hours,''), '{{IM_ONLINE_OFFICE_TEXT}}': escapeXml(im.office_hours||''),
+    '{{IM_OFFICE2_BOX}}': buildCheckboxSquare(false,''),
+    '{{IM_EMAIL_BOX}}': buildCheckboxSquare(!!im.email,''), '{{IM_EMAIL_TEXT}}': escapeXml(im.email||''), '{{IM_EXT_TEXT}}': escapeXml(im.ext||''),
+    '{{IM_OTHER_BOX}}': buildCheckboxSquare(!!imOtherCombined,''), '{{IM_OTHER_TEXT}}': escapeXml(imOtherCombined),
+
+    // 十、作業繳交方式：新增「報告」
+    '{{AM_INTRO_BOX}}': buildCheckboxSquare(!!am.online_intro,''), '{{AM_REALTIME_BOX}}': buildCheckboxSquare(!!am.online_realtime,''),
+    '{{AM_UPLOAD_BOX}}': buildCheckboxSquare(!!am.file_upload,''), '{{AM_REPORT_BOX}}': buildCheckboxSquare(!!am.report,''), '{{AM_QUIZ_BOX}}': buildCheckboxSquare(!!am.online_quiz,''),
+    '{{AM_GRADE_BOX}}': buildCheckboxSquare(!!am.grade_query,''), '{{AM_OTHER_BOX}}': buildCheckboxSquare(!!am.other,''), '{{AM_OTHER_TEXT}}': escapeXml(am.other||''),
+
+    // 十一、學期成績評量方式：沿用既有ASSESSMENT邏輯不變
     '{{ASSESSMENT}}': joinBr(assessmentItems),
-    '{{NOTES}}': escapeXml(di.notes_supplement||''),
+    // 十三、修課注意事項或其他補充
+    '{{NOTES}}': joinBr((di.notes_supplement||'').split('\n').filter(Boolean)),
+    // 十四、上課注意事項（新增欄位）
+    '{{CLASS_NOTES}}': joinBr((di.class_notes||'').split('\n').filter(Boolean)),
   };
 
   for (const [key, val] of Object.entries(rawReplacements)) {
@@ -6402,6 +6549,32 @@ async function buildDigitalReportBlob(offeringId) {
 }
 
 async function exportDigitalReportSyllabus(offeringId) {
+  const o = OFFERINGS.find(x=>x.offering_id===offeringId);
+  if (o?.is_digital) {
+    const { data: syl } = await sb.from('syllabi').select('weeks').eq('offering_id', offeringId).maybeSingle();
+    // 只檢查「這門課真的有排這一週」（有主題或內容說明）的週次，空白預留週次不算缺漏
+    const realWeeks = (syl?.weeks || []).filter(w => w.title || w.content);
+    const missing = realWeeks.filter(w => !w.activity || !w.activity.trim());
+    if (missing.length) {
+      const weekNums = missing.map(w=>`第${w.week}週`).join('、');
+      const html = `
+        <div style="font-size:13px;color:var(--ink2);margin-bottom:12px">
+          ⚠️ 這門課是<strong>數位課程</strong>，「教學活動」是報部文件的必填項目，但以下週次還沒有填寫：
+        </div>
+        <div style="background:#FFF3E0;border-radius:8px;padding:10px 12px;font-size:13px;color:#8A5A00;margin-bottom:16px">${weekNums}</div>
+        <div style="font-size:12.5px;color:var(--ink3);margin-bottom:16px">建議先回教學進度補齊，再正式匯出送交報部；若只是先看看排版效果，也可以先匯出。</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="closeThModal()" style="padding:8px 16px;border:1px solid var(--cr2);background:#fff;border-radius:6px;cursor:pointer;font-size:13px">返回填寫</button>
+          <button onclick="closeThModal();proceedExportDigitalReport('${offeringId}')" style="padding:8px 16px;border:none;background:var(--navy);color:#fff;border-radius:6px;cursor:pointer;font-size:13px">仍要匯出</button>
+        </div>`;
+      openThModal('⚠️ 教學活動尚未填齊', html);
+      return;
+    }
+  }
+  await proceedExportDigitalReport(offeringId);
+}
+
+async function proceedExportDigitalReport(offeringId) {
   const result = await buildDigitalReportBlob(offeringId);
   if (!result) { showToast('找不到這門開課記錄','error'); return; }
   if (result.error) { showToast(result.error,'error'); return; }
@@ -7174,7 +7347,7 @@ function renderSyllabus() {
   document.getElementById('sy-ta-open').checked = !!d.ta_open_for_apply;
   document.getElementById('sy-ta-slots').value = d.ta_slots||1;
   renderObjs(); renderMths(); renderAsmnt(); renderWeeks(); renderBib();
-  if (SY.is_digital) renderDigitalInfo();
+  renderDigitalInfo(); // 一律執行：師生互動/作業繳交/教材大綱/上課注意事項這幾項共用欄位，不分課程類型都要正確載入
 }
 
 function renderDigitalInfo() {
@@ -7184,7 +7357,7 @@ function renderDigitalInfo() {
   document.getElementById('sy-d-english').value = di.full_english ? 'true':'false';
   document.getElementById('sy-d-prog-masters').checked = (di.program_level||[]).includes('masters');
   document.getElementById('sy-d-prog-inservice').checked = (di.program_level||[]).includes('masters_inservice');
-  document.getElementById('sy-d-async-url').value = di.async_platform_url || '本校遠距教學平臺：數位學習平臺（https://elearn.fgu.edu.tw/mooc/index.php）';
+  document.getElementById('sy-d-async-url').value = di.async_platform_url || 'https://elearning.bwbc.edu.tw/';
   document.getElementById('sy-d-sync-platform').value = di.sync_platform || '';
   document.getElementById('sy-d-sync-other').value = (di.sync_platform_other)||'';
   document.getElementById('sy-d-sync-other-wrap').style.display = di.sync_platform==='other' ? '' : 'none';
@@ -7202,7 +7375,24 @@ function renderDigitalInfo() {
   document.getElementById('sy-d-am-upload').checked = !!am.file_upload;
   document.getElementById('sy-d-am-quiz').checked = !!am.online_quiz;
   document.getElementById('sy-d-am-grade').checked = !!am.grade_query;
+  document.getElementById('sy-d-am-report').checked = !!am.report;
   document.getElementById('sy-d-am-other').value = am.other || '';
+  document.getElementById('sy-d-material-outline').value = di.material_outline || '';
+  document.getElementById('sy-d-class-notes').value = di.class_notes || '';
+  const lms = di.lms || {};
+  // 新增功能預設全部打勾(第一次編輯這門課、還沒有lms資料時)，用!==false判斷(比對明確是false才不勾，undefined視同勾選)
+  document.getElementById('sy-d-lms-admin-personal').checked = lms.admin_personal !== false;
+  document.getElementById('sy-d-lms-admin-course').checked = lms.admin_course !== false;
+  document.getElementById('sy-d-lms-admin-other').checked = lms.admin_other !== false;
+  document.getElementById('sy-d-lms-news').checked = lms.news !== false;
+  document.getElementById('sy-d-lms-materials').checked = lms.materials !== false;
+  document.getElementById('sy-d-lms-grades').checked = lms.grades !== false;
+  document.getElementById('sy-d-lms-quiz').checked = lms.quiz !== false;
+  document.getElementById('sy-d-lms-info').checked = lms.info !== false;
+  document.getElementById('sy-d-lms-interactive').checked = lms.interactive !== false;
+  document.getElementById('sy-d-lms-activities').checked = lms.activities !== false;
+  document.getElementById('sy-d-lms-other-text').value = lms.other_text || '';
+  document.getElementById('sy-d-lms-other-check').checked = !!(lms.other_text||'').trim();
   const hb = di.hours_breakdown || {};
   // 教學時數拆分已改成自動統計（見 updateWeekModeSummary），這裡不再讀取/填入手動欄位
   document.getElementById('sy-d-notes-supp').value = di.notes_supplement || '';
@@ -7235,7 +7425,23 @@ function collectDigitalInfo() {
       file_upload: document.getElementById('sy-d-am-upload').checked,
       online_quiz: document.getElementById('sy-d-am-quiz').checked,
       grade_query: document.getElementById('sy-d-am-grade').checked,
+      report: document.getElementById('sy-d-am-report').checked,
       other: document.getElementById('sy-d-am-other').value
+    },
+    material_outline: document.getElementById('sy-d-material-outline').value,
+    class_notes: document.getElementById('sy-d-class-notes').value,
+    lms: {
+      admin_personal: document.getElementById('sy-d-lms-admin-personal').checked,
+      admin_course: document.getElementById('sy-d-lms-admin-course').checked,
+      admin_other: document.getElementById('sy-d-lms-admin-other').checked,
+      news: document.getElementById('sy-d-lms-news').checked,
+      materials: document.getElementById('sy-d-lms-materials').checked,
+      grades: document.getElementById('sy-d-lms-grades').checked,
+      quiz: document.getElementById('sy-d-lms-quiz').checked,
+      info: document.getElementById('sy-d-lms-info').checked,
+      interactive: document.getElementById('sy-d-lms-interactive').checked,
+      activities: document.getElementById('sy-d-lms-activities').checked,
+      other_text: document.getElementById('sy-d-lms-other-text').value
     },
     hours_breakdown: {
     // hours_breakdown 不再從手動欄位收集，匯出時會自動依教學進度的每週型態統計計算
@@ -7289,10 +7495,13 @@ function renderWeeks() {
           <option value="async" ${w.mode==='async'?'selected':''}>非同步</option>
           <option value="sync" ${w.mode==='sync'?'selected':''}>同步</option>
         </select>` : ''}
-        <button class="week-expand" onclick="toggleWeekDetail(${i})">＋</button>
+        <button class="week-expand" onclick="toggleWeekDetail(${i})">▼</button>
       </div>
       <div class="week-detail" id="wk-detail-${i}">
-        <textarea class="finput" rows="2" placeholder="本週內容說明…" style="width:100%;margin-top:6px;font-size:12.5px;resize:vertical" oninput="SY.data.weeks[${i}].content=this.value">${(w.content||'')}</textarea>
+        <div style="font-size:11px;color:var(--ink3);margin-top:6px">本週內容說明</div>
+        <textarea class="finput" rows="2" placeholder="本週內容說明…" style="width:100%;font-size:12.5px;resize:vertical" oninput="SY.data.weeks[${i}].content=this.value">${(w.content||'')}</textarea>
+        <div style="font-size:11px;font-weight:600;color:#8A5A00;margin-top:8px">🟡 教學活動（數位課程必填，一般課程選填，跟上面「內容說明」是不同欄位）</div>
+        <input class="finput" value="${(w.activity||'').replace(/"/g,'&quot;')}" placeholder="例：設計線上議題討論活動、安排線上作業繳交" style="width:100%;font-size:12.5px;background:#FFF9E6;border-color:#E8C468" oninput="SY.data.weeks[${i}].activity=this.value">
       </div>
     </div>`).join('');
   if (isDig) updateWeekModeSummary();
@@ -7328,7 +7537,22 @@ function addWeek() { const n=(SY.data.weeks||[]).length+1; SY.data.weeks.push({w
 function toggleWeekDetail(i) {
   const el=document.getElementById('wk-detail-'+i),open=el.style.display==='block';
   el.style.display=open?'none':'block';
-  el.previousElementSibling.querySelector('.week-expand').textContent=open?'＋':'－';
+  el.previousElementSibling.querySelector('.week-expand').textContent=open?'▶':'▼';
+}
+function toggleAllWeekDetails() {
+  const weeks = SY.data.weeks||[];
+  const btn = document.getElementById('wk-toggle-all-btn');
+  // 依目前「展開中」的數量是不是超過一半，決定這次要「全部展開」還是「全部收合」
+  let openCount = 0;
+  weeks.forEach((w,i) => { if (document.getElementById('wk-detail-'+i)?.style.display==='block') openCount++; });
+  const shouldExpand = openCount < weeks.length / 2;
+  weeks.forEach((w,i) => {
+    const el = document.getElementById('wk-detail-'+i);
+    if (!el) return;
+    el.style.display = shouldExpand ? 'block' : 'none';
+    el.previousElementSibling.querySelector('.week-expand').textContent = shouldExpand ? '▼' : '▶';
+  });
+  if (btn) btn.textContent = shouldExpand ? '▼ 全部收合' : '▶ 全部展開';
 }
 function renderBib() {
   ['req','opt'].forEach(type=>{
@@ -7363,7 +7587,7 @@ async function saveSyllabus() {
     assessment: SY.data.assessment||[], weeks: SY.data.weeks||[],
     bibliography: SY.data.bibliography||{required:[],optional:[]},
     notes: document.getElementById('sy-notes').value,
-    digital_info: SY.is_digital ? collectDigitalInfo() : (SY.data.digital_info||{}),
+    digital_info: collectDigitalInfo(), // 一律收集：師生互動/作業繳交/教材大綱/上課注意事項這幾項不分課程類型都要存
     updated_at: new Date().toISOString()
   };
   const { error } = await sb.from('syllabi').upsert(payload,{onConflict:'offering_id'});
@@ -10176,6 +10400,55 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    2. 側邊欄 #app-version-label 顯示的文字
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v9.5', date: '2026-09-06',
+    items: [
+      '修正「十三、修課注意事項或其他補充」多行內容擠成一段的問題：原本只用escapeXml()合併，沒有像「十四、上課注意事項」那樣做換行處理，導致按Enter分段的內容在Word裡全部黏在一起。兩個函式(buildFilledSyllabusBlob/buildDigitalReportBlob)裡的NOTES都已修正，統一比照CLASS_NOTES的換行方式',
+      '修正digital_report_output.docx範本裡殘留的錯誤字型：checkbox列（課程修別/師資來源/教學型態等8列）原本被明確指定成非標楷體的符號字型，蓋過了docDefaults設定，這次移除全部30處字型覆寫，確保整份文件真正統一使用標楷體',
+    ]
+  },
+  {
+    version: 'v9.4', date: '2026-09-06',
+    items: [
+      '修正參考書目出現「參考 / 2.」這種後面沒內容的空白編號：過濾掉必讀/參考清單裡的空白項目（例如點了「+新增」但沒實際打字），不會再被計入編號',
+      '跟老師手寫的官方申請書比對確認：「七、每週時數」公式A+B、「九、師生互動」單一辦公室時間欄位，這兩項系統設計都正確，不用調整',
+    ]
+  },
+  {
+    version: 'v9.3', date: '2026-09-06',
+    items: [
+      '修正「非同步線上平台網址」的錯誤預設值：原本寫死指向 elearn.fgu.edu.tw（佛光大學網域），改成正確的 https://elearning.bwbc.edu.tw/',
+      '數位報部大綱「四、適合修習對象」排版修正：原本外層有一段固定提示文字、底下又藏了一個1x1巢狀表格放實際內容，Word顯示起來像被分成兩塊。改成單純一格、直接兩行文字，不再有巢狀表格造成的分割視覺效果',
+    ]
+  },
+  {
+    version: 'v9.2', date: '2026-09-06',
+    items: [
+      '修正參考書目/教學目標/教學方法出現「1. 1.」「4. 4.」重複編號的問題：新增stripLeadingNumber()，自動清掉使用者自己輸入時帶的開頭編號，不用要求老師改變輸入習慣',
+      '校內大綱（general_output.docx）排版優化：「作業繳交方式」「教材大綱」「上課注意事項」完全沒填時，整段標題+內容從文件裡拿掉，不再顯示空白標題或「（未勾選任何選項）」這種在正式文件裡顯得突兀的字樣（只影響校內大綱，官方報部文件維持固定14項格式不變）',
+      '清理general_output.docx範本裡3處多餘的空白段落，排版更緊湊',
+    ]
+  },
+  {
+    version: 'v9.1', date: '2026-09-06',
+    items: [
+      '數位報部大綱：「課程非同步線上平台網址」改成直接抓資料庫既有欄位(async_platform_url)，不再是寫死的靜態提示文字',
+      '數位報部大綱範本：整份文件預設字型改成標楷體（修改docDefaults，不用逐一設定每個欄位）',
+      '修正週次表格「授課內容」欄殘留的黃色螢光筆格式（複製整列時被一併帶過去的舊格式，跟這次新增的欄位無關，找到後直接清除）',
+      '⚠️ 發現一個既有的bug尚未處理：「非同步線上平台網址」欄位的預設值寫死指向 elearn.fgu.edu.tw（佛光大學網域，非bwbc.edu.tw），懷疑是很久以前複製別校範本殘留，待user確認正確網址後修正',
+    ]
+  },
+  {
+    version: 'v9.0', date: '2026-09-06',
+    items: [
+      '數位報部大綱（digital_report_output.docx）依學校最新公版重新設計：從8項改版成14項，新增課程概述/教材大綱/教學方式/每週時數/學習管理系統/上課注意事項等欄位，週次表格新增教學活動欄與各類別總時數加總列',
+      '修正並驗證多個範本合併bug：課程修別欄位錯置、學年度重複顯示、授課內容優先順序（主題vs內容說明）、週次表格新舊資料重疊',
+      '週次編輯畫面：不分課程類型都顯示「教學活動」欄位（視覺上用淡黃底區隔，避免跟「內容說明」搞混），預設全部展開，新增「全部展開/收合」按鈕，符號統一改用▼/▶',
+      '數位報部大綱匯出前，若數位課程有週次缺「教學活動」會跳出提示（不擋存檔，只在真正匯出報部文件前提醒）',
+      '【重大】師生互動方式、作業繳交方式、學期成績評量方式、教材大綱、上課注意事項，這幾項本來就不該是數位課程專屬，這次從「只有數位課程才計算/顯示」搬到「不分課程類型共用」，並在general_output.docx新增對應段落',
+      '【重大】修正一個影響範圍很廣、由來已久的XML結構bug：多行合併欄位（教學目標/教學方法/參考書目/成績評量等）用來換行的<w:br/>被誤放進<w:t>文字節點裡面（不合法的巢狀結構），導致換行後的內容在部分情況下可能顯示不完整。已改成正確的run分割方式，這個修正讓所有既有的多行欄位一併受益，不只這次新增的部分',
+    ]
+  },
   {
     version: 'v8.16', date: '2026-08-15',
     items: [
