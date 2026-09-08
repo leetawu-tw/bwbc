@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v9.5 2026-09-06 -->
+<!-- BWBC Admin v9.9 2026-09-07 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -385,7 +385,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v9.5　2026-09-06</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v9.9　2026-09-07</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -917,7 +917,15 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div id="rb-tab-pending" class="rb-panel-section">
           <div class="tbl-wrap">
             <table><thead><tr>
-              <th>教室</th><th>日期時段</th><th>用途</th><th>申請單位</th><th>借用人</th><th>聯絡方式</th><th>預估人數</th><th>送出時間</th><th>操作</th>
+              <th class="usr-th" onclick="rbPendingSort('room')">教室 <span class="sort-icon" id="rb-pending-sort-room">⇅</span></th>
+              <th class="usr-th" onclick="rbPendingSort('date')">日期時段 <span class="sort-icon" id="rb-pending-sort-date">⇅</span></th>
+              <th class="usr-th" onclick="rbPendingSort('purpose')">用途 <span class="sort-icon" id="rb-pending-sort-purpose">⇅</span></th>
+              <th class="usr-th" onclick="rbPendingSort('unit')">申請單位 <span class="sort-icon" id="rb-pending-sort-unit">⇅</span></th>
+              <th class="usr-th" onclick="rbPendingSort('organizer')">借用人 <span class="sort-icon" id="rb-pending-sort-organizer">⇅</span></th>
+              <th class="usr-th" onclick="rbPendingSort('contact')">聯絡方式 <span class="sort-icon" id="rb-pending-sort-contact">⇅</span></th>
+              <th class="usr-th" onclick="rbPendingSort('headcount')" style="text-align:center">預估人數 <span class="sort-icon" id="rb-pending-sort-headcount">⇅</span></th>
+              <th class="usr-th" onclick="rbPendingSort('created')">送出時間 <span class="sort-icon" id="rb-pending-sort-created">⇅</span></th>
+              <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
             </tr></thead><tbody id="rb-pending-body"></tbody></table>
           </div>
         </div>
@@ -925,7 +933,12 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div id="rb-tab-mine" class="rb-panel-section" style="display:none">
           <div class="tbl-wrap">
             <table><thead><tr>
-              <th>教室</th><th>日期時段</th><th>用途</th><th>狀態</th><th>審核意見</th><th>操作</th>
+              <th class="usr-th" onclick="rbMineSort('room')">教室 <span class="sort-icon" id="rb-mine-sort-room">⇅</span></th>
+              <th class="usr-th" onclick="rbMineSort('date')">日期時段 <span class="sort-icon" id="rb-mine-sort-date">⇅</span></th>
+              <th class="usr-th" onclick="rbMineSort('purpose')">用途 <span class="sort-icon" id="rb-mine-sort-purpose">⇅</span></th>
+              <th class="usr-th" onclick="rbMineSort('status')" style="text-align:center">狀態 <span class="sort-icon" id="rb-mine-sort-status">⇅</span></th>
+              <th class="usr-th" onclick="rbMineSort('comment')">審核意見 <span class="sort-icon" id="rb-mine-sort-comment">⇅</span></th>
+              <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
             </tr></thead><tbody id="rb-mine-body"></tbody></table>
           </div>
         </div>
@@ -941,7 +954,14 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </div>
           <div class="tbl-wrap">
             <table><thead><tr>
-              <th>教室</th><th>日期時段</th><th>用途</th><th>申請單位</th><th>借用人</th><th>狀態</th><th>建立者</th><th>操作</th>
+              <th class="usr-th" onclick="rbAllSort('room')">教室 <span class="sort-icon" id="rb-all-sort-room">⇅</span></th>
+              <th class="usr-th" onclick="rbAllSort('date')">日期時段 <span class="sort-icon" id="rb-all-sort-date">⇅</span></th>
+              <th class="usr-th" onclick="rbAllSort('purpose')">用途 <span class="sort-icon" id="rb-all-sort-purpose">⇅</span></th>
+              <th class="usr-th" onclick="rbAllSort('unit')">申請單位 <span class="sort-icon" id="rb-all-sort-unit">⇅</span></th>
+              <th class="usr-th" onclick="rbAllSort('organizer')">借用人 <span class="sort-icon" id="rb-all-sort-organizer">⇅</span></th>
+              <th class="usr-th" onclick="rbAllSort('status')" style="text-align:center">狀態 <span class="sort-icon" id="rb-all-sort-status">⇅</span></th>
+              <th class="usr-th" onclick="rbAllSort('creator')" style="text-align:center">建立者 <span class="sort-icon" id="rb-all-sort-creator">⇅</span></th>
+              <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
             </tr></thead><tbody id="rb-all-body"></tbody></table>
           </div>
         </div>
@@ -8357,6 +8377,11 @@ function renderCalEvents() {
               value="${e.end_at?e.end_at.slice(0,16):''}" onchange="updateCalEvent(${i},'end_at',this.value)">
           </div>
         </div>
+        ${!e.is_system ? `
+        <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink3);cursor:pointer">
+          <input type="checkbox" ${e.event_key==='holiday'?'checked':''} onchange="updateCalEvent(${i},'event_key',this.checked?'holiday':null)">
+          🎌 設為國定假日（教室借用查詢會自動把當天視為可借用，不受固定課表影響）
+        </label>` : ''}
       </div>
       ${e.is_system ? '' : `<button onclick="deleteCalEvent(${i})" style="border:none;background:none;cursor:pointer;color:var(--red);font-size:16px;margin-top:6px">🗑</button>`}
     </div>`).join('');
@@ -10400,6 +10425,30 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    2. 側邊欄 #app-version-label 顯示的文字
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v9.9', date: '2026-09-07',
+    items: [
+      '教室借用申請「待審核」「我的申請」兩個分頁的表格也補上排序功能，連同上一版「全部預約記錄」，教室借用申請底下4個分頁的表格現在全部都可以排序',
+    ]
+  },
+  {
+    version: 'v9.8', date: '2026-09-07',
+    items: [
+      '教室借用申請「全部預約記錄」表格補上排序功能：教室/日期時段/用途/申請單位/借用人/狀態/建立者全部可點擊排序，原本這張表完全沒有排序功能',
+    ]
+  },
+  {
+    version: 'v9.7', date: '2026-09-07',
+    items: [
+      '「教室使用總覽」點擊行事曆上的借用項目，詳情彈窗新增「編輯」「刪除預約」按鈕，只有具備教室管理寫入權限的admin才看得到；編輯沿用既有的教室借用編輯畫面，刪除沿用既有的取消機制（狀態改為已取消，不是真的從資料庫移除），動作完成後行事曆會立刻重新整理反映變化',
+    ]
+  },
+  {
+    version: 'v9.6', date: '2026-09-07',
+    items: [
+      '新增「教室借用」國定假日支援：學期行事曆的自訂事件可以勾選「🎌設為國定假日」，教室借用查詢/教室使用總覽/衝突檢查全部6個檢查點統一透過同一個函式判斷，只要當天是國定假日就自動視為不上課、教室顯示可借用，不用逐一改每個查詢邏輯',
+    ]
+  },
   {
     version: 'v9.5', date: '2026-09-06',
     items: [
@@ -19606,9 +19655,10 @@ function rbIsWithinTeachingPeriod(semester, dateStr) {
 }
 
 // 判斷某個開課記錄的week_pattern，在指定日期是否真的會上課
-// （教學週期間之外一律視為不上課，即使週次算法本身湊巧符合也一樣）
+// （教學週期間之外一律視為不上課，即使週次算法本身湊巧符合也一樣；國定假日同理，一律視為不上課、教室當天顯示可借用）
 function rbOfferingActiveOnDate(offering, semester, dateStr) {
   if (!rbIsWithinTeachingPeriod(semester, dateStr)) return false;
+  if (semester._holidays && semester._holidays.has(dateStr)) return false; // 國定假日不上課，教室釋出
   const wp = offering.week_pattern || 'every';
   if (wp === 'every' || wp === 'intensive') return true; // intensive目前保守處理成每次都視為衝突
   const regDay = semester._regDay || semester.start_date;
@@ -19616,9 +19666,10 @@ function rbOfferingActiveOnDate(offering, semester, dateStr) {
   return parity === wp;
 }
 
-// 找出某個日期落在哪個學期，並把該學期的「註冊日」事件一併撈出來附加成_regDay欄位
-// 教室借用系統所有查學期的地方，統一用這個函式，確保_regDay都有正確附加上去
+// 找出某個日期落在哪個學期，並把該學期的「註冊日」事件、「國定假日」清單一併撈出來附加成_regDay/_holidays欄位
+// 教室借用系統所有查學期的地方，統一用這個函式，確保_regDay/_holidays都有正確附加上去
 let _rbRegDayCache = {}; // semester_id -> 註冊日字串(YYYY-MM-DD)或null，避免同一個學期重複查詢
+let _rbHolidayCache = {}; // semester_id -> Set(國定假日日期字串)，同樣避免重複查詢
 async function rbGetSemesterWithRegDay(dateStr) {
   const { data: sem } = await sb.from('semesters').select('*').lte('start_date', dateStr).gte('end_date', dateStr).maybeSingle();
   if (!sem) return null;
@@ -19626,7 +19677,13 @@ async function rbGetSemesterWithRegDay(dateStr) {
     const { data: ev } = await sb.from('semester_calendar_events').select('end_at').eq('semester_id', sem.id).eq('event_key','registration_day').maybeSingle();
     _rbRegDayCache[sem.id] = ev?.end_at ? ev.end_at.slice(0,10) : null;
   }
+  if (!(sem.id in _rbHolidayCache)) {
+    // 國定假日可能有很多筆(每個假日各一筆event_key='holiday')，跟只有單一一筆的registration_day不一樣，這裡用一般查詢而非maybeSingle
+    const { data: holidays } = await sb.from('semester_calendar_events').select('end_at').eq('semester_id', sem.id).eq('event_key','holiday');
+    _rbHolidayCache[sem.id] = new Set((holidays||[]).map(h => h.end_at?.slice(0,10)).filter(Boolean));
+  }
   sem._regDay = _rbRegDayCache[sem.id];
+  sem._holidays = _rbHolidayCache[sem.id];
   return sem;
 }
 
@@ -19810,13 +19867,49 @@ function rbSwitchTab(id, btn) {
 function rbFmtDateRange(b) { return `${b.booking_date} ${b.start_time.slice(0,5)}～${b.end_time.slice(0,5)}`; }
 
 // ── 待審核 ──
+let _rbPendingBookings = [];
+let _rbPendingSortKey = null; // null時維持資料庫原始順序(日期由近到遠)
+let _rbPendingSortDir = 1;
 async function rbLoadPending() {
   const canReview = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
   const tb = document.getElementById('rb-pending-body');
   if (!canReview) { tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--ink3)">只有具備教室管理權限的人可以審核申請</td></tr>'; document.getElementById('rb-pending-badge').textContent=''; return; }
   const { data: rows } = await sb.from('classroom_bookings').select('*,classrooms(name)').eq('status','pending').order('booking_date');
-  document.getElementById('rb-pending-badge').textContent = rows?.length ? `(${rows.length})` : '';
-  tb.innerHTML = rows?.length ? rows.map(b => `<tr>
+  _rbPendingBookings = rows || [];
+  document.getElementById('rb-pending-badge').textContent = _rbPendingBookings.length ? `(${_rbPendingBookings.length})` : '';
+  rbRenderPendingTable();
+}
+function rbPendingSort(key) {
+  if (_rbPendingSortKey === key) _rbPendingSortDir *= -1; else { _rbPendingSortKey = key; _rbPendingSortDir = 1; }
+  document.querySelectorAll('[id^="rb-pending-sort-"]').forEach(el=>el.textContent='⇅');
+  const icon = document.getElementById('rb-pending-sort-'+key);
+  if (icon) icon.textContent = _rbPendingSortDir===1?'↑':'↓';
+  rbRenderPendingTable();
+}
+function rbRenderPendingTable() {
+  const tb = document.getElementById('rb-pending-body');
+  let rows = _rbPendingBookings.slice();
+  if (_rbPendingSortKey) {
+    const key = _rbPendingSortKey;
+    rows.sort((a,b) => {
+      let av, bv;
+      switch(key) {
+        case 'room': av=a.classrooms?.name||''; bv=b.classrooms?.name||''; break;
+        case 'date': av=(a.booking_date||'')+(a.start_time||''); bv=(b.booking_date||'')+(b.start_time||''); break;
+        case 'purpose': av=a.purpose||''; bv=b.purpose||''; break;
+        case 'unit': av=a.organizer_unit||''; bv=b.organizer_unit||''; break;
+        case 'organizer': av=a.organizer_name||''; bv=b.organizer_name||''; break;
+        case 'contact': av=a.organizer_contact||''; bv=b.organizer_contact||''; break;
+        case 'headcount': av=a.expected_headcount||0; bv=b.expected_headcount||0; break;
+        case 'created': av=a.created_at||''; bv=b.created_at||''; break;
+        default: av=''; bv='';
+      }
+      if (av < bv) return -1*_rbPendingSortDir;
+      if (av > bv) return 1*_rbPendingSortDir;
+      return 0;
+    });
+  }
+  tb.innerHTML = rows.length ? rows.map(b => `<tr>
       <td style="font-weight:600">${esc(b.classrooms?.name||'')}</td><td style="font-size:12px">${rbFmtDateRange(b)}</td>
       <td>${esc(b.purpose)}</td><td style="font-size:12px">${esc(b.organizer_unit||'—')}</td>
       <td>${esc(b.organizer_name)}</td><td style="font-size:12px">${esc(b.organizer_contact||'')}</td>
@@ -19846,13 +19939,44 @@ async function rbReject(id) {
 
 // ── 我的申請 ──
 let _rbMineBookings = [];
+let _rbMineSortKey = null; // null時維持資料庫原始順序(日期由近到遠)
+let _rbMineSortDir = 1;
 async function rbLoadMine() {
   const tb = document.getElementById('rb-mine-body');
   if (!window.ADMIN_USER_ID) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink3)">無法識別登入身份</td></tr>'; return; }
   const { data: rows } = await sb.from('classroom_bookings').select('*,classrooms(name)').eq('created_by', window.ADMIN_USER_ID).order('booking_date',{ascending:false});
   _rbMineBookings = rows || [];
+  rbRenderMineTable();
+}
+function rbMineSort(key) {
+  if (_rbMineSortKey === key) _rbMineSortDir *= -1; else { _rbMineSortKey = key; _rbMineSortDir = 1; }
+  document.querySelectorAll('[id^="rb-mine-sort-"]').forEach(el=>el.textContent='⇅');
+  const icon = document.getElementById('rb-mine-sort-'+key);
+  if (icon) icon.textContent = _rbMineSortDir===1?'↑':'↓';
+  rbRenderMineTable();
+}
+function rbRenderMineTable() {
+  const tb = document.getElementById('rb-mine-body');
   const canManage = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
-  tb.innerHTML = _rbMineBookings.length ? _rbMineBookings.map(b => `<tr>
+  let rows = _rbMineBookings.slice();
+  if (_rbMineSortKey) {
+    const key = _rbMineSortKey;
+    rows.sort((a,b) => {
+      let av, bv;
+      switch(key) {
+        case 'room': av=a.classrooms?.name||''; bv=b.classrooms?.name||''; break;
+        case 'date': av=(a.booking_date||'')+(a.start_time||''); bv=(b.booking_date||'')+(b.start_time||''); break;
+        case 'purpose': av=a.purpose||''; bv=b.purpose||''; break;
+        case 'status': av=a.status||''; bv=b.status||''; break;
+        case 'comment': av=a.review_comment||''; bv=b.review_comment||''; break;
+        default: av=''; bv='';
+      }
+      if (av < bv) return -1*_rbMineSortDir;
+      if (av > bv) return 1*_rbMineSortDir;
+      return 0;
+    });
+  }
+  tb.innerHTML = rows.length ? rows.map(b => `<tr>
       <td style="font-weight:600">${esc(b.classrooms?.name||'')}</td><td style="font-size:12px">${rbFmtDateRange(b)}</td>
       <td>${esc(b.purpose)}</td>
       <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${RB_STATUS_COLOR[b.status]}22;color:${RB_STATUS_COLOR[b.status]};border:1px solid ${RB_STATUS_COLOR[b.status]}">${RB_STATUS_LABEL[b.status]}</span></td>
@@ -19871,6 +19995,16 @@ async function rbLoadAll() {
   _rbAllBookings = rows || [];
   rbRenderAllTable();
 }
+let _rbAllSortKey = null; // null時維持資料庫原始順序(日期新到舊)
+let _rbAllSortDir = 1;
+function rbAllSort(key) {
+  if (_rbAllSortKey === key) _rbAllSortDir *= -1; else { _rbAllSortKey = key; _rbAllSortDir = 1; }
+  document.querySelectorAll('[id^="rb-all-sort-"]').forEach(el=>el.textContent='⇅');
+  const icon = document.getElementById('rb-all-sort-'+key);
+  if (icon) icon.textContent = _rbAllSortDir===1?'↑':'↓';
+  rbRenderAllTable();
+}
+
 function rbRenderAllTable() {
   const kw = (document.getElementById('rb-all-search')?.value||'').trim().toLowerCase();
   const statusFilter = document.getElementById('rb-all-filter')?.value || '';
@@ -19883,6 +20017,25 @@ function rbRenderAllTable() {
     }
     return true;
   });
+  if (_rbAllSortKey) {
+    const key = _rbAllSortKey;
+    list = list.slice().sort((a,b) => {
+      let av, bv;
+      switch(key) {
+        case 'room': av=a.classrooms?.name||''; bv=b.classrooms?.name||''; break;
+        case 'date': av=(a.booking_date||'')+(a.start_time||''); bv=(b.booking_date||'')+(b.start_time||''); break;
+        case 'purpose': av=a.purpose||''; bv=b.purpose||''; break;
+        case 'unit': av=a.organizer_unit||''; bv=b.organizer_unit||''; break;
+        case 'organizer': av=a.organizer_name||''; bv=b.organizer_name||''; break;
+        case 'status': av=a.status||''; bv=b.status||''; break;
+        case 'creator': av=(a.created_by===window.ADMIN_USER_ID)?1:0; bv=(b.created_by===window.ADMIN_USER_ID)?1:0; break;
+        default: av=''; bv='';
+      }
+      if (av < bv) return -1*_rbAllSortDir;
+      if (av > bv) return 1*_rbAllSortDir;
+      return 0;
+    });
+  }
   document.getElementById('rb-all-count').textContent = `${list.length} 筆`;
   const tb = document.getElementById('rb-all-body');
   tb.innerHTML = list.length ? list.map(b => `<tr>
@@ -20241,7 +20394,7 @@ async function rbRenderOverview() {
     const withinTeaching = sem ? rbIsWithinTeachingPeriod(sem, b.booking_date) : false;
     const color = withinTeaching ? '#8b5cf6' : '#22c55e';
     const idx = _rboItemsFlat.length;
-    _rboItemsFlat.push({ kind:'booking', purpose:b.purpose, organizerName:b.organizer_name, organizerUnit:b.organizer_unit, organizerContact:b.organizer_contact, headcount:b.expected_headcount, note:b.note, reviewedAt:b.reviewed_at, start:b.start_time, end:b.end_time, date:b.booking_date });
+    _rboItemsFlat.push({ kind:'booking', id:b.id, purpose:b.purpose, organizerName:b.organizer_name, organizerUnit:b.organizer_unit, organizerContact:b.organizer_contact, headcount:b.expected_headcount, note:b.note, reviewedAt:b.reviewed_at, start:b.start_time, end:b.end_time, date:b.booking_date });
     (dayInfo[b.booking_date] ||= []).push({ idx, label:`${b.purpose}（${b.organizer_name}）`, start:b.start_time, end:b.end_time, color });
   });
 
@@ -20278,6 +20431,7 @@ function rboShowItemDetail(idx) {
       <div>週次規則：${RB_WEEKPATTERN_LABEL[it.weekPattern]||it.weekPattern}${it.targetCohort?`　適用年級：${esc(it.targetCohort)}`:''}</div>
     </div>`;
   } else {
+    const canManage = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
     html = `<div style="font-size:13px;line-height:1.9">
       <div><b>${esc(it.purpose)}</b></div>
       <div>日期時段：${it.date} ${it.start.slice(0,5)}～${it.end.slice(0,5)}</div>
@@ -20286,9 +20440,28 @@ function rboShowItemDetail(idx) {
       <div>預估人數：${it.headcount||'—'}</div>
       ${it.note?`<div>備註：${esc(it.note)}</div>`:''}
       ${it.reviewedAt?`<div style="color:var(--ink3);font-size:12px">核准時間：${it.reviewedAt.slice(0,16).replace('T',' ')}</div>`:''}
+      ${canManage ? `
+      <div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--cr2)">
+        <button class="btn btn-sec btn-sm" onclick="closeModal('pres-simple-modal');rboEditBookingFromOverview('${it.id}')">✏️ 編輯</button>
+        <button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="rboDeleteBookingFromOverview('${it.id}')">🗑 刪除預約</button>
+      </div>` : ''}
     </div>`;
   }
   presShowSimpleModal(it.kind==='course' ? '📚 課程詳情' : '🏫 教室借用詳情', html, async()=>true);
+}
+
+// 「教室使用總覽」詳情彈窗的編輯/刪除，只給有教室管理寫入權限的admin看得到(canManage)
+// 編輯：先確保_rbAllBookings有資料(rbOpenEditModal是從這個陣列裡查找原始資料，如果admin還沒點過「全部預約記錄」分頁，這個陣列會是空的查不到)
+async function rboEditBookingFromOverview(bookingId) {
+  await rbLoadAll();
+  await rbOpenEditModal(bookingId, 'all');
+}
+
+// 刪除：沿用既有的rbCancelBooking(內含二次確認)，完成後重新整理當前週視圖，讓行事曆立刻反映變化
+async function rboDeleteBookingFromOverview(bookingId) {
+  await rbCancelBooking(bookingId);
+  closeModal('pres-simple-modal');
+  await rbRenderOverview();
 }
 
 /* ══════════════════════════════════════════════════════════
