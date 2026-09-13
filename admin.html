@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v9.9 2026-09-07 -->
+<!-- BWBC Admin v10.15 2026-09-13 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -342,6 +342,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </div>
         </div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('conflicts',this)"><span class="nav-icon">⚠️</span>衝堂警示 <span class="badge badge-warn" id="conflict-badge" style="margin-left:auto;display:none">0</span></div>
+        <div class="nav-item" data-perm="open_courses" onclick="showPage('enroll-overview',this)"><span class="nav-icon">📝</span>選課完成度總覽</div>
         <div class="nav-item" data-perm="courses" onclick="showPage('staff-arrange',this)"><span class="nav-icon">🗂</span>課程幹部安排</div>
       </div>
       <div class="nav-section">
@@ -385,7 +386,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v9.9　2026-09-07</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.15　2026-09-13</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -523,6 +524,33 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             </tr></thead>
             <tbody id="conflicts-body"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ▌選課完成度總覽 ▌-->
+      <div id="page-enroll-overview" style="display:none">
+        <div class="page-hdr" style="flex-wrap:wrap">
+          <div class="page-title" style="flex:0 0 auto">📝 選課完成度總覽</div>
+          <select id="eo-sem" class="fselect" style="width:130px" onchange="loadEnrollOverview()">
+            <option value="">載入中…</option>
+          </select>
+          <div id="eo-deadline-badge" style="font-size:12.5px;color:var(--ink3)"></div>
+          <div style="flex:1"></div>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink3);cursor:pointer">
+            <input type="checkbox" id="eo-only-incomplete" onchange="renderEnrollOverviewTable()">只顯示尚未選課
+          </label>
+          <input class="fselect" id="eo-search" placeholder="🔍 搜尋學號/姓名" style="max-width:180px" oninput="renderEnrollOverviewTable()">
+        </div>
+        <div id="eo-summary" style="display:flex;gap:16px;padding:10px 14px;background:var(--cr3);border-radius:10px;margin-bottom:12px;font-size:13px;flex-wrap:wrap"></div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th class="usr-th" onclick="eoSort('student_code')">學號 <span class="sort-icon" id="eo-sort-student_code">⇅</span></th>
+            <th class="usr-th" onclick="eoSort('name_zh')">姓名 <span class="sort-icon" id="eo-sort-name_zh">⇅</span></th>
+            <th class="usr-th" onclick="eoSort('cohort')" style="text-align:center">屆別 <span class="sort-icon" id="eo-sort-cohort">⇅</span></th>
+            <th class="usr-th" onclick="eoSort('course_count')" style="text-align:center">已選科目數 <span class="sort-icon" id="eo-sort-course_count">⇅</span></th>
+            <th class="usr-th" onclick="eoSort('credits')" style="text-align:center">已選學分 <span class="sort-icon" id="eo-sort-credits">⇅</span></th>
+            <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">狀態</th>
+          </tr></thead><tbody id="eo-body"></tbody></table>
         </div>
       </div>
 
@@ -8379,7 +8407,7 @@ function renderCalEvents() {
         </div>
         ${!e.is_system ? `
         <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink3);cursor:pointer">
-          <input type="checkbox" ${e.event_key==='holiday'?'checked':''} onchange="updateCalEvent(${i},'event_key',this.checked?'holiday':null)">
+          <input type="checkbox" ${(e.event_key||'').startsWith('holiday')?'checked':''} onchange="updateCalEvent(${i},'event_key',this.checked?('holiday_'+Date.now()):null)">
           🎌 設為國定假日（教室借用查詢會自動把當天視為可借用，不受固定課表影響）
         </label>` : ''}
       </div>
@@ -10426,6 +10454,108 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.15', date: '2026-09-13',
+    items: [
+      '修正選課完成度總覽「已選學分」欄位錯誤（讀取開課學分失敗：column course_offerings.credits does not exist）：course_offerings這張表本身沒有credits欄位，學分存在courses表，這次改成先查course_offerings拿course_id，再用course_id查courses表拿學分，多一層正確的對應關係',
+    ]
+  },
+  {
+    version: 'v10.14', date: '2026-09-11',
+    items: [
+      '選課完成度總覽的0問題還沒解決乾淨（連過去學期都是0，範圍比原本以為的更大），這次改成完全拆開兩個獨立查詢(先查enrollments拿offering_id清單、再單獨查course_offerings拿學分)，不依賴Supabase自動解析關聯；並加上console.log完整記錄每一步驟的實際筆數，方便從瀏覽器主控台(F12)直接看出問題卡在哪一步',
+    ]
+  },
+  {
+    version: 'v10.13', date: '2026-09-11',
+    items: [
+      '修正選課完成度總覽全部顯示0的問題：原本查詢enrollments時用巢狀select court_offerings(credits)，關聯沒有明確指定，懷疑導致查詢靜默失敗、安靜地回傳空結果卻沒有錯誤訊息；改用明確的外鍵提示語法course_offerings!offering_id(credits)，並加上錯誤檢查，之後如果查詢真的出錯會直接跳出錯誤訊息，不會再安靜顯示錯誤的0',
+    ]
+  },
+  {
+    version: 'v10.12', date: '2026-09-11',
+    items: [
+      '新增「選課完成度總覽」頁面：顯示在學學生本學期已選科目數/學分，一眼看出誰還沒選課，可搜尋學號姓名、可只顯示尚未選課的學生、可排序；同時顯示加退選截止日倒數提醒',
+    ]
+  },
+  {
+    version: 'v10.11', date: '2026-09-11',
+    items: [
+      '修正「國定假日」功能的重大bug：新增第2筆以上的假日時會出現「儲存失敗：duplicate key value violates unique constraint」，原因是每筆假日都共用同一個固定值event_key=\'holiday\'，違反資料庫的(semester_id,event_key)唯一鍵約束（一個學期同一個event_key只能存一筆）。修正為每筆假日各自用holiday_開頭+時間戳記產生唯一值（例如holiday_1736300000000），查詢邏輯也改用前綴比對抓出所有假日事件',
+    ]
+  },
+  {
+    version: 'v10.10', date: '2026-09-09',
+    items: [
+      '修正Word收據「實領金額」方框裡萬/仟/佰/拾位數是0時完全沒有手寫空間的問題：這幾個位數用底線標示，但底線是依附在文字上的，之前用空字串代表"沒有這個數字"，空字串=零寬度=底線根本沒東西可以顯示，等於完全無法手寫任何數字進去。這次改成用一個全形空白字元墊底，確保底線有寬度、真的能手寫一個中文數字進去（例如金額全部空白時，也能事後手動填入像11530這種完整金額）',
+    ]
+  },
+  {
+    version: 'v10.9', date: '2026-09-09',
+    items: [
+      '收據Word範本大幅重建，補齊之前偷懶沒做的視覺細節：所有空白欄位(課程名稱/稅額方框內的金額/學期)改用真正的底線格式run，不再是普通空格字元；金額沒填時比照列印版留底線空白，不再是完全空白看不出哪裡要寫；萬/仟/佰/拾/NT$無論填數字或留空都有底線',
+      '修正docDefaults字型：發現原本轉檔用的LibreOffice把字型改成「Liberation Serif」等Linux通用字型、語系也變成簡體中文(zh-CN)，這次改回標楷體+zh-TW',
+      '收緊頁面邊界與段落間距，兩份收據合印終於確實塞進一頁A4（原本即使收緊間距還是會多跑出2行到第二頁，最後靠縮小頁面邊界解決）',
+      '拿掉學校名稱底線，統一交通費區塊字級跟講師費一致(原始範本這兩處字級不一致，14pt vs 16pt)',
+    ]
+  },
+  {
+    version: 'v10.8', date: '2026-09-09',
+    items: [
+      '收據列印排版精修：交通費的應領金額改用中文大寫(跟講師費一致，不再用阿拉伯數字)；方框內實際填入的數字加上底線(萬/仟/佰/拾等固定文字不加)；NT$後面有數字時不再留一大段空白，只留剛好的寬度',
+      '新增「⬇ 下載Word」功能：收據可以下載成真正的Word檔案，不只能列印。沿用跟教學大綱/數位報部大綱同一套docx合併機制，範本裡「收據」標題出現兩次當分界點，只選一種收據時自動移除不需要的區塊',
+    ]
+  },
+  {
+    version: 'v10.7', date: '2026-09-08',
+    items: [
+      '金額是0或沒填時，應領金額/實領金額都改成留空白讓人手寫，不再印出「0」（0容易被誤會成「確實收0元」，跟「還沒填金額」是不同意思）',
+    ]
+  },
+  {
+    version: 'v10.6', date: '2026-09-08',
+    items: [
+      '收據列印排版依參考文件精確調整：每一行字級改用固定pt對應docx規格（標題24pt、內容16pt、應領金額15pt、稅額方框12pt、具領人等14pt、聯絡地址11pt），且不再因為「只印一種」或「兩種都印」而縮放字體——因為A4直式面積剛好等於2張A5橫式疊起來，兩份合印時每份本來就有跟單獨列印同樣大的空間',
+      '「實領金額」方框新增splitAmountToDigits()，把金額拆解成萬/仟/佰/拾各自的中文數字自動填入方框對應位置，NT$後面也自動帶入實際金額數字，不再永遠留白（沒有勾選列印金額時，這裡才會維持空白讓人手寫）',
+    ]
+  },
+  {
+    version: 'v10.5', date: '2026-09-08',
+    items: [
+      '修正列印收據對話框「日期」欄位有時會帶出上次手動輸入過的日期、而不是今天的問題：這是Chrome瀏覽器對input[type=date]的自動記憶行為，蓋過了HTML本身寫的預設值。加上autocomplete="off"，並在對話框掛載後用JS再明確覆寫一次日期值，確保每次開啟都正確顯示今天。學期/課程名稱/講師費/交通費金額等其他手動輸入欄位也一併加上autocomplete="off"防呆',
+    ]
+  },
+  {
+    version: 'v10.4', date: '2026-09-08',
+    items: [
+      '收據列印的學期顯示格式修正：改用academic_year+semester_num組出「115學年度第1學期」，不再直接套用資料庫label欄位存的簡短格式「115-1」',
+    ]
+  },
+  {
+    version: 'v10.3', date: '2026-09-08',
+    items: [
+      '收據列印排版全面調整：學校名稱拿掉底線、所有手寫空白改成明確寬度的底線（課程名稱/應領金額用7cm，稅額方框內的金額用4cm，百分比用2.2cm，萬仟佰拾各自1.2cm）；收緊整體垂直間距，修正A5橫式單張會跑成2頁的問題；空的底線span補上&nbsp;內容，確保任何瀏覽器/引擎都能正確撐開寬度',
+    ]
+  },
+  {
+    version: 'v10.2', date: '2026-09-08',
+    items: [
+      '收據列印修正：學期/課程名稱如果本身是空的(沒自動判斷出來、admin也沒填)，改成留一段底線空格讓人手寫，之前是直接塞空字串進去，導致「」引號直接貼在一起、完全沒有空間寫字',
+    ]
+  },
+  {
+    version: 'v10.1', date: '2026-09-08',
+    items: [
+      '收據列印字型修正：跟系統其他既有列印功能統一改成"標楷體",serif（拿掉沒加引號的DFKai-SB，這處是唯一寫法不一致的地方）',
+      '收據列印「具領人」欄位改成永遠空白，讓收款人簽收時親自填寫確認，不要預先印上系統知道的姓名（跟身分證字號/地址是同樣道理，這是要本人簽名的欄位）',
+    ]
+  },
+  {
+    version: 'v10.0', date: '2026-09-08',
+    items: [
+      '兼課鐘點費及交通費核銷新增「列印收據」功能：老師卡片上有整月彙整列印，每筆上課日記錄旁邊也有單日列印，可選要印講師費/交通費（只選一種→A5橫式，兩種都選→A4直式各半頁），可選要不要列印金額/日期/申請內容，金額自動依系統資料算好但可手動修改，中文大寫金額跟民國年都自動換算，課程名稱會依上課記錄智慧判斷(整月彙整看是不是所有上課日都連到同一門課，單日列印直接用當天連結的課程)，判斷不出來就留空白讓admin自己輸入',
+    ]
+  },
+  {
     version: 'v9.9', date: '2026-09-07',
     items: [
       '教室借用申請「待審核」「我的申請」兩個分頁的表格也補上排序功能，連同上一版「全部預約記錄」，教室借用申請底下4個分頁的表格現在全部都可以排序',
@@ -10712,6 +10842,133 @@ document.addEventListener('click', (e) => {
 });
 
 // BUG FIX 4: semesters 頁面需要 display:flex
+/* ════════════════════════════════════════════════════════════════════
+ * 📝 選課完成度總覽
+ * ════════════════════════════════════════════════════════════════════ */
+let _eoData = [];
+let _eoSortKey = 'course_count'; // 預設依已選科目數由小到大排序,最容易看出誰還沒選課
+let _eoSortDir = 1;
+
+async function loadEnrollOverview() {
+  const semSel = document.getElementById('eo-sem');
+  if (semSel.options.length <= 1 || semSel.options[0].value === '') {
+    const { data: sems } = await sb.from('semesters').select('id,label,academic_year,semester_num,start_date,end_date').order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
+    if (sems?.length) {
+      semSel.innerHTML = sems.map(s=>`<option value="${s.id}">${s.label} ${s.semester_num===1?'上學期':'下學期'}</option>`).join('');
+      const today = new Date().toISOString().slice(0,10);
+      const cur = sems.find(s=>s.start_date<=today && today<=s.end_date) || sems.find(s=>s.academic_year===115&&s.semester_num===1) || sems[0];
+      if (cur) semSel.value = cur.id;
+    }
+  }
+  const semId = semSel.value;
+  if (!semId) return;
+
+  document.getElementById('eo-body').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
+
+  // 加退選截止日倒數(沿用教室借用系統國定假日同一張表的查詢慣例,這裡查change_deadline這個系統事件)
+  const { data: deadlineEv } = await sb.from('semester_calendar_events').select('end_at').eq('semester_id', semId).eq('event_key','change_deadline').maybeSingle();
+  const badge = document.getElementById('eo-deadline-badge');
+  if (deadlineEv?.end_at) {
+    const deadline = new Date(deadlineEv.end_at);
+    const now = new Date();
+    const diffDays = Math.ceil((deadline - now) / (1000*60*60*24));
+    const dateStr = deadline.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    if (diffDays < 0) badge.innerHTML = `<span style="color:var(--ink3)">🔒 加退選已截止（${dateStr}）</span>`;
+    else if (diffDays <= 3) badge.innerHTML = `<span style="color:var(--red);font-weight:600">⏰ 加退選截止倒數 ${diffDays} 天（${dateStr}）</span>`;
+    else badge.innerHTML = `<span style="color:var(--ink3)">⏰ 加退選截止：${dateStr}（還有${diffDays}天）</span>`;
+  } else {
+    badge.innerHTML = `<span style="color:var(--ink3)">（尚未設定加退選截止日）</span>`;
+  }
+
+  // 只列在學中的學生(status='active')，畢業/休學/退學的不算在"還沒選課"名單裡
+  const { data: students, error: studErr } = await sb.from('students').select('id,student_code,name_zh,cohort').eq('status','active').order('student_code');
+  if (studErr) { showToast('讀取學生資料失敗：'+studErr.message,'error'); console.error(studErr); }
+  console.log('[選課完成度總覽] 學期ID:', semId, '在學學生數:', students?.length);
+
+  // 拆成兩個完全獨立的查詢,不依賴Supabase自動解析enrollments跟course_offerings的關聯(巢狀select在某些情況下會靜默失敗回傳空值)
+  const { data: enrolls, error: enrollErr } = await sb.from('enrollments')
+    .select('student_id, offering_id')
+    .eq('semester_id', semId).in('status',['confirmed','pending','waitlist']);
+  if (enrollErr) { showToast('讀取選課資料失敗：'+enrollErr.message,'error'); console.error(enrollErr); }
+  console.log('[選課完成度總覽] 這個學期的選課記錄筆數:', enrolls?.length, enrolls?.slice(0,3));
+
+  const offeringIds = [...new Set((enrolls||[]).map(e=>e.offering_id))];
+  let creditsByOffering = {};
+  if (offeringIds.length) {
+    // course_offerings本身沒有credits欄位，學分存在courses表，要先拿course_id再查一次courses表
+    const { data: offs, error: offErr } = await sb.from('course_offerings').select('id,course_id').in('id', offeringIds);
+    if (offErr) { showToast('讀取開課記錄失敗：'+offErr.message,'error'); console.error(offErr); }
+    console.log('[選課完成度總覽] 對應到的開課記錄數:', offs?.length);
+
+    const courseIds = [...new Set((offs||[]).map(o=>o.course_id).filter(Boolean))];
+    let creditsByCourse = {};
+    if (courseIds.length) {
+      const { data: courses, error: courseErr } = await sb.from('courses').select('id,credits').in('id', courseIds);
+      if (courseErr) { showToast('讀取課程學分失敗：'+courseErr.message,'error'); console.error(courseErr); }
+      (courses||[]).forEach(c => { creditsByCourse[c.id] = c.credits; });
+      console.log('[選課完成度總覽] 對應到的課程學分數:', courses?.length);
+    }
+    (offs||[]).forEach(o => { creditsByOffering[o.id] = creditsByCourse[o.course_id] || 0; });
+  }
+
+  const enrollMap = {}; // student_id -> {count, credits}
+  (enrolls||[]).forEach(e => {
+    if (!enrollMap[e.student_id]) enrollMap[e.student_id] = {count:0, credits:0};
+    enrollMap[e.student_id].count++;
+    enrollMap[e.student_id].credits += creditsByOffering[e.offering_id] || 0;
+  });
+
+  _eoData = (students||[]).map(s => ({
+    student_code: s.student_code, name_zh: s.name_zh, cohort: s.cohort,
+    course_count: enrollMap[s.id]?.count || 0,
+    credits: enrollMap[s.id]?.credits || 0,
+  }));
+  console.log('[選課完成度總覽] 最終結果(前3筆):', _eoData.slice(0,3));
+
+  const zeroCount = _eoData.filter(s=>s.course_count===0).length;
+  const totalCount = _eoData.length;
+  document.getElementById('eo-summary').innerHTML = `
+    <span>在學學生共 <b>${totalCount}</b> 人</span>
+    <span style="color:${zeroCount>0?'var(--red)':'inherit'}">尚未選課 <b>${zeroCount}</b> 人</span>
+    <span>已選課 <b>${totalCount-zeroCount}</b> 人</span>
+  `;
+  renderEnrollOverviewTable();
+}
+
+function eoSort(key) {
+  if (_eoSortKey === key) _eoSortDir *= -1; else { _eoSortKey = key; _eoSortDir = 1; }
+  document.querySelectorAll('[id^="eo-sort-"]').forEach(el=>el.textContent='⇅');
+  const icon = document.getElementById('eo-sort-'+key);
+  if (icon) icon.textContent = _eoSortDir===1?'↑':'↓';
+  renderEnrollOverviewTable();
+}
+
+function renderEnrollOverviewTable() {
+  const kw = (document.getElementById('eo-search')?.value||'').trim().toLowerCase();
+  const onlyIncomplete = document.getElementById('eo-only-incomplete')?.checked;
+  let rows = _eoData.filter(s => {
+    if (onlyIncomplete && s.course_count > 0) return false;
+    if (kw && !(s.student_code.toLowerCase().includes(kw) || s.name_zh.toLowerCase().includes(kw))) return false;
+    return true;
+  });
+  rows = rows.slice().sort((a,b) => {
+    const av = a[_eoSortKey], bv = b[_eoSortKey];
+    if (av < bv) return -1*_eoSortDir;
+    if (av > bv) return 1*_eoSortDir;
+    return 0;
+  });
+  const tbody = document.getElementById('eo-body');
+  tbody.innerHTML = rows.length ? rows.map(s => `<tr>
+      <td>${esc(s.student_code)}</td><td style="font-weight:600">${esc(s.name_zh)}</td>
+      <td style="text-align:center">${s.cohort||'—'}</td>
+      <td style="text-align:center">${s.course_count}</td>
+      <td style="text-align:center">${s.credits}</td>
+      <td style="text-align:center">${s.course_count===0
+        ? '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#FDEBEC;color:#C0392B;border:1px solid #F0B0B5">尚未選課</span>'
+        : '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#EAF4EE;color:#1F5C3A;border:1px solid #C0DD97">已選課</span>'}</td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">沒有符合條件的學生</td></tr>';
+}
+
 function showPage(page, btn) {
   document.querySelectorAll('[id^="page-"]').forEach(el=>el.style.display='none');
   const pageEl=document.getElementById('page-'+page);
@@ -10722,6 +10979,7 @@ function showPage(page, btn) {
   if (page==='courses') loadCourses();
   if (page==='semesters') loadSemesterPage();
   if (page==='conflicts') runConflictCheck(false);
+  if (page==='enroll-overview') loadEnrollOverview();
   if (page==='ta-match') loadTaMatch();
   if (page==='audit') loadAuditLog();
   if (page==='announcements') loadAnnouncements();
@@ -10936,6 +11194,49 @@ let _payRates = [];
 let _adjunctTeachers = [];
 let _payrollMap = {}; // teacher_id -> { row: adjunct_payroll, days: [...] }
 
+// 數字轉中文大寫金額(用於收據"應領金額"欄位)，逐位處理+跨組零判斷，支援到億(鐘點費/交通費金額不會超過這個範圍)
+function numberToChineseCapital(num) {
+  num = Math.round(num||0);
+  if (num === 0) return '零元整';
+  const digits = ['零','壹','貳','參','肆','伍','陸','柒','捌','玖'];
+  const units = ['','拾','佰','仟'];
+  const bigUnits = ['','萬','億'];
+  const s = String(num);
+  const n = s.length;
+  let result = '';
+  let pendingZero = false; // 前面有跳過的零、還沒補上去
+  let groupHasContent = false; // 目前這一組(4位一組:仟佰拾個)有沒有輸出過內容
+  for (let i = 0; i < n; i++) {
+    const d = Number(s[i]);
+    const posFromRight = n - 1 - i;
+    const unitIdx = posFromRight % 4; // 組內位階:0=個 1=拾 2=佰 3=仟
+    const bigIdx = Math.floor(posFromRight / 4); // 組間位階:0=(個組) 1=萬 2=億
+    if (unitIdx === 3) groupHasContent = false; // 進入新的一組(仟位)，重置
+    if (d === 0) {
+      if (result.length > 0 || groupHasContent) pendingZero = true;
+    } else {
+      if (pendingZero) { result += '零'; pendingZero = false; }
+      result += digits[d] + units[unitIdx];
+      groupHasContent = true;
+    }
+    if (unitIdx === 0 && groupHasContent) result += bigUnits[bigIdx]; // 這一組的個位處理完了，補上萬/億
+  }
+  return result + '元整';
+}
+
+// 依年月(YYYY-MM)查詢對應的學期，組出完整格式"115學年度第1學期"（不直接用資料庫label欄位，那裡存的是簡短格式"115-1"）
+// 找不到就回傳空字串讓admin自己填
+let _semestersForPayrollCache = null;
+async function getSemesterLabelForYearMonth(ym) {
+  if (!_semestersForPayrollCache) {
+    const { data } = await sb.from('semesters').select('academic_year,semester_num,start_date,end_date').order('start_date');
+    _semestersForPayrollCache = data || [];
+  }
+  const repDate = ym + '-15'; // 用月中當代表日期,避免月初/月底剛好卡在學期交界產生誤判
+  const sem = _semestersForPayrollCache.find(s => s.start_date <= repDate && repDate <= s.end_date);
+  return sem ? `${sem.academic_year}學年度第${sem.semester_num}學期` : '';
+}
+
 function todayYearMonth() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
@@ -10982,6 +11283,310 @@ async function loadPayroll() {
   renderPayrollLists();
 }
 
+// 列印收據：mode='month'(老師卡片,整月彙整)或mode='day'(單筆上課日旁邊的小按鈕)
+async function openReceiptDialog(teacherId, opts) {
+  const { row, days } = _payrollMap[teacherId];
+  const t = _adjunctTeachers.find(x=>x.id===teacherId);
+  const ym = document.getElementById('pr-yearmonth').value;
+  const semLabel = await getSemesterLabelForYearMonth(ym);
+  const rate = row.hourly_rate || rateForRank(t.adjunct_rank);
+
+  let courseName = '', lectureAmount = 0, transportAmount = 0, showTransportByDefault = true;
+
+  if (opts.mode === 'day') {
+    const day = days.find(d => d.id === opts.dayId);
+    lectureAmount = Math.round((day?.hours||0) * rate);
+    showTransportByDefault = false; // 交通費是整月一筆記錄，單日列印預設不勾交通費(沒有單日金額可以自動帶)，admin需要的話可以自己勾選再手動輸入
+    if (day?.offering_id) {
+      const { data: off } = await sb.from('course_offerings').select('courses(name_zh)').eq('id', day.offering_id).maybeSingle();
+      courseName = off?.courses?.name_zh || '';
+    }
+  } else {
+    lectureAmount = row.lecture_fee || 0;
+    transportAmount = row.transport_fee || 0;
+    // 整月彙整：檢查這個月所有上課日是不是都連到同一門課，是的話才自動帶課名；混雜多門課或沒連結就留空白讓admin自己打
+    const offeringIds = [...new Set(days.map(d=>d.offering_id).filter(Boolean))];
+    if (offeringIds.length === 1) {
+      const { data: off } = await sb.from('course_offerings').select('courses(name_zh)').eq('id', offeringIds[0]).maybeSingle();
+      courseName = off?.courses?.name_zh || '';
+    }
+  }
+
+  const today = new Date().toISOString().slice(0,10);
+  const html = `
+    <div style="font-size:13px">
+      <label class="flabel">列印哪些收據（可複選；只選一種→A5橫式，兩種都選→A4直式各半頁）</label>
+      <div style="display:flex;gap:16px;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="rc-inc-lecture" checked onchange="rcToggleSections()">講師費／鐘點費</label>
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="rc-inc-transport" ${showTransportByDefault?'checked':''} onchange="rcToggleSections()">交通費</label>
+      </div>
+
+      <label class="flabel">要列印的內容（不勾就留白，讓收款人/承辦人手寫）</label>
+      <div style="display:flex;gap:16px;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="rc-show-amount" checked onchange="rcToggleSections()">金額</label>
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="rc-show-date" checked>日期</label>
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="rc-show-content" checked>申請內容（學期/課程/教師）</label>
+      </div>
+
+      <label class="flabel">學期</label>
+      <input class="finput" id="rc-semester" value="${(semLabel||'').replace(/"/g,'&quot;')}" style="margin-bottom:10px" placeholder="例：115學年度第一學期" autocomplete="off">
+
+      <label class="flabel">課程名稱${courseName?'（已依上課記錄自動帶入，可修改）':'（自動判斷不出單一課程，請手動輸入）'}</label>
+      <input class="finput" id="rc-course" value="${courseName.replace(/"/g,'&quot;')}" style="margin-bottom:10px" placeholder="例：閱讀與敘事" autocomplete="off">
+
+      <div id="rc-lecture-amount-wrap" style="margin-bottom:10px">
+        <label class="flabel">講師費金額（已依系統資料算好，可修改）</label>
+        <input type="number" class="finput" id="rc-lecture-amount" value="${lectureAmount}" autocomplete="off">
+      </div>
+      <div id="rc-transport-amount-wrap" style="margin-bottom:10px">
+        <label class="flabel">交通費金額（已依系統資料算好，可修改）</label>
+        <input type="number" class="finput" id="rc-transport-amount" value="${transportAmount}" autocomplete="off">
+      </div>
+      <div id="rc-date-wrap" style="margin-bottom:14px">
+        <label class="flabel">日期</label>
+        <input type="date" class="finput" id="rc-date" value="${today}" autocomplete="off">
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--cr2)">
+        <button class="btn btn-sec btn-sm" onclick="closeModal('pres-simple-modal')">取消</button>
+        <button class="btn btn-sec btn-sm" onclick="downloadReceiptWord('${teacherId}')">⬇ 下載Word</button>
+        <button class="btn btn-pri btn-sm" onclick="generateReceiptPrint('${teacherId}')">🖨 產生列印預覽</button>
+      </div>
+    </div>`;
+  presShowSimpleModal('🖨 列印收據', html, async()=>true);
+  setTimeout(() => {
+    rcToggleSections();
+    // 保險再設定一次日期值：Chrome對<input type="date">有時會依id/type自動帶回使用者上次手動輸入過的值，
+    // 蓋過HTML本身寫的value屬性；這裡等對話框真正掛載到畫面後，再用JS明確覆寫一次，確保每次開啟都是今天的日期
+    const dateInput = document.getElementById('rc-date');
+    if (dateInput) dateInput.value = today;
+  }, 0);
+}
+
+// 依目前勾選的checkbox狀態,顯示/隱藏對應的金額輸入區塊
+function rcToggleSections() {
+  const incLecture = document.getElementById('rc-inc-lecture')?.checked;
+  const incTransport = document.getElementById('rc-inc-transport')?.checked;
+  const showAmount = document.getElementById('rc-show-amount')?.checked;
+  const showDate = document.getElementById('rc-show-date')?.checked;
+  const lecWrap = document.getElementById('rc-lecture-amount-wrap');
+  const traWrap = document.getElementById('rc-transport-amount-wrap');
+  const dateWrap = document.getElementById('rc-date-wrap');
+  if (lecWrap) lecWrap.style.display = (incLecture && showAmount) ? '' : 'none';
+  if (traWrap) traWrap.style.display = (incTransport && showAmount) ? '' : 'none';
+  if (dateWrap) dateWrap.style.display = showDate ? '' : 'none';
+}
+
+// 產生收據HTML片段(單一份，鐘點費或交通費擇一)
+// 把金額拆解成萬/仟/佰/拾各自的中文數字(用於"實領金額"方框逐格填入)，0的位數留空白讓格子看起來是空的(不寫"零"進去，這個方框是逐格對應數字，不是像應領金額那樣的連續大寫語句)
+function splitAmountToDigits(amount) {
+  const map = ['','壹','貳','參','肆','伍','陸','柒','捌','玖'];
+  const s = String(Math.round(amount||0)).padStart(5,'0').slice(-5); // 萬仟佰拾個，共5位，只取最後5位(鐘點費/交通費金額不會超過這個範圍)
+  return { wan:map[Number(s[0])], qian:map[Number(s[1])], bai:map[Number(s[2])], shi:map[Number(s[3])] };
+}
+
+function buildReceiptBlockHtml(opts) {
+  const { isTransport, semester, courseName, teacherName, amount, showAmount, showContent, showDate, dateStr } = opts;
+  const feeTypeLabel = isTransport ? '講師交通費' : '講師費';
+  // 學期/課程名稱本身是空的話(沒自動判斷出來、admin也沒填)，要留一段底線空格讓人手寫，
+  // 不能讓空字串直接塞進去，那樣引號會塌陷貼在一起，完全沒有空間可以寫字
+  const semesterDisplay = semester ? esc(semester) : '<span class="rc-blank rc-blank-sm">&nbsp;</span>';
+  const courseDisplay = courseName ? esc(courseName) : '<span class="rc-blank">&nbsp;</span>';
+  const contentLine = showContent
+    ? `<div class="rc-content">${semesterDisplay}「${courseDisplay}」${feeTypeLabel}-${esc(teacherName)}</div>`
+    : `<div class="rc-content">&nbsp;</div>`;
+  const hasRealAmount = showAmount && Number(amount) > 0; // 金額是0或沒填的話,視同沒有金額可印,留空白讓人手寫,不要印"0"這種容易誤會成"確實收0元"的數字
+  const amountLine = hasRealAmount
+    ? `應領金額： ${numberToChineseCapital(amount)}。`
+    : `應領金額：新台幣（大寫）<span class="rc-blank">&nbsp;</span>元整。`;
+  let y='',m='',d='';
+  if (showDate && dateStr) {
+    const dt = new Date(dateStr+'T00:00:00');
+    y = dt.getFullYear()-1911; m = dt.getMonth()+1; d = dt.getDate();
+  }
+  // 實領金額方框：預設沒有扣稅/健保的情況下，實領=應領，直接把應領金額拆解填進去；金額沒顯示(showAmount關閉)時，這裡也維持全部空白讓人手寫
+  const digits = hasRealAmount ? splitAmountToDigits(amount) : {wan:'',qian:'',bai:'',shi:''};
+  const ntDisplay = hasRealAmount ? String(Math.round(amount)) : '';
+  const digitCell = (val) => val ? `<span class="rc-digit">${val}</span>` : '<span class="rc-blank rc-blank-digit">&nbsp;</span>';
+  return ''
+    + '<div class="rc-block">'
+    + '<div class="rc-title">收　　　據</div>'
+    + '<div class="rc-line rc-fs16">茲收到 <span class="rc-underline">福智學校財團法人福智佛教學院</span></div>'
+    + contentLine
+    + (isTransport ? '<div class="rc-note rc-fs12">(交通費起訖地點由領款人本誠信原則報支，外聘專家學者如搭乘高鐵且當日往返，無須檢附票根，由領款人簽名確認無誤後支付。)</div>' : '')
+    + `<div class="rc-line rc-fs15">${amountLine}</div>`
+    + '<div class="rc-taxbox rc-fs12">'
+    + '<div>若屬勞務報酬，請增填下列欄位，扣除：</div>'
+    + '<div>1、代扣稅率<span class="rc-blank rc-blank-xs">&nbsp;</span>％，代扣稅款<span class="rc-blank rc-blank-sm">&nbsp;</span>。</div>'
+    + '<div>2、代扣健保補充費率<span class="rc-blank rc-blank-xs">&nbsp;</span>％，代扣健保補充費<span class="rc-blank rc-blank-sm">&nbsp;</span>。</div>'
+    + `<div class="rc-taxbox-net">實領金額新台幣（大寫）${digitCell(digits.wan)}萬`
+    + `${digitCell(digits.qian)}仟${digitCell(digits.bai)}佰`
+    + `${digitCell(digits.shi)}拾元整NT$`
+    + (ntDisplay ? `<span class="rc-digit-plain">${esc(ntDisplay)}</span>` : `<span class="rc-blank rc-blank-sm">&nbsp;</span>`) + `）無誤</div>`
+    + '</div>'
+    + '<div class="rc-line rc-center rc-fs14">此　　　據</div>'
+    + `<div class="rc-line rc-indent rc-fs14">具　領　人：</div>`
+    + '<div class="rc-line rc-indent rc-fs14">身分證字號：</div>'
+    + (isTransport
+        ? '<div class="rc-line rc-indent rc-fs14">住　　　址：</div>'
+        : '<div class="rc-line rc-indent rc-fs14">戶籍地址：</div><div class="rc-line rc-indent rc-fs11">聯絡地址：□與戶籍地址同</div>')
+    + `<div class="rc-line rc-date rc-fs14">中　　華　　民　　國　${y}　年　${m}　月　${d}　日</div>`
+    + '</div>';
+}
+
+// 匯出收據Word檔：範本裡「收　　　據」這個標題文字剛好出現兩次(講師費區塊、交通費區塊各一次)，
+// 用這個當分界點找出每個區塊的完整範圍(段落+稅額表格混在一起，不能只靠固定索引數，用文字內容當錨點比較可靠)，
+// 只選一種收據時，把不要的那個區塊整段移除
+async function buildReceiptDocxBlob(opts) {
+  const { data: signed, error: sErr } = await sb.storage.from('syllabus-templates').createSignedUrl('receipt_template.docx', 60);
+  if (sErr || !signed) return { error: '找不到收據Word範本，請確認已上傳 receipt_template.docx 到 syllabus-templates' };
+  const resp = await fetch(signed.signedUrl);
+  const arrayBuffer = await resp.arrayBuffer();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  let xml = await zip.file('word/document.xml').async('string');
+
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xml, 'application/xml');
+  const body = xmlDoc.getElementsByTagName('w:body')[0];
+  const children = Array.from(body.children).filter(el => el.tagName === 'w:p' || el.tagName === 'w:tbl');
+  const titleIdxs = [];
+  children.forEach((el, i) => { if (el.textContent.includes('收') && el.textContent.includes('據') && el.tagName === 'w:p') titleIdxs.push(i); });
+  // titleIdxs應該剛好有2個(講師費/交通費各一個標題)；第一段範圍=[titleIdxs[0], titleIdxs[1])，第二段範圍=[titleIdxs[1], 結尾)
+  if (titleIdxs.length === 2) {
+    const [lecStart, traStart] = titleIdxs;
+    if (!opts.incLecture) {
+      for (let i = traStart - 1; i >= lecStart; i--) body.removeChild(children[i]);
+    }
+    if (!opts.incTransport) {
+      for (let i = children.length - 1; i >= traStart; i--) body.removeChild(children[i]);
+    }
+  }
+  xml = new XMLSerializer().serializeToString(xmlDoc);
+
+  // 有內容時純文字(不加底線,沿用外層run格式)；沒內容時關閉目前run、插入一段帶底線格式的空白run(撐開寬度讓人手寫)、再重開一個新run銜接後續文字
+  // 跟joinBr處理<w:br/>的手法一樣,都是"關閉-插入-重開"這個模式,只是這次插入的是帶底線的空白run而不是換行
+  const blankOrUnderline = (text, blankChars) => {
+    if (text) return escapeXml(text);
+    return `</w:t></w:r><w:r><w:rPr><w:u w:val="single"/></w:rPr><w:t xml:space="preserve">${blankChars}</w:t></w:r><w:r><w:t xml:space="preserve">`;
+  };
+
+  // Word版本的防呆：splitAmountToDigits某個位數是0時回傳空字串(這是設計給列印版用的，列印版用CSS固定寬度撐開空白格子，
+  // 空字串沒關係)，但Word的底線是套在文字上，空字串=零寬度=底線根本沒東西可以顯示，等於沒有可以手寫的空間。
+  // 這裡補一個全形空白字元進去，確保底線有東西可以依附，才有實際能手寫一個字的空間
+  const digitOrBlank = (d) => d || '　';
+  const digL = opts.hasLectureAmount ? splitAmountToDigits(opts.lectureAmount) : {wan:'',qian:'',bai:'',shi:''};
+  const digT = opts.hasTransportAmount ? splitAmountToDigits(opts.transportAmount) : {wan:'',qian:'',bai:'',shi:''};
+  const rawReplacements = {
+    '{{SEMESTER}}': blankOrUnderline(opts.semester, '　　　　　　　　'),
+    '{{COURSE_NAME}}': blankOrUnderline(opts.courseName, '　　　　　　　　　　　　　　　　'),
+    '{{TEACHER_NAME}}': escapeXml(opts.teacherName||''),
+    '{{LECTURE_AMOUNT_CN}}': opts.hasLectureAmount ? numberToChineseCapital(opts.lectureAmount) : blankOrUnderline('', '　　　　　　　　　　　　　　　　'),
+    '{{TRANSPORT_AMOUNT_CN}}': opts.hasTransportAmount ? numberToChineseCapital(opts.transportAmount) : blankOrUnderline('', '　　　　　　　　　　　　　　　　'),
+    // 萬/仟/佰/拾/NT$這幾個標籤在範本裡本身就已經是帶底線格式的run了(不管填數字或留白都有底線)，不用再用blankOrUnderline處理
+    '{{LECTURE_WAN}}': escapeXml(digitOrBlank(digL.wan)), '{{LECTURE_QIAN}}': escapeXml(digitOrBlank(digL.qian)), '{{LECTURE_BAI}}': escapeXml(digitOrBlank(digL.bai)), '{{LECTURE_SHI}}': escapeXml(digitOrBlank(digL.shi)),
+    '{{LECTURE_NT}}': opts.hasLectureAmount ? String(Math.round(opts.lectureAmount)) : '　　　　',
+    '{{TRANSPORT_WAN}}': escapeXml(digitOrBlank(digT.wan)), '{{TRANSPORT_QIAN}}': escapeXml(digitOrBlank(digT.qian)), '{{TRANSPORT_BAI}}': escapeXml(digitOrBlank(digT.bai)), '{{TRANSPORT_SHI}}': escapeXml(digitOrBlank(digT.shi)),
+    '{{TRANSPORT_NT}}': opts.hasTransportAmount ? String(Math.round(opts.transportAmount)) : '　　　　',
+    '{{DATE_Y}}': escapeXml(opts.y||''), '{{DATE_M}}': escapeXml(opts.m||''), '{{DATE_D}}': escapeXml(opts.d||''),
+  };
+  for (const [key, val] of Object.entries(rawReplacements)) xml = xml.split(key).join(val);
+
+  zip.file('word/document.xml', xml);
+  const blob = await zip.generateAsync({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  return { blob, fileName: `收據_${opts.teacherName}_${opts.dateStr||''}.docx` };
+}
+
+// 讀取列印收據對話框裡的所有表單值，列印跟下載Word共用同一套邏輯，避免重複
+function readReceiptFormValues(teacherId) {
+  const t = _adjunctTeachers.find(x=>x.id===teacherId);
+  const incLecture = document.getElementById('rc-inc-lecture').checked;
+  const incTransport = document.getElementById('rc-inc-transport').checked;
+  if (!incLecture && !incTransport) { showToast('請至少勾選一種收據','error'); return null; }
+  const showAmount = document.getElementById('rc-show-amount').checked;
+  const showDate = document.getElementById('rc-show-date').checked;
+  const showContent = document.getElementById('rc-show-content').checked;
+  const semester = document.getElementById('rc-semester').value;
+  const courseName = document.getElementById('rc-course').value;
+  const lectureAmount = Number(document.getElementById('rc-lecture-amount')?.value||0);
+  const transportAmount = Number(document.getElementById('rc-transport-amount')?.value||0);
+  const dateStr = document.getElementById('rc-date').value;
+  return { teacherName: t.name_zh, incLecture, incTransport, showAmount, showDate, showContent, semester, courseName, lectureAmount, transportAmount, dateStr };
+}
+
+async function downloadReceiptWord(teacherId) {
+  const v = readReceiptFormValues(teacherId);
+  if (!v) return;
+  let y='',m='',d='';
+  if (v.showDate && v.dateStr) {
+    const dt = new Date(v.dateStr+'T00:00:00');
+    y = dt.getFullYear()-1911; m = dt.getMonth()+1; d = dt.getDate();
+  }
+  const result = await buildReceiptDocxBlob({
+    incLecture: v.incLecture, incTransport: v.incTransport,
+    semester: v.showContent ? v.semester : '', courseName: v.showContent ? v.courseName : '', teacherName: v.teacherName,
+    hasLectureAmount: v.showAmount && v.lectureAmount > 0, lectureAmount: v.lectureAmount,
+    hasTransportAmount: v.showAmount && v.transportAmount > 0, transportAmount: v.transportAmount,
+    y, m, d, dateStr: v.dateStr
+  });
+  if (result?.error) { showToast(result.error, 'error'); return; }
+  const url = URL.createObjectURL(result.blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = result.fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('✅ 已下載：'+result.fileName);
+  closeModal('pres-simple-modal');
+}
+
+async function generateReceiptPrint(teacherId) {
+  const v = readReceiptFormValues(teacherId);
+  if (!v) return;
+  const { incLecture, incTransport, showAmount, showDate, showContent, semester, courseName, lectureAmount, transportAmount, dateStr, teacherName } = v;
+
+  const blocks = [];
+  if (incLecture) blocks.push(buildReceiptBlockHtml({ isTransport:false, semester, courseName, teacherName, amount:lectureAmount, showAmount, showContent, showDate, dateStr }));
+  if (incTransport) blocks.push(buildReceiptBlockHtml({ isTransport:true, semester, courseName, teacherName, amount:transportAmount, showAmount, showContent, showDate, dateStr }));
+
+  const bothSelected = blocks.length === 2;
+  const css = [
+    '@page{size:'+(bothSelected?'A4 portrait':'A5 landscape')+';margin:1.2cm}',
+    // 字級全部固定用pt(對應docx常見字級單位)，不因為A4雙份/A5單份而縮放：
+    // A4直式面積剛好等於2張A5橫式疊起來(148mm×2≈297mm)，兩份收據合印時每一份本來就有跟單獨列印A5時同樣大的空間，不需要縮小字體
+    'body{font-family:"標楷體",serif;font-size:14pt;color:#111}',
+    '.rc-block{'+(bothSelected?'padding-bottom:8pt;margin-bottom:10pt;border-bottom:1px dashed #999;page-break-inside:avoid':'')+'}',
+    '.rc-block:last-child{border-bottom:none}',
+    '.rc-title{text-align:center;font-size:24pt;font-weight:700;letter-spacing:6px;border-bottom:2px solid #111;display:inline-block;padding:0 20px 2pt;margin:1pt auto 6pt;display:table}',
+    '.rc-line{line-height:1.4;margin:2pt 0}',
+    '.rc-content{line-height:1.4;margin:2pt 0;font-size:16pt}',
+    '.rc-fs16{font-size:16pt}', '.rc-fs15{font-size:15pt}', '.rc-fs14{font-size:14pt}',
+    '.rc-fs12{font-size:12pt}', '.rc-fs11{font-size:11pt}',
+    '.rc-underline{}', // 學校名稱不再加底線，保留這個class名稱不動是避免要改HTML結構，只是拿掉底線效果
+    '.rc-blank{display:inline-block;width:7cm;border-bottom:1px solid #111}', // 課程名稱、應領金額(整行單獨一個空白,有充裕空間)用這個大尺寸
+    '.rc-blank-sm{width:4cm}', // 稅額方框內的金額空白(代扣稅款/代扣健保補充費/NT$)，同一行裡有好幾個空白+文字，不能全部都用7cm否則會超出A4版面寬度
+    '.rc-blank-xs{width:2.2cm}', // 百分比(例如稅率、健保補充費率，只需要填1~2位數字)
+    '.rc-blank-digit{width:1.2cm;text-align:center}', // 萬/仟/佰/拾各自只填一個數字，不用跟其他空白一樣寬
+    '.rc-digit{display:inline-block;width:1.2cm;text-align:center;font-weight:700;border-bottom:1px solid #111}', // 萬/仟/佰/拾實際填入的數字下方也要有底線(視覺上維持"這是填空格"的樣子)，但"萬""仟""佰""拾"這幾個固定文字本身不加底線
+    '.rc-digit-plain{border-bottom:1px solid #111;padding:0 4px;font-weight:700}', // NT$後面已經有實際數字時用這個,只留剛好夠的寬度,不像空白時那樣佔一大段7cm/4cm
+    '.rc-note{font-size:12pt;color:#444;margin:2pt 0 2pt 2em}',
+    '.rc-taxbox{border:1px solid #111;padding:5pt 10pt;margin:6pt 0;line-height:1.5;font-size:12pt}',
+    '.rc-taxbox-net{font-weight:700;margin-top:3pt}',
+    '.rc-center{text-align:center;margin:6pt 0}',
+    '.rc-indent{margin-left:3em}',
+    '.rc-date{text-align:center;margin-top:8pt}'
+  ].join('');
+
+  const w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">'
+    + '<title>收據列印</title>'
+    + '<sty'+'le>' + css + '</sty'+'le>'
+    + '</he'+'ad><bo'+'dy>'
+    + blocks.join('')
+    + '<scr'+'ipt>window.onload=()=>{window.print();};</scr'+'ipt>'
+    + '</bo'+'dy></ht'+'ml>');
+  w.document.close();
+  closeModal('pres-simple-modal');
+}
+
 function prevYearMonth(ym) {
   const [y,m] = ym.split('-').map(Number);
   const d = new Date(y, m-2, 1); // m-1是當月0-based，再-1是上月
@@ -11021,6 +11626,7 @@ function renderTeacherPayrollCard(t) {
         <button class="btn btn-sec btn-sm" onclick="addPayrollDay('${t.id}')">＋ 新增上課日</button>
         <button class="btn btn-sec btn-sm" onclick="prefillFromSchedule('${t.id}')">📅 依課表帶入</button>
         <button class="btn btn-sec btn-sm" onclick="prefillFromAttendance('${t.id}')">📋 從點名帶入</button>
+        <button class="btn btn-sec btn-sm" onclick="openReceiptDialog('${t.id}', {mode:'month'})">🖨 列印收據（整月）</button>
       </div>
       <div id="payroll-days-${t.id}">${renderPayrollDays(t.id)}</div>
       <div class="frow-2" style="margin-top:10px">
@@ -11063,6 +11669,7 @@ function renderPayrollDays(teacherId) {
       <input type="number" step="0.5" class="finput" style="width:80px;padding:5px 8px;font-size:12.5px" value="${d.hours}" placeholder="時數"
         onchange="updatePayrollDay('${teacherId}','${d.id}','hours',this.value)">
       <button onclick="deletePayrollDay('${teacherId}','${d.id}')" style="border:none;background:none;cursor:pointer;color:var(--red)">✕</button>
+      <button onclick="openReceiptDialog('${teacherId}', {mode:'day', dayId:'${d.id}'})" title="列印這一天的收據" style="border:none;background:none;cursor:pointer;color:var(--ink3);font-size:14px">🖨</button>
     </div>`).join('');
 }
 
@@ -19679,7 +20286,9 @@ async function rbGetSemesterWithRegDay(dateStr) {
   }
   if (!(sem.id in _rbHolidayCache)) {
     // 國定假日可能有很多筆(每個假日各一筆event_key='holiday')，跟只有單一一筆的registration_day不一樣，這裡用一般查詢而非maybeSingle
-    const { data: holidays } = await sb.from('semester_calendar_events').select('end_at').eq('semester_id', sem.id).eq('event_key','holiday');
+    // 國定假日可能有很多筆，每筆各自用holiday_開頭+時間戳記當event_key(例如holiday_1736300000000)確保不會撞到唯一鍵約束(semester_id,event_key)，
+    // 跟只有單一一筆的registration_day不一樣，這裡用like前綴比對抓出所有holiday開頭的事件，不是用等於比對單一固定值
+    const { data: holidays } = await sb.from('semester_calendar_events').select('end_at').eq('semester_id', sem.id).like('event_key','holiday%');
     _rbHolidayCache[sem.id] = new Set((holidays||[]).map(h => h.end_at?.slice(0,10)).filter(Boolean));
   }
   sem._regDay = _rbRegDayCache[sem.id];
