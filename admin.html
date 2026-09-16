@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.15 2026-09-13 -->
+<!-- BWBC Admin v10.29 2026-09-14 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -255,8 +255,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .oc-en{font-size:11px;color:var(--ink3);font-style:italic;margin-bottom:7px}
 .oc-info{font-size:12px;color:var(--ink3);display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
 .oc-teachers{display:flex;flex-wrap:wrap;gap:4px;min-height:20px}
-.oc-bot{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--cr3)}
-.oc-cred{font-size:12.5px;font-weight:500;color:var(--ink)}
+.oc-bot{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;background:var(--cr3)}
+.oc-cred{font-size:12.5px;font-weight:500;color:var(--ink);white-space:nowrap}
 .oc-actions{display:flex;gap:4px}
 .syimp-card{background:#fff;border:1.5px solid var(--cr2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12.5px;cursor:grab;line-height:1.5;white-space:pre-wrap;max-height:140px;overflow-y:auto}
 .syimp-card.dragging{opacity:.4}
@@ -386,7 +386,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.15　2026-09-13</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.29　2026-09-14</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -478,6 +478,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <div class="admin-dd-menu">
                 <div onclick="exportOfferingsCSV()">📤 匯出開課記錄(CSV)</div>
                 <div onclick="openImportModal('offerings')">📥 匯入開課記錄(CSV)</div>
+                <div onclick="openEnrollImportModal()">📥 批次匯入選課結果(Excel)</div>
               </div>
             </div>
             <button class="btn btn-pri" onclick="openNewOffering()">＋ 新增開課</button>
@@ -485,6 +486,9 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         </div>
         <div class="toolbar">
           <input class="search" id="offering-search" placeholder="🔍 搜尋課程名稱或代碼…" oninput="filterOfferings()">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink3);cursor:pointer;white-space:nowrap">
+            <input type="checkbox" id="offering-show-cancelled" onchange="loadOfferings()">顯示已停開
+          </label>
           <button class="btn btn-gold" onclick="runConflictCheck()">🔍 執行衝堂偵測</button>
           <div style="margin-left:auto;display:flex;gap:2px;background:var(--cr2);border-radius:6px;padding:3px">
             <button id="view-card-btn" class="btn btn-sm" onclick="setOfferingView('card')"
@@ -502,6 +506,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <th onclick="sortOfferings('credits')" class="sortable" style="text-align:center">學分 <span class="sort-icon" id="sort-credits">⇅</span></th>
               <th onclick="sortOfferings('axis')" class="sortable">主軸 <span class="sort-icon" id="sort-axis">⇅</span></th>
               <th onclick="sortOfferings('cohort')" class="sortable" style="text-align:center">年級 <span class="sort-icon" id="sort-cohort">⇅</span></th>
+              <th onclick="sortOfferings('enrolled')" class="sortable" style="text-align:center">選課人數 <span class="sort-icon" id="sort-enrolled">⇅</span></th>
               <th onclick="sortOfferings('time')" class="sortable">上課時間 <span class="sort-icon" id="sort-time">⇅</span></th>
               <th onclick="sortOfferings('room')" class="sortable">教室 <span class="sort-icon" id="sort-room">⇅</span></th>
               <th onclick="sortOfferings('teacher')" class="sortable">授課教師 <span class="sort-icon" id="sort-teacher">⇅</span></th><th>操作</th>
@@ -1089,6 +1094,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             </select>
             <button class="btn" onclick="exportClassRoster()">📋 學生資料列表</button>
             <button class="btn" onclick="printBlankRoster()">📋 班級名條</button>
+            <button class="btn" id="stu-batch-confirm-btn" onclick="batchConfirmRegistration()" style="color:#2E9E5B;border-color:#2E9E5B;display:none">✅ 批次確認報到 (<span id="stu-batch-confirm-count">0</span>)</button>
             <button class="btn" onclick="openStudentImport()">📥 批次匯入</button>
             <button class="btn" onclick="openStudentUpdateImport()" style="color:#1A6A30;border-color:#1A6A30">📥 更新匯入</button>
             <button class="btn btn-pri" onclick="openStudentModal()">➕ 新增學生</button>
@@ -1099,6 +1105,8 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <table style="border-collapse:separate;border-spacing:0;min-width:1600px;width:max-content">
             <thead style="position:sticky;top:0;z-index:2">
               <tr style="background:var(--navy);color:#fff">
+                <th class="stu-th" style="width:36px;text-align:center"><input type="checkbox" id="stu-check-all" onclick="toggleAllStudentCheckboxes(this)" title="全選（僅新生未報到）"></th>
+                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;background:var(--navy)">操作</th>
                 <th class="stu-th" style="width:60px">📷</th>
                 <th class="stu-th" onclick="stuSort('student_code')">學號 <span class="sort-icon" id="stu-sort-student_code">⇅</span></th>
                 <th class="stu-th" onclick="stuSort('name_zh')">姓名 <span class="sort-icon" id="stu-sort-name_zh">⇅</span></th>
@@ -1110,11 +1118,10 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
                 <th class="stu-th" onclick="stuSort('emergency_name')">緊急聯絡人 <span class="sort-icon" id="stu-sort-emergency_name">⇅</span></th>
                 <th class="stu-th" onclick="stuSort('emergency_phone')">緊急電話 <span class="sort-icon" id="stu-sort-emergency_phone">⇅</span></th>
                 <th class="stu-th" onclick="stuSort('_advisor_name')">班導師 <span class="sort-icon" id="stu-sort-_advisor_name">⇅</span></th>
-                <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500;background:var(--navy)">操作</th>
               </tr>
             </thead>
             <tbody id="stu-tbody">
-              <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--ink3)">載入中…</td></tr>
+              <tr><td colspan="13" style="text-align:center;padding:40px;color:var(--ink3)">載入中…</td></tr>
             </tbody>
           </table>
         </div>
@@ -1971,6 +1978,69 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="closeModal('stu-update-modal')">取消</button>
       <button id="stu-update-btn" class="btn btn-pri" onclick="executeStudentUpdate()" disabled style="opacity:.5">確認執行</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal: 批次匯入選課結果 ══ -->
+<div class="modal-bg" id="enroll-import-modal">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-hdr">
+      <div class="modal-title">📥 批次匯入選課結果</div>
+      <button class="modal-close" onclick="closeModal('enroll-import-modal')">✕</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:75vh;overflow-y:auto">
+      <div style="padding:10px 14px;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;font-size:12.5px;color:#6D4C00;line-height:1.7">
+        <strong>📌 檔案格式：</strong>矩陣式Excel，第1列是課程代碼、學生列每欄1代表有選這門課（跟現有的「統計總表(依科目)」格式相同）<br>
+        <strong>📌 驗證規則：</strong>會套用跟學生自己選課同一套規則（已修過同名課程且非重修不及格→標記警示、超過12學分上限→標記警示），有疑慮的項目會列出來，由你決定要不要強制匯入<br>
+        <strong>📌 排除名單：</strong>下方可以輸入不要被這次匯入影響的學號，這些學生的既有選課資料完全不會被異動
+      </div>
+      <div class="frow-2">
+        <div>
+          <label class="flabel">目標學期</label>
+          <select id="ei-sem" class="fselect">
+            <option value="">載入中…</option>
+          </select>
+        </div>
+        <div>
+          <label class="flabel">排除學號（逗號分隔，可留空）</label>
+          <input class="finput" id="ei-exclude" placeholder="留空=全部匯入；要排除時填學號，逗號分隔">
+        </div>
+      </div>
+      <div class="frow">
+        <label class="flabel">選擇Excel檔案</label>
+        <input type="file" id="ei-file" accept=".xlsx,.xls" onchange="onEnrollImportFile(event)" style="font-size:13px">
+      </div>
+      <div id="ei-preview" style="display:none">
+        <div id="ei-summary" style="display:flex;gap:12px;flex-wrap:wrap;padding:10px 14px;background:var(--cr3);border-radius:8px;font-size:13px;margin-bottom:10px"></div>
+        <div style="max-height:340px;overflow:auto;border:1px solid var(--cr2);border-radius:6px">
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <thead><tr style="background:var(--navy);color:#fff;position:sticky;top:0">
+              <th style="padding:6px 10px;text-align:left">學號</th><th style="padding:6px 10px;text-align:left">課程代碼</th>
+              <th style="padding:6px 10px;text-align:left">狀態</th><th style="padding:6px 10px;text-align:left">說明</th>
+            </tr></thead>
+            <tbody id="ei-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="ei-drop-section" style="display:none;margin-top:14px;padding:12px 14px;background:#FFF8F8;border:1px solid #F5CCCC;border-radius:8px">
+        <div style="font-size:13px;font-weight:600;color:#C0392B;margin-bottom:6px">🔻 系統裡已選、但這次Excel裡不見了的組合（學生可能已改變心意，是否要一併退選？）</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">只有下面被勾選的項目，按「執行勾選的退選」才會真的變動；不勾選的話完全不會被動到。</div>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;margin-bottom:6px;cursor:pointer">
+          <input type="checkbox" id="ei-drop-check-all" onclick="document.querySelectorAll('.ei-drop-check').forEach(cb=>cb.checked=this.checked)">全選/取消全選
+        </label>
+        <div style="max-height:200px;overflow:auto;border:1px solid #F0D0D0;border-radius:6px;background:#fff">
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <tbody id="ei-drop-table-body"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-sm" style="margin-top:8px;color:#C0392B;border-color:#C0392B" onclick="commitEnrollDrops()">🔻 執行勾選的退選</button>
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('enroll-import-modal')">取消</button>
+      <button id="ei-btn-safe" class="btn btn-sec" onclick="commitEnrollImport(false)" disabled style="opacity:.5">✅ 只匯入沒有疑慮的</button>
+      <button id="ei-btn-force" class="btn btn-pri" onclick="commitEnrollImport(true)" disabled style="opacity:.5">⚠️ 連同警示項目一起匯入</button>
     </div>
   </div>
 </div>
@@ -3511,7 +3581,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
 });
 
 /* ════ GLOBAL STATE ════ */
-let OFFERINGS = [], TEACHERS = [], CLASSROOMS = [], TEACHERS_MAP = {}, SYLLABUS_MAP = {}, SYLLABUS_DETAIL = {};
+let OFFERINGS = [], TEACHERS = [], CLASSROOMS = [], TEACHERS_MAP = {}, SYLLABUS_MAP = {}, SYLLABUS_DETAIL = {}, ENROLL_COUNT_MAP = {};
 
 /* ════ 共用：依日期判斷現在學期（不依賴 is_current，那個欄位只給排課可編輯範圍用） ════ */
 let _dateCurrentSemCache = null;
@@ -3689,7 +3759,8 @@ async function loadOfferings() {
   const { data, error } = await sb.from('v_course_schedule').select('*')
     .eq('semester_label',semLabel).order('axis_code').order('code');
   if (error) { showToast('載入開課資料失敗','error'); return; }
-  OFFERINGS = data || [];
+  const showCancelled = document.getElementById('offering-show-cancelled')?.checked;
+  OFFERINGS = showCancelled ? (data||[]) : (data||[]).filter(o => !o.is_cancelled);
   const ids = OFFERINGS.map(o=>o.offering_id);
   const { data:ot } = await sb.from('v_offering_teachers').select('*').in('offering_id',ids);
   TEACHERS_MAP = {};
@@ -3698,6 +3769,12 @@ async function loadOfferings() {
     TEACHERS_MAP[t.offering_id].push(t);
   });
   renderOfferings(OFFERINGS, TEACHERS_MAP);
+  // 選課人數：依offering_id分組計算已確認選課人數，供卡片顯示用
+  const { data: enr, error: enrErr } = await sb.from('enrollments').select('offering_id').in('offering_id', ids).eq('status','confirmed');
+  if (enrErr) console.error('讀取選課人數失敗', enrErr);
+  ENROLL_COUNT_MAP = {};
+  (enr||[]).forEach(e => { ENROLL_COUNT_MAP[e.offering_id] = (ENROLL_COUNT_MAP[e.offering_id]||0) + 1; });
+  renderOfferings(OFFERINGS, TEACHERS_MAP); // 人數查完後重新渲染一次補上badge
   // 統計列（排除停用課程的開課記錄）
   const activeOfferings=OFFERINGS.filter(o=>o.active!==false);  // v_course_schedule 有 courses.active
   const total=activeOfferings.length;
@@ -3749,6 +3826,7 @@ function sortOfferings(field) {
   if (activeIcon) { activeIcon.closest('th').classList.add(sortDir===1?'sort-asc':'sort-desc'); activeIcon.textContent=sortDir===1?'↑':'↓'; }
   const fieldMap = { code:o=>o.code||'', name:o=>o.name_zh||'', credits:o=>o.credits||0, axis:o=>o.axis_code||'', time:o=>o.time_raw||'', room:o=>o.classroom_name||'',
     cohort:o=>o.target_cohort||0,
+    enrolled:o=>ENROLL_COUNT_MAP[o.offering_id]||0,
     teacher:o=>(TEACHERS_MAP[o.offering_id]||[]).map(t=>t.name_zh).join('、')
   };
   const getter = fieldMap[field]||(o=>'');
@@ -3794,13 +3872,19 @@ function renderOfferings(list, otMap) {
       const reqBadge = o.req_type ? `<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:${o.req_type==='req'?'#FFF3E0':'#E8F5E9'};color:${o.req_type==='req'?'#B05010':'#1A6A30'};border:1px solid ${o.req_type==='req'?'#F0C080':'#90D090'}">${REQ_ZH_LABEL[o.req_type]||''}</span>` : '';
       const digitalBadge = o.is_digital ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#EEF2FA;color:#1B3A6B;border:0.5px solid #B5D4F4">📱</span>` : '';
       const auditBadge   = o.is_audit   ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#EAF4EE;color:#1F5C3A;border:0.5px solid #C0DD97">🎓</span>` : '';
-      return `<div class="oc" data-search="${(o.code+o.name_zh).toLowerCase()}" style="border-top:3px solid ${axColor}">
+      // 課程主檔在「課程管理」被停用了，但這筆開課記錄本身還沒跟著處理，主動警示，不用admin自己想到要去查
+      const courseInactiveWarning = (o.active === false) ? `<div style="background:#FDEBEC;color:#C0392B;font-size:11px;padding:5px 10px;border-bottom:1px solid #F0B0B5">⚠️ 課程主檔已停用，建議一併停開此開課記錄</div>` : '';
+      const isCancelled = !!o.is_cancelled;
+      const cardOpacity = isCancelled ? 'opacity:.6' : '';
+      const cancelledBadge = isCancelled ? `<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:#F0F0F0;color:#666;border:1px solid #DDD">已停開</span>` : '';
+      return `<div class="oc" data-search="${(o.code+o.name_zh).toLowerCase()}" style="border-top:3px solid ${isCancelled?'#999':axColor};${cardOpacity}">
+        ${courseInactiveWarning}
         <div class="oc-top">
           <div class="oc-meta">
             <span class="oc-code">${o.code}</span>
             ${digitalBadge}${auditBadge}
             <span style="font-size:10px;padding:1px 7px;border-radius:4px;background:${axBg};color:${axColor}">${o.axis_code||''}</span>
-            ${cohortBadge}${reqBadge}
+            ${cohortBadge}${reqBadge}${cancelledBadge}
           </div>
           <div class="oc-name">${o.name_zh}</div>
           ${o.name_en?`<div class="oc-en">${o.name_en}</div>`:''}
@@ -3811,12 +3895,17 @@ function renderOfferings(list, otMap) {
           <div class="oc-teachers">${teachers||'<span style="font-size:11px;color:#CCC">授課教師待確認</span>'}</div>
         </div>
         <div class="oc-bot">
-          <span class="oc-cred">${o.credits} 學分</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="oc-cred">${o.credits} 學分</span>
+            <span class="oc-cred" style="color:${(ENROLL_COUNT_MAP[o.offering_id]||0)>0?'var(--navy)':'var(--ink3)'}">👥 已選 ${ENROLL_COUNT_MAP[o.offering_id]||0} 人</span>
+          </div>
           <div class="oc-actions">
             <button class="btn btn-edit btn-sm" onclick="editOffering('${o.offering_id}')">✏️ 編輯</button>
             <button class="btn btn-sm" id="syl-btn-${o.offering_id}" style="${getSylBtnStyle(o.offering_id)}" title="${getSylTooltip(o.offering_id)}" onclick="openSyllabus('${o.offering_id}','${o.name_zh}','${o.code}')">${getSylBtnText(o.offering_id)}</button>
             <button class="btn btn-sm" onclick="openAttendanceSheet('${o.offering_id}')" style="color:#1A6A30;border-color:#1A6A30" title="列印點名單">📋 點名</button>
-            <button class="btn btn-sm" onclick="deleteOffering('${o.offering_id}','${o.name_zh.replace(/'/g,"\\'")}')" style="color:#D9534F;border-color:#D9534F" title="取消開課">🗑 取消</button>
+            ${isCancelled
+              ? `<button class="btn btn-sm" onclick="reactivateOffering('${o.offering_id}')" style="color:#1A6A30;border-color:#1A6A30" title="恢復開課">▶ 恢復開課</button>`
+              : `<button class="btn btn-sm" onclick="suspendOffering('${o.offering_id}','${o.name_zh.replace(/'/g,"\\'")}')" style="color:#D9534F;border-color:#D9534F" title="停開此開課記錄">⏸ 停開</button>`}
           </div>
         </div>
       </div>`;
@@ -3825,7 +3914,7 @@ function renderOfferings(list, otMap) {
   } else {
     // ── 列表模式 ──
     const body = document.getElementById('offerings-body');
-    if (!list.length) { body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--ink3)">無開課資料</td></tr>'; return; }
+    if (!list.length) { body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--ink3)">無開課資料</td></tr>'; return; }
     body.innerHTML = list.map(o => {
       const teachers = (otMap[o.offering_id]||[]).sort((a,b)=>a.sort_order-b.sort_order)
         .map(t=>`<span style="font-size:11px;padding:1px 6px;border-radius:20px;background:var(--navy3);color:var(--navy)">${t.name_zh}${t.weeks?` <small style="opacity:.65">W${t.weeks}</small>`:''}</span>`).join(' ');
@@ -3845,6 +3934,7 @@ function renderOfferings(list, otMap) {
         <td style="text-align:center">${o.credits}<br>${reqTag}</td>
         <td><span style="font-size:10px;padding:1px 6px;border-radius:4px;background:${AX_BG[o.axis_code]||'#EEF2FA'};color:${AX_COLOR[o.axis_code]||'#1B3A6B'}">${o.axis_code||''}</span></td>
         <td>${cohortBadge}</td>
+        <td style="text-align:center;font-size:12.5px;font-weight:500;color:${(ENROLL_COUNT_MAP[o.offering_id]||0)>0?'var(--navy)':'var(--ink3)'}">${ENROLL_COUNT_MAP[o.offering_id]||0}</td>
         <td style="font-size:12px;color:${hasPendingTime?'#CCC':'var(--ink2)'};white-space:nowrap">${o.time_raw||'待確認'}</td>
         <td style="font-size:12px">${o.classroom_name||'<span style="color:#CCC">待確認</span>'}</td>
         <td style="max-width:180px">${teachers||'<span style="color:#CCC;font-size:12px">待確認</span>'}</td>
@@ -3853,7 +3943,9 @@ function renderOfferings(list, otMap) {
             <button class="btn btn-edit btn-sm" onclick="editOffering('${o.offering_id}')">✏️ 編輯</button>
             <button class="btn btn-sm" id="syl-btn-${o.offering_id}" style="${getSylBtnStyle(o.offering_id)}" title="${getSylTooltip(o.offering_id)}" onclick="openSyllabus('${o.offering_id}','${o.name_zh}','${o.code}')">${getSylBtnText(o.offering_id)}</button>
             <button class="btn btn-sm" onclick="openAttendanceSheet('${o.offering_id}')" style="color:#1A6A30;border-color:#1A6A30" title="列印點名單">📋 點名</button>
-            <button class="btn btn-sm" onclick="deleteOffering('${o.offering_id}','${o.name_zh.replace(/'/g,"\\'")}')" style="color:#D9534F;border-color:#D9534F" title="取消開課">🗑 取消</button>
+            ${o.is_cancelled
+              ? `<button class="btn btn-sm" onclick="reactivateOffering('${o.offering_id}')" style="color:#1A6A30;border-color:#1A6A30" title="恢復開課">▶ 恢復</button>`
+              : `<button class="btn btn-sm" onclick="suspendOffering('${o.offering_id}','${o.name_zh.replace(/'/g,"\\'")}')" style="color:#D9534F;border-color:#D9534F" title="停開此開課記錄">⏸ 停開</button>`}
           </div>
         </td>
       </tr>`;
@@ -8980,6 +9072,36 @@ function onCourseSelect() {
   document.getElementById('om-audit').checked=c.is_audit||false;
 }
 
+// 安全停開：只標記is_cancelled=true(不影響is_active，開課記錄仍會出現在列表裡，只是預設會被「顯示已停開」checkbox過濾掉)，
+// 開課記錄本身、教師、時段、教室這些資料完全保留，之後可以用reactivateOffering()隨時恢復。
+// 既有選課記錄依user決定直接刪除(這門課沒有真的開成，對學生來說等於沒選到，不保留成任何狀態)
+async function suspendOffering(offeringId, courseName) {
+  const semLabel = document.getElementById('sem-filter')?.value || '';
+  const { count } = await sb.from('enrollments').select('id',{count:'exact',head:true}).eq('offering_id', offeringId);
+  const enrollNote = count ? `\n\n目前有 ${count} 筆選課記錄，會一併刪除（這門課沒有真的開成，這些記錄不保留成任何狀態）。` : '';
+  if (!confirm(`確定要停開「${courseName}」本學期（${semLabel}）的開課嗎？${enrollNote}\n\n開課記錄本身、教師、時段、教室資料都會保留，之後可以隨時恢復開課。`)) return;
+
+  const { error: e1 } = await sb.from('enrollments').delete().eq('offering_id', offeringId);
+  if (e1) { showToast('❌ 停開失敗（清除選課記錄）：'+e1.message,'error'); return; }
+  const { error: e2 } = await sb.from('conflict_log').delete().or(`offering_a_id.eq.${offeringId},offering_b_id.eq.${offeringId}`);
+  if (e2) { showToast('❌ 停開失敗（清除衝堂記錄）：'+e2.message,'error'); return; }
+  const { error: e3 } = await sb.from('course_offerings').update({ is_cancelled: true }).eq('id', offeringId);
+  if (e3) { showToast('❌ 停開失敗：'+e3.message,'error'); return; }
+  showToast('✅ 已停開，開課記錄保留，可隨時恢復');
+  writeAuditLog('開課記錄','停開','course_offerings',offeringId,`${courseName} ${semLabel}`,`清除${count||0}筆選課記錄`);
+  await loadOfferings();
+  runConflictCheck(true);
+}
+
+async function reactivateOffering(offeringId) {
+  if (!confirm('確定要恢復開課嗎？恢復後學生就能重新選課，但先前被清除的選課記錄不會自動回來，需要重新選課或用批次匯入補回。')) return;
+  const { error } = await sb.from('course_offerings').update({ is_cancelled: false }).eq('id', offeringId);
+  if (error) { showToast('❌ 恢復失敗：'+error.message,'error'); return; }
+  showToast('✅ 已恢復開課');
+  writeAuditLog('開課記錄','恢復開課','course_offerings',offeringId,'','');
+  await loadOfferings();
+}
+
 async function deleteOffering(offeringId, courseName) {
   const semLabel = document.getElementById('sem-filter')?.value || '';
   if (!confirm(`確定要取消「${courseName}」本學期（${semLabel}）的開課？\n\n此操作將刪除該開課記錄及相關選課資料，課程主檔不受影響。`)) return;
@@ -10453,6 +10575,93 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    2. 側邊欄 #app-version-label 顯示的文字
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.29', date: '2026-09-14',
+    items: [
+      '「開課記錄」表格檢視的「選課人數」欄位加上排序功能',
+    ]
+  },
+  {
+    version: 'v10.28', date: '2026-09-14',
+    items: [
+      '「開課記錄」的「☰資訊列」表格檢視也加上「選課人數」欄位，放在「年級」欄位後面，跟卡片檢視顯示同一份資料(ENROLL_COUNT_MAP)，0人時顯示灰色、有人選時顯示藍色',
+    ]
+  },
+  {
+    version: 'v10.27', date: '2026-09-14',
+    items: [
+      '批次匯入選課結果新增「候選退選」偵測：系統裡這學期已經confirmed、但這次Excel裡完全沒有標記1的組合(只針對這次有出現在Excel裡的學生比對，代表這份檔案是他們完整的選課意向)，會列在獨立的紅色區塊裡，逐筆勾選後按「執行勾選的退選」才會真的變動，不勾選的完全不受影響。之前這個功能完全不會處理「系統裡有、Excel裡消失了」的情況，這次補上，但改成需要admin逐筆確認才執行，不會自動幫你決定',
+    ]
+  },
+  {
+    version: 'v10.26', date: '2026-09-14',
+    items: [
+      '修正課程點名單「點名」按鈕按下去只跳出成功訊息、實際沒有開啟列印視窗的問題：原本window.open()寫在兩次await(查詢選課學生資料)之後才呼叫，此時瀏覽器已經不認為這是使用者剛點擊觸發的動作，會靜默封鎖彈出視窗、不會報錯。改成window.open()在函式最開頭、任何await之前就先執行，保留「使用者剛點擊」的信任狀態，並加上視窗真的被封鎖時的錯誤提示（提醒允許此網站的彈出視窗）。全系統掃描後發現另外還有6個函式有同樣的寫法(會議通知列印、會議簽到表、論文口試評分表/總表/簽到表)，這次只先修正課程點名單這一個，其他待進一步確認後處理',
+    ]
+  },
+  {
+    version: 'v10.25', date: '2026-09-14',
+    items: [
+      '點名單(HTML列印版+Excel版)：加退選期間自己退選(dropped)的學生，改成直接不列入名單(等於沒選過)，不用顯示；只有正式停修(withdrawn)才需要保留在名單上顯示',
+    ]
+  },
+  {
+    version: 'v10.24', date: '2026-09-14',
+    items: [
+      '修正點名單(HTML列印版+Excel版)的狀態用詞錯誤：原本把選課記錄的「dropped」(加退選期間內學生自己退選)顯示成「停修」，這是錯的——「停修」應該對應「withdrawn」(admin正式辦理停修，通常是加退選期過後才會用)。改成dropped正確顯示「退選」，withdrawn才顯示「停修」，兩者是不同階段、不同語意，不能混用同一個詞',
+    ]
+  },
+  {
+    version: 'v10.23', date: '2026-09-14',
+    items: [
+      '修正批次匯入選課結果的兩個判斷錯誤：①「重複選課」的歷史比對原本沒有排除本學期自己的記錄，導致學生「這學期本來選了又退選(dropped)、現在要補選回來」這種完全合理的情況被誤判成重複選課警示，改成只比對「其他學期」的歷史記錄，本學期的dropped記錄不算重複；②發現enrollments表對(student_id,offering_id)有唯一鍵限制，原本用insert新增，遇到「本學期已有dropped記錄要補選回來」的情況會直接違反唯一鍵、整批匯入失敗，改成用upsert(有就更新、沒有就新增)',
+    ]
+  },
+  {
+    version: 'v10.22', date: '2026-09-14',
+    items: [
+      '學生資料頁面新增批次確認報到：新生未報到的列前面多一個checkbox，可以複選後按「批次確認報到」一次處理，不用一筆一筆點',
+      '「操作」欄位移到表格最前面（緊接在checkbox後面），不用再左右捲動才看得到、點得到，也比較不會搞混是哪一位同學',
+    ]
+  },
+  {
+    version: 'v10.21', date: '2026-09-14',
+    items: [
+      '批次匯入選課結果的「排除學號」提示文字改成通用範例，不再用特定的3個真實學號當placeholder，避免誤會那是系統內建/寫死的排除名單。這個欄位本來就是選填，留空就是全部學生一視同仁匯入，程式碼裡從來沒有寫死任何排除名單',
+    ]
+  },
+  {
+    version: 'v10.20', date: '2026-09-14',
+    items: [
+      '修正批次匯入選課結果的Excel解析邏輯：原本寫死「學生從第6列開始」，但發現不同來源的Excel中間夾雜的說明列數量不一定一樣(有的有必選修/學分數/選課總人數，有的沒有)，導致學生資料被誤判成標題列而漏掉。改成不寫死列數，逐列檢查A欄是否為8位數字學號格式，自動判斷哪些是學生列，兩種格式都驗證正確',
+    ]
+  },
+  {
+    version: 'v10.19', date: '2026-09-13',
+    items: [
+      '修正開課記錄卡片「學分」「已選人數」文字被拆成一個字一個字直式排列的問題：卡片最小寬度只有280px，中文沒有空格可以自然斷行，太窄時瀏覽器會把文字拆得四分五裂。加上white-space:nowrap讓這兩行文字強制不換行，並讓下方按鈕在空間不夠時自然換到下一行，不會擠壓資訊行',
+    ]
+  },
+  {
+    version: 'v10.18', date: '2026-09-13',
+    items: [
+      '「開課記錄」危險的永久刪除按鈕改成安全機制：卡片跟列表模式的「🗑取消」都改成「⏸停開」，只標記is_cancelled=true(不是刪除整筆開課記錄)，開課記錄本身/教師/時段/教室資料完全保留，隨時可以用「▶恢復開課」復原；既有選課記錄(這門課沒有真的開成)則直接刪除，不保留成任何狀態(withdrawn是學生個人停修用的狀態，跟課程被停開是不同語意，不能混用)',
+      '新增「顯示已停開」checkbox，預設不顯示已停開的開課記錄(維持列表乾淨)，需要時才勾選查看',
+      '卡片新增主動警示：如果課程主檔在「課程管理」被停用了，但這筆開課記錄還沒跟著處理，會顯示紅色提示「⚠️課程主檔已停用，建議一併停開此開課記錄」，不用admin自己想到要去檢查',
+    ]
+  },
+  {
+    version: 'v10.17', date: '2026-09-13',
+    items: [
+      '新增「批次匯入選課結果」功能：在開課記錄頁面的「⋯匯入/匯出」選單，可上傳矩陣式Excel（跟現有的選課總表格式相同），自動套用跟學生自己選課同一套規則（已修過同名課程且非不及格重修→標記警示、超過12學分上限→標記警示），可設定排除學號清單（該學生的選課資料完全不受影響），預覽表格列出所有需要注意的項目，讓admin決定要只匯入沒問題的、還是連同警示項目一起強制匯入。已用真實Excel資料驗證解析邏輯正確',
+    ]
+  },
+  {
+    version: 'v10.16', date: '2026-09-13',
+    items: [
+      '「開課記錄」卡片新增顯示選課人數：學分旁邊多一個「👥已選X人」，不用再點進點名/名單才能知道人數，0人時用灰色跟有人選(藍色)區分',
+    ]
+  },
   {
     version: 'v10.15', date: '2026-09-13',
     items: [
@@ -12507,8 +12716,10 @@ function renderStudents() {
   });
 
   const tbody = document.getElementById('stu-tbody');
+  const selectAllCb = document.getElementById('stu-check-all');
+  if (selectAllCb) selectAllCb.checked = false;
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--ink3)">無符合條件的學生</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--ink3)">無符合條件的學生</td></tr>';
     return;
   }
 
@@ -12528,6 +12739,11 @@ function renderStudents() {
       : '<span style="color:var(--ink3);font-size:11px">—</span>';
 
     return `<tr style="border-bottom:1px solid var(--cr2)">
+      <td style="padding:6px 8px;text-align:center">${s.status==='pending' ? `<input type="checkbox" class="stu-row-check" value="${s.id}" onchange="updateStudentBatchButton()">` : ''}</td>
+      <td style="padding:6px 8px;text-align:center;white-space:nowrap">
+        <button onclick="openStudentModal('${s.id}')" style="padding:3px 8px;border-radius:5px;font-size:11.5px;background:var(--navy);color:#fff;border:none;cursor:pointer">✏️</button>
+        ${s.status==='pending' ? `<button onclick="confirmStudentRegistration('${s.id}','${(s.name_zh||'').replace(/'/g,"\\'")}')" style="margin-left:4px;padding:3px 8px;border-radius:5px;font-size:11.5px;background:#2E9E5B;color:#fff;border:none;cursor:pointer">✅ 確認報到</button>` : ''}
+      </td>
       <td style="padding:6px 8px">${photo}</td>
       <td style="padding:6px 8px;font-family:monospace;font-size:12px"><strong>${s.student_code||'?'}</strong></td>
       <td style="padding:6px 8px;font-size:12px"><strong>${s.name_zh||'?'}</strong>
@@ -12541,12 +12757,39 @@ function renderStudents() {
       <td style="padding:6px 8px;font-size:11.5px">${emergencyName}</td>
       <td style="padding:6px 8px;font-size:11.5px">${s.emergency_phone||'<span style="color:var(--ink3)">—</span>'}</td>
       <td style="padding:6px 8px;font-size:11.5px">${advisorBadge}</td>
-      <td style="padding:6px 8px;text-align:center">
-        <button onclick="openStudentModal('${s.id}')" style="padding:3px 8px;border-radius:5px;font-size:11.5px;background:var(--navy);color:#fff;border:none;cursor:pointer">✏️</button>
-        ${s.status==='pending' ? `<button onclick="confirmStudentRegistration('${s.id}','${(s.name_zh||'').replace(/'/g,"\\'")}')" style="margin-left:4px;padding:3px 8px;border-radius:5px;font-size:11.5px;background:#2E9E5B;color:#fff;border:none;cursor:pointer">✅ 確認報到</button>` : ''}
-      </td>
     </tr>`;
   }).join('');
+  updateStudentBatchButton();
+}
+
+// 批次確認報到：更新按鈕的顯示/隱藏跟計數，依目前勾選的checkbox數量決定
+function updateStudentBatchButton() {
+  const checked = document.querySelectorAll('.stu-row-check:checked');
+  const btn = document.getElementById('stu-batch-confirm-btn');
+  document.getElementById('stu-batch-confirm-count').textContent = checked.length;
+  btn.style.display = checked.length > 0 ? '' : 'none';
+}
+
+function toggleAllStudentCheckboxes(headerCheckbox) {
+  document.querySelectorAll('.stu-row-check').forEach(cb => { cb.checked = headerCheckbox.checked; });
+  updateStudentBatchButton();
+}
+
+async function batchConfirmRegistration() {
+  const checked = Array.from(document.querySelectorAll('.stu-row-check:checked'));
+  if (!checked.length) return;
+  const ids = checked.map(cb => cb.value);
+  if (!confirm(`確定要一次確認 ${ids.length} 位學生完成報到、狀態改為在學嗎？`)) return;
+
+  const { error } = await sb.from('students').update({ status:'active' }).in('id', ids);
+  if (error) { showToast('批次確認失敗：'+error.message,'error'); return; }
+  const historyRows = ids.map(id => ({
+    student_id: id, old_status:'pending', new_status:'active',
+    changed_at: new Date().toISOString(), note:'批次確認報到', recorded_by: window.ADMIN_USER_ID||null,
+  }));
+  await sb.from('student_status_history').insert(historyRows);
+  showToast(`✅ 已批次確認 ${ids.length} 位學生報到`);
+  loadStudents();
 }
 
 function conductSort(field) {
@@ -12735,9 +12978,12 @@ async function openAttendanceSheet(offeringId) {
 }
 
 async function printCourseAttendance() {
+  // 先開好視窗(必須在第一個await之前執行，不然瀏覽器會認為這不是使用者剛點擊觸發的動作，靜默封鎖彈出視窗)
+  var win = window.open('', '_blank');
+
   const offeringId = document.getElementById('att-offering-id').value;
   const o = OFFERINGS.find(x => x.offering_id === offeringId);
-  if (!o) { showToast('找不到該課程', 'error'); return; }
+  if (!o) { showToast('找不到該課程', 'error'); if (win) win.close(); return; }
 
   const year  = document.getElementById('att-year').value;
   const month = document.getElementById('att-month').value;
@@ -12765,7 +13011,8 @@ async function printCourseAttendance() {
       .select('id, student_code, name_zh, status').in('id', stuIds).order('student_code');
     const enrMap = {};
     enrs.forEach(e => { enrMap[e.student_id] = e.status; });
-    students = (stuList || []).map(s => ({ ...s, enr_status: enrMap[s.id] || 'confirmed' }));
+    students = (stuList || []).map(s => ({ ...s, enr_status: enrMap[s.id] || 'confirmed' }))
+      .filter(s => s.enr_status !== 'dropped'); // 加退選期間自己退選的，不列入點名單，等於沒選過；只有正式停修(withdrawn)才要保留顯示
   }
   const activeCount = students.filter(s => s.enr_status === 'confirmed' || s.enr_status === 'pending').length;
 
@@ -12784,11 +13031,17 @@ async function printCourseAttendance() {
 
   // 學生列（與教師共用同一 table，colspan=2 對齊教師的姓名+角色兩欄）
   var stuRows = students.length ? students.map(function(s) {
-    var isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'withdrawn';
-    var sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'withdrawn' ? '退學' : '';
+    // enr_status是「這筆選課記錄」本身的狀態(confirmed/dropped/withdrawn)；status是「學生」整體的學籍狀態(active/leave/withdrawn)，兩者不同表、不能混用同一個判斷結果
+    var isEnrWithdrawn = s.enr_status === 'withdrawn'; // admin正式辦理停修
+    var isEnrDropped = s.enr_status === 'dropped'; // 加退選期間內學生自己退選，還不到停修
+    var isLeave = s.status === 'leave';
+    var isStudentWithdrawn = s.status === 'withdrawn';
+    var isDropped = isEnrWithdrawn || isEnrDropped || isLeave || isStudentWithdrawn;
+    var dropLabel = isEnrWithdrawn ? '停修' : isEnrDropped ? '退選' : '';
+    var sl = dropLabel || (isLeave ? '休學' : isStudentWithdrawn ? '退學' : '');
     var bg = isDropped ? 'background:#f5f5f5;color:#999' : '';
     var cells = isDropped
-      ? Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999;text-align:center;font-size:11px;color:#999">停修</td>').join('')
+      ? Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999;text-align:center;font-size:11px;color:#999">' + (sl||'停修') + '</td>').join('')
       : Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999">&nbsp;</td>').join('');
     return '<tr style="' + bg + '">' +
       '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + (s.student_code||'') + (s.name_zh||'') + '</td>' +
@@ -12849,7 +13102,7 @@ async function printCourseAttendance() {
   h += '<div style="text-align:right;font-size:10px;color:#999;margin-top:4px">' + year + '年' + month + '月 點名單</div>';
   h += '</bo' + 'dy></ht' + 'ml>';
 
-  var win = window.open('', '_blank');
+  if (!win) { showToast('❌ 瀏覽器封鎖了彈出視窗，請允許此網站的彈出視窗後再試一次','error'); return; }
   win.document.write(h);
   win.document.close();
   setTimeout(function(){ win.print(); }, 500);
@@ -12897,7 +13150,8 @@ async function exportAttendanceExcel() {
     var stuRes = await sb.from('students').select('id, student_code, name_zh, status').in('id', stuIds).order('student_code');
     var enrMap = {};
     enrRes.data.forEach(function(e){ enrMap[e.student_id] = e.status; });
-    students = (stuRes.data || []).map(function(s){ return Object.assign({}, s, { enr_status: enrMap[s.id] || 'confirmed' }); });
+    students = (stuRes.data || []).map(function(s){ return Object.assign({}, s, { enr_status: enrMap[s.id] || 'confirmed' }); })
+      .filter(function(s){ return s.enr_status !== 'dropped'; }); // 加退選期間自己退選的，不列入點名單；只有正式停修(withdrawn)才要保留顯示
   }
   var activeCount = students.filter(function(s){ return s.enr_status === 'confirmed' || s.enr_status === 'pending'; }).length;
 
@@ -12938,10 +13192,15 @@ async function exportAttendanceExcel() {
 
   // 學生列
   students.forEach(function(s) {
-    var isDropped = s.enr_status === 'dropped' || s.status === 'leave' || s.status === 'withdrawn';
-    var sl = s.enr_status === 'dropped' ? '停修' : s.status === 'leave' ? '休學' : s.status === 'withdrawn' ? '退學' : '選課';
+    var isEnrWithdrawn = s.enr_status === 'withdrawn'; // admin正式辦理停修
+    var isEnrDropped = s.enr_status === 'dropped'; // 加退選期間內學生自己退選，還不到停修
+    var isLeave = s.status === 'leave';
+    var isStudentWithdrawn = s.status === 'withdrawn';
+    var isDropped = isEnrWithdrawn || isEnrDropped || isLeave || isStudentWithdrawn;
+    var dropLabel = isEnrWithdrawn ? '停修' : isEnrDropped ? '退選' : '';
+    var sl = dropLabel || (isLeave ? '休學' : isStudentWithdrawn ? '退學' : '選課');
     var row = [(s.student_code || '') + (s.name_zh || ''), sl];
-    for (var i = 0; i < wk; i++) row.push(isDropped ? '停修' : '');
+    for (var i = 0; i < wk; i++) row.push(isDropped ? (dropLabel||'停修') : '');
     wsData.push(row);
   });
 
@@ -13581,6 +13840,307 @@ async function downloadStudentTemplate() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '學生名單');
   XLSX.writeFile(wb, `學生匯入範本_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 📥 批次匯入選課結果
+ * ════════════════════════════════════════════════════════════════════ */
+let _eiRows = []; // 分析後的每一列: {student_code, course_code, category, reason, student_id, offering_id, credits, course_id}
+let _eiDropCandidates = []; // 候選退選:系統裡已選、但這次Excel裡消失的組合，讓admin勾選要不要真的退選
+const EI_MAX_CREDITS = 12; // 跟學生端選課頁同一套12學分上限
+
+async function openEnrollImportModal() {
+  document.getElementById('ei-file').value = '';
+  document.getElementById('ei-exclude').value = '';
+  document.getElementById('ei-preview').style.display = 'none';
+  document.getElementById('ei-btn-safe').disabled = true;
+  document.getElementById('ei-btn-safe').style.opacity = '.5';
+  document.getElementById('ei-btn-force').disabled = true;
+  document.getElementById('ei-btn-force').style.opacity = '.5';
+  _eiRows = [];
+  _eiDropCandidates = [];
+  document.getElementById('ei-drop-section').style.display = 'none';
+  const semSel = document.getElementById('ei-sem');
+  const { data: sems } = await sb.from('semesters').select('id,label,academic_year,semester_num').order('academic_year',{ascending:false}).order('semester_num',{ascending:false});
+  if (sems?.length) {
+    semSel.innerHTML = sems.map(s=>`<option value="${s.id}">${s.label} ${s.semester_num===1?'上學期':'下學期'}</option>`).join('');
+    const cur = sems.find(s=>s.academic_year===115&&s.semester_num===1) || sems[0];
+    if (cur) semSel.value = cur.id;
+  }
+  openModal('enroll-import-modal');
+}
+
+async function onEnrollImportFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const semId = document.getElementById('ei-sem').value;
+  if (!semId) { showToast('請先選擇目標學期','error'); return; }
+
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type:'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]]; // 矩陣式總表固定放第一個工作表
+      const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+      const pairs = parseEnrollImportExcel(rows);
+      if (!pairs.length) { showToast('Excel裡沒有找到任何「1」的選課標記，請確認格式','error'); return; }
+      showToast(`解析出 ${pairs.length} 筆選課意向，開始比對驗證中…`);
+      await analyzeEnrollImport(pairs, semId);
+    } catch(err) {
+      showToast('解析失敗：'+err.message, 'error');
+      console.error(err);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// 矩陣式Excel解析：第1列課程代碼(從第2欄開始)，第6列起是學生列(第1欄="學號+姓名"連在一起，固定前8碼是學號)，儲存格值為1代表有選
+function parseEnrollImportExcel(rows) {
+  const headerRow = rows[0] || [];
+  const courseCodes = []; // {col, code}
+  for (let c = 1; c < headerRow.length; c++) {
+    const code = String(headerRow[c]||'').trim();
+    if (code) courseCodes.push({ col:c, code });
+  }
+  const pairs = [];
+  // 不寫死學生從第幾列開始(不同來源的Excel，中間夾的說明列數量不一定一樣，例如有的有「必選修/學分數/選課總人數」，有的沒有)，
+  // 從第2列(索引1，跳過第1列課程代碼)開始逐列檢查，只要A欄開頭是8位數字學號格式就當作學生列，不是的話自動跳過(標題/說明列)
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const rawStudent = String(row[0]||'').trim();
+    if (!rawStudent) continue;
+    const studentCode = rawStudent.slice(0, 8); // 學號固定8碼
+    if (!/^\d{8}$/.test(studentCode)) continue; // 不是8位數字開頭的列，跳過(可能是課程名稱/必選修/學分數等說明列)
+    courseCodes.forEach(({col, code}) => {
+      const val = row[col];
+      if (val === 1 || val === '1') pairs.push({ student_code: studentCode, course_code: code });
+    });
+  }
+  return pairs;
+}
+
+async function analyzeEnrollImport(pairs, semId) {
+  const excludeList = (document.getElementById('ei-exclude').value||'').split(',').map(s=>s.trim()).filter(Boolean);
+
+  const studentCodes = [...new Set(pairs.map(p=>p.student_code))];
+  const courseCodes = [...new Set(pairs.map(p=>p.course_code))];
+
+  const { data: students } = await sb.from('students').select('id,student_code').in('student_code', studentCodes);
+  const studentMap = {}; (students||[]).forEach(s=>{ studentMap[s.student_code] = s.id; });
+
+  const { data: courses } = await sb.from('courses').select('id,code,name_zh').in('code', courseCodes);
+  const courseByCode = {}; (courses||[]).forEach(c=>{ courseByCode[c.code] = c; });
+  const courseIds = (courses||[]).map(c=>c.id);
+
+  const { data: offerings } = await sb.from('course_offerings').select('id,course_id').eq('semester_id', semId).in('course_id', courseIds);
+  const offeringByCourseId = {}; (offerings||[]).forEach(o=>{ offeringByCourseId[o.course_id] = o.id; });
+  const creditsByCourseId = {}; (courses||[]).forEach(c=>{ creditsByCourseId[c.id] = c.credits; });
+
+  // 這批學生在這個學期「已經存在」的選課記錄(用來判斷重複、累計目前學分)
+  const studentIds = Object.values(studentMap);
+  const { data: existingEnrolls } = await sb.from('enrollments')
+    .select('student_id, offering_id, status')
+    .in('student_id', studentIds).eq('semester_id', semId).eq('status','confirmed');
+  const existingOfferingSet = new Set((existingEnrolls||[]).map(e=>e.student_id+'|'+e.offering_id));
+
+  // 這批學生在「其他學期」修過的課程(不含本學期，本學期即使有dropped記錄，代表退選後要補選回來，是合理操作，不算重複)
+  // 不用巢狀select查course_offerings關聯(容易因關聯不明確而400失敗)，改成分開查、事後在JS端手動對應
+  const { data: historyEnrolls } = await sb.from('enrollments')
+    .select('student_id, offering_id')
+    .in('student_id', studentIds).in('status',['confirmed','withdrawn','dropped']).neq('semester_id', semId);
+
+  // 不及格課程，重修時不算重複、也不計入學分上限
+  const { data: failedGrades } = await sb.from('grade_entries')
+    .select('student_id, offering_id')
+    .in('student_id', studentIds).eq('grade_type','academic').eq('status','submitted').eq('grade_label','不及格');
+
+  // 把上面兩批資料用到的offering_id統一收集起來，一次查出對應的course_id
+  const allRelatedOfferingIds = [...new Set([
+    ...(historyEnrolls||[]).map(e=>e.offering_id),
+    ...(failedGrades||[]).map(g=>g.offering_id),
+  ])];
+  let offeringToCourseId = {};
+  if (allRelatedOfferingIds.length) {
+    const { data: relatedOffs } = await sb.from('course_offerings').select('id,course_id').in('id', allRelatedOfferingIds);
+    (relatedOffs||[]).forEach(o => { offeringToCourseId[o.id] = o.course_id; });
+  }
+
+  const historyCourseSet = new Set(); // student_id|course_id
+  (historyEnrolls||[]).forEach(e => { const cid=offeringToCourseId[e.offering_id]; if (cid) historyCourseSet.add(e.student_id+'|'+cid); });
+  const failedSet = new Set(); // student_id|course_id
+  (failedGrades||[]).forEach(g => { const cid=offeringToCourseId[g.offering_id]; if (cid) failedSet.add(g.student_id+'|'+cid); });
+
+  // 目前每位學生已confirmed的學分(排除重修不及格豁免的)，作為累計基準，逐筆匯入時累加
+  const creditRunning = {};
+  // 批次查現有已選offering對應的學分
+  const existingOfferingIds = [...new Set((existingEnrolls||[]).map(e=>e.offering_id))];
+  let existingOfferingCourseMap = {};
+  if (existingOfferingIds.length) {
+    const { data: eo } = await sb.from('course_offerings').select('id,course_id').in('id', existingOfferingIds);
+    (eo||[]).forEach(o => { existingOfferingCourseMap[o.id] = o.course_id; });
+  }
+  (existingEnrolls||[]).forEach(e => {
+    const cid = existingOfferingCourseMap[e.offering_id];
+    const isExempt = failedSet.has(e.student_id+'|'+cid);
+    if (!isExempt) creditRunning[e.student_id] = (creditRunning[e.student_id]||0) + (creditsByCourseId[cid]||0);
+  });
+
+  // 補上課程代碼/名稱對照(含只在系統裡有、不在這次Excel課程清單裡的),供候選退選顯示用
+  let courseCodeById = {}; (courses||[]).forEach(c=>{ courseCodeById[c.id] = c.code; });
+  const existingCourseIds = [...new Set(Object.values(existingOfferingCourseMap))].filter(cid => !courseCodeById[cid]);
+  if (existingCourseIds.length) {
+    const { data: moreCourses } = await sb.from('courses').select('id,code').in('id', existingCourseIds);
+    (moreCourses||[]).forEach(c => { courseCodeById[c.id] = c.code; });
+  }
+  const studentCodeById = {}; Object.entries(studentMap).forEach(([code,id])=>{ studentCodeById[id]=code; });
+
+  // 候選退選：系統裡這學期已經confirmed、但這次Excel裡完全沒有標記1的組合。
+  // 只針對「這次有出現在Excel裡的學生」比對(代表這份Excel是他們完整的選課意向清單，Excel裡沒有=他們不想選了)，
+  // 不會誤動到根本沒出現在這份Excel裡的其他學生
+  const wantedSet = new Set();
+  pairs.forEach(p => {
+    const sid = studentMap[p.student_code], course = courseByCode[p.course_code];
+    if (sid && course && offeringByCourseId[course.id]) wantedSet.add(sid+'|'+offeringByCourseId[course.id]);
+  });
+  _eiDropCandidates = (existingEnrolls||[])
+    .filter(e => !wantedSet.has(e.student_id+'|'+e.offering_id))
+    .map(e => ({
+      student_id: e.student_id, offering_id: e.offering_id,
+      student_code: studentCodeById[e.student_id] || '?',
+      course_code: courseCodeById[existingOfferingCourseMap[e.offering_id]] || '?',
+    }));
+
+  _eiRows = pairs.map(p => {
+    const row = { student_code:p.student_code, course_code:p.course_code };
+    if (excludeList.includes(p.student_code)) {
+      row.category = 'excluded'; row.reason = '在排除名單中，不動作'; return row;
+    }
+    const studentId = studentMap[p.student_code];
+    if (!studentId) { row.category = 'error'; row.reason = '系統裡找不到此學號'; return row; }
+    row.student_id = studentId;
+    const course = courseByCode[p.course_code];
+    if (!course) { row.category = 'error'; row.reason = '系統裡找不到此課程代碼'; return row; }
+    row.course_id = course.id;
+    const offeringId = offeringByCourseId[course.id];
+    if (!offeringId) { row.category = 'error'; row.reason = '這個學期沒有開這門課(找不到對應的開課記錄)'; return row; }
+    row.offering_id = offeringId;
+    const credits = creditsByCourseId[course.id] || 0;
+    row.credits = credits;
+
+    if (existingOfferingSet.has(studentId+'|'+offeringId)) {
+      row.category = 'exists'; row.reason = '已經有這筆選課記錄，不用動作'; return row;
+    }
+    const isExempt = failedSet.has(studentId+'|'+course.id);
+    if (historyCourseSet.has(studentId+'|'+course.id) && !isExempt) {
+      row.category = 'warn_dup'; row.reason = '這位學生曾修過這門課(非不及格重修)，請確認是否真的要重複選'; return row;
+    }
+    const addCredits = isExempt ? 0 : credits;
+    const projected = (creditRunning[studentId]||0) + addCredits;
+    if (projected > EI_MAX_CREDITS) {
+      row.category = 'warn_credit'; row.reason = `匯入後累計 ${projected} 學分，超過上限 ${EI_MAX_CREDITS} 學分`; return row;
+    }
+    creditRunning[studentId] = projected;
+    row.category = 'ready'; row.reason = isExempt ? '重修不及格課程，不計入學分上限' : '可直接匯入'; return row;
+  });
+
+  renderEnrollImportPreview();
+}
+
+const EI_CATEGORY_LABEL = {
+  ready: { text:'✅ 可匯入', color:'#1A6A30', bg:'#EAF4EE' },
+  exists: { text:'✔️ 已存在', color:'#666', bg:'#F0F0F0' },
+  excluded: { text:'🚫 已排除', color:'#666', bg:'#F0F0F0' },
+  warn_dup: { text:'⚠️ 重複選課', color:'#B05010', bg:'#FFF3E0' },
+  warn_credit: { text:'⚠️ 超修', color:'#B05010', bg:'#FFF3E0' },
+  error: { text:'❌ 錯誤', color:'#C0392B', bg:'#FDEBEC' },
+};
+
+function renderEnrollImportPreview() {
+  const counts = {};
+  _eiRows.forEach(r => { counts[r.category] = (counts[r.category]||0) + 1; });
+  document.getElementById('ei-summary').innerHTML = Object.entries(EI_CATEGORY_LABEL).map(([key, lbl]) =>
+    `<span style="color:${lbl.color}">${lbl.text} <b>${counts[key]||0}</b></span>`
+  ).join('');
+
+  // 只列出需要admin注意的列(不是單純ready/exists/excluded，避免表格太長看不到重點)
+  const notable = _eiRows.filter(r => r.category !== 'ready' && r.category !== 'exists');
+  const tbody = document.getElementById('ei-table-body');
+  tbody.innerHTML = notable.length ? notable.map(r => {
+    const lbl = EI_CATEGORY_LABEL[r.category];
+    return `<tr>
+      <td style="padding:5px 10px">${esc(r.student_code)}</td><td style="padding:5px 10px">${esc(r.course_code)}</td>
+      <td style="padding:5px 10px"><span style="padding:2px 8px;border-radius:20px;background:${lbl.bg};color:${lbl.color};font-size:11px">${lbl.text}</span></td>
+      <td style="padding:5px 10px;color:var(--ink3)">${esc(r.reason)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--ink3)">沒有需要特別注意的項目，全部都可直接匯入或已存在</td></tr>';
+
+  document.getElementById('ei-preview').style.display = '';
+  const readyCount = counts.ready||0;
+  const warnCount = (counts.warn_dup||0) + (counts.warn_credit||0);
+  document.getElementById('ei-btn-safe').disabled = readyCount===0;
+  document.getElementById('ei-btn-safe').style.opacity = readyCount===0 ? '.5' : '1';
+  document.getElementById('ei-btn-force').disabled = (readyCount+warnCount)===0;
+  document.getElementById('ei-btn-force').style.opacity = (readyCount+warnCount)===0 ? '.5' : '1';
+
+  // 候選退選區塊
+  const dropSection = document.getElementById('ei-drop-section');
+  if (_eiDropCandidates.length) {
+    dropSection.style.display = '';
+    document.getElementById('ei-drop-table-body').innerHTML = _eiDropCandidates.map((d,i) => `<tr style="border-bottom:1px solid #F0D0D0">
+        <td style="padding:5px 8px;width:24px"><input type="checkbox" class="ei-drop-check" data-idx="${i}"></td>
+        <td style="padding:5px 8px">${esc(d.student_code)}</td>
+        <td style="padding:5px 8px">${esc(d.course_code)}</td>
+      </tr>`).join('');
+    document.getElementById('ei-drop-check-all').checked = false;
+  } else {
+    dropSection.style.display = 'none';
+  }
+}
+
+async function commitEnrollDrops() {
+  const checked = Array.from(document.querySelectorAll('.ei-drop-check:checked'));
+  if (!checked.length) { showToast('請至少勾選一筆要退選的項目','error'); return; }
+  const targets = checked.map(cb => _eiDropCandidates[Number(cb.dataset.idx)]);
+  if (!confirm(`確定要把這 ${targets.length} 筆選課記錄標記為退選嗎？`)) return;
+
+  for (const t of targets) {
+    const { error } = await sb.from('enrollments').update({ status:'dropped', drop_at:new Date().toISOString() })
+      .eq('student_id', t.student_id).eq('offering_id', t.offering_id);
+    if (error) { showToast(`${t.student_code} ${t.course_code} 退選失敗：${error.message}`, 'error'); return; }
+  }
+  showToast(`✅ 已將 ${targets.length} 筆標記為退選`);
+  // 從候選清單移除已處理的,重新渲染
+  const doneIdx = new Set(checked.map(cb => Number(cb.dataset.idx)));
+  _eiDropCandidates = _eiDropCandidates.filter((_,i) => !doneIdx.has(i));
+  renderEnrollImportPreview();
+}
+
+async function commitEnrollImport(includeWarnings) {
+  const targets = _eiRows.filter(r => r.category==='ready' || (includeWarnings && (r.category==='warn_dup'||r.category==='warn_credit')));
+  if (!targets.length) { showToast('沒有可匯入的項目','error'); return; }
+  if (!confirm(`即將匯入 ${targets.length} 筆選課記錄，確定執行嗎？`)) return;
+
+  const semId = document.getElementById('ei-sem').value;
+  const inserts = targets.map(r => ({
+    student_id: r.student_id, offering_id: r.offering_id, semester_id: semId,
+    status: 'confirmed', enrolled_at: new Date().toISOString(),
+    director_note: r.category!=='ready' ? '批次匯入(有警示，admin確認後強制匯入)' : '批次匯入'
+  }));
+
+  const { error } = await sb.from('enrollments').upsert(inserts, { onConflict: 'student_id,offering_id' });
+  if (error) { showToast('匯入失敗：'+error.message, 'error'); console.error(error); return; }
+  showToast(`✅ 已成功匯入 ${targets.length} 筆選課記錄`);
+  closeModal('enroll-import-modal');
+  loadOfferings();
 }
 
 async function onStudentImportFile(e) {
