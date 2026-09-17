@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.29 2026-09-14 -->
+<!-- BWBC Admin v10.36 2026-09-17 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -343,6 +343,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         </div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('conflicts',this)"><span class="nav-icon">⚠️</span>衝堂警示 <span class="badge badge-warn" id="conflict-badge" style="margin-left:auto;display:none">0</span></div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('enroll-overview',this)"><span class="nav-icon">📝</span>選課完成度總覽</div>
+        <div class="nav-item" data-perm="open_courses" onclick="showPage('enroll-stats',this)"><span class="nav-icon">📊</span>選課統計分析</div>
         <div class="nav-item" data-perm="courses" onclick="showPage('staff-arrange',this)"><span class="nav-icon">🗂</span>課程幹部安排</div>
       </div>
       <div class="nav-section">
@@ -386,7 +387,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.29　2026-09-14</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.36　2026-09-17</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -540,6 +541,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <option value="">載入中…</option>
           </select>
           <div id="eo-deadline-badge" style="font-size:12.5px;color:var(--ink3)"></div>
+          <button id="eo-batch-print-btn" class="btn btn-sec btn-sm" onclick="adminPrintBatchSheets()" disabled style="opacity:.5">🖨 批次列印選課單 (<span id="eo-batch-print-count">0</span>)</button>
           <div style="flex:1"></div>
           <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink3);cursor:pointer">
             <input type="checkbox" id="eo-only-incomplete" onchange="renderEnrollOverviewTable()">只顯示尚未選課
@@ -549,13 +551,39 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div id="eo-summary" style="display:flex;gap:16px;padding:10px 14px;background:var(--cr3);border-radius:10px;margin-bottom:12px;font-size:13px;flex-wrap:wrap"></div>
         <div class="tbl-wrap">
           <table><thead><tr>
+            <th class="usr-th" style="width:32px;text-align:center"><input type="checkbox" id="eo-check-all" onclick="toggleAllEoCheckboxes(this)" title="全選（僅已選課學生）"></th>
             <th class="usr-th" onclick="eoSort('student_code')">學號 <span class="sort-icon" id="eo-sort-student_code">⇅</span></th>
             <th class="usr-th" onclick="eoSort('name_zh')">姓名 <span class="sort-icon" id="eo-sort-name_zh">⇅</span></th>
             <th class="usr-th" onclick="eoSort('cohort')" style="text-align:center">屆別 <span class="sort-icon" id="eo-sort-cohort">⇅</span></th>
             <th class="usr-th" onclick="eoSort('course_count')" style="text-align:center">已選科目數 <span class="sort-icon" id="eo-sort-course_count">⇅</span></th>
             <th class="usr-th" onclick="eoSort('credits')" style="text-align:center">已選學分 <span class="sort-icon" id="eo-sort-credits">⇅</span></th>
             <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">狀態</th>
+            <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">選課單</th>
           </tr></thead><tbody id="eo-body"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ▌選課統計分析 ▌-->
+      <div id="page-enroll-stats" style="display:none">
+        <div class="page-hdr" style="flex-wrap:wrap">
+          <div class="page-title" style="flex:0 0 auto">📊 選課統計分析</div>
+          <button class="btn btn-sec" onclick="loadEnrollStats()">🔄 重新整理</button>
+          <div style="flex:1"></div>
+          <button class="btn" onclick="exportEnrollStatsExcel()">📤 匯出Excel</button>
+        </div>
+        <details style="margin-bottom:14px;background:var(--navy3);border:1px solid rgba(43,95,160,.2);border-radius:8px;padding:10px 14px">
+          <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:var(--navy)">📐 統計口徑說明（點擊展開/收合）</summary>
+          <ul style="margin:8px 0 2px;padding-left:20px;font-size:12px;color:var(--ink2);line-height:1.9">
+            <li><b>統計範圍</b>：全部學期、全部學生，依屆別分組，不限目前在學狀態，以完整呈現歷年趨勢（已畢業/休學的人歷史資料仍算進去）</li>
+            <li><b>平均值分母</b>：採「該屆別全部學生數」，尚未選課的人也計入分母(會拉低平均)，藉此真實反映整個屆別的選課狀況，不是只看有選課的人</li>
+            <li><b>時間範圍篩選</b>：自動排除「該屆別當時還沒入學」（例如115級不會出現在113-1）跟「該學期尚未開始」（例如還沒到的未來學期）這兩種組合，只列出真正有意義的期間</li>
+            <li><b>0的意義</b>：篩選後若仍看到平均值是0，代表該學期真的全部人都沒選課，屬於異常訊號，值得留意</li>
+            <li><b>平均科目數／平均學分</b>：包含不及格的選課，測量的是「修了多少」，不是「進度」</li>
+            <li><b>畢業學分累計達成率</b>：排除不及格的學分（不算實得），測量的是「實際取得多少」，跟上面的平均學分口徑不同，請勿混用比較</li>
+          </ul>
+        </details>
+        <div id="enroll-stats-body">
+          <div style="color:var(--ink3);padding:40px;text-align:center">載入中…</div>
         </div>
       </div>
 
@@ -5772,7 +5800,7 @@ async function openBlankGradeSheetModal() {
 
   const { data: offerings, error } = await sb.from('course_offerings')
     .select(`id, courses(code, name_zh), offering_teachers(sort_order, teachers(name_zh))`)
-    .eq('semester_id', semId).eq('is_active', true).order('course_id');
+    .eq('semester_id', semId).eq('is_active', true).eq('is_cancelled', false).order('course_id');
   if (error) { showToast('載入失敗：'+error.message,'error'); return; }
 
   const ids = (offerings||[]).map(o=>o.id);
@@ -6045,7 +6073,7 @@ async function loadSyllabusBlankCourses() {
 
   const { data: offerings, error } = await sb.from('course_offerings')
     .select(`id, courses(code, name_zh, name_en, credits, is_digital, req_type, is_audit)`)
-    .eq('semester_id', semId).eq('is_active', true).order('course_id');
+    .eq('semester_id', semId).eq('is_active', true).eq('is_cancelled', false).order('course_id');
   if (error) { tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red);padding:16px">${error.message}</td></tr>`; return; }
 
   const ids = (offerings||[]).map(o=>o.id);
@@ -8929,11 +8957,11 @@ function resolveReqType(baseReqType, overrides, cohort) {
   return rule ? rule.req_type : baseReqType;
 }
 
-// 填入「課程幹部」學生下拉選單（全部學生，不限選課名單）
+// 填入「課程幹部」學生下拉選單（全部在學學生，不限選課名單）
 async function populateStaffStudentSelect() {
   if (!STUDENTS_ALL.length) await loadStudents();
   const sel=document.getElementById('om-staff-sel');
-  const sorted=[...STUDENTS_ALL].sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
+  const sorted=STUDENTS_ALL.filter(s=>s.status==='active').sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
   sel.innerHTML='<option value="">— 搜尋/選擇學生 —</option>'+
     sorted.map(s=>`<option value="${s.id}">${s.student_code||''}　${s.name_zh||s.name||''}</option>`).join('');
 }
@@ -10125,7 +10153,7 @@ async function loadTaMatchTable() {
     if (!STUDENTS_ALL.length) await loadStudents(); // 直接指定要用到全體學生下拉選單
 
     const { data: offs } = await sb.from('course_offerings')
-      .select('id, course_id, courses(name_zh, code)').eq('semester_id', semId).eq('is_active', true);
+      .select('id, course_id, courses(name_zh, code)').eq('semester_id', semId).eq('is_active', true).eq('is_cancelled', false);
     const offIds = (offs||[]).map(o=>o.id);
     if (!offIds.length) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px">此學期尚無開課記錄</div>'; return; }
 
@@ -10198,7 +10226,7 @@ function renderOpenApplyCard(oid, off, syl, apps, matched) {
 
 function renderDesignatedCard(oid, off, syl, matched) {
   const matchedList = (matched||[]).filter(m=>m.offering_id===oid);
-  const sorted = [...STUDENTS_ALL].sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
+  const sorted = STUDENTS_ALL.filter(s=>s.status==='active').sort((a,b)=>(a.student_code||'').localeCompare(b.student_code||''));
   const studentOptions = '<option value="">— 選擇學生 —</option>' + sorted.map(s=>`<option value="${s.id}">${s.student_code||''}　${s.name_zh||''}</option>`).join('');
   return `<div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:18px;margin-bottom:14px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
@@ -10341,7 +10369,7 @@ async function saLoadMissing() {
 
   const { data: offs } = await sb.from('course_offerings')
     .select('id, courses(name_zh, code)')
-    .eq('semester_id', _saCurrentSem.id).eq('is_active', true);
+    .eq('semester_id', _saCurrentSem.id).eq('is_active', true).eq('is_cancelled', false);
   const offList = offs || [];
   const offIds = offList.map(o => o.id);
   if (!offIds.length) {
@@ -10396,7 +10424,7 @@ async function saLoadMissing() {
 
   // 就地新增用的學生下拉選單，沿用系統既有的全體學生快取(STUDENTS_ALL)，如果還沒載入過就臨時查一次
   if (staffMissing.length) {
-    let studentOptions = STUDENTS_ALL;
+    let studentOptions = STUDENTS_ALL.filter(s=>s.status==='active');
     if (!studentOptions || !studentOptions.length) {
       const { data } = await sb.from('students').select('id,name_zh,student_code').eq('status','active').order('student_code');
       studentOptions = data || [];
@@ -10575,6 +10603,48 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    2. 側邊欄 #app-version-label 顯示的文字
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.36', date: '2026-09-17',
+    items: [
+      '選課統計分析頁面改版：①「依學期×屆別摘要」改成矩陣格式(列=屆別、欄=學期)，每格顯示平均學分(大字)+平均科目數(小字)+未選課人數(若有)，未選課比例高的格子用黃/紅底色標示，比原本一列一組數字精簡很多；②「性別差異」改成每個屆別一張長條圖，X軸=學期，男女並排長條、長條上方標數字，比表格更直覺看出差異',
+    ]
+  },
+  {
+    version: 'v10.35', date: '2026-09-17',
+    items: [
+      '選課統計分析頁面新增可收合的「統計口徑說明」區塊，條列列出全部確認過的統計原則(統計範圍、分母定義、時間範圍篩選規則、0的判讀方式、平均學分vs畢業達成率對不及格的不同處理方式)，方便日後回顧或跟其他人說明時對照',
+    ]
+  },
+  {
+    version: 'v10.34', date: '2026-09-17',
+    items: [
+      '修正選課統計分析的兩個問題：①原本會列出「屆別還沒入學」(例如115級出現在113-1)跟「學期還沒開始」(例如115-2還沒到)這類雜訊組合，改成用「學期學年度≥屆別」且「學期已經開始」雙重條件篩選，只保留真正有意義的期間，趨勢圖、摘要表、性別差異表、匯出Excel全部同步套用；②「畢業學分累計達成率」原本沒有排除不及格的學分，改成排除(不算實得)，但「平均科目數/學分」維持包含不及格(測量修了多少，不是進度)。已用模擬資料驗證兩項修正邏輯正確',
+    ]
+  },
+  {
+    version: 'v10.33', date: '2026-09-17',
+    items: [
+      '新增「選課統計分析」頁面，涵蓋：①趨勢折線圖(依屆別呈現歷年平均學分變化)、②依學期×屆別摘要表(平均科目數/學分/必修/選修/未選課人數)、③性別差異表、④畢業學分累計達成率(對照既有的畢業學分規定表)、⑤課程主軸(底蘊/對話/應用)分布，全部可匯出Excel(4個工作表)。平均值以「該屆別全部學生數」為分母計算，尚未選課的人也計入以拉低平均；已用模擬資料驗證聚合計算邏輯正確',
+    ]
+  },
+  {
+    version: 'v10.32', date: '2026-09-17',
+    items: [
+      '新增admin端選課單列印功能，整合在「選課完成度總覽」頁面：每位已選課的學生可以單獨按🖨快速列印，也可以勾選多位、按「批次列印選課單」一次列印成一份多頁文件(每人一頁，適合直接送印)。內容格式跟學生自己列印的選課單完全相同，方便行政代印讓同學簽名',
+    ]
+  },
+  {
+    version: 'v10.31', date: '2026-09-17',
+    items: [
+      '修正休學等非在學狀態的學生仍出現在「選擇學生」下拉選單的問題：TA直接指定、課程幹部指定、幹部安排總覽的補選單，這3處原本都沒有過濾學生狀態，直接列出全部學生(含休學/新生未報到)，改成只列status=\'active\'(在學中)的學生',
+    ]
+  },
+  {
+    version: 'v10.30', date: '2026-09-17',
+    items: [
+      '修正已停開的課程(is_cancelled=true)仍出現在多個功能列表的問題：TA配對頁面、課程幹部安排總覽（缺人檢查）、產生空白成績單、大綱代辦清單，這4處原本查詢開課記錄時都只檢查is_active=true，沒有一併檢查is_cancelled，導致AD22030這類已安全停開的課程還是會被列出來。這是「開課記錄安全停開機制」(v10.18)上線後，各功能沒有全面同步排除造成的遺漏',
+    ]
+  },
   {
     version: 'v10.29', date: '2026-09-14',
     items: [
@@ -11058,6 +11128,549 @@ let _eoData = [];
 let _eoSortKey = 'course_count'; // 預設依已選科目數由小到大排序,最容易看出誰還沒選課
 let _eoSortDir = 1;
 
+/* ════════════════════════════════════════════════════════════════════
+ * 🖨 選課單列印（admin代印版，移植自student.html的printMyCourseSheet邏輯）
+ * ════════════════════════════════════════════════════════════════════ */
+function toggleAllEoCheckboxes(headerCheckbox) {
+  document.querySelectorAll('.eo-row-check').forEach(cb => { cb.checked = headerCheckbox.checked; });
+  updateEoBatchPrintButton();
+}
+
+function updateEoBatchPrintButton() {
+  const checked = document.querySelectorAll('.eo-row-check:checked');
+  const btn = document.getElementById('eo-batch-print-btn');
+  document.getElementById('eo-batch-print-count').textContent = checked.length;
+  btn.disabled = checked.length === 0;
+  btn.style.opacity = checked.length === 0 ? '.5' : '1';
+}
+
+const ADMIN_SHEET_REQ_TYPE_LABEL = { req:'必修', sel:'選修', go:'選修（二選一）' };
+const ADMIN_SHEET_CSS = [
+  'body{font-family:"標楷體",serif;margin:20px 30px;font-size:12.5px}',
+  'h2{text-align:center;font-size:17px;margin:0 0 4px}',
+  'h3{text-align:center;font-size:14px;margin:0 0 10px;font-weight:normal}',
+  '.info-line{font-size:11.5px;margin-bottom:8px}',
+  'table{width:100%;border-collapse:collapse;margin-bottom:10px}',
+  'th,td{border:1px solid #333;padding:4px 6px;text-align:center;font-size:11.5px}',
+  'th{background:#f0f0f0;font-weight:600}',
+  '.summary-box{border:1px solid #333;padding:8px 10px;font-size:11.5px;line-height:1.7;margin-bottom:10px}',
+  '.cohort-line{font-size:12px;margin-bottom:10px}',
+  '.sign-table td{font-size:10.5px;padding:6px 4px;text-align:center}',
+  '.sheet-page{page-break-after:always}',
+  '.sheet-page:last-child{page-break-after:auto}',
+  '@page{margin:1cm;size:A4 landscape}',
+  '@media print{body{margin:0}}'
+].join('');
+
+// 抓某位學生某學期的已確認選課資料，回傳整理好的rows + 學生/學期資訊，供列印用
+async function fetchAdminSheetData(studentId, semesterId) {
+  const { data: stu } = await sb.from('students').select('student_code,name_zh,cohort').eq('id', studentId).single();
+  const { data: sem } = await sb.from('semesters').select('label').eq('id', semesterId).single();
+  const { data: enr } = await sb.from('enrollments').select('offering_id').eq('student_id', studentId).eq('semester_id', semesterId).eq('status','confirmed');
+  const ids = (enr||[]).map(e=>e.offering_id);
+  if (!ids.length) return { student: stu, semLabel: sem?.label||'', rows: [] };
+
+  const { data: courses } = await sb.from('v_course_schedule').select('*').in('offering_id', ids);
+  const { data: ot } = await sb.from('v_offering_teachers').select('*').in('offering_id', ids);
+  const teacherMap = {};
+  (ot||[]).forEach(t => { (teacherMap[t.offering_id] ||= []).push(t); });
+
+  const rows = (courses||[]).map(c => {
+    const teachers = (teacherMap[c.offering_id]||[]).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    return { code:c.code, name_zh:c.name_zh, credits:c.credits, req_type:resolveReqType(c.req_type, c.req_type_overrides, stu.cohort),
+              time_raw:c.time_raw, classroom_name:c.classroom_name, teacherNames: teachers.map(t=>t.name_zh).join('、') };
+  });
+  return { student: stu, semLabel: sem?.label||'', rows };
+}
+
+// 產生一位學生選課單的內文HTML(不含外層html/head/body標籤)，批次列印時多份會用這個組合成一份文件
+function buildAdminSheetBodyHtml(data) {
+  const { student, semLabel, rows } = data;
+  const tableRows = rows.map(r => '<tr>'
+    + '<td>■是□否</td>'
+    + `<td>${r.code||''}</td>`
+    + `<td style="text-align:left">${r.name_zh||''}</td>`
+    + `<td>${r.teacherNames||''}</td>`
+    + `<td>${ADMIN_SHEET_REQ_TYPE_LABEL[r.req_type]||r.req_type||''}</td>`
+    + `<td>${r.credits??''}</td>`
+    + `<td>${r.time_raw||''}</td>`
+    + `<td>${r.classroom_name||''}</td>`
+    + '</tr>'
+  ).join('');
+  const totalCourses = rows.length;
+  const reqCount = rows.filter(r => r.req_type === 'req').length;
+  const selCount = totalCourses - reqCount;
+  const totalCredits = rows.reduce((sum, r) => sum + (Number(r.credits) || 0), 0);
+  const cohortStr = String(student.cohort||'').slice(-2);
+
+  return '<div class="sheet-page">'
+    + '<h2>福智佛教學院 佛法應用研究所</h2>'
+    + `<h3>${semLabel}學年${semLabel.endsWith('-1')?'上':'下'}學期 選課單（個人）</h3>`
+    + '<div class="info-line">申請日期：　　年　　月　　日　　　　　　　　　　　　　本聯由系所查存(請自行複印)</div>'
+    + '<table><thead><tr>'
+    + '<th style="width:60px">選課</th><th>課程代碼</th><th style="text-align:left">課程名稱</th>'
+    + '<th>授課教師</th><th>必/選修</th><th>學分</th><th>上課時間</th><th>上課地點</th>'
+    + '</tr></thead>'
+    + `<tbody>${tableRows}</tbody>`
+    + '</table>'
+    + `<div class="summary-box">本次共修(　${totalCourses}　)門課：含(　${reqCount}　)門必修課、(　${selCount}　)門選修課，共(　${totalCredits}　)學分。<br>`
+    + '符合本校修業規定、選課辦法之規定(前兩年每學期不得少於 2 學分，最多不得超過 12 學分，若需增加學分者須所長同意。)</div>'
+    + `<div class="cohort-line">${['13','14','15'].map(y => (cohortStr===y?'■':'□')+y+'級').join('')}　學號：${student.student_code||''}　姓名：${student.name_zh||''}</div>`
+    + '<table class="sign-table"><tr>'
+    + '<td>學生簽名<br>Student Signature</td>'
+    + '<td>佛應所助理<br>Dept./Institute Administrative Assistant</td>'
+    + '<td>佛應所所長<br>Department/Institute Chair</td>'
+    + '<td>教育處承辦人<br>Education Division Staff</td>'
+    + '<td>教育長<br>Education Division Dean</td>'
+    + '</tr><tr><td style="height:50px"></td><td></td><td></td><td></td><td></td></tr></table>'
+    + '</div>';
+}
+
+async function adminPrintSingleSheet(studentId) {
+  // window.open必須在任何await之前執行，不然瀏覽器會判定不是使用者剛點擊觸發的動作，靜默封鎖彈出視窗
+  const win = window.open('', '_blank');
+  if (!win) { showToast('❌ 瀏覽器封鎖了彈出視窗，請允許此網站的彈出視窗後再試一次','error'); return; }
+
+  const semId = document.getElementById('eo-sem').value;
+  const data = await fetchAdminSheetData(studentId, semId);
+  if (!data.rows.length) {
+    win.close();
+    showToast('這位學生本學期沒有已確認的選課記錄，無法列印','error');
+    return;
+  }
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">'
+    + `<title>${data.student.name_zh}_選課單</title>`
+    + '<sty'+'le>' + ADMIN_SHEET_CSS + '</sty'+'le>'
+    + '</he'+'ad><bo'+'dy>'
+    + buildAdminSheetBodyHtml(data)
+    + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt>'
+    + '</bo'+'dy></ht'+'ml>';
+  win.document.write(html);
+  win.document.close();
+}
+
+async function adminPrintBatchSheets() {
+  const checked = Array.from(document.querySelectorAll('.eo-row-check:checked'));
+  if (!checked.length) return;
+  const studentIds = checked.map(cb => cb.value);
+
+  // 同樣的規則:先開視窗再做非同步查詢
+  const win = window.open('', '_blank');
+  if (!win) { showToast('❌ 瀏覽器封鎖了彈出視窗，請允許此網站的彈出視窗後再試一次','error'); return; }
+
+  const semId = document.getElementById('eo-sem').value;
+  showToast(`正在準備 ${studentIds.length} 份選課單…`);
+  const results = await Promise.all(studentIds.map(id => fetchAdminSheetData(id, semId)));
+  const validResults = results.filter(r => r.rows.length > 0);
+  if (!validResults.length) {
+    win.close();
+    showToast('勾選的學生都沒有已確認的選課記錄，無法列印','error');
+    return;
+  }
+  const bodyHtml = validResults.map(buildAdminSheetBodyHtml).join('');
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">'
+    + `<title>選課單批次列印(${validResults.length}份)</title>`
+    + '<sty'+'le>' + ADMIN_SHEET_CSS + '</sty'+'le>'
+    + '</he'+'ad><bo'+'dy>'
+    + bodyHtml
+    + '<scr'+'ipt>window.onload=()=>window.print()<\/scr'+'ipt>'
+    + '</bo'+'dy></ht'+'ml>';
+  win.document.write(html);
+  win.document.close();
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 📊 選課統計分析
+ * ════════════════════════════════════════════════════════════════════ */
+let _esData = null; // 快取聚合後的統計結果，匯出Excel時重用，不用重新查一次
+
+async function loadEnrollStats() {
+  const body = document.getElementById('enroll-stats-body');
+  body.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">載入中，資料量較大請稍候…</div>';
+
+  // 1. 學期(依時間排序)，加入start_date供後面判斷「這學期是否已經開始」用
+  const { data: sems } = await sb.from('semesters').select('id,label,academic_year,semester_num,start_date').order('academic_year').order('semester_num');
+  // 2. 全部學生(不限狀態，完整呈現歷年趨勢；已畢業/休學的人歷史資料仍要算進去)
+  const { data: students } = await sb.from('students').select('id,cohort,gender');
+  const studentMap = {}; (students||[]).forEach(s=>{ studentMap[s.id] = s; });
+
+  // 3. 全部已確認選課記錄(不限學期)
+  const { data: enrolls } = await sb.from('enrollments').select('student_id,offering_id,semester_id').eq('status','confirmed');
+  if (!enrolls?.length) { body.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">目前沒有任何已確認的選課記錄</div>'; return; }
+
+  // 3b. 不及格成績記錄(student_id+offering_id)，累計達成率要排除這些學分(不算實得)，但平均科目數/學分不受影響(維持算進去)
+  const { data: failedGrades } = await sb.from('grade_entries').select('student_id,offering_id')
+    .eq('grade_type','academic').eq('status','submitted').eq('grade_label','不及格');
+  const failedSet = new Set((failedGrades||[]).map(g=>g.student_id+'|'+g.offering_id));
+
+  // 4. offering_id → course_id + req_type_overrides (拆開查，不用巢狀select)
+  const offeringIds = [...new Set(enrolls.map(e=>e.offering_id))];
+  const { data: offerings } = await sb.from('course_offerings').select('id,course_id,req_type_overrides').in('id', offeringIds);
+  const offeringMap = {}; (offerings||[]).forEach(o=>{ offeringMap[o.id] = o; });
+
+  // 5. course_id → credits/req_type/axis_id
+  const courseIds = [...new Set((offerings||[]).map(o=>o.course_id).filter(Boolean))];
+  const { data: courses } = await sb.from('courses').select('id,credits,req_type,axis_id').in('id', courseIds);
+  const courseMap = {}; (courses||[]).forEach(c=>{ courseMap[c.id] = c; });
+
+  // 6. axis_id → code(底蘊/對話/應用)
+  const axisIds = [...new Set((courses||[]).map(c=>c.axis_id).filter(Boolean))];
+  let axisCodeMap = {};
+  if (axisIds.length) {
+    const { data: axes } = await sb.from('course_axes').select('id,code').in('id', axisIds);
+    (axes||[]).forEach(a=>{ axisCodeMap[a.id] = a.code; });
+  }
+
+  // 7. 畢業學分規定
+  const { data: gradReqs } = await sb.from('graduation_requirements').select('cohort_from,cohort_to,req_credits,sel_credits,total_min');
+  const findGradReq = (cohort) => (gradReqs||[]).find(r => cohort >= r.cohort_from && (r.cohort_to==null || cohort <= r.cohort_to));
+
+  // ── 組成一筆一筆的明細記錄，供後面聚合用 ──
+  const detail = []; // {semester_id, student_id, cohort, gender, credits, req_type, axis_code, isFailed}
+  enrolls.forEach(e => {
+    const stu = studentMap[e.student_id];
+    const off = offeringMap[e.offering_id];
+    if (!stu || !off || !off.course_id) return;
+    const course = courseMap[off.course_id];
+    if (!course) return;
+    const effectiveReqType = resolveReqType(course.req_type, off.req_type_overrides, stu.cohort);
+    detail.push({
+      semester_id: e.semester_id, student_id: e.student_id,
+      cohort: stu.cohort, gender: stu.gender||'?',
+      credits: course.credits||0, req_type: effectiveReqType,
+      axis_code: axisCodeMap[course.axis_id] || '未分類',
+      isFailed: failedSet.has(e.student_id+'|'+e.offering_id),
+    });
+  });
+
+  // ── 各屆別人數(分母)，不分性別 ──
+  const cohortPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null) cohortPop[s.cohort] = (cohortPop[s.cohort]||0)+1; });
+  // ── 各屆別×性別人數 ──
+  const cohortGenderPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null){ const k=s.cohort+'|'+(s.gender||'?'); cohortGenderPop[k]=(cohortGenderPop[k]||0)+1; } });
+
+  // ── 聚合：依「學期×屆別」 ──
+  const bySemCohort = {}; // key: semester_id|cohort
+  detail.forEach(d => {
+    const key = d.semester_id+'|'+d.cohort;
+    if (!bySemCohort[key]) bySemCohort[key] = { credits:0, req:0, sel:0, count:0, students:new Set(), axis:{} };
+    const b = bySemCohort[key];
+    b.credits += d.credits; b.count++; b.students.add(d.student_id);
+    if (d.req_type==='req') b.req += d.credits; else b.sel += d.credits;
+    b.axis[d.axis_code] = (b.axis[d.axis_code]||0) + d.credits;
+  });
+
+  // ── 聚合：依「學期×屆別×性別」 ──
+  const bySemCohortGender = {}; // key: semester_id|cohort|gender
+  detail.forEach(d => {
+    const key = d.semester_id+'|'+d.cohort+'|'+d.gender;
+    if (!bySemCohortGender[key]) bySemCohortGender[key] = { credits:0, req:0, sel:0, count:0, students:new Set() };
+    const b = bySemCohortGender[key];
+    b.credits += d.credits; b.count++; b.students.add(d.student_id);
+    if (d.req_type==='req') b.req += d.credits; else b.sel += d.credits;
+  });
+
+  // ── 累計達成率：依屆別，把該屆別全部學生「歷來累計已確認學分」加總，除以人數，對照畢業學分規定 ──
+  const cumByCohortStudent = {}; // student_id -> total credits(累計)
+  detail.forEach(d => { if (!d.isFailed) cumByCohortStudent[d.student_id] = (cumByCohortStudent[d.student_id]||0) + d.credits; });
+  const cohortCumulative = {}; // cohort -> {sumCredits, studentCount(有記錄的人數)}
+  (students||[]).forEach(s => {
+    if (s.cohort==null) return;
+    if (!cohortCumulative[s.cohort]) cohortCumulative[s.cohort] = { sumCredits:0 };
+    cohortCumulative[s.cohort].sumCredits += (cumByCohortStudent[s.id]||0);
+  });
+
+  _esData = { sems: sems||[], bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, gradReqs: gradReqs||[], findGradReq };
+  renderEnrollStats();
+}
+
+function renderEnrollStats() {
+  if (!_esData) return;
+  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, findGradReq } = _esData;
+  const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
+  const semLabelMap = {}; sems.forEach(s=>{ semLabelMap[s.id] = s.label; });
+  const GENDER_ZH = { M:'男', F:'女', O:'其他', '?':'未填' };
+  const fmt1 = n => Math.round(n*10)/10;
+  const today = new Date();
+  // 這個學期×屆別組合是否有意義：屆別的入學學年度要 <= 學期學年度(還沒入學的屆別不該出現在更早的學期)，
+  // 且學期本身要已經開始(還沒開始的未來學期，任何屆別都不會有資料，列出來沒有意義)
+  const isRelevantSemCohort = (sem, coh) => sem.academic_year >= coh && new Date(sem.start_date) <= today;
+
+  // ── 表1：依學期×屆別摘要，改成矩陣格式：列=屆別、欄=學期，只用已經開始的學期當欄位 ──
+  const activeSems = sems.filter(sem => new Date(sem.start_date) <= today);
+  const matrixCell = (sem, coh) => {
+    if (!isRelevantSemCohort(sem, coh)) return '<td style="padding:8px 10px;text-align:center;color:#DDD;background:#FAFAFA">—</td>';
+    const b = bySemCohort[sem.id+'|'+coh];
+    const pop = cohortPop[coh]||1;
+    const avgCredits = b?fmt1(b.credits/pop):0;
+    const avgCourses = b?fmt1(b.count/pop):0;
+    const zeroCount = pop - (b?b.students.size:0);
+    const zeroRatio = zeroCount/pop;
+    const bg = zeroRatio>=0.8 ? '#FDEBEC' : zeroRatio>=0.4 ? '#FFF8E1' : '#fff';
+    return `<td style="padding:8px 10px;text-align:center;background:${bg}">
+      <div style="font-weight:700;font-size:14px;color:var(--navy)">${avgCredits}</div>
+      <div style="font-size:10.5px;color:var(--ink3)">(${avgCourses}科)</div>
+      ${zeroCount>0?`<div style="font-size:9.5px;color:#C0392B">${zeroCount}人未選</div>`:''}
+    </td>`;
+  };
+  const table1Html = `<table style="width:100%;font-size:12.5px;border-collapse:collapse">
+    <thead><tr style="background:var(--navy);color:#fff">
+      <th style="padding:6px 10px">屆別</th>${activeSems.map(s=>`<th style="padding:6px 10px">${s.label}</th>`).join('')}
+    </tr></thead><tbody>
+      ${cohorts.map(coh=>`<tr style="border-bottom:1px solid var(--cr2)">
+        <td style="padding:6px 10px;font-weight:600;text-align:center;background:var(--cr3)">${coh}級<div style="font-size:10px;color:var(--ink3);font-weight:400">(${cohortPop[coh]}人)</div></td>
+        ${activeSems.map(s=>matrixCell(s,coh)).join('')}
+      </tr>`).join('')}
+    </tbody></table>
+    <div style="font-size:11px;color:var(--ink3);margin-top:8px">每格：<b>平均學分</b>／(平均科目數)／未選課人數(若有)。背景色：黃=近半數以上未選課，紅=八成以上未選課</div>`;
+
+  // ── 表2：性別差異，改成每個屆別一張SVG長條圖，X軸=學期，男女並排長條標數字 ──
+  const genderChartsHtml = cohorts.map(coh => {
+    const relevantSems = activeSems.filter(s => isRelevantSemCohort(s, coh));
+    if (!relevantSems.length) return '';
+    return `<div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:6px">${coh}級</div>
+      ${buildGenderBarChart(relevantSems, coh, bySemCohortGender, cohortGenderPop)}
+    </div>`;
+  }).join('');
+
+  // ── 表3：畢業學分累計達成率(依屆別，不分學期，看目前累計) ──
+  const table3Html = `<table style="width:100%;font-size:12.5px;border-collapse:collapse">
+    <thead><tr style="background:var(--navy);color:#fff">
+      <th style="padding:6px 10px">屆別</th><th style="padding:6px 10px">屆別人數</th>
+      <th style="padding:6px 10px">平均累計學分</th><th style="padding:6px 10px">畢業應修學分</th><th style="padding:6px 10px">達成率</th>
+    </tr></thead><tbody>
+      ${cohorts.map(coh => {
+        const pop = cohortPop[coh]||1;
+        const avgCum = fmt1((cohortCumulative[coh]?.sumCredits||0)/pop);
+        const req = findGradReq(coh);
+        const pct = req ? Math.round(avgCum/req.total_min*100) : null;
+        return `<tr style="border-bottom:1px solid var(--cr2)">
+          <td style="padding:5px 10px;text-align:center">${coh}級</td>
+          <td style="padding:5px 10px;text-align:center;color:var(--ink3)">${pop}</td>
+          <td style="padding:5px 10px;text-align:center;font-weight:600">${avgCum}</td>
+          <td style="padding:5px 10px;text-align:center">${req?req.total_min:'—'}</td>
+          <td style="padding:5px 10px;text-align:center;color:${pct==null?'var(--ink3)':pct>=100?'#1A6A30':pct>=60?'inherit':'#C0392B'}">${pct==null?'（無規定）':pct+'%'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`;
+
+  // ── 表4：課程主軸分布(依屆別，累計全部學期，平均每人在各主軸修的學分) ──
+  const axisTotalByCohort = {}; // cohort -> {底蘊:x, 對話:x, 應用:x, 未分類:x}
+  Object.entries(bySemCohort).forEach(([key, b]) => {
+    const coh = Number(key.split('|')[1]);
+    if (!axisTotalByCohort[coh]) axisTotalByCohort[coh] = {};
+    Object.entries(b.axis).forEach(([ax, credits]) => { axisTotalByCohort[coh][ax] = (axisTotalByCohort[coh][ax]||0) + credits; });
+  });
+  const axisKeys = ['底蘊','對話','應用','未分類'];
+  const table4Html = `<table style="width:100%;font-size:12.5px;border-collapse:collapse">
+    <thead><tr style="background:var(--navy);color:#fff">
+      <th style="padding:6px 10px">屆別</th>${axisKeys.map(a=>`<th style="padding:6px 10px">${a}(平均學分)</th>`).join('')}
+    </tr></thead><tbody>
+      ${cohorts.map(coh => {
+        const pop = cohortPop[coh]||1;
+        const ax = axisTotalByCohort[coh]||{};
+        return `<tr style="border-bottom:1px solid var(--cr2)">
+          <td style="padding:5px 10px;text-align:center">${coh}級</td>
+          ${axisKeys.map(a=>`<td style="padding:5px 10px;text-align:center">${fmt1((ax[a]||0)/pop)}</td>`).join('')}
+        </tr>`;
+      }).join('')}
+    </tbody></table>`;
+
+  // ── 趨勢折線圖：X=學期，Y=平均學分，一屆別一條線 ──
+  const chartSvg = buildEnrollStatsTrendChart(sems, cohorts, bySemCohort, cohortPop, isRelevantSemCohort);
+
+  document.getElementById('enroll-stats-body').innerHTML = `
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px;margin-bottom:16px">
+      <div class="section-title" style="font-family:inherit;font-size:14px;font-weight:600;color:var(--navy);margin-bottom:10px">📈 平均學分趨勢（依屆別）</div>
+      ${chartSvg}
+    </div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px;margin-bottom:16px;overflow-x:auto">
+      <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:10px">📋 依學期×屆別摘要</div>
+      ${table1Html}
+    </div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px;margin-bottom:16px;overflow-x:auto">
+      <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:10px">⚥ 性別差異</div>
+      ${genderChartsHtml}
+    </div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px;margin-bottom:16px;overflow-x:auto">
+      <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:10px">🎓 畢業學分累計達成率（依屆別，目前累計，非單一學期）</div>
+      ${table3Html}
+    </div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px;overflow-x:auto">
+      <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:10px">🧭 課程主軸分布（依屆別，累計全部學期平均）</div>
+      ${table4Html}
+    </div>`;
+}
+
+// 簡易SVG折線圖：X軸=學期(依序)，Y軸=平均學分，每個屆別一條線
+// 性別差異長條圖：X軸=學期，每個學期兩根並排長條(男/女平均學分)，長條上方標數字
+function buildGenderBarChart(sems, cohort, bySemCohortGender, cohortGenderPop) {
+  const W = 700, H = 180, padL = 36, padR = 20, padT = 24, padB = 32;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const groupW = sems.length ? plotW / sems.length : plotW;
+  const barW = Math.min(26, groupW * 0.32);
+  const genderColor = { M:'#2B5FA0', F:'#C0498A' };
+  const popM = cohortGenderPop[cohort+'|M'] || 0;
+  const popF = cohortGenderPop[cohort+'|F'] || 0;
+
+  const values = sems.map(sem => {
+    const bM = bySemCohortGender[sem.id+'|'+cohort+'|M'];
+    const bF = bySemCohortGender[sem.id+'|'+cohort+'|F'];
+    return {
+      label: sem.label,
+      m: popM ? Math.round((bM?bM.credits/popM:0)*10)/10 : null,
+      f: popF ? Math.round((bF?bF.credits/popF:0)*10)/10 : null,
+    };
+  });
+  const maxY = Math.max(1, ...values.flatMap(v => [v.m, v.f]).filter(v=>v!=null));
+  const yPos = v => padT + plotH - (v/maxY)*plotH;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto">`;
+  values.forEach((v, i) => {
+    const groupCx = padL + groupW*i + groupW/2;
+    if (v.m != null) {
+      const x = groupCx - barW - 2, y = yPos(v.m), h = padT+plotH-y;
+      svg += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${genderColor.M}"/>`;
+      svg += `<text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="10" fill="${genderColor.M}" font-weight="600">${v.m}</text>`;
+    }
+    if (v.f != null) {
+      const x = groupCx + 2, y = yPos(v.f), h = padT+plotH-y;
+      svg += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${genderColor.F}"/>`;
+      svg += `<text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="10" fill="${genderColor.F}" font-weight="600">${v.f}</text>`;
+    }
+    svg += `<text x="${groupCx}" y="${H-padB+14}" text-anchor="middle" font-size="9.5" fill="#999">${v.label}</text>`;
+  });
+  svg += `<line x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}" stroke="#ccc" stroke-width="1"/>`;
+  svg += '</svg>';
+  return `<div>${svg}</div>
+    <div style="font-size:11px;margin-top:2px">
+      <span style="display:inline-flex;align-items:center;gap:4px;margin-right:14px"><span style="width:10px;height:10px;background:${genderColor.M};display:inline-block;border-radius:2px"></span>男(${popM}人)</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:${genderColor.F};display:inline-block;border-radius:2px"></span>女(${popF}人)</span>
+    </div>`;
+}
+
+function buildEnrollStatsTrendChart(sems, cohorts, bySemCohort, cohortPop, isRelevantSemCohort) {
+  if (!sems.length || !cohorts.length) return '<div style="color:var(--ink3);font-size:12px">沒有足夠資料繪製趨勢圖</div>';
+  const W = 760, H = 260, padL = 40, padR = 20, padT = 20, padB = 40;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const colors = ['#1B3A6B','#1F5C3A','#7A3210','#8E44AD','#C0392B','#16A085'];
+
+  // 算每個屆別在每個學期的平均學分：還沒入學/還沒開始的學期用null(不畫點、不連線)，
+  // 真正屬於這個屆別範圍內、但剛好是0的才畫成0(才是有意義的異常訊號)
+  const series = cohorts.map((coh, idx) => {
+    const pop = cohortPop[coh]||1;
+    const points = sems.map(sem => {
+      if (!isRelevantSemCohort(sem, coh)) return null;
+      const b = bySemCohort[sem.id+'|'+coh];
+      return b ? (b.credits/pop) : 0;
+    });
+    return { cohort: coh, color: colors[idx % colors.length], points };
+  });
+
+  const maxY = Math.max(1, ...series.flatMap(s => s.points.filter(p=>p!=null)));
+  const xStep = sems.length > 1 ? plotW / (sems.length - 1) : 0;
+  const xPos = i => padL + i * xStep;
+  const yPos = v => padT + plotH - (v/maxY)*plotH;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto">`;
+  // 格線
+  for (let g=0; g<=4; g++) {
+    const y = padT + plotH - (g/4)*plotH;
+    svg += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#eee" stroke-width="1"/>`;
+    svg += `<text x="${padL-6}" y="${y+3}" text-anchor="end" font-size="9" fill="#999">${fmtNum(maxY*g/4)}</text>`;
+  }
+  // X軸標籤
+  sems.forEach((sem,i) => {
+    svg += `<text x="${xPos(i)}" y="${H-padB+14}" text-anchor="middle" font-size="9" fill="#999">${sem.label}</text>`;
+  });
+  // 每條線
+  series.forEach(s => {
+    let pathPts = [];
+    s.points.forEach((v,i) => { if (v!=null) pathPts.push(`${xPos(i)},${yPos(v)}`); });
+    if (pathPts.length >= 2) svg += `<polyline points="${pathPts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
+    s.points.forEach((v,i) => { if (v!=null) svg += `<circle cx="${xPos(i)}" cy="${yPos(v)}" r="3" fill="${s.color}"/>`; });
+  });
+  svg += '</svg>';
+
+  const legend = series.map(s=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:14px;font-size:12px">
+    <span style="width:10px;height:10px;border-radius:2px;background:${s.color};display:inline-block"></span>${s.cohort}級</span>`).join('');
+  return `<div>${svg}</div><div style="margin-top:6px">${legend}</div>`;
+}
+function fmtNum(n) { return Math.round(n*10)/10; }
+
+async function exportEnrollStatsExcel() {
+  if (!_esData) { showToast('請先等資料載入完成再匯出','error'); return; }
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, findGradReq } = _esData;
+  const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
+  const GENDER_ZH = { M:'男', F:'女', O:'其他', '?':'未填' };
+  const fmt1 = n => Math.round(n*10)/10;
+  const today = new Date();
+  const isRelevantSemCohort = (sem, coh) => sem.academic_year >= coh && new Date(sem.start_date) <= today;
+
+  const wb = XLSX.utils.book_new();
+
+  // 工作表1：依學期×屆別摘要（排除還沒入學/還沒開始的組合，理由同畫面渲染邏輯的註解）
+  const sheet1 = [['學期','屆別','屆別人數','平均科目數','平均學分','平均必修學分','平均選修學分','未選課人數']];
+  sems.forEach(sem => cohorts.forEach(coh => {
+    if (!isRelevantSemCohort(sem, coh)) return;
+    const b = bySemCohort[sem.id+'|'+coh];
+    const pop = cohortPop[coh]||1;
+    sheet1.push([sem.label, coh+'級', pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0, b?fmt1(b.req/pop):0, b?fmt1(b.sel/pop):0, pop-(b?b.students.size:0)]);
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet1), '依學期屆別摘要');
+
+  // 工作表2：性別差異
+  const sheet2 = [['學期','屆別','性別','人數','平均科目數','平均學分']];
+  sems.forEach(sem => cohorts.forEach(coh => {
+    if (!isRelevantSemCohort(sem, coh)) return;
+    ['M','F'].forEach(g => {
+      const pop = cohortGenderPop[coh+'|'+g];
+      if (!pop) return;
+      const b = bySemCohortGender[sem.id+'|'+coh+'|'+g];
+      sheet2.push([sem.label, coh+'級', GENDER_ZH[g], pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0]);
+    });
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet2), '性別差異');
+
+  // 工作表3：畢業學分累計達成率
+  const sheet3 = [['屆別','屆別人數','平均累計學分','畢業應修學分','達成率']];
+  cohorts.forEach(coh => {
+    const pop = cohortPop[coh]||1;
+    const avgCum = fmt1((cohortCumulative[coh]?.sumCredits||0)/pop);
+    const req = findGradReq(coh);
+    const pct = req ? Math.round(avgCum/req.total_min*100)+'%' : '（無規定）';
+    sheet3.push([coh+'級', pop, avgCum, req?req.total_min:'—', pct]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet3), '畢業學分達成率');
+
+  // 工作表4：課程主軸分布
+  const axisTotalByCohort = {};
+  Object.entries(bySemCohort).forEach(([key, b]) => {
+    const coh = Number(key.split('|')[1]);
+    if (!axisTotalByCohort[coh]) axisTotalByCohort[coh] = {};
+    Object.entries(b.axis).forEach(([ax, credits]) => { axisTotalByCohort[coh][ax] = (axisTotalByCohort[coh][ax]||0) + credits; });
+  });
+  const axisKeys = ['底蘊','對話','應用','未分類'];
+  const sheet4 = [['屆別', ...axisKeys.map(a=>a+'(平均學分)')]];
+  cohorts.forEach(coh => {
+    const pop = cohortPop[coh]||1;
+    const ax = axisTotalByCohort[coh]||{};
+    sheet4.push([coh+'級', ...axisKeys.map(a=>fmt1((ax[a]||0)/pop))]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet4), '課程主軸分布');
+
+  XLSX.writeFile(wb, `選課統計分析_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('✅ 已下載Excel');
+}
+
 async function loadEnrollOverview() {
   const semSel = document.getElementById('eo-sem');
   if (semSel.options.length <= 1 || semSel.options[0].value === '') {
@@ -11072,7 +11685,7 @@ async function loadEnrollOverview() {
   const semId = semSel.value;
   if (!semId) return;
 
-  document.getElementById('eo-body').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
+  document.getElementById('eo-body').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
 
   // 加退選截止日倒數(沿用教室借用系統國定假日同一張表的查詢慣例,這裡查change_deadline這個系統事件)
   const { data: deadlineEv } = await sb.from('semester_calendar_events').select('end_at').eq('semester_id', semId).eq('event_key','change_deadline').maybeSingle();
@@ -11128,7 +11741,7 @@ async function loadEnrollOverview() {
   });
 
   _eoData = (students||[]).map(s => ({
-    student_code: s.student_code, name_zh: s.name_zh, cohort: s.cohort,
+    student_id: s.id, student_code: s.student_code, name_zh: s.name_zh, cohort: s.cohort,
     course_count: enrollMap[s.id]?.count || 0,
     credits: enrollMap[s.id]?.credits || 0,
   }));
@@ -11168,6 +11781,7 @@ function renderEnrollOverviewTable() {
   });
   const tbody = document.getElementById('eo-body');
   tbody.innerHTML = rows.length ? rows.map(s => `<tr>
+      <td style="text-align:center">${s.course_count>0?`<input type="checkbox" class="eo-row-check" value="${s.student_id}" onchange="updateEoBatchPrintButton()">`:''}</td>
       <td>${esc(s.student_code)}</td><td style="font-weight:600">${esc(s.name_zh)}</td>
       <td style="text-align:center">${s.cohort||'—'}</td>
       <td style="text-align:center">${s.course_count}</td>
@@ -11175,7 +11789,11 @@ function renderEnrollOverviewTable() {
       <td style="text-align:center">${s.course_count===0
         ? '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#FDEBEC;color:#C0392B;border:1px solid #F0B0B5">尚未選課</span>'
         : '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#EAF4EE;color:#1F5C3A;border:1px solid #C0DD97">已選課</span>'}</td>
-    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">沒有符合條件的學生</td></tr>';
+      <td style="text-align:center">${s.course_count>0?`<button class="btn btn-sm" onclick="adminPrintSingleSheet('${s.student_id}')" title="列印這位同學的選課單">🖨</button>`:'—'}</td>
+    </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">沒有符合條件的學生</td></tr>';
+  const selectAllEo = document.getElementById('eo-check-all');
+  if (selectAllEo) selectAllEo.checked = false;
+  updateEoBatchPrintButton();
 }
 
 function showPage(page, btn) {
@@ -11189,6 +11807,7 @@ function showPage(page, btn) {
   if (page==='semesters') loadSemesterPage();
   if (page==='conflicts') runConflictCheck(false);
   if (page==='enroll-overview') loadEnrollOverview();
+  if (page==='enroll-stats') loadEnrollStats();
   if (page==='ta-match') loadTaMatch();
   if (page==='audit') loadAuditLog();
   if (page==='announcements') loadAnnouncements();
