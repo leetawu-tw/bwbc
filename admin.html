@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.36 2026-09-17 -->
+<!-- BWBC Admin v10.39 2026-09-17 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -387,7 +387,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.36　2026-09-17</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.39　2026-09-17</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -10604,6 +10604,24 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.39', date: '2026-09-17',
+    items: [
+      '性別差異長條圖的X軸也改成「相對學期」(第1學期/第2學期...)，之前只有矩陣摘要表改了，長條圖漏掉忘記一起改，這次補上，跟矩陣表統一對齊邏輯。每個長條下方保留兩行標籤：上面是相對學期(第N學期)、下面小字是對應到的實際日曆學期。Excel性別差異工作表也同步加上相對學期欄位',
+    ]
+  },
+  {
+    version: 'v10.38', date: '2026-09-17',
+    items: [
+      '「依學期×屆別摘要」矩陣改成用「相對學期」(第1學期/第2學期...)當欄位，取代原本的絕對日曆學期(113-1/113-2...)。碩士修業約4學期，不同屆別各自的入學時間點不同(例如113級從113-2開始、115級從115-1開始)，用相對學期對齊後才能真正比較「同樣是第1學期」的表現差異。每格內小字附註對應到的實際日曆學期，方便查證。Excel匯出也同步加上相對學期欄位，方便篩選/樞紐分析。已用模擬資料驗證對齊邏輯正確',
+    ]
+  },
+  {
+    version: 'v10.37', date: '2026-09-17',
+    items: [
+      '修正選課統計分析：①原本假設每個屆別都從自己屆別數字對應的「-1」學期開始(例如113級從113-1開始)，但113級實際上是113-2才開始，改成直接用每個屆別「實際最早出現選課記錄」的學期當起點，不用屆別數字去猜測起始學期，摘要矩陣/性別長條圖/趨勢圖/Excel匯出全部同步套用；②縮小矩陣表、達成率表、主軸分布表的欄位寬度(移除width:100%改成依內容自然寬度，並縮小padding)，避免欄位被拉得過寬',
+    ]
+  },
+  {
     version: 'v10.36', date: '2026-09-17',
     items: [
       '選課統計分析頁面改版：①「依學期×屆別摘要」改成矩陣格式(列=屆別、欄=學期)，每格顯示平均學分(大字)+平均科目數(小字)+未選課人數(若有)，未選課比例高的格子用黃/紅底色標示，比原本一列一組數字精簡很多；②「性別差異」改成每個屆別一張長條圖，X軸=學期，男女並排長條、長條上方標數字，比表格更直覺看出差異',
@@ -11379,26 +11397,52 @@ async function loadEnrollStats() {
     cohortCumulative[s.cohort].sumCredits += (cumByCohortStudent[s.id]||0);
   });
 
-  _esData = { sems: sems||[], bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, gradReqs: gradReqs||[], findGradReq };
+  // ── 每個屆別「實際最早出現選課記錄」的學期順序值，取代原本用屆別數字猜測起始學期的假設(不是每個屆別都從自己的-1學期開始，例如113級是113-2才開始) ──
+  const semOrderMap = {}; (sems||[]).forEach(s=>{ semOrderMap[s.id] = s.academic_year*10 + s.semester_num; });
+  const cohortFirstSemOrder = {}; // cohort -> 最早出現的學期順序值
+  Object.keys(bySemCohort).forEach(key => {
+    const [semId, cohStr] = key.split('|');
+    const coh = Number(cohStr);
+    const order = semOrderMap[semId];
+    if (order == null) return;
+    if (cohortFirstSemOrder[coh] == null || order < cohortFirstSemOrder[coh]) cohortFirstSemOrder[coh] = order;
+  });
+
+  _esData = { sems: sems||[], bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, gradReqs: gradReqs||[], findGradReq, semOrderMap, cohortFirstSemOrder };
   renderEnrollStats();
 }
 
 function renderEnrollStats() {
   if (!_esData) return;
-  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, findGradReq } = _esData;
+  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
   const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
   const semLabelMap = {}; sems.forEach(s=>{ semLabelMap[s.id] = s.label; });
   const GENDER_ZH = { M:'男', F:'女', O:'其他', '?':'未填' };
   const fmt1 = n => Math.round(n*10)/10;
   const today = new Date();
-  // 這個學期×屆別組合是否有意義：屆別的入學學年度要 <= 學期學年度(還沒入學的屆別不該出現在更早的學期)，
+  // 這個學期×屆別組合是否有意義：學期順序要 >= 該屆別實際最早出現選課記錄的學期(用真實資料判斷，不用屆別數字猜測)，
   // 且學期本身要已經開始(還沒開始的未來學期，任何屆別都不會有資料，列出來沒有意義)
-  const isRelevantSemCohort = (sem, coh) => sem.academic_year >= coh && new Date(sem.start_date) <= today;
+  const isRelevantSemCohort = (sem, coh) => {
+    const firstOrder = cohortFirstSemOrder[coh];
+    if (firstOrder == null) return false; // 這個屆別完全沒有任何選課記錄，無法判斷起點，一律不顯示
+    return semOrderMap[sem.id] >= firstOrder && new Date(sem.start_date) <= today;
+  };
 
-  // ── 表1：依學期×屆別摘要，改成矩陣格式：列=屆別、欄=學期，只用已經開始的學期當欄位 ──
-  const activeSems = sems.filter(sem => new Date(sem.start_date) <= today);
-  const matrixCell = (sem, coh) => {
-    if (!isRelevantSemCohort(sem, coh)) return '<td style="padding:8px 10px;text-align:center;color:#DDD;background:#FAFAFA">—</td>';
+  // ── 表1：依學期×屆別摘要，改成矩陣格式：列=屆別、欄=「相對學期」(第1學期/第2學期...)而非絕對日曆學期，
+  // 這樣不同屆別(各自入學時間點不同)才能真正對齊比較，例如113級的「第1學期」是113-2、115級的「第1學期」是115-1，都放在同一欄比較 ──
+  const activeSems = sems.filter(sem => new Date(sem.start_date) <= today).sort((a,b)=>semOrderMap[a.id]-semOrderMap[b.id]);
+  // 每個屆別「自己的學期序列」：從該屆別實際最早出現的學期開始，依序往後的全部已開始學期
+  const cohortSemSequence = {}; // cohort -> [sem, sem, ...]（依相對順序，第0個是第1學期）
+  cohorts.forEach(coh => {
+    const firstOrder = cohortFirstSemOrder[coh];
+    cohortSemSequence[coh] = firstOrder==null ? [] : activeSems.filter(s => semOrderMap[s.id] >= firstOrder);
+  });
+  const maxRelSemCount = Math.max(0, ...Object.values(cohortSemSequence).map(arr=>arr.length));
+  const relColumns = Array.from({length: maxRelSemCount}, (_,i) => i); // 0-based索引，顯示時+1
+
+  const matrixCell = (coh, relIdx) => {
+    const sem = cohortSemSequence[coh][relIdx];
+    if (!sem) return '<td style="padding:6px 4px;text-align:center;color:#DDD;background:#FAFAFA">—</td>'; // 這個屆別還沒讀到這麼多學期
     const b = bySemCohort[sem.id+'|'+coh];
     const pop = cohortPop[coh]||1;
     const avgCredits = b?fmt1(b.credits/pop):0;
@@ -11406,26 +11450,27 @@ function renderEnrollStats() {
     const zeroCount = pop - (b?b.students.size:0);
     const zeroRatio = zeroCount/pop;
     const bg = zeroRatio>=0.8 ? '#FDEBEC' : zeroRatio>=0.4 ? '#FFF8E1' : '#fff';
-    return `<td style="padding:8px 10px;text-align:center;background:${bg}">
-      <div style="font-weight:700;font-size:14px;color:var(--navy)">${avgCredits}</div>
-      <div style="font-size:10.5px;color:var(--ink3)">(${avgCourses}科)</div>
-      ${zeroCount>0?`<div style="font-size:9.5px;color:#C0392B">${zeroCount}人未選</div>`:''}
+    return `<td style="padding:6px 4px;text-align:center;background:${bg}">
+      <div style="font-weight:700;font-size:13px;color:var(--navy)">${avgCredits}</div>
+      <div style="font-size:10px;color:var(--ink3)">(${avgCourses}科)</div>
+      ${zeroCount>0?`<div style="font-size:9px;color:#C0392B">${zeroCount}人未選</div>`:''}
+      <div style="font-size:8.5px;color:#BBB">${sem.label}</div>
     </td>`;
   };
-  const table1Html = `<table style="width:100%;font-size:12.5px;border-collapse:collapse">
+  const table1Html = `<table style="border-collapse:collapse;font-size:12px">
     <thead><tr style="background:var(--navy);color:#fff">
-      <th style="padding:6px 10px">屆別</th>${activeSems.map(s=>`<th style="padding:6px 10px">${s.label}</th>`).join('')}
+      <th style="padding:5px 8px;width:70px">屆別</th>${relColumns.map(i=>`<th style="padding:5px 8px;width:64px">第${i+1}學期</th>`).join('')}
     </tr></thead><tbody>
       ${cohorts.map(coh=>`<tr style="border-bottom:1px solid var(--cr2)">
-        <td style="padding:6px 10px;font-weight:600;text-align:center;background:var(--cr3)">${coh}級<div style="font-size:10px;color:var(--ink3);font-weight:400">(${cohortPop[coh]}人)</div></td>
-        ${activeSems.map(s=>matrixCell(s,coh)).join('')}
+        <td style="padding:5px 8px;font-weight:600;text-align:center;background:var(--cr3)">${coh}級<div style="font-size:9.5px;color:var(--ink3);font-weight:400">(${cohortPop[coh]}人)</div></td>
+        ${relColumns.map(i=>matrixCell(coh,i)).join('')}
       </tr>`).join('')}
     </tbody></table>
-    <div style="font-size:11px;color:var(--ink3);margin-top:8px">每格：<b>平均學分</b>／(平均科目數)／未選課人數(若有)。背景色：黃=近半數以上未選課，紅=八成以上未選課</div>`;
+    <div style="font-size:11px;color:var(--ink3);margin-top:8px">每格：<b>平均學分</b>／(平均科目數)／未選課人數(若有)／對應日曆學期(灰色小字)。背景色：黃=近半數以上未選課，紅=八成以上未選課。各屆別「第1學期」是各自實際入學的第一個學期，不是同一個日曆學期</div>`;
 
-  // ── 表2：性別差異，改成每個屆別一張SVG長條圖，X軸=學期，男女並排長條標數字 ──
+  // ── 表2：性別差異，改成每個屆別一張SVG長條圖，X軸=相對學期(第1學期/第2學期...)，男女並排長條標數字 ──
   const genderChartsHtml = cohorts.map(coh => {
-    const relevantSems = activeSems.filter(s => isRelevantSemCohort(s, coh));
+    const relevantSems = cohortSemSequence[coh] || [];
     if (!relevantSems.length) return '';
     return `<div style="margin-bottom:20px">
       <div style="font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:6px">${coh}級</div>
@@ -11434,10 +11479,10 @@ function renderEnrollStats() {
   }).join('');
 
   // ── 表3：畢業學分累計達成率(依屆別，不分學期，看目前累計) ──
-  const table3Html = `<table style="width:100%;font-size:12.5px;border-collapse:collapse">
+  const table3Html = `<table style="border-collapse:collapse;font-size:12px">
     <thead><tr style="background:var(--navy);color:#fff">
-      <th style="padding:6px 10px">屆別</th><th style="padding:6px 10px">屆別人數</th>
-      <th style="padding:6px 10px">平均累計學分</th><th style="padding:6px 10px">畢業應修學分</th><th style="padding:6px 10px">達成率</th>
+      <th style="padding:5px 12px">屆別</th><th style="padding:5px 12px">屆別人數</th>
+      <th style="padding:5px 12px">平均累計學分</th><th style="padding:5px 12px">畢業應修學分</th><th style="padding:5px 12px">達成率</th>
     </tr></thead><tbody>
       ${cohorts.map(coh => {
         const pop = cohortPop[coh]||1;
@@ -11445,11 +11490,11 @@ function renderEnrollStats() {
         const req = findGradReq(coh);
         const pct = req ? Math.round(avgCum/req.total_min*100) : null;
         return `<tr style="border-bottom:1px solid var(--cr2)">
-          <td style="padding:5px 10px;text-align:center">${coh}級</td>
-          <td style="padding:5px 10px;text-align:center;color:var(--ink3)">${pop}</td>
-          <td style="padding:5px 10px;text-align:center;font-weight:600">${avgCum}</td>
-          <td style="padding:5px 10px;text-align:center">${req?req.total_min:'—'}</td>
-          <td style="padding:5px 10px;text-align:center;color:${pct==null?'var(--ink3)':pct>=100?'#1A6A30':pct>=60?'inherit':'#C0392B'}">${pct==null?'（無規定）':pct+'%'}</td>
+          <td style="padding:4px 12px;text-align:center">${coh}級</td>
+          <td style="padding:4px 12px;text-align:center;color:var(--ink3)">${pop}</td>
+          <td style="padding:4px 12px;text-align:center;font-weight:600">${avgCum}</td>
+          <td style="padding:4px 12px;text-align:center">${req?req.total_min:'—'}</td>
+          <td style="padding:4px 12px;text-align:center;color:${pct==null?'var(--ink3)':pct>=100?'#1A6A30':pct>=60?'inherit':'#C0392B'}">${pct==null?'（無規定）':pct+'%'}</td>
         </tr>`;
       }).join('')}
     </tbody></table>`;
@@ -11462,16 +11507,16 @@ function renderEnrollStats() {
     Object.entries(b.axis).forEach(([ax, credits]) => { axisTotalByCohort[coh][ax] = (axisTotalByCohort[coh][ax]||0) + credits; });
   });
   const axisKeys = ['底蘊','對話','應用','未分類'];
-  const table4Html = `<table style="width:100%;font-size:12.5px;border-collapse:collapse">
+  const table4Html = `<table style="border-collapse:collapse;font-size:12px">
     <thead><tr style="background:var(--navy);color:#fff">
-      <th style="padding:6px 10px">屆別</th>${axisKeys.map(a=>`<th style="padding:6px 10px">${a}(平均學分)</th>`).join('')}
+      <th style="padding:5px 12px">屆別</th>${axisKeys.map(a=>`<th style="padding:5px 12px">${a}(平均學分)</th>`).join('')}
     </tr></thead><tbody>
       ${cohorts.map(coh => {
         const pop = cohortPop[coh]||1;
         const ax = axisTotalByCohort[coh]||{};
         return `<tr style="border-bottom:1px solid var(--cr2)">
-          <td style="padding:5px 10px;text-align:center">${coh}級</td>
-          ${axisKeys.map(a=>`<td style="padding:5px 10px;text-align:center">${fmt1((ax[a]||0)/pop)}</td>`).join('')}
+          <td style="padding:4px 12px;text-align:center">${coh}級</td>
+          ${axisKeys.map(a=>`<td style="padding:4px 12px;text-align:center">${fmt1((ax[a]||0)/pop)}</td>`).join('')}
         </tr>`;
       }).join('')}
     </tbody></table>`;
@@ -11505,7 +11550,7 @@ function renderEnrollStats() {
 // 簡易SVG折線圖：X軸=學期(依序)，Y軸=平均學分，每個屆別一條線
 // 性別差異長條圖：X軸=學期，每個學期兩根並排長條(男/女平均學分)，長條上方標數字
 function buildGenderBarChart(sems, cohort, bySemCohortGender, cohortGenderPop) {
-  const W = 700, H = 180, padL = 36, padR = 20, padT = 24, padB = 32;
+  const W = 700, H = 195, padL = 36, padR = 20, padT = 24, padB = 42;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const groupW = sems.length ? plotW / sems.length : plotW;
   const barW = Math.min(26, groupW * 0.32);
@@ -11513,11 +11558,11 @@ function buildGenderBarChart(sems, cohort, bySemCohortGender, cohortGenderPop) {
   const popM = cohortGenderPop[cohort+'|M'] || 0;
   const popF = cohortGenderPop[cohort+'|F'] || 0;
 
-  const values = sems.map(sem => {
+  const values = sems.map((sem,i) => {
     const bM = bySemCohortGender[sem.id+'|'+cohort+'|M'];
     const bF = bySemCohortGender[sem.id+'|'+cohort+'|F'];
     return {
-      label: sem.label,
+      relLabel: `第${i+1}學期`, calLabel: sem.label,
       m: popM ? Math.round((bM?bM.credits/popM:0)*10)/10 : null,
       f: popF ? Math.round((bF?bF.credits/popF:0)*10)/10 : null,
     };
@@ -11538,7 +11583,8 @@ function buildGenderBarChart(sems, cohort, bySemCohortGender, cohortGenderPop) {
       svg += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${genderColor.F}"/>`;
       svg += `<text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="10" fill="${genderColor.F}" font-weight="600">${v.f}</text>`;
     }
-    svg += `<text x="${groupCx}" y="${H-padB+14}" text-anchor="middle" font-size="9.5" fill="#999">${v.label}</text>`;
+    svg += `<text x="${groupCx}" y="${H-padB+14}" text-anchor="middle" font-size="9.5" fill="#666" font-weight="600">${v.relLabel}</text>`;
+    svg += `<text x="${groupCx}" y="${H-padB+25}" text-anchor="middle" font-size="8" fill="#BBB">${v.calLabel}</text>`;
   });
   svg += `<line x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}" stroke="#ccc" stroke-width="1"/>`;
   svg += '</svg>';
@@ -11608,34 +11654,43 @@ async function exportEnrollStatsExcel() {
       document.head.appendChild(s);
     });
   }
-  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, findGradReq } = _esData;
+  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
   const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
   const GENDER_ZH = { M:'男', F:'女', O:'其他', '?':'未填' };
   const fmt1 = n => Math.round(n*10)/10;
   const today = new Date();
-  const isRelevantSemCohort = (sem, coh) => sem.academic_year >= coh && new Date(sem.start_date) <= today;
+  const isRelevantSemCohort = (sem, coh) => {
+    const firstOrder = cohortFirstSemOrder[coh];
+    if (firstOrder == null) return false;
+    return semOrderMap[sem.id] >= firstOrder && new Date(sem.start_date) <= today;
+  };
+  const activeSemsSorted = sems.filter(sem => new Date(sem.start_date) <= today).sort((a,b)=>semOrderMap[a.id]-semOrderMap[b.id]);
 
   const wb = XLSX.utils.book_new();
 
-  // 工作表1：依學期×屆別摘要（排除還沒入學/還沒開始的組合，理由同畫面渲染邏輯的註解）
-  const sheet1 = [['學期','屆別','屆別人數','平均科目數','平均學分','平均必修學分','平均選修學分','未選課人數']];
+  // 工作表1：依學期×屆別摘要（排除還沒入學/還沒開始的組合，理由同畫面渲染邏輯的註解；加上相對學期欄位，方便對齊不同屆別的第幾學期）
+  const sheet1 = [['學期','相對學期(第幾學期)','屆別','屆別人數','平均科目數','平均學分','平均必修學分','平均選修學分','未選課人數']];
   sems.forEach(sem => cohorts.forEach(coh => {
     if (!isRelevantSemCohort(sem, coh)) return;
+    const firstOrder = cohortFirstSemOrder[coh];
+    const relIdx = activeSemsSorted.filter(s => semOrderMap[s.id] >= firstOrder && semOrderMap[s.id] <= semOrderMap[sem.id]).length;
     const b = bySemCohort[sem.id+'|'+coh];
     const pop = cohortPop[coh]||1;
-    sheet1.push([sem.label, coh+'級', pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0, b?fmt1(b.req/pop):0, b?fmt1(b.sel/pop):0, pop-(b?b.students.size:0)]);
+    sheet1.push([sem.label, '第'+relIdx+'學期', coh+'級', pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0, b?fmt1(b.req/pop):0, b?fmt1(b.sel/pop):0, pop-(b?b.students.size:0)]);
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet1), '依學期屆別摘要');
 
-  // 工作表2：性別差異
-  const sheet2 = [['學期','屆別','性別','人數','平均科目數','平均學分']];
+  // 工作表2：性別差異（加上相對學期欄位）
+  const sheet2 = [['學期','相對學期(第幾學期)','屆別','性別','人數','平均科目數','平均學分']];
   sems.forEach(sem => cohorts.forEach(coh => {
     if (!isRelevantSemCohort(sem, coh)) return;
+    const firstOrder = cohortFirstSemOrder[coh];
+    const relIdx = activeSemsSorted.filter(s => semOrderMap[s.id] >= firstOrder && semOrderMap[s.id] <= semOrderMap[sem.id]).length;
     ['M','F'].forEach(g => {
       const pop = cohortGenderPop[coh+'|'+g];
       if (!pop) return;
       const b = bySemCohortGender[sem.id+'|'+coh+'|'+g];
-      sheet2.push([sem.label, coh+'級', GENDER_ZH[g], pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0]);
+      sheet2.push([sem.label, '第'+relIdx+'學期', coh+'級', GENDER_ZH[g], pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0]);
     });
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet2), '性別差異');
