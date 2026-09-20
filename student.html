@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.9 2026-09-18 -->
+<!-- BWBC Student v3.10 2026-09-20 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -242,7 +242,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')">⚖️ 相關法規查詢</div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.9　2026-09-18</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.10　2026-09-20</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -620,19 +620,25 @@ function resolveReqType(baseReqType, overrides, cohort) {
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
   {
-    version: 'v3.9', date: '2026-09-18',
+    version: 'v3.10', date: '2026-09-20',
+    items: [
+      '修正版本紀錄裡v3.6~v3.8這3筆的日期標籤誤植為2026-09-18，實際應為2026-09-20(跟v3.9同一批)，這次一併修正，純粹是紀錄文字修正，沒有功能異動',
+    ]
+  },
+  {
+    version: 'v3.9', date: '2026-09-20',
     items: [
       '修正遺漏：「申請類別」(簡易審查/一般審查/免除審查)之前只有「文件清單模式」(中正大學)才有，「狀態追蹤模式」(高雄總醫院)完全沒有這個選擇。改成不管哪個審查單位、哪種運作模式，選完審查單位後都要先選申請類別，才會往下顯示對應的準備事項',
     ]
   },
   {
-    version: 'v3.8', date: '2026-09-18',
+    version: 'v3.8', date: '2026-09-20',
     items: [
       '修正「學倫審查文件準備」上方固定介紹文字：原本寫死「本校採用中正大學人類研究倫理審查委員會之學倫審查機制」，這句話在支援多個審查單位後已經不正確，改成不限定特定單位的通用說法',
     ]
   },
   {
-    version: 'v3.7', date: '2026-09-18',
+    version: 'v3.7', date: '2026-09-20',
     items: [
       '學倫審查文件準備重新設計：審查單位改成動態從新的ethics_review_channels表讀取，不再寫死在程式碼裡，之後admin要新增新的審查單位不用再麻煩改程式',
       '審查單位可以設定「點選後要先看到的提示文字」，選擇該單位時會先跳出提示讓學生確認',
@@ -640,7 +646,7 @@ const APP_CHANGELOG_S = [
     ]
   },
   {
-    version: 'v3.6', date: '2026-09-18',
+    version: 'v3.6', date: '2026-09-20',
     items: [
       '已選課重選邏輯修正：加選時原本只要「課名完全相同」就一律擋住，不管那次是及格還是不及格，這次改成如果之前那次是不及格，允許重修(不擋)，不及格記錄會存進director_note供admin查核；已經通過的課仍然正常擋住不能重選',
       '歷年已選課程/畢業學分累計：如果同一門課後來重修通過了，舊的不及格記錄改成不顯示、不計入學分累計(避免跟後來重修通過那筆重複計算兩次學分)，只保留通過那次；還沒重修通過的不及格記錄，仍正常顯示(才知道自己需要重修)。這個隱藏只影響學生自己看的畫面，admin後台(成績彙總/成績登錄)不受影響，仍看得到全部記錄',
