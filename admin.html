@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.39 2026-09-17 -->
+<!-- BWBC Admin v10.40 2026-09-18 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -387,7 +387,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.39　2026-09-17</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.40　2026-09-18</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -1297,6 +1297,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <button class="btn" id="th-tab-pending-btn" onclick="thSwitchView('pending')" style="background:var(--gold);color:#fff">⏳ 待審核 <span id="th-pending-count">0</span></button>
             <button class="btn btn-pri" id="th-tab-all-btn" onclick="thSwitchView('all')">📋 論文進度總覽</button>
             <button class="btn" id="th-tab-events-btn" onclick="thSwitchView('events')">🎤 發表會管理</button>
+            <button class="btn" id="th-tab-ethics-btn" onclick="thSwitchView('ethics')">📦 學倫審查設定</button>
           </div>
           <div style="margin-left:auto;display:flex;gap:6px" id="thesis-progress-toolbar">
             <button class="btn btn-sec" onclick="openThesisExportModal()">📤 匯出</button>
@@ -1307,6 +1308,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div style="text-align:center;padding:60px;color:var(--ink3)">載入中…</div>
         </div>
         <div id="thesis-events-wrap" style="display:none"></div>
+        <div id="thesis-ethics-wrap" style="display:none"></div>
       </div>
 
       <!-- ▌教學意見調查 ▌ -->
@@ -10604,6 +10606,12 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.40', date: '2026-09-18',
+    items: [
+      '新增「學倫審查設定」管理介面（畢業論文與發表會管理頁面第4個分頁）：①審查單位管理，可新增/編輯/啟用停用審查單位，設定運作模式(文件清單模式/狀態追蹤模式)跟點選提示文字，之後要加新單位不用再改程式碼；②文件項目管理，依單位篩選，管理各單位底下的必要/選繳文件清單，過去這部分完全沒有管理介面、只能改資料庫，這次補上完整的新增/編輯/刪除功能',
+    ]
+  },
+  {
     version: 'v10.39', date: '2026-09-17',
     items: [
       '性別差異長條圖的X軸也改成「相對學期」(第1學期/第2學期...)，之前只有矩陣摘要表改了，長條圖漏掉忘記一起改，這次補上，跟矩陣表統一對齊邏輯。每個長條下方保留兩行標籤：上面是相對學期(第N學期)、下面小字是對應到的實際日曆學期。Excel性別差異工作表也同步加上相對學期欄位',
@@ -18532,19 +18540,232 @@ async function schExportExcel() {
   XLSX.writeFile(wb, `${period.semesters.label}${type.name}推薦彙總表.xlsx`);
 }
 
+/* ════════════════════════════════════════════════════════════════════
+ * 📦 學倫審查設定管理（審查單位 + 文件項目）
+ * ════════════════════════════════════════════════════════════════════ */
+let _ethicsChannels = [];
+let _ethicsItemsChannelCode = null; // 目前正在管理文件項目的單位代碼
+
+async function renderEthicsAdminHome() {
+  const wrap = document.getElementById('thesis-ethics-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3)">載入中…</div>';
+  const { data: channels } = await sb.from('ethics_review_channels').select('*').order('sort_order');
+  _ethicsChannels = channels || [];
+
+  wrap.innerHTML = `
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:600;color:var(--navy)">🏛 審查單位管理</div>
+        <button class="btn btn-sm btn-pri" onclick="openChannelModal()">＋ 新增審查單位</button>
+      </div>
+      <div id="ethics-channels-table"></div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:14px;font-weight:600;color:var(--navy)">📄 文件項目管理（僅「文件清單模式」的單位需要）</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="ethics-items-channel-sel" class="fselect" onchange="selectItemsChannel(this.value)"></select>
+          <button class="btn btn-sm btn-pri" onclick="openItemModal()">＋ 新增文件項目</button>
+        </div>
+      </div>
+      <div id="ethics-items-table"></div>
+    </div>`;
+
+  renderEthicsChannelsTable();
+
+  const sel = document.getElementById('ethics-items-channel-sel');
+  const checklistChannels = _ethicsChannels.filter(c=>c.ui_mode==='checklist');
+  sel.innerHTML = checklistChannels.length
+    ? checklistChannels.map(c=>`<option value="${c.code}">${esc(c.name_zh)}</option>`).join('')
+    : '<option value="">（目前沒有文件清單模式的單位）</option>';
+  _ethicsItemsChannelCode = checklistChannels[0]?.code || null;
+  if (_ethicsItemsChannelCode) renderEthicsItemsTable();
+}
+
+function renderEthicsChannelsTable() {
+  const wrap = document.getElementById('ethics-channels-table');
+  if (!_ethicsChannels.length) { wrap.innerHTML = '<div style="color:var(--ink3);padding:16px;text-align:center">尚未設定任何審查單位</div>'; return; }
+  const MODE_LABEL = { checklist:'📋 文件清單模式', status_only:'📍 狀態追蹤模式' };
+  wrap.innerHTML = `<table style="width:100%;font-size:12.5px;border-collapse:collapse">
+    <thead><tr style="background:var(--navy);color:#fff">
+      <th style="padding:6px 10px">排序</th><th style="padding:6px 10px;text-align:left">名稱</th>
+      <th style="padding:6px 10px">模式</th><th style="padding:6px 10px">提示文字</th>
+      <th style="padding:6px 10px">狀態</th><th style="padding:6px 10px">操作</th>
+    </tr></thead><tbody>
+      ${_ethicsChannels.map(c=>`<tr style="border-bottom:1px solid var(--cr2)">
+        <td style="padding:5px 10px;text-align:center">${c.sort_order}</td>
+        <td style="padding:5px 10px">${esc(c.name_zh)}<div style="font-size:10px;color:var(--ink3)">${esc(c.code)}</div></td>
+        <td style="padding:5px 10px;text-align:center;font-size:11px">${MODE_LABEL[c.ui_mode]||c.ui_mode}</td>
+        <td style="padding:5px 10px;font-size:11px;color:var(--ink3);max-width:220px">${c.notice_text?esc(c.notice_text).slice(0,30)+(c.notice_text.length>30?'…':''):'—'}</td>
+        <td style="padding:5px 10px;text-align:center">
+          <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${c.is_active?'#EAF4EE':'#F0F0F0'};color:${c.is_active?'#1F5C3A':'#888'}">${c.is_active?'啟用':'停用'}</span>
+        </td>
+        <td style="padding:5px 10px;text-align:center;white-space:nowrap">
+          <button class="btn btn-sm" onclick="openChannelModal('${c.id}')">✏️編輯</button>
+          <button class="btn btn-sm" onclick="toggleChannelActive('${c.id}',${!c.is_active})">${c.is_active?'停用':'啟用'}</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function openChannelModal(id) {
+  const c = id ? _ethicsChannels.find(x=>x.id===id) : null;
+  const bodyHtml = `
+    <input type="hidden" id="ch-id" value="${id||''}">
+    <div class="frow"><label class="flabel">代碼 *（英數字，儲存後不可改，用來對應文件項目）</label>
+      <input class="finput" id="ch-code" value="${c?.code||''}" ${c?'disabled':''} placeholder="例：ccu"></div>
+    <div class="frow"><label class="flabel">正式名稱 *</label>
+      <input class="finput" id="ch-name" value="${c?.name_zh||''}" placeholder="例：國立中正大學人類研究倫理審查委員會"></div>
+    <div class="frow"><label class="flabel">運作模式 *</label>
+      <select class="fselect" id="ch-mode" style="width:100%">
+        <option value="checklist" ${c?.ui_mode!=='status_only'?'selected':''}>📋 文件清單模式（學生上傳文件、打包ZIP）</option>
+        <option value="status_only" ${c?.ui_mode==='status_only'?'selected':''}>📍 狀態追蹤模式（學生只標記申請中/通過/補件中/未通過）</option>
+      </select></div>
+    <div class="frow"><label class="flabel">點選後提示文字（選填，學生選擇這個單位時會先跳出確認）</label>
+      <textarea class="finput" id="ch-notice" rows="3">${c?.notice_text||''}</textarea></div>
+    <div class="frow"><label class="flabel">排序（數字小的排前面）</label>
+      <input class="finput" id="ch-sort" type="number" value="${c?.sort_order??0}"></div>
+    <button class="btn btn-pri" style="width:100%" onclick="saveChannel()">${id?'儲存變更':'新增單位'}</button>`;
+  openThModal(id?'編輯審查單位':'新增審查單位', bodyHtml);
+}
+
+async function saveChannel() {
+  const id = document.getElementById('ch-id').value;
+  const code = document.getElementById('ch-code').value.trim();
+  const name_zh = document.getElementById('ch-name').value.trim();
+  const ui_mode = document.getElementById('ch-mode').value;
+  const notice_text = document.getElementById('ch-notice').value.trim() || null;
+  const sort_order = Number(document.getElementById('ch-sort').value) || 0;
+  if (!code || !name_zh) { showToast('請填寫代碼與名稱','error'); return; }
+
+  let error;
+  if (id) {
+    ({ error } = await sb.from('ethics_review_channels').update({ name_zh, ui_mode, notice_text, sort_order }).eq('id', id));
+  } else {
+    ({ error } = await sb.from('ethics_review_channels').insert({ code, name_zh, ui_mode, notice_text, sort_order }));
+  }
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  closeThModal();
+  showToast('✅ 已儲存');
+  renderEthicsAdminHome();
+}
+
+async function toggleChannelActive(id, newActive) {
+  const { error } = await sb.from('ethics_review_channels').update({ is_active: newActive }).eq('id', id);
+  if (error) { showToast('操作失敗：'+error.message,'error'); return; }
+  showToast(newActive?'✅ 已啟用':'已停用');
+  renderEthicsAdminHome();
+}
+
+async function selectItemsChannel(code) {
+  _ethicsItemsChannelCode = code || null;
+  renderEthicsItemsTable();
+}
+
+let _ethicsItems = [];
+async function renderEthicsItemsTable() {
+  const wrap = document.getElementById('ethics-items-table');
+  if (!_ethicsItemsChannelCode) { wrap.innerHTML = '<div style="color:var(--ink3);padding:16px;text-align:center">請先在上方新增一個「文件清單模式」的審查單位</div>'; return; }
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:16px;text-align:center">載入中…</div>';
+  const { data } = await sb.from('ethics_review_items').select('*').eq('channel', _ethicsItemsChannelCode).order('sort_general_simple');
+  _ethicsItems = data || [];
+  if (!_ethicsItems.length) { wrap.innerHTML = '<div style="color:var(--ink3);padding:16px;text-align:center">這個單位還沒有設定任何文件項目</div>'; return; }
+  wrap.innerHTML = `<table style="width:100%;font-size:12.5px;border-collapse:collapse">
+    <thead><tr style="background:var(--navy);color:#fff">
+      <th style="padding:6px 10px;text-align:left">項目名稱</th><th style="padding:6px 10px">一般/簡易審查</th>
+      <th style="padding:6px 10px">免除審查</th><th style="padding:6px 10px">狀態</th><th style="padding:6px 10px">操作</th>
+    </tr></thead><tbody>
+      ${_ethicsItems.map(it=>`<tr style="border-bottom:1px solid var(--cr2)">
+        <td style="padding:5px 10px">${esc(it.name_zh)}${it.file_hint?`<div style="font-size:10px;color:var(--ink3)">（${esc(it.file_hint)}）</div>`:''}</td>
+        <td style="padding:5px 10px;text-align:center">${it.applies_general_simple?(it.required_general_simple?'必要':'選繳'):'—'}</td>
+        <td style="padding:5px 10px;text-align:center">${it.applies_exempt?(it.required_exempt?'必要':'選繳'):'—'}</td>
+        <td style="padding:5px 10px;text-align:center"><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${it.active?'#EAF4EE':'#F0F0F0'};color:${it.active?'#1F5C3A':'#888'}">${it.active?'啟用':'停用'}</span></td>
+        <td style="padding:5px 10px;text-align:center;white-space:nowrap">
+          <button class="btn btn-sm" onclick="openItemModal('${it.id}')">✏️編輯</button>
+          <button class="btn btn-sm" onclick="deleteEthicsItem('${it.id}')" style="color:#C0392B;border-color:#C0392B">🗑刪除</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function openItemModal(id) {
+  const it = id ? _ethicsItems.find(x=>x.id===id) : null;
+  if (!id && !_ethicsItemsChannelCode) { showToast('請先選擇一個文件清單模式的審查單位','error'); return; }
+  const bodyHtml = `
+    <input type="hidden" id="it-id" value="${id||''}">
+    <div class="frow"><label class="flabel">項目名稱 *</label>
+      <input class="finput" id="it-name" value="${it?.name_zh||''}" placeholder="例：研究計畫書"></div>
+    <div class="frow"><label class="flabel">檔案格式提示（選填）</label>
+      <input class="finput" id="it-hint" value="${it?.file_hint||''}" placeholder="例：PDF格式"></div>
+    <div class="frow"><label class="flabel">備註說明（選填）</label>
+      <textarea class="finput" id="it-notes" rows="2">${it?.notes||''}</textarea></div>
+    <div class="frow-2">
+      <div>
+        <label class="flabel"><input type="checkbox" id="it-applies-gs" ${it?.applies_general_simple!==false?'checked':''}> 適用一般/簡易審查</label>
+        <label class="flabel" style="margin-top:6px;display:block"><input type="checkbox" id="it-req-gs" ${it?.required_general_simple?'checked':''}> 該情境下為必要文件</label>
+        <input class="finput" id="it-sort-gs" type="number" value="${it?.sort_general_simple??0}" placeholder="排序" style="margin-top:6px">
+      </div>
+      <div>
+        <label class="flabel"><input type="checkbox" id="it-applies-ex" ${it?.applies_exempt?'checked':''}> 適用免除審查</label>
+        <label class="flabel" style="margin-top:6px;display:block"><input type="checkbox" id="it-req-ex" ${it?.required_exempt?'checked':''}> 該情境下為必要文件</label>
+        <input class="finput" id="it-sort-ex" type="number" value="${it?.sort_exempt??0}" placeholder="排序" style="margin-top:6px">
+      </div>
+    </div>
+    <div class="frow"><label class="flabel"><input type="checkbox" id="it-active" ${it?.active!==false?'checked':''}> 啟用（停用後學生端不會看到這個項目，但已上傳的檔案仍保留）</label></div>
+    <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="saveEthicsItem()">${id?'儲存變更':'新增項目'}</button>`;
+  openThModal(id?'編輯文件項目':'新增文件項目', bodyHtml);
+}
+
+async function saveEthicsItem() {
+  const id = document.getElementById('it-id').value;
+  const name_zh = document.getElementById('it-name').value.trim();
+  if (!name_zh) { showToast('請填寫項目名稱','error'); return; }
+  const payload = {
+    channel: _ethicsItemsChannelCode,
+    name_zh,
+    file_hint: document.getElementById('it-hint').value.trim() || null,
+    notes: document.getElementById('it-notes').value.trim() || null,
+    applies_general_simple: document.getElementById('it-applies-gs').checked,
+    required_general_simple: document.getElementById('it-req-gs').checked,
+    sort_general_simple: Number(document.getElementById('it-sort-gs').value) || 0,
+    applies_exempt: document.getElementById('it-applies-ex').checked,
+    required_exempt: document.getElementById('it-req-ex').checked,
+    sort_exempt: Number(document.getElementById('it-sort-ex').value) || 0,
+    active: document.getElementById('it-active').checked,
+  };
+  let error;
+  if (id) ({ error } = await sb.from('ethics_review_items').update(payload).eq('id', id));
+  else ({ error } = await sb.from('ethics_review_items').insert(payload));
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  closeThModal();
+  showToast('✅ 已儲存');
+  renderEthicsItemsTable();
+}
+
+async function deleteEthicsItem(id) {
+  if (!confirm('確定要刪除這個文件項目嗎？學生已經上傳的檔案不會被刪除，但之後不會再顯示這個項目。建議改用「停用」而不是刪除，比較不會影響歷史資料的完整性。')) return;
+  const { error } = await sb.from('ethics_review_items').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  showToast('✅ 已刪除');
+  renderEthicsItemsTable();
+}
+
 function thSwitchView(view) {
   TH_VIEW = view;
   const pBtn = document.getElementById('th-tab-pending-btn');
   const aBtn = document.getElementById('th-tab-all-btn');
   const eBtn = document.getElementById('th-tab-events-btn');
-  [pBtn,aBtn,eBtn].forEach(b=>b.classList.remove('btn-pri'));
-  (view==='pending'?pBtn:view==='all'?aBtn:eBtn).classList.add('btn-pri');
-  document.getElementById('thesis-admin-wrap').style.display = view==='events' ? 'none' : '';
+  const thBtn = document.getElementById('th-tab-ethics-btn');
+  [pBtn,aBtn,eBtn,thBtn].forEach(b=>b.classList.remove('btn-pri'));
+  (view==='pending'?pBtn:view==='all'?aBtn:view==='events'?eBtn:thBtn).classList.add('btn-pri');
+  document.getElementById('thesis-admin-wrap').style.display = (view==='events'||view==='ethics') ? 'none' : '';
   document.getElementById('thesis-events-wrap').style.display = view==='events' ? '' : 'none';
-  document.getElementById('thesis-progress-toolbar').style.display = view==='events' ? 'none' : '';
+  document.getElementById('thesis-ethics-wrap').style.display = view==='ethics' ? '' : 'none';
+  document.getElementById('thesis-progress-toolbar').style.display = (view==='events'||view==='ethics') ? 'none' : '';
   if (view==='pending') renderThesisPending();
   else if (view==='all') renderThesisAll();
-  else renderPresentationHome();
+  else if (view==='events') renderPresentationHome();
+  else renderEthicsAdminHome();
 }
 
 /* ── 待審核列表 ── */

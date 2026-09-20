@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.1 2026-08-15 -->
+<!-- BWBC Student v3.9 2026-09-18 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -236,14 +236,13 @@ input{font-family:inherit}
       <div class="side-item" id="nav-select" onclick="showSection('select')">📚 選課</div>
       <div class="side-item" id="nav-ta-apply" onclick="showSection('ta-apply')">🙋 TA申請</div>
       <div class="side-item" id="nav-attendance" onclick="showSection('attendance')" style="display:none">📋 課堂點名</div>
-      <div class="side-item" id="nav-print-sheet" onclick="showSection('print-sheet')">🖨 選課單列印</div>
       <div class="side-item" id="nav-thesis" onclick="showSection('thesis')">📝 畢業論文</div>
       <div class="side-item" id="nav-survey" onclick="showSection('survey')">📋 意見調查</div>
       <div class="side-item" id="nav-forms" onclick="showSection('forms')">📄 常用表單</div>
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')">⚖️ 相關法規查詢</div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.1　2026-08-15</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.9　2026-09-18</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -339,6 +338,7 @@ input{font-family:inherit}
     <div class="tabs">
       <button class="tab on" onclick="switchTab('select',this)">📚 選課</button>
       <button class="tab" onclick="switchTab('enrolled',this)" id="tab-enrolled-btn">✅ 本學期已選課程</button>
+      <button class="tab" onclick="switchTab('print-sheet',this)">🖨 選課單列印</button>
       <button class="tab" onclick="switchTab('history',this)">📖 歷年已選課程</button>
       
     </div>
@@ -393,6 +393,15 @@ input{font-family:inherit}
       </div>
     </div>
 
+    <!-- ── 選課單列印 ── -->
+    <div id="tab-print-sheet" class="page">
+      <div class="section-title">🖨 選課單列印</div>
+      <div id="print-sheet-lock-notice" style="display:none;background:#FFF3E0;border:1px solid #C4960A;border-radius:8px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:#5A4400"></div>
+      <div id="print-sheet-wrap">
+        <div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>
+      </div>
+    </div>
+
     <!-- ── 歷年已選課程 ── -->
     <div id="tab-history" class="page">
       <div class="section-title">歷年已選課程</div>
@@ -415,7 +424,7 @@ input{font-family:inherit}
         <!-- 學倫審查文件準備（獨立功能，不影響上面的論文階段進度） -->
         <div class="section-title" style="margin-top:24px">📦 學倫審查文件準備</div>
         <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">
-          本校採用中正大學人類研究倫理審查委員會之學倫審查機制。此區塊協助您在正式送件前，把中正大學要求的文件依項次備齊，最後打包成ZIP自行下載送件。<b>這裡的準備進度不會影響上方論文階段——真正的審查結果仍由行政人員確認後手動更新。</b>
+          請先選擇這次要送審的審查單位，系統會依該單位的要求顯示對應的準備事項（部分單位是文件清單上傳、部分單位是簡單的進度狀態追蹤）。<b>這裡的準備進度不會影響上方論文階段——真正的審查結果仍由行政人員確認後手動更新。</b>
         </div>
         <div id="ethics-review-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
@@ -445,15 +454,6 @@ input{font-family:inherit}
           <select id="ta-apply-semester" class="fselect" style="width:160px" onchange="loadTaApplySection()"></select>
         </div>
         <div id="ta-apply-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
-      </div>
-
-      <!-- ── 選課單列印 ── -->
-      <div id="sec-print-sheet" class="t-section">
-        <div class="section-title">🖨 選課單列印</div>
-        <div id="print-sheet-lock-notice" style="display:none;background:#FFF3E0;border:1px solid #C4960A;border-radius:8px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:#5A4400"></div>
-        <div id="print-sheet-wrap">
-          <div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>
-        </div>
       </div>
 
       <!-- ── 課堂點名 ── -->
@@ -619,6 +619,58 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.9', date: '2026-09-18',
+    items: [
+      '修正遺漏：「申請類別」(簡易審查/一般審查/免除審查)之前只有「文件清單模式」(中正大學)才有，「狀態追蹤模式」(高雄總醫院)完全沒有這個選擇。改成不管哪個審查單位、哪種運作模式，選完審查單位後都要先選申請類別，才會往下顯示對應的準備事項',
+    ]
+  },
+  {
+    version: 'v3.8', date: '2026-09-18',
+    items: [
+      '修正「學倫審查文件準備」上方固定介紹文字：原本寫死「本校採用中正大學人類研究倫理審查委員會之學倫審查機制」，這句話在支援多個審查單位後已經不正確，改成不限定特定單位的通用說法',
+    ]
+  },
+  {
+    version: 'v3.7', date: '2026-09-18',
+    items: [
+      '學倫審查文件準備重新設計：審查單位改成動態從新的ethics_review_channels表讀取，不再寫死在程式碼裡，之後admin要新增新的審查單位不用再麻煩改程式',
+      '審查單位可以設定「點選後要先看到的提示文字」，選擇該單位時會先跳出提示讓學生確認',
+      '新增「狀態追蹤模式」(ui_mode=\'status_only\')：適用不需要文件清單上傳的單位(例如國軍高雄總醫院)，改成簡單的①標記為申請中②更新申請結果(通過/補件中/未通過)，全部由學生自行選擇更新。原本的文件清單上傳模式(中正大學)維持不變',
+    ]
+  },
+  {
+    version: 'v3.6', date: '2026-09-18',
+    items: [
+      '已選課重選邏輯修正：加選時原本只要「課名完全相同」就一律擋住，不管那次是及格還是不及格，這次改成如果之前那次是不及格，允許重修(不擋)，不及格記錄會存進director_note供admin查核；已經通過的課仍然正常擋住不能重選',
+      '歷年已選課程/畢業學分累計：如果同一門課後來重修通過了，舊的不及格記錄改成不顯示、不計入學分累計(避免跟後來重修通過那筆重複計算兩次學分)，只保留通過那次；還沒重修通過的不及格記錄，仍正常顯示(才知道自己需要重修)。這個隱藏只影響學生自己看的畫面，admin後台(成績彙總/成績登錄)不受影響，仍看得到全部記錄',
+      '過程中發現並修正一個關鍵bug：原本用「課程層級」判斷是否不及格(getFailedCourseIds)，但同一門課如果有一筆不及格、一筆後來重修通過，兩筆的course_id相同，用課程層級會誤判成「兩筆都不及格」或「兩筆都通過」，導致明明已經修過及格的課還是能再選一次。改成新增「開課記錄層級」的判斷(getFailedOfferingIds)，才能正確分辨「這一筆具體記錄」本身是不是不及格。已用模擬資料驗證修正前後的差異',
+    ]
+  },
+  {
+    version: 'v3.5', date: '2026-09-17',
+    items: [
+      '修正TA申請頁面：已停開的課程(is_cancelled=true)原本還會出現在可申請TA的科目清單裡，原本的查詢只檢查is_active=true，沒有一併檢查is_cancelled',
+    ]
+  },
+  {
+    version: 'v3.4', date: '2026-09-17',
+    items: [
+      '選課單列印的開放時間邏輯改變：原本要等「加退選截止」才開放，改成依「註冊日」往前推7天就開放列印(不用等到加退選截止)，讓學生能提早提供選課單方便系所作業',
+    ]
+  },
+  {
+    version: 'v3.3', date: '2026-09-17',
+    items: [
+      '「選課單列印」從左側獨立選單移到「選課」裡面，變成第3個分頁：📚選課 → ✅本學期已選課程 → 🖨選課單列印 → 📖歷年已選課程，這樣的順序符合「這學期的行動流程」，列印完再往後查歷年記錄',
+    ]
+  },
+  {
+    version: 'v3.2', date: '2026-09-13',
+    items: [
+      '修正嚴重bug：課程被admin停用(courses.active=false)或開課記錄被停開(is_cancelled=true)後，「本學期可選課程」畫面沒有排除，學生還是能正常加選到已停開的課程。這次加上兩層防護：畫面卡片列表排除、加選動作寫入資料庫前再次確認，雙重確保停開的課真的選不到',
+    ]
+  },
   {
     version: 'v3.1', date: '2026-08-15',
     items: [
@@ -1349,11 +1401,21 @@ async function loadGraduationProgress() {
     const g = co.group_id ? groupLookup[co.group_id] : null;
     if (!c) return;
     courseMap[co.id] = {
+      course_id:           co.course_id,
       req_type:            resolveReqType(c.req_type, co.req_type_overrides, ME.cohort),
       credits:             c.credits,
       group_name:          g?.name || null,
       group_required_count: g?.required_count || null,
     };
+  });
+
+  // 排除「被重修取代」的舊不及格學分：如果同一門課後來有一筆confirmed且非不及格的記錄(代表重修通過了)，
+  // 那筆不及格的舊記錄就不該再算進畢業學分累計裡，不然會跟後來重修通過那筆重複計算兩次學分
+  const failedOfferingIdsForGrad = await getFailedOfferingIds();
+  const passedCourseIdsForGrad = new Set();
+  allEnr.forEach(e => {
+    const c = courseMap[e.offering_id];
+    if (c && !failedOfferingIdsForGrad.has(e.offering_id)) passedCourseIdsForGrad.add(c.course_id);
   });
 
   // 判斷 CURRENT_SEM 的順序值
@@ -1371,6 +1433,8 @@ async function loadGraduationProgress() {
   allEnr.forEach(e=>{
     const c = courseMap[e.offering_id];
     if (!c) return;
+    const isSupersededFail = failedOfferingIdsForGrad.has(e.offering_id) && passedCourseIdsForGrad.has(c.course_id);
+    if (isSupersededFail) return; // 被重修取代的不及格記錄，不計入學分累計
     const credits = c.credits||0;
     if (!semData[e.semester_id]) return;
     if (c.req_type==='req') semData[e.semester_id].req+=credits;
@@ -1708,7 +1772,9 @@ async function loadAvailableCourses(showAllCohorts = false) {
   if (!showAllCohorts) {
     query = query.or(`target_cohort.eq.${ME.cohort},target_cohort.is.null`);
   }
-  const { data } = await query.order('axis_code').order('code');
+  const { data: rawData } = await query.order('axis_code').order('code');
+  // 排除已停用的課程(courses.active=false)、已停開的開課記錄(course_offerings.is_cancelled=true)，這兩種都不該讓學生選課
+  const data = (rawData||[]).filter(c => c.active !== false && !c.is_cancelled);
 
   // 取得教師
   const ids = (data||[]).map(c=>c.offering_id);
@@ -1801,8 +1867,15 @@ async function enrollCourse(offeringId, credits) {
 
   // 取出想加選課程資訊
   const { data:newCourse } = await sb.from('v_course_schedule')
-    .select('code,name_zh,day,start_time,end_time,week_pattern,credits,course_id')
+    .select('code,name_zh,day,start_time,end_time,week_pattern,credits,course_id,active,is_cancelled')
     .eq('offering_id', offeringId).single();
+
+  // 二層防護：就算畫面篩選沒生效(例如頁面沒重新整理、資料是舊的)，這裡寫入資料庫前還是要再擋一次
+  if (newCourse && (newCourse.active === false || newCourse.is_cancelled)) {
+    showToast('❌ 此課程已停開，無法加選，請重新整理頁面','error');
+    await loadAvailableCourses();
+    return;
+  }
 
   // ── 課程名稱重複檢查（跨所有學期歷史）──
   const { data:allEnrollments } = await sb.from('enrollments')
@@ -1810,12 +1883,14 @@ async function enrollCourse(offeringId, credits) {
     .eq('student_id', ME.id)
     .in('status', ['confirmed','withdrawn']);  // 含已修課與停修
 
+  const failedOfferingIdsForDup = await getFailedOfferingIds();
   let dupNote = null;
+  let retakeNote = null;
   if (allEnrollments?.length) {
     const histIds = allEnrollments.map(e=>e.offering_id).filter(id=>id!==offeringId);
     if (histIds.length) {
       const { data:histCourses } = await sb.from('v_course_schedule')
-        .select('offering_id,name_zh,semester_label').in('offering_id', histIds);
+        .select('offering_id,name_zh,semester_label,course_id').in('offering_id', histIds);
 
       // 去掉課名末尾的中文數字（一二三四五…）
       const stripNum = name => name.replace(/[一二三四五六七八九十百千]+$/,'').trim();
@@ -1823,7 +1898,11 @@ async function enrollCourse(offeringId, credits) {
 
       for (const hc of (histCourses||[])) {
         if (hc.name_zh === newCourse.name_zh) {
-          // 完全相同 → 擋住
+          // 完全相同名稱：如果「這一筆歷史記錄本身」是不及格，允許重修(不擋)；不是不及格的才真的擋住
+          if (failedOfferingIdsForDup.has(hc.offering_id)) {
+            retakeNote = `重修「${hc.name_zh}」（前次${hc.semester_label}不及格）`;
+            continue;
+          }
           showToast(`❌ 您已修過「${hc.name_zh}」（${hc.semester_label}），無法重複加選。`, 'error');
           return;
         }
@@ -1895,13 +1974,14 @@ async function enrollCourse(offeringId, credits) {
     .eq('semester_id', CURRENT_SEM_ID)
     .maybeSingle();
 
+  const noteToSave = dupNote || retakeNote || null;
   let error;
   if (existing) {
     ({ error } = await sb.from('enrollments').update({
       status: 'confirmed',
       drop_at: null,
       enrolled_at: new Date().toISOString(),
-      director_note: dupNote || existing.director_note || null
+      director_note: noteToSave || existing.director_note || null
     }).eq('id', existing.id));
   } else {
     ({ error } = await sb.from('enrollments').insert({
@@ -1910,13 +1990,13 @@ async function enrollCourse(offeringId, credits) {
       semester_id: CURRENT_SEM_ID,
       status:      'confirmed',
       over_credit_request: false,
-      director_note: dupNote || null,
+      director_note: noteToSave,
       enrolled_at: new Date().toISOString()
     }));
   }
 
   if (error) { showToast('加選失敗：'+error.message,'error'); return; }
-  showToast(dupNote ? '✅ 加選成功（已通知行政人員確認）' : '✅ 加選成功！');
+  showToast(dupNote ? '✅ 加選成功（已通知行政人員確認）' : retakeNote ? '✅ 加選成功（重修不及格課程）' : '✅ 加選成功！');
   await loadMyEnrollments();
   await loadAvailableCourses();
 }
@@ -1946,6 +2026,20 @@ async function getFailedCourseIds() {
     .eq('student_id', ME.id).eq('grade_type','academic').eq('status','submitted').eq('grade_label','不及格');
   _failedCourseIds = new Set((data||[]).map(r=>r.course_offerings?.course_id).filter(Boolean));
   return _failedCourseIds;
+}
+
+let _failedOfferingIds = null; // cache
+// 開課記錄層級(offering_id)的不及格判斷：跟上面課程層級的getFailedCourseIds不同，
+// 這個用來判斷「這一筆具體的選課記錄」本身是不是不及格，而不是「這門課曾經有沒有不及格過」，
+// 同一門課如果有一筆不及格、一筆後來重修通過，兩者的course_id相同但offering_id不同，
+// 需要用offering_id層級才能正確分辨哪一筆才是真正不及格的那次
+async function getFailedOfferingIds() {
+  if (_failedOfferingIds) return _failedOfferingIds;
+  const { data } = await sb.from('grade_entries')
+    .select('offering_id')
+    .eq('student_id', ME.id).eq('grade_type','academic').eq('status','submitted').eq('grade_label','不及格');
+  _failedOfferingIds = new Set((data||[]).map(r=>r.offering_id).filter(Boolean));
+  return _failedOfferingIds;
 }
 
 /* ════ RENDER ENROLLED ════ */
@@ -2168,6 +2262,7 @@ async function loadHistory() {
     if (!c) return;
     courseMap[o.id] = {
       offering_id:    o.id,
+      course_id:      o.course_id,
       code:           c.code,
       name_zh:        c.name_zh,
       credits:        c.credits,
@@ -2178,8 +2273,24 @@ async function loadHistory() {
     };
   });
 
-  const byTerm = {};
+  // 隱藏「被重修取代」的舊不及格記錄：如果同一門課(course_id)後來有一筆confirmed且非不及格的記錄，
+  // 代表已經重修通過，舊的不及格那筆在學生自己看的歷年已選課程/畢業進度不用再顯示(admin後台仍看得到，這裡只影響學生端畫面)
+  const failedOfferingIdsForHistory = await getFailedOfferingIds();
+  const passedCourseIds = new Set(); // 有任何一筆confirmed且「這一筆本身」不是不及格的course_id
   allEnr.forEach(e => {
+    const c = courseMap[e.offering_id];
+    if (!c) return;
+    if (e.status==='confirmed' && !failedOfferingIdsForHistory.has(e.offering_id)) passedCourseIds.add(c.course_id);
+  });
+  const visibleEnr = allEnr.filter(e => {
+    const c = courseMap[e.offering_id];
+    if (!c) return true;
+    const isThisFailed = e.status==='confirmed' && failedOfferingIdsForHistory.has(e.offering_id);
+    return !(isThisFailed && passedCourseIds.has(c.course_id)); // 這筆是不及格、且同課程已經有重修通過的記錄 → 隱藏
+  });
+
+  const byTerm = {};
+  visibleEnr.forEach(e => {
     const c = courseMap[e.offering_id];
     if (!c) return;
     const term = c.semester_label || '未知';
@@ -2293,17 +2404,19 @@ async function loadPrintSheetView() {
 
   if (!CURRENT_SEM_ID) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">查無現在學期資料</div>'; return; }
 
-  // 檢查加退選截止時間（行事曆系統項目 change_deadline）
+  // 檢查列印開放時間：改成依「註冊日」往前推7天當作開放起點(行事曆系統項目 registration_day)，
+  // 不用等到加退選截止，讓學生提早提供選課單方便系所作業
   const { data: ev } = await sb.from('semester_calendar_events')
-    .select('end_at').eq('semester_id', CURRENT_SEM_ID).eq('event_key', 'change_deadline').maybeSingle();
-  const deadline = ev?.end_at ? new Date(ev.end_at) : null;
+    .select('end_at').eq('semester_id', CURRENT_SEM_ID).eq('event_key', 'registration_day').maybeSingle();
+  const regDay = ev?.end_at ? new Date(ev.end_at) : null;
+  const openFrom = regDay ? new Date(regDay.getTime() - 7*24*60*60*1000) : null;
   const now = new Date();
-  const locked = deadline && now < deadline;
+  const locked = openFrom && now < openFrom;
 
   if (locked) {
-    const dt = new Date(ev.end_at).toLocaleString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+    const dt = openFrom.toLocaleString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
     noticeEl.style.display = '';
-    noticeEl.innerHTML = `🔒 加退選尚未截止（截止時間：${dt}），選課可能仍會變動，暫不開放列印。請於加退選截止後再回來列印選課單，以確保內容是最終版本。`;
+    noticeEl.innerHTML = `🔒 選課單列印尚未開放（開放時間：${dt}，即註冊日前一週），請屆時再回來列印。`;
     wrap.innerHTML = '';
     return;
   }
@@ -2441,7 +2554,6 @@ function showSection(id) {
   if (id === 'forms') loadFormsSection();
   if (id === 'regulations') loadRegulationsSectionS();
   if (id === 'ta-apply') loadTaApplySection();
-  if (id === 'print-sheet') loadPrintSheetView();
   if (id === 'attendance') loadAttendanceOfferings();
 }
 
@@ -2452,6 +2564,7 @@ function switchTab(id, btn) {
   const el = document.getElementById('tab-'+id);
   if (el) el.classList.add('on');
   if (id === 'history') loadHistory();
+  if (id === 'print-sheet') loadPrintSheetView();
   if (id === 'thesis') { showSection('thesis'); return; }
 }
 
@@ -2482,9 +2595,9 @@ let ETHICS_UPLOADS = {};   // item_id -> [upload rows]
 let ETHICS_REVIEW_TYPE = null;  // 'general' | 'simple' | 'exempt'
 const ETHICS_TYPE_LABEL = { general:'一般審查', simple:'簡易審查', exempt:'免除審查' };
 const ETHICS_TYPE_SHORT = { general:'一般', simple:'簡易', exempt:'免除' };
-const ETHICS_CHANNEL_LABEL = { ccu:'國立中正大學人類研究倫理審查委員會', kaohsiung_afgh:'國軍高雄總醫院人體試驗委員會' };
-const ETHICS_CHANNEL_AVAILABLE = { ccu:true, kaohsiung_afgh:false }; // 第二個單位資料還在蒐集中，尚未開放選擇
+let ETHICS_CHANNELS = []; // 動態從ethics_review_channels表讀取，取代原本寫死的ETHICS_CHANNEL_LABEL/ETHICS_CHANNEL_AVAILABLE
 let ETHICS_CHANNEL = null;
+let ETHICS_STATUS_ONLY_STATUS = null; // 'status_only'模式(例如高雄總醫院)專用的狀態值
 
 async function viewEthicsFile(storagePath, fileName) {
   const { data: signed, error } = await sb.storage.from('ethics-review').createSignedUrl(storagePath, 300);
@@ -2497,14 +2610,17 @@ async function loadEthicsReviewSection() {
   const wrap = document.getElementById('ethics-review-wrap');
   if (!wrap) return;
   try {
-    const [{ data: items }, { data: sel }, { data: uploads }] = await Promise.all([
+    const [{ data: channels }, { data: items }, { data: sel }, { data: uploads }] = await Promise.all([
+      sb.from('ethics_review_channels').select('*').eq('is_active', true).order('sort_order'),
       sb.from('ethics_review_items').select('*').eq('active', true),
-      sb.from('ethics_review_selection').select('review_type, channel').eq('student_id', ME.id).maybeSingle(),
+      sb.from('ethics_review_selection').select('review_type, channel, status_only_status').eq('student_id', ME.id).maybeSingle(),
       sb.from('ethics_review_uploads').select('*').eq('student_id', ME.id).order('uploaded_at')
     ]);
+    ETHICS_CHANNELS = channels || [];
     ETHICS_ITEMS = items || [];
     ETHICS_CHANNEL = sel?.channel || null;
     ETHICS_REVIEW_TYPE = sel?.review_type || null;
+    ETHICS_STATUS_ONLY_STATUS = sel?.status_only_status || null;
     ETHICS_UPLOADS = {};
     (uploads || []).forEach(u => { (ETHICS_UPLOADS[u.item_id] ||= []).push(u); });
     renderEthicsReviewUI();
@@ -2516,16 +2632,19 @@ async function loadEthicsReviewSection() {
 function renderEthicsReviewUI() {
   const wrap = document.getElementById('ethics-review-wrap');
 
-  // 第一步：選審查單位（尚未選過才會看到這一步）
+  // 第一步：選審查單位（尚未選過才會看到這一步），動態從資料庫讀取的ETHICS_CHANNELS
   if (!ETHICS_CHANNEL) {
+    if (!ETHICS_CHANNELS.length) {
+      wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px">目前尚未開放任何審查單位，請洽詢行政辦公室。</div>';
+      return;
+    }
     let html = `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">請先選擇這次要送審的審查單位，決定後其他準備項目會依此顯示。</div>
       <div style="display:flex;flex-direction:column;gap:10px">`;
-    Object.keys(ETHICS_CHANNEL_LABEL).forEach(ch => {
-      const available = ETHICS_CHANNEL_AVAILABLE[ch];
-      html += `<div onclick="${available ? `selectEthicsChannel('${ch}')` : ''}"
-        style="padding:14px 16px;border-radius:10px;border:1.5px solid var(--cr2);background:${available?'#fff':'var(--cr3)'};cursor:${available?'pointer':'not-allowed'};display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13.5px;color:${available?'var(--ink)':'var(--ink3)'}">${ETHICS_CHANNEL_LABEL[ch]}</span>
-        ${available ? '<span style="color:var(--navy);font-size:12px">選擇 →</span>' : '<span style="font-size:11px;color:var(--ink3);background:#fff;padding:2px 8px;border-radius:10px">籌備中，尚未開放</span>'}
+    ETHICS_CHANNELS.forEach(ch => {
+      html += `<div onclick="selectEthicsChannel('${ch.code}')"
+        style="padding:14px 16px;border-radius:10px;border:1.5px solid var(--cr2);background:#fff;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13.5px;color:var(--ink)">${ch.name_zh}</span>
+        <span style="color:var(--navy);font-size:12px">選擇 →</span>
       </div>`;
     });
     html += `</div>`;
@@ -2533,12 +2652,16 @@ function renderEthicsReviewUI() {
     return;
   }
 
+  const curChannel = ETHICS_CHANNELS.find(c => c.code === ETHICS_CHANNEL);
+  const channelName = curChannel?.name_zh || ETHICS_CHANNEL;
+
   // 已選過審查單位：頂部顯示目前選擇＋可以變更
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:8px 12px;background:var(--navy3);border-radius:8px">
-    <span style="font-size:12.5px;color:var(--navy)">審查單位：<b>${ETHICS_CHANNEL_LABEL[ETHICS_CHANNEL]}</b></span>
+    <span style="font-size:12.5px;color:var(--navy)">審查單位：<b>${channelName}</b></span>
     <a href="javascript:void(0)" onclick="changeEthicsChannel()" style="font-size:12px;color:var(--navy);text-decoration:underline">變更審查單位</a>
   </div>`;
 
+  // 申請類別：不管哪個審查單位、哪種運作模式，都要先選這個
   html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">`;
   ['general','simple','exempt'].forEach(t => {
     const active = ETHICS_REVIEW_TYPE === t;
@@ -2547,6 +2670,21 @@ function renderEthicsReviewUI() {
       ${active?'✓ ':''}${ETHICS_TYPE_LABEL[t]}</button>`;
   });
   html += `</div>`;
+
+  if (!ETHICS_REVIEW_TYPE) {
+    html += `<div style="color:var(--ink3);font-size:13px;padding:12px 0">請先選擇您這次要送審的審查類別，才會顯示對應的準備事項。若不確定屬於哪一種，請洽詢指導教授或行政。</div>`;
+    wrap.innerHTML = html;
+    return;
+  }
+
+  // status_only模式(例如高雄總醫院)：不用文件清單，只需要簡單的狀態追蹤
+  if (curChannel?.ui_mode === 'status_only') {
+    html += renderEthicsStatusOnlyUI();
+    wrap.innerHTML = html;
+    return;
+  }
+
+  // checklist模式(例如中正大學)：維持原本的文件清單上傳流程
 
   if (!ETHICS_REVIEW_TYPE) {
     html += `<div style="color:var(--ink3);font-size:13px;padding:12px 0">請先選擇您這次要送審的審查類別，才會顯示對應的文件清單。若不確定屬於哪一種，請洽詢指導教授或行政。</div>`;
@@ -2603,6 +2741,10 @@ function renderEthicsReviewUI() {
 }
 
 async function selectEthicsChannel(channel) {
+  const ch = ETHICS_CHANNELS.find(c => c.code === channel);
+  if (ch?.notice_text) {
+    if (!confirm(`${ch.notice_text}\n\n確定要選擇「${ch.name_zh}」嗎？`)) return;
+  }
   const { error } = await sb.from('ethics_review_selection')
     .upsert({ student_id: ME.id, channel, updated_at: new Date().toISOString() }, { onConflict: 'student_id' });
   if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
@@ -2610,10 +2752,51 @@ async function selectEthicsChannel(channel) {
   renderEthicsReviewUI();
 }
 
+// status_only模式(例如高雄總醫院)的簡單狀態追蹤畫面：①申請中 ②申請結果(通過/補件中/未通過)，全部由學生自己選擇更新
+function renderEthicsStatusOnlyUI() {
+  const STATUS_COLOR = { '申請中':'#B05010', '通過':'#1A6A30', '補件中':'#C4960A', '未通過':'#C0392B' };
+  let html = '';
+  if (ETHICS_STATUS_ONLY_STATUS) {
+    html += `<div style="margin-bottom:14px;padding:10px 14px;background:#fff;border:1px solid var(--cr2);border-radius:8px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:13px;color:var(--ink3)">目前狀態：</span>
+      <span style="font-size:13px;font-weight:600;color:${STATUS_COLOR[ETHICS_STATUS_ONLY_STATUS]}">${ETHICS_STATUS_ONLY_STATUS}</span>
+    </div>`;
+  } else {
+    html += `<div style="margin-bottom:14px;font-size:13px;color:var(--ink3)">尚未標記任何進度，請於實際送出申請後點選下方「① 標記為申請中」。</div>`;
+  }
+
+  html += `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px">① 已經向該單位送出申請</div>
+    <button onclick="setEthicsStatusOnly('申請中')"
+      style="padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;margin-bottom:16px;border:1.5px solid ${ETHICS_STATUS_ONLY_STATUS==='申請中'?'#B05010':'var(--cr2)'};background:${ETHICS_STATUS_ONLY_STATUS==='申請中'?'#FFF3E0':'#fff'};color:${ETHICS_STATUS_ONLY_STATUS==='申請中'?'#B05010':'var(--ink2)'}">
+      ${ETHICS_STATUS_ONLY_STATUS==='申請中'?'✓ 已標記為申請中':'標記為申請中'}</button>`;
+
+  html += `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px">② 更新申請結果（收到該單位通知後再更新）</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">`;
+  ['通過','補件中','未通過'].forEach(r => {
+    const active = ETHICS_STATUS_ONLY_STATUS === r;
+    html += `<button onclick="setEthicsStatusOnly('${r}')"
+      style="padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;border:1.5px solid ${active?STATUS_COLOR[r]:'var(--cr2)'};background:${active?STATUS_COLOR[r]+'18':'#fff'};color:${active?STATUS_COLOR[r]:'var(--ink2)'}">
+      ${active?'✓ ':''}${r}</button>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+async function setEthicsStatusOnly(status) {
+  const { error } = await sb.from('ethics_review_selection')
+    .update({ status_only_status: status, updated_at: new Date().toISOString() })
+    .eq('student_id', ME.id);
+  if (error) { showToast('更新失敗：'+error.message, 'error'); return; }
+  ETHICS_STATUS_ONLY_STATUS = status;
+  showToast('✅ 已更新狀態：'+status);
+  renderEthicsReviewUI();
+}
+
 function changeEthicsChannel() {
   if (!confirm('確定要變更審查單位嗎？變更後請重新確認審查類別是否需要調整。')) return;
   ETHICS_CHANNEL = null;
   ETHICS_REVIEW_TYPE = null;
+  ETHICS_STATUS_ONLY_STATUS = null;
   renderEthicsReviewUI();
   // 注意：這裡先只改畫面上的選擇狀態，實際存檔要等使用者在下一步重新選擇審查單位時才會寫入
   // （避免使用者按了「變更」卻又反悔，資料庫還沒異動前都還來得及取消）
@@ -3116,7 +3299,7 @@ async function loadTaApplySection() {
     if (!targetSemId) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">請選擇學期</div>'; return; }
 
     const { data: offs } = await sb.from('course_offerings')
-      .select('id, courses(name_zh, code)').eq('semester_id', targetSemId).eq('is_active', true);
+      .select('id, courses(name_zh, code)').eq('semester_id', targetSemId).eq('is_active', true).eq('is_cancelled', false);
     const offIds = (offs||[]).map(o=>o.id);
     const { data: syls } = await sb.from('syllabi')
       .select('offering_id, ta_slots, ta_requirement_note')
