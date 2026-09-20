@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.10 2026-09-20 -->
+<!-- BWBC Student v3.11 2026-09-20 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -242,7 +242,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')">⚖️ 相關法規查詢</div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.10　2026-09-20</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.11　2026-09-20</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -620,6 +620,12 @@ function resolveReqType(baseReqType, overrides, cohort) {
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
   {
+    version: 'v3.11', date: '2026-09-20',
+    items: [
+      '新增學籍狀態「保留入學資格」(deferred)的處理：這類學生比照休學，本學期無法選課，並顯示對應的正確提示文字',
+    ]
+  },
+  {
     version: 'v3.10', date: '2026-09-20',
     items: [
       '修正版本紀錄裡v3.6~v3.8這3筆的日期標籤誤植為2026-09-18，實際應為2026-09-20(跟v3.9同一批)，這次一併修正，純粹是紀錄文字修正，沒有功能異動',
@@ -822,7 +828,7 @@ async function enterApp(user) {
 
   // 判斷選課狀態
   const now = new Date();
-  const isLeave = ME.status === 'leave';
+  const isLeave = ME.status === 'leave' || ME.status === 'deferred';
   const inPeriod = setting
     ? (now >= new Date(setting.open_at) && now <= new Date(setting.close_at))
     : false;
@@ -832,7 +838,11 @@ async function enterApp(user) {
 
   // 顯示狀態 banner
   if (isLeave) {
-    showBanner('err','⚠️ 您目前為休學狀態，無法進行選課。如需復學，請聯絡行政辦公室完成復學及註冊手續。');
+    if (ME.status === 'deferred') {
+      showBanner('err','⚠️ 您目前為保留入學資格狀態，無法進行選課。如需正式入學，請聯絡行政辦公室完成相關手續。');
+    } else {
+      showBanner('err','⚠️ 您目前為休學狀態，無法進行選課。如需復學，請聯絡行政辦公室完成復學及註冊手續。');
+    }
   } else if (!setting) {
     showBanner('warn','⚠️ 本學期選課尚未開放，請留意學校公告。');
   } else if (now < new Date(setting.open_at)) {
@@ -1761,7 +1771,7 @@ async function loadMyEnrollments() {
     const { data:activeSetting } = await sb.from('enrollment_settings')
       .select('*').eq('semester_id', activeSemForEnrolled).maybeSingle();
     const now = new Date();
-    const isLeave = ME.status === 'leave';
+    const isLeave = ME.status === 'leave' || ME.status === 'deferred';
     const activeCanEnroll = !isLeave && activeSetting
       && now >= new Date(activeSetting.open_at) && now <= new Date(activeSetting.close_at);
     const activeCanDrop = !isLeave && activeSetting && now <= new Date(activeSetting.close_at);

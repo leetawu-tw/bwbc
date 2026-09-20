@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.40 2026-09-18 -->
+<!-- BWBC Admin v10.41 2026-09-20 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -198,7 +198,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .stu-status-leave{background:#FFF3E0;color:#B05010}
 .stu-status-graduated{background:#E3F2FD;color:#1565C0}
 .stu-status-withdrawn{background:#FCE4EC;color:#C2185B}
-.stu-status-withdrawn{background:#FCE4EC;color:#C2185B}
+.stu-status-deferred{background:#ECEFF1;color:#455A64}
 
 /* Toast */
 .toast{position:fixed;bottom:24px;right:24px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:200;display:none;align-items:center;gap:8px;box-shadow:var(--sh2);animation:slideIn .3s ease}
@@ -387,7 +387,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.40　2026-09-18</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.41　2026-09-20</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -1119,6 +1119,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <option value="leave">休學</option>
               <option value="graduated">已畢業</option>
               <option value="withdrawn">退學</option>
+              <option value="deferred">保留入學資格</option>
             </select>
             <button class="btn" onclick="exportClassRoster()">📋 學生資料列表</button>
             <button class="btn" onclick="printBlankRoster()">📋 班級名條</button>
@@ -1797,6 +1798,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <option value="leave">休學</option>
             <option value="graduated">已畢業</option>
             <option value="withdrawn">退學</option>
+            <option value="deferred">保留入學資格</option>
           </select>
         </div>
         <div class="frow"><label class="flabel">性別</label>
@@ -1997,7 +1999,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow-y:auto">
       <div style="padding:10px 14px;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;font-size:12.5px;color:#6D4C00;line-height:1.7">
         <strong>📌 規則：</strong>依「學號」比對 — 學號存在則<strong style="color:#1A6A30">更新</strong>、學號不存在則<strong style="color:#1565C0">新增</strong><br>
-        <strong>📄 欄位（按下載範本為準）：</strong>學號(必填)、中文姓名、英文姓名、性別(M/F/O)、出生日期、入學年、狀態(pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學)、學校email、個人email、電話、通訊地址、緊急聯絡人、關係、緊急電話、入學日期、學歷、畢業學校、廣論班級、住宿、備註
+        <strong>📄 欄位（按下載範本為準）：</strong>學號(必填)、中文姓名、英文姓名、性別(M/F/O)、出生日期、入學年、狀態(pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格)、學校email、個人email、電話、通訊地址、緊急聯絡人、關係、緊急電話、入學日期、學歷、畢業學校、廣論班級、住宿、備註
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="file" id="stu-update-file" accept=".xlsx,.xls,.csv" onchange="onStudentUpdateFile(event)" style="font-size:13px">
@@ -10606,7 +10608,13 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
-    version: 'v10.40', date: '2026-09-18',
+    version: 'v10.41', date: '2026-09-20',
+    items: [
+      '學生學籍狀態新增「保留入學資格」(deferred)：因應有學生選擇保留入學資格未報到的實際情況，資料庫CHECK約束、狀態篩選下拉選單(學生資料列表跟編輯表單2處)、狀態徽章顏色、批次匯入說明文字都一併加上這個新狀態',
+    ]
+  },
+  {
+    version: 'v10.40', date: '2026-09-20',
     items: [
       '新增「學倫審查設定」管理介面（畢業論文與發表會管理頁面第4個分頁）：①審查單位管理，可新增/編輯/啟用停用審查單位，設定運作模式(文件清單模式/狀態追蹤模式)跟點選提示文字，之後要加新單位不用再改程式碼；②文件項目管理，依單位篩選，管理各單位底下的必要/選繳文件清單，過去這部分完全沒有管理介面、只能改資料庫，這次補上完整的新增/編輯/刪除功能',
     ]
@@ -13298,7 +13306,7 @@ let _conductSort = { field:'student_code', dir:1 };
 let _stuPhotoFile = null;  // 暫存待上傳的大頭照
 let _stuImportData = null; // 暫存匯入解析結果
 
-const STU_STATUS_LABEL = { pending:'新生未報到', active:'在學', leave:'休學', graduated:'已畢業', withdrawn:'退學' };
+const STU_STATUS_LABEL = { pending:'新生未報到', active:'在學', leave:'休學', graduated:'已畢業', withdrawn:'退學', deferred:'保留入學資格' };
 const STU_HOUSING_LABEL = {
   self_home:'自宅', eco_village:'生態村租屋', off_campus:'校外租屋',
   commute:'通勤', other:'其他'
@@ -14998,7 +15006,7 @@ async function downloadUpdateTemplate() {
   }
   var headers = ['學號','姓名','英文名','性別','狀態','學校email','個人email','電話','地址','緊急聯絡人','關係','緊急電話','廣論班級','住宿','備註','學歷','畢業學校','入學日期(YYYY-MM-DD)','出生日期(YYYY-MM-DD)'];
   var example = ['11421101','盧瑞萱','Lu Jui-Hsuan','F','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','北17秋01','commute','','學士','國立台灣大學','2025-09-01','1998-05-20'];
-  var note = ['# 必填8碼','# 必填','','# M男/F女/O其他','# pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學','','','','','','','','','# self_home自宅/eco_village生態村/off_campus校外/commute通勤/other','','','','# YYYY-MM-DD','# YYYY-MM-DD'];
+  var note = ['# 必填8碼','# 必填','','# M男/F女/O其他','# pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格','','','','','','','','','# self_home自宅/eco_village生態村/off_campus校外/commute通勤/other','','','','# YYYY-MM-DD','# YYYY-MM-DD'];
   var ws = XLSX.utils.aoa_to_sheet([headers, example, note]);
   ws['!cols'] = headers.map(function(){ return {wch:14}; });
   var wb = XLSX.utils.book_new();
