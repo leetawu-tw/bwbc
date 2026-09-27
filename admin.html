@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.44 2026-09-27 -->
+<!-- BWBC Admin v10.45 2026-09-27 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -400,7 +400,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.44　2026-09-27</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.45　2026-09-27</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -10635,9 +10635,19 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.45', date: '2026-09-27',
+    items: [
+      '選課統計分析改回「逐學期歷史狀態」判斷（表1依學期屆別摘要、表2性別差異、平均學分趨勢圖）：改用student_status_history重建每個學期「結束當下」的真實狀態，同一個人可能這學期休學被排除、下學期復學又算進去，不再套用同一個現在狀態到全部學期。畢業學分達成率、課程主軸分布這兩張「累計」表維持用現在狀態(邏輯上本來就該看現在)。另外deferred(保留入學資格、尚未實際入學)一律排除在所有人數統計外，包含總人數欄位。',
+      '修正上面這個改動的bug：完全沒有student_status_history記錄的舊生(系統上線前就存在、匯入時沒有一併建立歷程)，原本被誤判成「這個時間點還不是學生」整批排除，導致113級/114級除了少數有補登記錄的人以外幾乎全部歸零。改成沒有任何歷程記錄時，退而求其次假設從以前到現在都是現在這個狀態，等之後有人補登真實的休學/復學記錄才會改用那筆記錄逐學期判斷',
+      '選課統計分析頁面最上方新增一段說明框，統一講清楚全頁「總人數」「在學+已畢業人數」的認定原則；Excel匯出也新增一張「說明」工作表放在最前面，讓匯出的檔案脫離畫面也看得懂',
+      '修正補登單一筆休學記錄後，「休學事件發生之前」的學期反而被誤判成還沒入學而排除的bug：查不到更早記錄時，改用最早那筆記錄的old_status回推之前的狀態，而不是直接當成還沒入學',
+    ]
+  },
+  {
     version: 'v10.44', date: '2026-09-27',
     items: [
       '修正「選課統計分析」屆別人數分母錯誤：原本4張表(依學期屆別摘要、性別差異、畢業學分達成率、課程主軸分布)都用屆別「總人數」當分母，休學/退學的人一直被算進去，把平均值拉低。改成用「現在」狀態為在學或已畢業的有效人數(休學/退學排除，已畢業的人正常算入)，不分過去哪個學期一律套用同一套現在的名單。表格同時拆出「總人數」跟「在學+已畢業人數」兩欄。畢業學分達成率表新增「應修必修學分」「應修選修學分」兩欄。已跟行政確認過這樣的簡化取捨可以接受',
+      '修正上面這個改動漏掉的bug：查學生資料時忘記選取status欄位，導致每個學生狀態都讀成undefined，「在學+已畢業」永遠算成0人，4張表分母全部歸零。補回status欄位後已修正',
     ]
   },
   {
@@ -11495,11 +11505,39 @@ async function loadEnrollStats() {
   const body = document.getElementById('enroll-stats-body');
   body.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">載入中，資料量較大請稍候…</div>';
 
-  // 1. 學期(依時間排序)，加入start_date供後面判斷「這學期是否已經開始」用
-  const { data: sems } = await sb.from('semesters').select('id,label,academic_year,semester_num,start_date').order('academic_year').order('semester_num');
+  // 1. 學期(依時間排序)，加入start_date/end_date供後面判斷「這學期是否已經開始」及「這學期當下的歷史狀態」用
+  const { data: sems } = await sb.from('semesters').select('id,label,academic_year,semester_num,start_date,end_date').order('academic_year').order('semester_num');
   // 2. 全部學生(不限狀態，完整呈現歷年趨勢；已畢業/休學的人歷史資料仍要算進去)
-  const { data: students } = await sb.from('students').select('id,cohort,gender');
+  const { data: students } = await sb.from('students').select('id,cohort,gender,status');
   const studentMap = {}; (students||[]).forEach(s=>{ studentMap[s.id] = s; });
+
+  // 2b. 學生狀態異動歷程，用來重建「某學期結束當下」每個學生的真實狀態(而不是只看現在狀態)
+  const { data: statusHist } = await sb.from('student_status_history').select('student_id,old_status,new_status,changed_at').order('changed_at');
+  const statusHistMap = {}; // student_id -> [{t, status, oldStatus}, ...] 依時間升冪排序
+  (statusHist||[]).forEach(h => {
+    const t = new Date(h.changed_at).getTime();
+    if (Number.isNaN(t)) return;
+    (statusHistMap[h.student_id] ||= []).push({ t, status: h.new_status, oldStatus: h.old_status });
+  });
+  // 找出某學生在指定時間點(通常是某學期的end_date)當下的狀態：取「所有異動記錄中，發生時間<=該時間點」裡最晚的一筆。
+  function statusAsOf(studentId, refTime) {
+    const hist = statusHistMap[studentId];
+    // 完全沒有任何歷程記錄(常見於系統上線前就已存在的舊生，當初匯入資料庫時沒有一併補建歷程)時，沒有更好的資訊可用，
+    // 退而求其次假設他從以前到現在都是「現在」這個狀態，而不是誤判成「這個時間點他還不是學生」整批排除掉。
+    if (!hist || !hist.length) { const stu = studentMap[studentId]; return stu ? stu.status : null; }
+    let result = null;
+    for (const h of hist) { if (h.t <= refTime) result = h.status; else break; }
+    if (result != null) return result;
+    // 找不到「這個時間點之前」的記錄：不代表他還沒入學，很可能只是「只補登了某一次休學事件」，
+    // 這之前根本沒發生過變動、沒必要每個人都補一筆入學記錄。用「最早那筆記錄的old_status」
+    // 回推這之前他原本的狀態(例如「114-2從active變leave」，old_status=active代表114-2之前他就是active)。
+    // 只有當最早那筆的old_status本身是null(代表那就是他入學當下的第一筆記錄)，才真的表示這個時間點他還沒入學，予以排除。
+    const first = hist[0];
+    if (first && first.oldStatus) return first.oldStatus;
+    if (first && first.oldStatus === null) return null;
+    const stu = studentMap[studentId];
+    return stu ? stu.status : null;
+  }
 
   // 3. 全部已確認選課記錄(不限學期)
   const { data: enrolls } = await sb.from('enrollments').select('student_id,offering_id,semester_id').eq('status','confirmed');
@@ -11532,12 +11570,15 @@ async function loadEnrollStats() {
   const { data: gradReqs } = await sb.from('graduation_requirements').select('cohort_from,cohort_to,req_credits,sel_credits,total_min');
   const findGradReq = (cohort) => (gradReqs||[]).find(r => cohort >= r.cohort_from && (r.cohort_to==null || cohort <= r.cohort_to));
 
-  // 7b. 有效人數的判定：用「現在(打開這個統計頁面當下)」的狀態，不分過去哪個學期一律套用同一個標準——
-  // 也就是說，只要現在狀態是休學/退學，連他過去確實在學、有選課的學期也一併從分母排除；現在狀態是在學或已畢業，
-  // 則不分過去哪個學期都算進分母。這是刻意的簡化(不去查每個學期當下的歷史狀態)，好處是「在學人數」隨時反映
-  // 現在的真實名單，缺點是如果某人是「這學期讀到一半才休學」，回頭看他讀的那部分學期，分母會因為現在已經
-  // 排除他而顯得比實際上課當時更小一點——經與行政確認，這個取捨是可以接受的。
-  const STATUS_COUNTED = new Set(['active','graduated']); // 計入「有效人數」分母的狀態；leave/withdrawn排除
+  // 7b. 有效人數的判定，分兩種口徑：
+  // (a) 逐學期口徑(用於表1依學期屆別摘要、表2性別差異、趨勢圖)：用該學期「結束日(end_date)」當下，透過
+  //     student_status_history重建的真實歷史狀態；同一個人可能這學期算進去、下學期因為休學被排除，符合實際情況。
+  //     前提是student_status_history要有完整記錄，如果某個休學/復學事件沒有被登錄過，重建出來的狀態會等同現在狀態，
+  //     解法是補登缺漏的歷程記錄(學生資料頁的「補登狀態異動記錄」功能)，而不是改這裡的邏輯。
+  // (b) 現在口徑(用於表3畢業學分達成率、表4課程主軸分布這兩張「累計」指標)：這兩張是看「到目前為止」的累計成果，
+  //     邏輯上就是要用現在的狀態，不需要也不應該逐學期判斷。
+  // 不論哪種口徑，deferred(保留入學資格，尚未實際入學)一律不計入任何人數，包含「總人數」的顯示欄位也一併排除。
+  const STATUS_COUNTED = new Set(['active','graduated']); // 計入「有效人數」分母的狀態；leave/withdrawn/deferred排除
 
   // ── 組成一筆一筆的明細記錄，供後面聚合用 ──
   const detail = []; // {semester_id, student_id, cohort, gender, credits, req_type, axis_code, isFailed}
@@ -11557,14 +11598,31 @@ async function loadEnrollStats() {
     });
   });
 
-  // ── 各屆別「總人數」(不分狀態，僅供顯示參考，不再當統計分母用) ──
-  const cohortPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null) cohortPop[s.cohort] = (cohortPop[s.cohort]||0)+1; });
+  // ── 各屆別「總人數」(不分狀態，僅供顯示參考，不再當統計分母用；deferred尚未實際入學，一律不算) ──
+  const cohortPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null && s.status!=='deferred') cohortPop[s.cohort] = (cohortPop[s.cohort]||0)+1; });
   // ── 各屆別×性別「總人數」(同上，僅供顯示參考) ──
-  const cohortGenderPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null){ const k=s.cohort+'|'+(s.gender||'?'); cohortGenderPop[k]=(cohortGenderPop[k]||0)+1; } });
+  const cohortGenderPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null && s.status!=='deferred'){ const k=s.cohort+'|'+(s.gender||'?'); cohortGenderPop[k]=(cohortGenderPop[k]||0)+1; } });
 
-  // ── 各屆別「目前」有效人數(在學+已畢業，排除休學/退學)：用於「累計」類指標(畢業學分達成率、課程主軸分布)的分母 ──
+  // ── 各屆別「目前」有效人數(在學+已畢業，排除休學/退學/deferred)：用於「累計」類指標(畢業學分達成率、課程主軸分布)的分母 ──
   const cohortActivePop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null && STATUS_COUNTED.has(s.status)) cohortActivePop[s.cohort] = (cohortActivePop[s.cohort]||0)+1; });
   const cohortActiveGenderPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null && STATUS_COUNTED.has(s.status)){ const k=s.cohort+'|'+(s.gender||'?'); cohortActiveGenderPop[k]=(cohortActiveGenderPop[k]||0)+1; } });
+
+  // ── 各屆別×學期「當時」有效人數：用重建出來的歷史狀態(以該學期end_date為準)，取代上面「現在」口徑，
+  // 給表1依學期屆別摘要、表2性別差異、趨勢圖使用，才能反映「某人只有某學期休學、其他學期正常」的真實情況 ──
+  const cohortActivePopBySem = {}; // key: semester_id|cohort
+  const cohortActiveGenderPopBySem = {}; // key: semester_id|cohort|gender
+  (sems||[]).forEach(sem => {
+    const refTime = new Date(sem.end_date + 'T23:59:59').getTime();
+    (students||[]).forEach(s => {
+      if (s.cohort==null) return;
+      const st = statusAsOf(s.id, refTime);
+      if (!STATUS_COUNTED.has(st)) return;
+      const k1 = sem.id+'|'+s.cohort;
+      cohortActivePopBySem[k1] = (cohortActivePopBySem[k1]||0)+1;
+      const k2 = sem.id+'|'+s.cohort+'|'+(s.gender||'?');
+      cohortActiveGenderPopBySem[k2] = (cohortActiveGenderPopBySem[k2]||0)+1;
+    });
+  });
 
   // ── 聚合：依「學期×屆別」 ──
   const bySemCohort = {}; // key: semester_id|cohort
@@ -11619,6 +11677,7 @@ async function loadEnrollStats() {
   });
 
   _esData = { sems: sems||[], bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortActivePop, cohortActiveGenderPop,
+    cohortActivePopBySem, cohortActiveGenderPopBySem,
     cohortCumulative, axisTotalByCohort, gradReqs: gradReqs||[], findGradReq, semOrderMap, cohortFirstSemOrder };
   renderEnrollStats();
 }
@@ -11626,6 +11685,7 @@ async function loadEnrollStats() {
 function renderEnrollStats() {
   if (!_esData) return;
   const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortActivePop, cohortActiveGenderPop,
+    cohortActivePopBySem, cohortActiveGenderPopBySem,
     cohortCumulative, axisTotalByCohort, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
   const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
   const semLabelMap = {}; sems.forEach(s=>{ semLabelMap[s.id] = s.label; });
@@ -11656,7 +11716,7 @@ function renderEnrollStats() {
     const sem = cohortSemSequence[coh][relIdx];
     if (!sem) return '<td style="padding:6px 4px;text-align:center;color:#DDD;background:#FAFAFA">—</td>'; // 這個屆別還沒讀到這麼多學期
     const b = bySemCohort[sem.id+'|'+coh];
-    const pop = cohortActivePop[coh] || 0; // 「現在」在學/已畢業的有效人數(不分過去哪個學期，一律用同一個現在的數字)
+    const pop = cohortActivePopBySem[sem.id+'|'+coh] || 0; // 「該學期結束當下」重建出來的在學/已畢業有效人數(逐學期，非現在的固定數字)
     if (!pop) return '<td style="padding:6px 4px;text-align:center;color:#DDD;background:#FAFAFA">—</td>';
     const avgCredits = b?fmt1(b.credits/pop):0;
     const avgCourses = b?fmt1(b.count/pop):0;
@@ -11665,7 +11725,7 @@ function renderEnrollStats() {
     const bg = zeroRatio>=0.8 ? '#FDEBEC' : zeroRatio>=0.4 ? '#FFF8E1' : '#fff';
     return `<td style="padding:6px 4px;text-align:center;background:${bg}">
       <div style="font-weight:700;font-size:13px;color:var(--navy)">${avgCredits}</div>
-      <div style="font-size:10px;color:var(--ink3)">(${avgCourses}科)</div>
+      <div style="font-size:10px;color:var(--ink3)">(${avgCourses}科／${pop}人)</div>
       ${zeroCount>0?`<div style="font-size:9px;color:#C0392B">${zeroCount}人未選</div>`:''}
       <div style="font-size:8.5px;color:#BBB">${sem.label}</div>
     </td>`;
@@ -11679,7 +11739,7 @@ function renderEnrollStats() {
         ${relColumns.map(i=>matrixCell(coh,i)).join('')}
       </tr>`).join('')}
     </tbody></table>
-    <div style="font-size:11px;color:var(--ink3);margin-top:8px">每格：<b>平均學分</b>／(平均科目數)／未選課人數(若有)／對應日曆學期(灰色小字)。平均值分母是「現在」狀態為在學或已畢業的人數(休學/退學的人不分過去哪個學期一律排除)，不是各學期當時的班級人數。背景色：黃=近半數以上未選課，紅=八成以上未選課。各屆別「第1學期」是各自實際入學的第一個學期，不是同一個日曆學期</div>`;
+    <div style="font-size:11px;color:var(--ink3);margin-top:8px">每格：<b>平均學分</b>／(平均科目數／該學期有效人數)／未選課人數(若有)／對應日曆學期(灰色小字)。平均值分母是「該學期結束當下」重建出來的真實狀態(在學或已畢業才算，休學/退學/保留入學資格排除)，逐學期各自判斷，不是套用同一個現在的人數——前提是學生的休學/復學記錄要有完整登錄在案，記錄有缺漏的話這裡的人數會失真，需要回學生資料頁補登。背景色：黃=近半數以上未選課，紅=八成以上未選課。各屆別「第1學期」是各自實際入學的第一個學期，不是同一個日曆學期</div>`;
 
   // ── 表2：性別差異，改成每個屆別一張SVG長條圖，X軸=相對學期(第1學期/第2學期...)，男女並排長條標數字 ──
   const genderChartsHtml = cohorts.map(coh => {
@@ -11687,7 +11747,7 @@ function renderEnrollStats() {
     if (!relevantSems.length) return '';
     return `<div style="margin-bottom:20px">
       <div style="font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:6px">${coh}級</div>
-      ${buildGenderBarChart(relevantSems, coh, bySemCohortGender, cohortActiveGenderPop)}
+      ${buildGenderBarChart(relevantSems, coh, bySemCohortGender, cohortActiveGenderPopBySem, cohortActiveGenderPop)}
     </div>`;
   }).join('');
 
@@ -11735,9 +11795,15 @@ function renderEnrollStats() {
     <div style="font-size:11px;color:var(--ink3);margin-top:8px">分母是「現在」在學+已畢業的有效人數，休學/退學排除。跟表1的平均學分一樣，<b>不及格的課仍算入學分</b>(只有「畢業學分達成率」那張表的累計學分才會排除不及格)，這是刻意的設計，目的是讓這裡的平均學分真實反映修課負擔，不是只看拿到的學分。</div>`;
 
   // ── 趨勢折線圖：X=學期，Y=平均學分，一屆別一條線 ──
-  const chartSvg = buildEnrollStatsTrendChart(sems, cohorts, bySemCohort, cohortActivePop, isRelevantSemCohort);
+  const chartSvg = buildEnrollStatsTrendChart(sems, cohorts, bySemCohort, cohortActivePopBySem, isRelevantSemCohort);
 
   document.getElementById('enroll-stats-body').innerHTML = `
+    <div style="background:#FFF8E1;border:1px solid #E8D9A0;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--ink2);line-height:1.7">
+      <b>📌 本頁所有表格「人數」欄位的認定原則：</b><br>
+      ・<b>總人數</b>：該屆別已經實際入學、有正式學籍的人數，「保留入學資格(deferred，尚未實際入學)」一律不計入，不論哪張表都一樣。<br>
+      ・<b>在學+已畢業人數／有效人數</b>：在「總人數」的基礎上，再排除休學、退學的人。依學期屆別摘要、性別差異、趨勢圖這幾張是逐學期各自認定(某人可能這學期休學被排除、下學期復學又算回來)；畢業學分達成率、課程主軸分布這兩張則是看「現在」的狀態(因為是累計到目前為止的指標)。<br>
+      ・逐學期認定需要學生的休學/復學記錄有登錄在<b>學生狀態異動歷程</b>裡才會準確，記錄有缺漏的學期，人數會退而求其次比照現在狀態計算。
+    </div>
     <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px;margin-bottom:16px">
       <div class="section-title" style="font-family:inherit;font-size:14px;font-weight:600;color:var(--navy);margin-bottom:10px">📈 平均學分趨勢（依屆別）</div>
       ${chartSvg}
@@ -11762,22 +11828,25 @@ function renderEnrollStats() {
 
 // 簡易SVG折線圖：X軸=學期(依序)，Y軸=平均學分，每個屆別一條線
 // 性別差異長條圖：X軸=學期，每個學期兩根並排長條(男/女平均學分)，長條上方標數字
-function buildGenderBarChart(sems, cohort, bySemCohortGender, cohortGenderPop) {
+function buildGenderBarChart(sems, cohort, bySemCohortGender, cohortGenderPopBySem, cohortGenderPopCurrent) {
   const W = 700, H = 195, padL = 36, padR = 20, padT = 24, padB = 42;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const groupW = sems.length ? plotW / sems.length : plotW;
   const barW = Math.min(26, groupW * 0.32);
   const genderColor = { M:'#2B5FA0', F:'#C0498A' };
-  const popM = cohortGenderPop[cohort+'|M'] || 0;
-  const popF = cohortGenderPop[cohort+'|F'] || 0;
+  // 圖例顯示的是「現在」男/女總人數，僅供參考；每根長條實際用的分母是該學期當下重建出來的人數(逐學期不同)
+  const popM = cohortGenderPopCurrent[cohort+'|M'] || 0;
+  const popF = cohortGenderPopCurrent[cohort+'|F'] || 0;
 
   const values = sems.map((sem,i) => {
     const bM = bySemCohortGender[sem.id+'|'+cohort+'|M'];
     const bF = bySemCohortGender[sem.id+'|'+cohort+'|F'];
+    const popMSem = cohortGenderPopBySem[sem.id+'|'+cohort+'|M'] || 0;
+    const popFSem = cohortGenderPopBySem[sem.id+'|'+cohort+'|F'] || 0;
     return {
       relLabel: `第${i+1}學期`, calLabel: sem.label,
-      m: popM ? Math.round((bM?bM.credits/popM:0)*10)/10 : null,
-      f: popF ? Math.round((bF?bF.credits/popF:0)*10)/10 : null,
+      m: popMSem ? Math.round((bM?bM.credits/popMSem:0)*10)/10 : null,
+      f: popFSem ? Math.round((bF?bF.credits/popFSem:0)*10)/10 : null,
     };
   });
   const maxY = Math.max(1, ...values.flatMap(v => [v.m, v.f]).filter(v=>v!=null));
@@ -11803,23 +11872,25 @@ function buildGenderBarChart(sems, cohort, bySemCohortGender, cohortGenderPop) {
   svg += '</svg>';
   return `<div>${svg}</div>
     <div style="font-size:11px;margin-top:2px">
-      <span style="display:inline-flex;align-items:center;gap:4px;margin-right:14px"><span style="width:10px;height:10px;background:${genderColor.M};display:inline-block;border-radius:2px"></span>男(${popM}人)</span>
-      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:${genderColor.F};display:inline-block;border-radius:2px"></span>女(${popF}人)</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;margin-right:14px"><span style="width:10px;height:10px;background:${genderColor.M};display:inline-block;border-radius:2px"></span>男(現在${popM}人)</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:${genderColor.F};display:inline-block;border-radius:2px"></span>女(現在${popF}人)</span>
+      <span style="display:block;color:var(--ink3);margin-top:2px">＊每根長條實際用該學期當下的人數當分母，可能跟上面「現在」總人數不同</span>
     </div>`;
 }
 
-function buildEnrollStatsTrendChart(sems, cohorts, bySemCohort, cohortPop, isRelevantSemCohort) {
+function buildEnrollStatsTrendChart(sems, cohorts, bySemCohort, cohortPopBySem, isRelevantSemCohort) {
   if (!sems.length || !cohorts.length) return '<div style="color:var(--ink3);font-size:12px">沒有足夠資料繪製趨勢圖</div>';
   const W = 760, H = 260, padL = 40, padR = 20, padT = 20, padB = 40;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const colors = ['#1B3A6B','#1F5C3A','#7A3210','#8E44AD','#C0392B','#16A085'];
 
   // 算每個屆別在每個學期的平均學分：還沒入學/還沒開始的學期用null(不畫點、不連線)，
-  // 真正屬於這個屆別範圍內、但剛好是0的才畫成0(才是有意義的異常訊號)
+  // 真正屬於這個屆別範圍內、但剛好是0的才畫成0(才是有意義的異常訊號)。分母用「該學期當下」重建出來的人數，逐學期各自判斷
   const series = cohorts.map((coh, idx) => {
-    const pop = cohortPop[coh]||1;
     const points = sems.map(sem => {
       if (!isRelevantSemCohort(sem, coh)) return null;
+      const pop = cohortPopBySem[sem.id+'|'+coh] || 0;
+      if (!pop) return 0;
       const b = bySemCohort[sem.id+'|'+coh];
       return b ? (b.credits/pop) : 0;
     });
@@ -11868,6 +11939,7 @@ async function exportEnrollStatsExcel() {
     });
   }
   const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortActivePop, cohortActiveGenderPop,
+    cohortActivePopBySem, cohortActiveGenderPopBySem,
     cohortCumulative, axisTotalByCohort, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
   const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
   const GENDER_ZH = { M:'男', F:'女', O:'其他', '?':'未填' };
@@ -11882,27 +11954,38 @@ async function exportEnrollStatsExcel() {
 
   const wb = XLSX.utils.book_new();
 
+  // 說明工作表：放最前面，讓匯出的檔案脫離畫面也看得懂「人數」欄位的認定原則
+  const sheetNote = [
+    ['本檔案所有表格「人數」欄位的認定原則'],
+    ['總人數：該屆別已經實際入學、有正式學籍的人數；「保留入學資格(deferred，尚未實際入學)」一律不計入，不論哪張表都一樣。'],
+    ['在學+已畢業人數／有效人數：在「總人數」的基礎上，再排除休學、退學的人。'],
+    ['　－依學期屆別摘要、性別差異這兩張：逐學期各自認定，某人可能這學期休學被排除、下學期復學又算回來。'],
+    ['　－畢業學分達成率、課程主軸分布這兩張：看「現在」的狀態，因為是累計到目前為止的指標，不分學期。'],
+    ['逐學期認定需要學生的休學/復學記錄有登錄在「學生狀態異動歷程」裡才會準確，記錄有缺漏的學期，人數會退而求其次比照現在狀態計算。'],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetNote), '說明');
+
   // 工作表1：依學期×屆別摘要（排除還沒入學/還沒開始的組合，理由同畫面渲染邏輯的註解；加上相對學期欄位，方便對齊不同屆別的第幾學期）
-  // 「屆別人數」用的是「現在」在學+已畢業的有效人數(休學/退學不分過去哪個學期一律排除，跟畫面顯示邏輯一致)，不是各學期當時的班級人數
-  const sheet1 = [['學期','相對學期(第幾學期)','屆別','屆別人數(現在在學+已畢業)','平均科目數','平均學分','平均必修學分','平均選修學分','未選課人數']];
+  // 「屆別人數」用的是「該學期結束當下」重建出來的在學+已畢業有效人數，逐學期各自判斷，跟畫面顯示邏輯一致
+  const sheet1 = [['學期','相對學期(第幾學期)','屆別','屆別人數(該學期當下在學+已畢業)','平均科目數','平均學分','平均必修學分','平均選修學分','未選課人數']];
   sems.forEach(sem => cohorts.forEach(coh => {
     if (!isRelevantSemCohort(sem, coh)) return;
     const firstOrder = cohortFirstSemOrder[coh];
     const relIdx = activeSemsSorted.filter(s => semOrderMap[s.id] >= firstOrder && semOrderMap[s.id] <= semOrderMap[sem.id]).length;
     const b = bySemCohort[sem.id+'|'+coh];
-    const pop = cohortActivePop[coh]||1;
+    const pop = cohortActivePopBySem[sem.id+'|'+coh]||1;
     sheet1.push([sem.label, '第'+relIdx+'學期', coh+'級', pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0, b?fmt1(b.req/pop):0, b?fmt1(b.sel/pop):0, Math.max(0,pop-(b?b.students.size:0))]);
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet1), '依學期屆別摘要');
 
-  // 工作表2：性別差異（加上相對學期欄位；人數同樣改用「現在」有效人數）
-  const sheet2 = [['學期','相對學期(第幾學期)','屆別','性別','人數(現在在學+已畢業)','平均科目數','平均學分']];
+  // 工作表2：性別差異（加上相對學期欄位；人數改用「該學期當下」重建的有效人數，逐學期各自判斷）
+  const sheet2 = [['學期','相對學期(第幾學期)','屆別','性別','人數(該學期當下在學+已畢業)','平均科目數','平均學分']];
   sems.forEach(sem => cohorts.forEach(coh => {
     if (!isRelevantSemCohort(sem, coh)) return;
     const firstOrder = cohortFirstSemOrder[coh];
     const relIdx = activeSemsSorted.filter(s => semOrderMap[s.id] >= firstOrder && semOrderMap[s.id] <= semOrderMap[sem.id]).length;
     ['M','F'].forEach(g => {
-      const pop = cohortActiveGenderPop[coh+'|'+g];
+      const pop = cohortActiveGenderPopBySem[sem.id+'|'+coh+'|'+g];
       if (!pop) return;
       const b = bySemCohortGender[sem.id+'|'+coh+'|'+g];
       sheet2.push([sem.label, '第'+relIdx+'學期', coh+'級', GENDER_ZH[g], pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0]);
