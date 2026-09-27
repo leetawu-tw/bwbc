@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.42 2026-09-20 -->
+<!-- BWBC Admin v10.44 2026-09-27 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -42,18 +42,29 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .tb-user{font-size:12px;color:rgba(255,255,255,.6)}
 .tb-logout{font-size:12px;padding:4px 12px;border:1px solid rgba(255,255,255,.25);border-radius:4px;background:transparent;color:rgba(255,255,255,.7)}
 .tb-logout:hover{background:rgba(255,255,255,.1)}
+.sidebar-toggle-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.sidebar-toggle-btn:hover{background:rgba(255,255,255,.15)}
 
 .layout{display:flex;flex:1;overflow:hidden}
-.sidebar{width:200px;background:#fff;border-right:1px solid var(--cr2);flex-shrink:0;height:100%;display:flex;flex-direction:column;overflow:hidden}
-.sidebar-nav-scroll{flex:1;overflow-y:auto;padding:16px 0}
+.sidebar{width:200px;background:#fff;border-right:1px solid var(--cr2);flex-shrink:0;height:100%;display:flex;flex-direction:column;overflow:hidden;transition:width .18s ease}
+.sidebar-nav-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 0}
 .sidebar-footer{flex-shrink:0;padding:10px 14px;border-top:1px solid var(--cr2);font-size:11px;color:var(--ink3);cursor:pointer;text-align:center;line-height:1.7}
 .sidebar-footer:hover{background:var(--cr3)}
 .nav-section{margin-bottom:16px}
-.nav-label{font-size:10px;font-weight:500;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;padding:0 16px;margin-bottom:4px}
-.nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;color:var(--ink2);cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.nav-label{font-size:10px;font-weight:500;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;padding:0 16px;margin-bottom:4px;white-space:nowrap}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;color:var(--ink2);cursor:pointer;transition:all .15s;border-left:3px solid transparent;overflow:hidden;white-space:nowrap}
 .nav-item:hover{background:var(--cr3);color:var(--ink)}
 .nav-item.on{background:var(--navy3);color:var(--navy);border-left-color:var(--gold);font-weight:500}
-.nav-icon{font-size:16px;width:20px;text-align:center}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+/* 側邊欄收合：文字用font-size:0藏起來(而非只靠overflow裁切，避免文字露出一小截)，圖示在.nav-icon上另外指定字級蓋回來 */
+.sidebar.collapsed{width:56px}
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .sidebar-footer,
+.sidebar.collapsed .badge,
+.sidebar.collapsed #sched-arrow{display:none}
+.sidebar.collapsed .nav-item{justify-content:center !important;padding:9px 0;font-size:0}
+.sidebar.collapsed .nav-item .nav-icon{font-size:16px}
+.sidebar.collapsed #schedule-submenu{display:none !important}
 
 .content{flex:1;overflow-y:auto;padding:20px 24px;min-width:0;height:100%}
 
@@ -310,6 +321,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 <!-- ══ APP ══ -->
 <div class="app" id="app">
   <div class="topbar">
+    <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="收合/展開選單">☰</button>
     <div class="tb-logo">福智佛教學院 · 課程管理後台</div>
     <div class="tb-user" id="tb-user"></div>
     <button class="tb-logout" onclick="logout()">登出</button>
@@ -388,7 +400,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.42　2026-09-20</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.44　2026-09-27</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -10623,6 +10635,18 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.44', date: '2026-09-27',
+    items: [
+      '修正「選課統計分析」屆別人數分母錯誤：原本4張表(依學期屆別摘要、性別差異、畢業學分達成率、課程主軸分布)都用屆別「總人數」當分母，休學/退學的人一直被算進去，把平均值拉低。改成用「現在」狀態為在學或已畢業的有效人數(休學/退學排除，已畢業的人正常算入)，不分過去哪個學期一律套用同一套現在的名單。表格同時拆出「總人數」跟「在學+已畢業人數」兩欄。畢業學分達成率表新增「應修必修學分」「應修選修學分」兩欄。已跟行政確認過這樣的簡化取捨可以接受',
+    ]
+  },
+  {
+    version: 'v10.43', date: '2026-09-27',
+    items: [
+      '新增側邊欄「收合/展開」按鈕：頂部工具列左側新增☰按鈕，點擊可將左側選單收合成只顯示圖示的窄欄(56px)，方便在較小螢幕或需要更寬右側工作區時使用；會記住上次的收合狀態，下次登入自動套用（修正：收合後選單文字改用font-size:0隱藏，避免原本用overflow裁切時文字露出一小截的問題）',
+    ]
+  },
+  {
     version: 'v10.42', date: '2026-09-20',
     items: [
       '新增「畢業學分規定管理」頁面：終於補上這個資料庫早就存在、但一直沒有管理介面的功能，可以新增/編輯/刪除不同屆別範圍的畢業學分規定(必修/選修/論文/總學分)，不用再直接改資料庫。儲存時會自動檢查屆別範圍有沒有跟既有規定重疊，重疊時會警示但仍可選擇強制儲存。已用模擬資料驗證重疊檢查邏輯正確。學生端的畢業學分試算/進度條原本就是讀這張表，這次不用改學生端',
@@ -11508,6 +11532,13 @@ async function loadEnrollStats() {
   const { data: gradReqs } = await sb.from('graduation_requirements').select('cohort_from,cohort_to,req_credits,sel_credits,total_min');
   const findGradReq = (cohort) => (gradReqs||[]).find(r => cohort >= r.cohort_from && (r.cohort_to==null || cohort <= r.cohort_to));
 
+  // 7b. 有效人數的判定：用「現在(打開這個統計頁面當下)」的狀態，不分過去哪個學期一律套用同一個標準——
+  // 也就是說，只要現在狀態是休學/退學，連他過去確實在學、有選課的學期也一併從分母排除；現在狀態是在學或已畢業，
+  // 則不分過去哪個學期都算進分母。這是刻意的簡化(不去查每個學期當下的歷史狀態)，好處是「在學人數」隨時反映
+  // 現在的真實名單，缺點是如果某人是「這學期讀到一半才休學」，回頭看他讀的那部分學期，分母會因為現在已經
+  // 排除他而顯得比實際上課當時更小一點——經與行政確認，這個取捨是可以接受的。
+  const STATUS_COUNTED = new Set(['active','graduated']); // 計入「有效人數」分母的狀態；leave/withdrawn排除
+
   // ── 組成一筆一筆的明細記錄，供後面聚合用 ──
   const detail = []; // {semester_id, student_id, cohort, gender, credits, req_type, axis_code, isFailed}
   enrolls.forEach(e => {
@@ -11526,10 +11557,14 @@ async function loadEnrollStats() {
     });
   });
 
-  // ── 各屆別人數(分母)，不分性別 ──
+  // ── 各屆別「總人數」(不分狀態，僅供顯示參考，不再當統計分母用) ──
   const cohortPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null) cohortPop[s.cohort] = (cohortPop[s.cohort]||0)+1; });
-  // ── 各屆別×性別人數 ──
+  // ── 各屆別×性別「總人數」(同上，僅供顯示參考) ──
   const cohortGenderPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null){ const k=s.cohort+'|'+(s.gender||'?'); cohortGenderPop[k]=(cohortGenderPop[k]||0)+1; } });
+
+  // ── 各屆別「目前」有效人數(在學+已畢業，排除休學/退學)：用於「累計」類指標(畢業學分達成率、課程主軸分布)的分母 ──
+  const cohortActivePop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null && STATUS_COUNTED.has(s.status)) cohortActivePop[s.cohort] = (cohortActivePop[s.cohort]||0)+1; });
+  const cohortActiveGenderPop = {}; (students||[]).forEach(s=>{ if(s.cohort!=null && STATUS_COUNTED.has(s.status)){ const k=s.cohort+'|'+(s.gender||'?'); cohortActiveGenderPop[k]=(cohortActiveGenderPop[k]||0)+1; } });
 
   // ── 聚合：依「學期×屆別」 ──
   const bySemCohort = {}; // key: semester_id|cohort
@@ -11552,14 +11587,24 @@ async function loadEnrollStats() {
     if (d.req_type==='req') b.req += d.credits; else b.sel += d.credits;
   });
 
-  // ── 累計達成率：依屆別，把該屆別全部學生「歷來累計已確認學分」加總，除以人數，對照畢業學分規定 ──
+  // ── 累計達成率：依屆別，把該屆別「有效人數(在學+已畢業)」學生的「歷來累計已確認學分」加總，除以有效人數，對照畢業學分規定 ──
+  // (休學/退學的人：分子分母都不算，避免分子仍含他們過去的學分、分母卻已經把他們排除，導致比例失真)
   const cumByCohortStudent = {}; // student_id -> total credits(累計)
   detail.forEach(d => { if (!d.isFailed) cumByCohortStudent[d.student_id] = (cumByCohortStudent[d.student_id]||0) + d.credits; });
-  const cohortCumulative = {}; // cohort -> {sumCredits, studentCount(有記錄的人數)}
+  const cohortCumulative = {}; // cohort -> {sumCredits}
   (students||[]).forEach(s => {
-    if (s.cohort==null) return;
+    if (s.cohort==null || !STATUS_COUNTED.has(s.status)) return;
     if (!cohortCumulative[s.cohort]) cohortCumulative[s.cohort] = { sumCredits:0 };
     cohortCumulative[s.cohort].sumCredits += (cumByCohortStudent[s.id]||0);
+  });
+
+  // ── 課程主軸分布：依屆別，僅計入「有效人數(在學+已畢業)」學生的歷來各主軸學分加總(跟累計達成率用同一套人數口徑，分子分母才一致) ──
+  const axisTotalByCohort = {}; // cohort -> {底蘊:x, 對話:x, 應用:x, 未分類:x}
+  detail.forEach(d => {
+    const stu = studentMap[d.student_id];
+    if (!stu || !STATUS_COUNTED.has(stu.status)) return;
+    if (!axisTotalByCohort[d.cohort]) axisTotalByCohort[d.cohort] = {};
+    axisTotalByCohort[d.cohort][d.axis_code] = (axisTotalByCohort[d.cohort][d.axis_code]||0) + d.credits;
   });
 
   // ── 每個屆別「實際最早出現選課記錄」的學期順序值，取代原本用屆別數字猜測起始學期的假設(不是每個屆別都從自己的-1學期開始，例如113級是113-2才開始) ──
@@ -11573,13 +11618,15 @@ async function loadEnrollStats() {
     if (cohortFirstSemOrder[coh] == null || order < cohortFirstSemOrder[coh]) cohortFirstSemOrder[coh] = order;
   });
 
-  _esData = { sems: sems||[], bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, gradReqs: gradReqs||[], findGradReq, semOrderMap, cohortFirstSemOrder };
+  _esData = { sems: sems||[], bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortActivePop, cohortActiveGenderPop,
+    cohortCumulative, axisTotalByCohort, gradReqs: gradReqs||[], findGradReq, semOrderMap, cohortFirstSemOrder };
   renderEnrollStats();
 }
 
 function renderEnrollStats() {
   if (!_esData) return;
-  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
+  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortActivePop, cohortActiveGenderPop,
+    cohortCumulative, axisTotalByCohort, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
   const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
   const semLabelMap = {}; sems.forEach(s=>{ semLabelMap[s.id] = s.label; });
   const GENDER_ZH = { M:'男', F:'女', O:'其他', '?':'未填' };
@@ -11609,10 +11656,11 @@ function renderEnrollStats() {
     const sem = cohortSemSequence[coh][relIdx];
     if (!sem) return '<td style="padding:6px 4px;text-align:center;color:#DDD;background:#FAFAFA">—</td>'; // 這個屆別還沒讀到這麼多學期
     const b = bySemCohort[sem.id+'|'+coh];
-    const pop = cohortPop[coh]||1;
+    const pop = cohortActivePop[coh] || 0; // 「現在」在學/已畢業的有效人數(不分過去哪個學期，一律用同一個現在的數字)
+    if (!pop) return '<td style="padding:6px 4px;text-align:center;color:#DDD;background:#FAFAFA">—</td>';
     const avgCredits = b?fmt1(b.credits/pop):0;
     const avgCourses = b?fmt1(b.count/pop):0;
-    const zeroCount = pop - (b?b.students.size:0);
+    const zeroCount = Math.max(0, pop - (b?b.students.size:0));
     const zeroRatio = zeroCount/pop;
     const bg = zeroRatio>=0.8 ? '#FDEBEC' : zeroRatio>=0.4 ? '#FFF8E1' : '#fff';
     return `<td style="padding:6px 4px;text-align:center;background:${bg}">
@@ -11627,11 +11675,11 @@ function renderEnrollStats() {
       <th style="padding:5px 8px;width:70px">屆別</th>${relColumns.map(i=>`<th style="padding:5px 8px;width:64px">第${i+1}學期</th>`).join('')}
     </tr></thead><tbody>
       ${cohorts.map(coh=>`<tr style="border-bottom:1px solid var(--cr2)">
-        <td style="padding:5px 8px;font-weight:600;text-align:center;background:var(--cr3)">${coh}級<div style="font-size:9.5px;color:var(--ink3);font-weight:400">(${cohortPop[coh]}人)</div></td>
+        <td style="padding:5px 8px;font-weight:600;text-align:center;background:var(--cr3)">${coh}級<div style="font-size:9.5px;color:var(--ink3);font-weight:400">總${cohortPop[coh]}人／現在在學${cohortActivePop[coh]||0}人</div></td>
         ${relColumns.map(i=>matrixCell(coh,i)).join('')}
       </tr>`).join('')}
     </tbody></table>
-    <div style="font-size:11px;color:var(--ink3);margin-top:8px">每格：<b>平均學分</b>／(平均科目數)／未選課人數(若有)／對應日曆學期(灰色小字)。背景色：黃=近半數以上未選課，紅=八成以上未選課。各屆別「第1學期」是各自實際入學的第一個學期，不是同一個日曆學期</div>`;
+    <div style="font-size:11px;color:var(--ink3);margin-top:8px">每格：<b>平均學分</b>／(平均科目數)／未選課人數(若有)／對應日曆學期(灰色小字)。平均值分母是「現在」狀態為在學或已畢業的人數(休學/退學的人不分過去哪個學期一律排除)，不是各學期當時的班級人數。背景色：黃=近半數以上未選課，紅=八成以上未選課。各屆別「第1學期」是各自實際入學的第一個學期，不是同一個日曆學期</div>`;
 
   // ── 表2：性別差異，改成每個屆別一張SVG長條圖，X軸=相對學期(第1學期/第2學期...)，男女並排長條標數字 ──
   const genderChartsHtml = cohorts.map(coh => {
@@ -11639,55 +11687,55 @@ function renderEnrollStats() {
     if (!relevantSems.length) return '';
     return `<div style="margin-bottom:20px">
       <div style="font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:6px">${coh}級</div>
-      ${buildGenderBarChart(relevantSems, coh, bySemCohortGender, cohortGenderPop)}
+      ${buildGenderBarChart(relevantSems, coh, bySemCohortGender, cohortActiveGenderPop)}
     </div>`;
   }).join('');
 
-  // ── 表3：畢業學分累計達成率(依屆別，不分學期，看目前累計) ──
+  // ── 表3：畢業學分累計達成率(依屆別，不分學期，看目前累計；分母=「現在」在學+已畢業的有效人數，休學/退學不計，
+  // 但已畢業的人仍要算進去——他們理當已經達成，不能因為狀態不是active就被排除，否則達成率會失真) ──
   const table3Html = `<table style="border-collapse:collapse;font-size:12px">
     <thead><tr style="background:var(--navy);color:#fff">
-      <th style="padding:5px 12px">屆別</th><th style="padding:5px 12px">屆別人數</th>
-      <th style="padding:5px 12px">平均累計學分</th><th style="padding:5px 12px">畢業應修學分</th><th style="padding:5px 12px">達成率</th>
+      <th style="padding:5px 12px">屆別</th><th style="padding:5px 12px">總人數</th><th style="padding:5px 12px">在學+已畢業人數</th>
+      <th style="padding:5px 12px">平均累計學分</th><th style="padding:5px 12px">畢業應修學分</th>
+      <th style="padding:5px 12px">應修必修學分</th><th style="padding:5px 12px">應修選修學分</th><th style="padding:5px 12px">達成率</th>
     </tr></thead><tbody>
       ${cohorts.map(coh => {
-        const pop = cohortPop[coh]||1;
+        const pop = cohortActivePop[coh]||1;
         const avgCum = fmt1((cohortCumulative[coh]?.sumCredits||0)/pop);
         const req = findGradReq(coh);
         const pct = req ? Math.round(avgCum/req.total_min*100) : null;
         return `<tr style="border-bottom:1px solid var(--cr2)">
           <td style="padding:4px 12px;text-align:center">${coh}級</td>
-          <td style="padding:4px 12px;text-align:center;color:var(--ink3)">${pop}</td>
+          <td style="padding:4px 12px;text-align:center;color:var(--ink3)">${cohortPop[coh]||0}</td>
+          <td style="padding:4px 12px;text-align:center;color:var(--ink3)">${cohortActivePop[coh]||0}</td>
           <td style="padding:4px 12px;text-align:center;font-weight:600">${avgCum}</td>
           <td style="padding:4px 12px;text-align:center">${req?req.total_min:'—'}</td>
+          <td style="padding:4px 12px;text-align:center">${req?req.req_credits:'—'}</td>
+          <td style="padding:4px 12px;text-align:center">${req?req.sel_credits:'—'}</td>
           <td style="padding:4px 12px;text-align:center;color:${pct==null?'var(--ink3)':pct>=100?'#1A6A30':pct>=60?'inherit':'#C0392B'}">${pct==null?'（無規定）':pct+'%'}</td>
         </tr>`;
       }).join('')}
     </tbody></table>`;
 
-  // ── 表4：課程主軸分布(依屆別，累計全部學期，平均每人在各主軸修的學分) ──
-  const axisTotalByCohort = {}; // cohort -> {底蘊:x, 對話:x, 應用:x, 未分類:x}
-  Object.entries(bySemCohort).forEach(([key, b]) => {
-    const coh = Number(key.split('|')[1]);
-    if (!axisTotalByCohort[coh]) axisTotalByCohort[coh] = {};
-    Object.entries(b.axis).forEach(([ax, credits]) => { axisTotalByCohort[coh][ax] = (axisTotalByCohort[coh][ax]||0) + credits; });
-  });
+  // ── 表4：課程主軸分布(依屆別，累計全部學期，平均每人在各主軸修的學分；分母/分子口徑跟表3一致，用「在學+已畢業」有效人數) ──
   const axisKeys = ['底蘊','對話','應用','未分類'];
   const table4Html = `<table style="border-collapse:collapse;font-size:12px">
     <thead><tr style="background:var(--navy);color:#fff">
       <th style="padding:5px 12px">屆別</th>${axisKeys.map(a=>`<th style="padding:5px 12px">${a}(平均學分)</th>`).join('')}
     </tr></thead><tbody>
       ${cohorts.map(coh => {
-        const pop = cohortPop[coh]||1;
+        const pop = cohortActivePop[coh]||1;
         const ax = axisTotalByCohort[coh]||{};
         return `<tr style="border-bottom:1px solid var(--cr2)">
           <td style="padding:4px 12px;text-align:center">${coh}級</td>
           ${axisKeys.map(a=>`<td style="padding:4px 12px;text-align:center">${fmt1((ax[a]||0)/pop)}</td>`).join('')}
         </tr>`;
       }).join('')}
-    </tbody></table>`;
+    </tbody></table>
+    <div style="font-size:11px;color:var(--ink3);margin-top:8px">分母是「現在」在學+已畢業的有效人數，休學/退學排除。跟表1的平均學分一樣，<b>不及格的課仍算入學分</b>(只有「畢業學分達成率」那張表的累計學分才會排除不及格)，這是刻意的設計，目的是讓這裡的平均學分真實反映修課負擔，不是只看拿到的學分。</div>`;
 
   // ── 趨勢折線圖：X=學期，Y=平均學分，一屆別一條線 ──
-  const chartSvg = buildEnrollStatsTrendChart(sems, cohorts, bySemCohort, cohortPop, isRelevantSemCohort);
+  const chartSvg = buildEnrollStatsTrendChart(sems, cohorts, bySemCohort, cohortActivePop, isRelevantSemCohort);
 
   document.getElementById('enroll-stats-body').innerHTML = `
     <div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:16px;margin-bottom:16px">
@@ -11819,7 +11867,8 @@ async function exportEnrollStatsExcel() {
       document.head.appendChild(s);
     });
   }
-  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortCumulative, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
+  const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortActivePop, cohortActiveGenderPop,
+    cohortCumulative, axisTotalByCohort, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
   const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
   const GENDER_ZH = { M:'男', F:'女', O:'其他', '?':'未填' };
   const fmt1 = n => Math.round(n*10)/10;
@@ -11834,25 +11883,26 @@ async function exportEnrollStatsExcel() {
   const wb = XLSX.utils.book_new();
 
   // 工作表1：依學期×屆別摘要（排除還沒入學/還沒開始的組合，理由同畫面渲染邏輯的註解；加上相對學期欄位，方便對齊不同屆別的第幾學期）
-  const sheet1 = [['學期','相對學期(第幾學期)','屆別','屆別人數','平均科目數','平均學分','平均必修學分','平均選修學分','未選課人數']];
+  // 「屆別人數」用的是「現在」在學+已畢業的有效人數(休學/退學不分過去哪個學期一律排除，跟畫面顯示邏輯一致)，不是各學期當時的班級人數
+  const sheet1 = [['學期','相對學期(第幾學期)','屆別','屆別人數(現在在學+已畢業)','平均科目數','平均學分','平均必修學分','平均選修學分','未選課人數']];
   sems.forEach(sem => cohorts.forEach(coh => {
     if (!isRelevantSemCohort(sem, coh)) return;
     const firstOrder = cohortFirstSemOrder[coh];
     const relIdx = activeSemsSorted.filter(s => semOrderMap[s.id] >= firstOrder && semOrderMap[s.id] <= semOrderMap[sem.id]).length;
     const b = bySemCohort[sem.id+'|'+coh];
-    const pop = cohortPop[coh]||1;
-    sheet1.push([sem.label, '第'+relIdx+'學期', coh+'級', pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0, b?fmt1(b.req/pop):0, b?fmt1(b.sel/pop):0, pop-(b?b.students.size:0)]);
+    const pop = cohortActivePop[coh]||1;
+    sheet1.push([sem.label, '第'+relIdx+'學期', coh+'級', pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0, b?fmt1(b.req/pop):0, b?fmt1(b.sel/pop):0, Math.max(0,pop-(b?b.students.size:0))]);
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet1), '依學期屆別摘要');
 
-  // 工作表2：性別差異（加上相對學期欄位）
-  const sheet2 = [['學期','相對學期(第幾學期)','屆別','性別','人數','平均科目數','平均學分']];
+  // 工作表2：性別差異（加上相對學期欄位；人數同樣改用「現在」有效人數）
+  const sheet2 = [['學期','相對學期(第幾學期)','屆別','性別','人數(現在在學+已畢業)','平均科目數','平均學分']];
   sems.forEach(sem => cohorts.forEach(coh => {
     if (!isRelevantSemCohort(sem, coh)) return;
     const firstOrder = cohortFirstSemOrder[coh];
     const relIdx = activeSemsSorted.filter(s => semOrderMap[s.id] >= firstOrder && semOrderMap[s.id] <= semOrderMap[sem.id]).length;
     ['M','F'].forEach(g => {
-      const pop = cohortGenderPop[coh+'|'+g];
+      const pop = cohortActiveGenderPop[coh+'|'+g];
       if (!pop) return;
       const b = bySemCohortGender[sem.id+'|'+coh+'|'+g];
       sheet2.push([sem.label, '第'+relIdx+'學期', coh+'級', GENDER_ZH[g], pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0]);
@@ -11860,28 +11910,22 @@ async function exportEnrollStatsExcel() {
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet2), '性別差異');
 
-  // 工作表3：畢業學分累計達成率
-  const sheet3 = [['屆別','屆別人數','平均累計學分','畢業應修學分','達成率']];
+  // 工作表3：畢業學分累計達成率（分母＝現在在學+已畢業有效人數；已畢業的人仍算進去，休學/退學排除；新增應修必修/選修學分欄）
+  const sheet3 = [['屆別','總人數','在學+已畢業人數','平均累計學分','畢業應修學分','應修必修學分','應修選修學分','達成率']];
   cohorts.forEach(coh => {
-    const pop = cohortPop[coh]||1;
+    const pop = cohortActivePop[coh]||1;
     const avgCum = fmt1((cohortCumulative[coh]?.sumCredits||0)/pop);
     const req = findGradReq(coh);
     const pct = req ? Math.round(avgCum/req.total_min*100)+'%' : '（無規定）';
-    sheet3.push([coh+'級', pop, avgCum, req?req.total_min:'—', pct]);
+    sheet3.push([coh+'級', cohortPop[coh]||0, cohortActivePop[coh]||0, avgCum, req?req.total_min:'—', req?req.req_credits:'—', req?req.sel_credits:'—', pct]);
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet3), '畢業學分達成率');
 
-  // 工作表4：課程主軸分布
-  const axisTotalByCohort = {};
-  Object.entries(bySemCohort).forEach(([key, b]) => {
-    const coh = Number(key.split('|')[1]);
-    if (!axisTotalByCohort[coh]) axisTotalByCohort[coh] = {};
-    Object.entries(b.axis).forEach(([ax, credits]) => { axisTotalByCohort[coh][ax] = (axisTotalByCohort[coh][ax]||0) + credits; });
-  });
+  // 工作表4：課程主軸分布（分母＝現在在學+已畢業有效人數；不及格的課仍算入學分，跟表1平均學分的口徑一致，反映真實修課負擔）
   const axisKeys = ['底蘊','對話','應用','未分類'];
-  const sheet4 = [['屆別', ...axisKeys.map(a=>a+'(平均學分)')]];
+  const sheet4 = [['屆別', ...axisKeys.map(a=>a+'(平均學分，含不及格)')]];
   cohorts.forEach(coh => {
-    const pop = cohortPop[coh]||1;
+    const pop = cohortActivePop[coh]||1;
     const ax = axisTotalByCohort[coh]||{};
     sheet4.push([coh+'級', ...axisKeys.map(a=>fmt1((ax[a]||0)/pop))]);
   });
@@ -15845,6 +15889,23 @@ function toggleScheduleMenu() {
   const sub=document.getElementById('schedule-submenu'),arrow=document.getElementById('sched-arrow'),open=sub.style.display==='none';
   sub.style.display=open?'block':'none'; arrow.style.transform=open?'rotate(0deg)':'rotate(-90deg)';
 }
+
+/* 側邊欄收合/展開：記住使用者上次的選擇(localStorage)，下次登入自動套用 */
+function toggleSidebar() {
+  const sb=document.querySelector('.sidebar');
+  const collapsed=sb.classList.toggle('collapsed');
+  try { localStorage.setItem('bwbc_admin_sidebar_collapsed', collapsed?'1':'0'); } catch(e) {}
+}
+(function initSidebarCollapseState(){
+  try {
+    if (localStorage.getItem('bwbc_admin_sidebar_collapsed')==='1') {
+      document.addEventListener('DOMContentLoaded', function(){
+        const sb=document.querySelector('.sidebar');
+        if (sb) sb.classList.add('collapsed');
+      });
+    }
+  } catch(e) {}
+})();
 
 function buildTimetableGrid(courses, getCellContent, teacherMap, currentSemLabel) {
   teacherMap = teacherMap||{};
