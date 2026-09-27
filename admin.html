@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.41 2026-09-20 -->
+<!-- BWBC Admin v10.42 2026-09-20 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -349,6 +349,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <div class="nav-section">
         <div class="nav-label">資料管理</div>
         <div class="nav-item" data-perm="courses" onclick="showPage('courses',this)"><span class="nav-icon">📚</span>課程管理</div>
+        <div class="nav-item" data-perm="courses" onclick="showPage('grad-req',this)"><span class="nav-icon">🎓</span>畢業學分規定</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('teachers',this)"><span class="nav-icon">👤</span>教師管理</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('payroll',this)"><span class="nav-icon">💰</span>兼課鐘點費核銷</div>
         <div class="nav-item" data-perm="courses" onclick="showPage('distance-apps',this)"><span class="nav-icon">💻</span>遠距教學課程申請</div>
@@ -387,7 +388,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.41　2026-09-20</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.42　2026-09-20</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -560,6 +561,20 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">狀態</th>
             <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">選課單</th>
           </tr></thead><tbody id="eo-body"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ▌畢業學分規定 ▌-->
+      <div id="page-grad-req" style="display:none">
+        <div class="page-hdr">
+          <div class="page-title">🎓 畢業學分規定管理</div>
+          <button class="btn btn-pri" onclick="openGradReqModal()">＋ 新增規定</button>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;line-height:1.7">
+          依「入學屆別範圍」設定畢業所需學分，學生端的畢業學分試算/進度條就是依這裡的設定計算。屆別範圍不要重疊，避免同一個學生對到兩筆規定造成混淆。
+        </div>
+        <div id="grad-req-body">
+          <div style="color:var(--ink3);padding:40px;text-align:center">載入中…</div>
         </div>
       </div>
 
@@ -10608,6 +10623,12 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.42', date: '2026-09-20',
+    items: [
+      '新增「畢業學分規定管理」頁面：終於補上這個資料庫早就存在、但一直沒有管理介面的功能，可以新增/編輯/刪除不同屆別範圍的畢業學分規定(必修/選修/論文/總學分)，不用再直接改資料庫。儲存時會自動檢查屆別範圍有沒有跟既有規定重疊，重疊時會警示但仍可選擇強制儲存。已用模擬資料驗證重疊檢查邏輯正確。學生端的畢業學分試算/進度條原本就是讀這張表，這次不用改學生端',
+    ]
+  },
+  {
     version: 'v10.41', date: '2026-09-20',
     items: [
       '學生學籍狀態新增「保留入學資格」(deferred)：因應有學生選擇保留入學資格未報到的實際情況，資料庫CHECK約束、狀態篩選下拉選單(學生資料列表跟編輯表單2處)、狀態徽章顏色、批次匯入說明文字都一併加上這個新狀態',
@@ -11318,6 +11339,134 @@ async function adminPrintBatchSheets() {
  * ════════════════════════════════════════════════════════════════════ */
 let _esData = null; // 快取聚合後的統計結果，匯出Excel時重用，不用重新查一次
 
+/* ════════════════════════════════════════════════════════════════════
+ * 🎓 畢業學分規定管理
+ * ════════════════════════════════════════════════════════════════════ */
+let _gradReqs = [];
+
+async function loadGradReqPage() {
+  const body = document.getElementById('grad-req-body');
+  body.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">載入中…</div>';
+  const { data, error } = await sb.from('graduation_requirements').select('*').order('cohort_from');
+  if (error) { body.innerHTML = `<div style="color:#C00;padding:16px">載入失敗：${error.message}</div>`; return; }
+  _gradReqs = data || [];
+  renderGradReqTable();
+}
+
+function renderGradReqTable() {
+  const body = document.getElementById('grad-req-body');
+  if (!_gradReqs.length) { body.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">尚未設定任何畢業學分規定</div>'; return; }
+  body.innerHTML = `<div class="tbl-wrap"><table><thead><tr>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">適用屆別</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">必修學分</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">選修學分</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">論文學分</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">畢業總學分</th>
+      <th style="padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500">備註</th>
+      <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
+    </tr></thead><tbody>
+      ${_gradReqs.map(r => `<tr>
+        <td style="text-align:center;font-weight:600">${r.cohort_from}級${r.cohort_to!=null && r.cohort_to!==r.cohort_from ? `～${r.cohort_to}級` : (r.cohort_to==null ? '起（含以後）' : '')}</td>
+        <td style="text-align:center">${r.req_credits}</td>
+        <td style="text-align:center">${r.sel_credits}</td>
+        <td style="text-align:center">${r.thesis_credits??'—'}</td>
+        <td style="text-align:center;font-weight:600;color:var(--navy)">${r.total_min}</td>
+        <td style="color:var(--ink3);font-size:12px">${esc(r.notes||'—')}</td>
+        <td style="text-align:center;white-space:nowrap">
+          <button class="btn btn-sm" onclick="openGradReqModal('${r.id}')">✏️編輯</button>
+          <button class="btn btn-sm" onclick="deleteGradReq('${r.id}')" style="color:#C0392B;border-color:#C0392B">🗑刪除</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function openGradReqModal(id) {
+  const r = id ? _gradReqs.find(x=>x.id===id) : null;
+  const bodyHtml = `
+    <input type="hidden" id="gr-id" value="${id||''}">
+    <div class="frow-2">
+      <div><label class="flabel">屆別起 *（例：113）</label><input class="finput" id="gr-from" type="number" value="${r?.cohort_from??''}"></div>
+      <div><label class="flabel">屆別迄（留空＝含以後所有屆別）</label><input class="finput" id="gr-to" type="number" value="${r?.cohort_to??''}"></div>
+    </div>
+    <div class="frow-2">
+      <div><label class="flabel">必修學分 *</label><input class="finput" id="gr-req" type="number" value="${r?.req_credits??''}"></div>
+      <div><label class="flabel">選修學分 *</label><input class="finput" id="gr-sel" type="number" value="${r?.sel_credits??''}"></div>
+    </div>
+    <div class="frow-2">
+      <div><label class="flabel">論文學分</label><input class="finput" id="gr-thesis" type="number" value="${r?.thesis_credits??6}"></div>
+      <div><label class="flabel">畢業總學分 *</label><input class="finput" id="gr-total" type="number" value="${r?.total_min??36}"></div>
+    </div>
+    <div class="frow"><label class="flabel">備註（選填）</label><textarea class="finput" id="gr-notes" rows="2">${r?.notes||''}</textarea></div>
+    <div id="gr-overlap-warn" style="display:none;background:#FFF3E0;border:1px solid #F0C040;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#8A6D00;margin-bottom:10px"></div>
+    <button class="btn btn-pri" style="width:100%" onclick="saveGradReq()">${id?'儲存變更':'新增規定'}</button>`;
+  openThModal(id?'編輯畢業學分規定':'新增畢業學分規定', bodyHtml);
+}
+
+// 檢查屆別範圍是否跟既有規定重疊(排除自己這一筆，供編輯時使用)
+function checkGradReqOverlap(from, to, excludeId) {
+  const toVal = to==null ? Infinity : to;
+  return _gradReqs.filter(r => r.id !== excludeId).find(r => {
+    const rTo = r.cohort_to==null ? Infinity : r.cohort_to;
+    return from <= rTo && toVal >= r.cohort_from; // 兩區間有交集
+  });
+}
+
+async function saveGradReq() {
+  const id = document.getElementById('gr-id').value;
+  const cohort_from = Number(document.getElementById('gr-from').value);
+  const toRaw = document.getElementById('gr-to').value.trim();
+  const cohort_to = toRaw==='' ? null : Number(toRaw);
+  const req_credits = Number(document.getElementById('gr-req').value);
+  const sel_credits = Number(document.getElementById('gr-sel').value);
+  const thesis_credits = Number(document.getElementById('gr-thesis').value) || null;
+  const total_min = Number(document.getElementById('gr-total').value);
+  const notes = document.getElementById('gr-notes').value.trim() || null;
+
+  if (!cohort_from || !req_credits || !sel_credits || !total_min) { showToast('請填寫必填欄位','error'); return; }
+  if (cohort_to != null && cohort_to < cohort_from) { showToast('屆別迄不能小於屆別起','error'); return; }
+
+  const overlap = checkGradReqOverlap(cohort_from, cohort_to, id||null);
+  if (overlap) {
+    const warnEl = document.getElementById('gr-overlap-warn');
+    const overlapRange = `${overlap.cohort_from}級${overlap.cohort_to!=null?'～'+overlap.cohort_to+'級':'起（含以後）'}`;
+    warnEl.style.display = '';
+    warnEl.innerHTML = `⚠️ 這個屆別範圍跟既有規定「${overlapRange}」重疊，同一位學生可能會對到兩筆規定造成混淆。確定要繼續儲存嗎？<button class="btn btn-sm" style="margin-left:8px;background:#C4960A;color:#fff;border:none" onclick="saveGradReqForce()">仍要儲存</button>`;
+    return;
+  }
+  await saveGradReqForce();
+}
+
+async function saveGradReqForce() {
+  const id = document.getElementById('gr-id').value;
+  const cohort_from = Number(document.getElementById('gr-from').value);
+  const toRaw = document.getElementById('gr-to').value.trim();
+  const cohort_to = toRaw==='' ? null : Number(toRaw);
+  const req_credits = Number(document.getElementById('gr-req').value);
+  const sel_credits = Number(document.getElementById('gr-sel').value);
+  const thesis_credits = Number(document.getElementById('gr-thesis').value) || null;
+  const total_min = Number(document.getElementById('gr-total').value);
+  const notes = document.getElementById('gr-notes').value.trim() || null;
+  const payload = { cohort_from, cohort_to, req_credits, sel_credits, thesis_credits, total_min, notes };
+
+  let error;
+  if (id) ({ error } = await sb.from('graduation_requirements').update(payload).eq('id', id));
+  else ({ error } = await sb.from('graduation_requirements').insert(payload));
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+  closeThModal();
+  showToast('✅ 已儲存');
+  loadGradReqPage();
+}
+
+async function deleteGradReq(id) {
+  const r = _gradReqs.find(x=>x.id===id);
+  const rangeStr = r ? `${r.cohort_from}級${r.cohort_to!=null?'～'+r.cohort_to+'級':'起（含以後）'}` : '';
+  if (!confirm(`確定要刪除「${rangeStr}」這筆畢業學分規定嗎？刪除後，屬於這個屆別範圍的學生，畢業學分試算會找不到對應規定。`)) return;
+  const { error } = await sb.from('graduation_requirements').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  showToast('✅ 已刪除');
+  loadGradReqPage();
+}
+
 async function loadEnrollStats() {
   const body = document.getElementById('enroll-stats-body');
   body.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">載入中，資料量較大請稍候…</div>';
@@ -11879,6 +12028,7 @@ function showPage(page, btn) {
   if (page==='conflicts') runConflictCheck(false);
   if (page==='enroll-overview') loadEnrollOverview();
   if (page==='enroll-stats') loadEnrollStats();
+  if (page==='grad-req') loadGradReqPage();
   if (page==='ta-match') loadTaMatch();
   if (page==='audit') loadAuditLog();
   if (page==='announcements') loadAnnouncements();
