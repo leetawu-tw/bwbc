@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.45 2026-09-27 -->
+<!-- BWBC Admin v10.46 2026-09-27 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -400,7 +400,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.45　2026-09-27</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.46　2026-09-27</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -554,7 +554,13 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <option value="">載入中…</option>
           </select>
           <div id="eo-deadline-badge" style="font-size:12.5px;color:var(--ink3)"></div>
-          <button id="eo-batch-print-btn" class="btn btn-sec btn-sm" onclick="adminPrintBatchSheets()" disabled style="opacity:.5">🖨 批次列印選課單 (<span id="eo-batch-print-count">0</span>)</button>
+          <div class="admin-dd">
+            <button id="eo-batch-print-btn" class="btn btn-sec btn-sm" onclick="toggleAdminDD(this)" disabled style="opacity:.5">🖨 批次操作 (<span id="eo-batch-print-count">0</span>) ▾</button>
+            <div class="admin-dd-menu">
+              <div onclick="adminPrintBatchSheets()">🖨 批次列印選課單</div>
+              <div onclick="adminExportBatchSheetsPDF()">📦 批次匯出選課單PDF</div>
+            </div>
+          </div>
           <div style="flex:1"></div>
           <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink3);cursor:pointer">
             <input type="checkbox" id="eo-only-incomplete" onchange="renderEnrollOverviewTable()">只顯示尚未選課
@@ -570,6 +576,10 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <th class="usr-th" onclick="eoSort('cohort')" style="text-align:center">屆別 <span class="sort-icon" id="eo-sort-cohort">⇅</span></th>
             <th class="usr-th" onclick="eoSort('course_count')" style="text-align:center">已選科目數 <span class="sort-icon" id="eo-sort-course_count">⇅</span></th>
             <th class="usr-th" onclick="eoSort('credits')" style="text-align:center">已選學分 <span class="sort-icon" id="eo-sort-credits">⇅</span></th>
+            <th class="usr-th" onclick="eoSort('req_before')" style="text-align:center" title="本學期之前已取得的必修學分（不含本學期正在選的課）">已獲得必修學分 <span class="sort-icon" id="eo-sort-req_before">⇅</span></th>
+            <th class="usr-th" onclick="eoSort('sel_before')" style="text-align:center" title="本學期之前已取得的選修學分（含二選一，不含本學期正在選的課）">已獲得選修學分 <span class="sort-icon" id="eo-sort-sel_before">⇅</span></th>
+            <th class="usr-th" onclick="eoSort('achieve_rate')" style="text-align:center" title="算到本學期為止（含本學期正在選的課）的預估畢業學分達成率，公式同「選課統計分析」：必修封頂應修必修學分＋選修封頂應修選修學分，再除以應修總學分">預估畢業學分達成率 <span class="sort-icon" id="eo-sort-achieve_rate">⇅</span></th>
+            <th class="usr-th" onclick="eoSort('go_taken')" style="text-align:center" title="算到本學期為止（含本學期正在選的課），是否已經選過至少一門「二選一」課程">二選一 <span class="sort-icon" id="eo-sort-go_taken">⇅</span></th>
             <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">狀態</th>
             <th style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">選課單</th>
           </tr></thead><tbody id="eo-body"></tbody></table>
@@ -5741,7 +5751,8 @@ function buildCourseSheetCSS(orientation) {
     'th{background:#f0f0f0;font-weight:600}',
     '.summary-box{border:1px solid #333;padding:8px 10px;font-size:11.5px;line-height:1.7;margin-bottom:10px}',
     '.cohort-line{font-size:12px;margin-bottom:10px}',
-    '.sign-table td{font-size:10.5px;padding:6px 4px;text-align:center}',
+    '.sign-table{table-layout:fixed}',
+    '.sign-table td{font-size:10.5px;padding:6px 4px;text-align:center;width:20%}',
     `@page{margin:1cm;size:A4 ${orientation==='portrait'?'portrait':'landscape'}}`,
     '@media print{body{margin:0}}'
   ].join('');
@@ -10635,6 +10646,23 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.46', date: '2026-09-27',
+    items: [
+      '修正選課統計分析漏算1人的bug：上次批次補登「舊生入學初始狀態」時，少數學生因為enrolled_date是空的、fallback抓到的最早選課學期比實際入學學期晚，導致這些人在自己真正的入學第1學期反而被系統誤判成「尚未入學」而被排除(如114-1學期114級屆別人數少算1人)。程式邏輯本身沒問題，是資料時間點誤植，已提供SQL(fix_backfill_wrong_semester.sql)修正對應記錄的時間點',
+      'Excel匯出「依學期屆別摘要」新增「入學總人數」欄(該屆別已入學總人數，不分學期固定不變，方便跟每學期的屆別人數互相核對)，以及「備註」欄(自動列出該學期被排除在屆別人數之外的學號+原因，如休學/退學，取代人工逐格核對紅字註記)',
+      '「說明」工作表補充「未選課人數」「備註」兩欄的計算方式說明',
+      '備註欄追加「未選課：」部分，逐一點名列出「未選課人數」欄具體是哪幾位學號，不是只顯示一個數字',
+      'Excel「依學期屆別摘要」表：備註欄寬度改成依內容自動調整；表格下方加註一行白話說明「未選課人數」的認定範圍(當學期仍在學者中還沒選課的人數)；畫面上的表格說明文字比照補充同一句',
+      '修正「畢業學分達成率」算法：原本是「屆別必修+選修學分總量」直接除以「屆別應修學分總量」，必修不夠的人會被選修超修很多的人「補洞」，達成率灌水失真。改成逐一學生分別把必修學分封頂在應修必修學分、選修學分(含二選一)封頂在應修選修學分後，算出個人達成率，再平均全屆別的個人達成率；新增備註欄，列出還沒選過任何一門「二選一」課程的學號(必修超修不會拿來抵選修不足，兩邊各自獨立封頂)',
+      '選課完成度總覽新增「批次匯出選課單PDF」功能：勾選學生後，跟批次列印用同一套版型，逐一產生個別PDF打包成ZIP下載，檔名格式「{學期}選課單{學號}{姓名}.pdf」，不用一份一份手動列印存檔；跟原本的「批次列印選課單」合併成同一顆「🖨 批次操作 ▾」下拉選單按鈕，避免工具列同時擠兩顆按鈕、勾選0筆時兩顆都變灰不易閱讀',
+      '選課單PDF內文一律強制以純黑色顯示文字，避免html2canvas截圖時繼承主畫面顏色設定，變成偏咖啡色不易閱讀',
+      '修正批次匯出PDF字型跑掉的問題：原本的標楷體字型設定只寫在body選擇器上，單張列印(開新視窗，內容本身就是body)沒問題，但批次匯出PDF是把選課單內容插入主畫面裡的一個div(不是body)，套不到那個規則，變成用主畫面預設字型。改成同時套用在.sheet-page本身，兩種情況字型都能維持跟畫面上原本一樣的標楷體',
+      '選課單下方簽名列（學生簽名/佛應所助理/佛應所所長/教育處承辦人/教育長）改成固定平均分配欄寬，不再依文字長短自動縮放導致欄位寬窄不一',
+      '修正重大bug：「批次匯出選課單PDF」誤把選課單專用的CSS(含body、table、th、td、h2、h3等未限定範圍的選擇器)整份注入到後台主畫面的&lt;head&gt;，導致按過這個功能一次後，整個後台畫面(不只選課單)全部變成選課單的標楷體字型、表格樣式、表頭配色，變得又醜又難閱讀。改成注入一份限定只在選課單截圖容器內才生效的CSS(前面統一加上.admin-sheet-pdf-scope範圍)，不會再影響到後台畫面本身。若畫面目前仍顯示錯亂，請重新整理(F5)頁面清除舊的樣式',
+      '選課完成度總覽新增四欄：「已獲得必修學分」「已獲得選修學分」(皆為本學期之前、不含本學期正在選的課，已確認且未被判不及格的學分)、「預估畢業學分達成率」(算到本學期為止、含本學期正在選的課，公式跟選課統計分析的畢業學分達成率完全一致：必修封頂應修必修學分＋選修封頂應修選修學分，除以應修總學分；沒有畢業學分規定可對照的屆別顯示"—")，以及「二選一」(算到本學期為止，選過至少一門標記為「二選一」的課程就顯示"已選修"，否則空白)',
+    ]
+  },
+  {
     version: 'v10.45', date: '2026-09-27',
     items: [
       '選課統計分析改回「逐學期歷史狀態」判斷（表1依學期屆別摘要、表2性別差異、平均學分趨勢圖）：改用student_status_history重建每個學期「結束當下」的真實狀態，同一個人可能這學期休學被排除、下學期復學又算進去，不再套用同一個現在狀態到全部學期。畢業學分達成率、課程主軸分布這兩張「累計」表維持用現在狀態(邏輯上本來就該看現在)。另外deferred(保留入學資格、尚未實際入學)一律排除在所有人數統計外，包含總人數欄位。',
@@ -11234,8 +11262,14 @@ function updateEoBatchPrintButton() {
 }
 
 const ADMIN_SHEET_REQ_TYPE_LABEL = { req:'必修', sel:'選修', go:'選修（二選一）' };
-const ADMIN_SHEET_CSS = [
-  'body{font-family:"標楷體",serif;margin:20px 30px;font-size:12.5px}',
+// 這份規則專供「開新視窗列印」使用(win.document.write出來的是獨立文件，body/table/th/td都是那份文件自己的，
+// 不會影響到admin主畫面)。批次匯出PDF不是開新視窗、是直接插入主畫面的DOM，絕對不能直接把這份規則注入
+// 主畫面的<head>——bare的body/table/th/td/h2/h3選擇器會直接把整個後台畫面的樣式都蓋掉。批次匯出PDF
+// 要用的是下面另外做「限定範圍」處理過的 scopeSheetCSS(ADMIN_SHEET_CSS_RULES) 版本。
+const ADMIN_SHEET_CSS_RULES = [
+  '.sheet-page,.sheet-page *{color:#000!important;font-family:"標楷體",serif}',
+  'body{font-family:"標楷體",serif;margin:20px 30px;font-size:12.5px;color:#000}',
+  '.sheet-page{font-size:12.5px}',
   'h2{text-align:center;font-size:17px;margin:0 0 4px}',
   'h3{text-align:center;font-size:14px;margin:0 0 10px;font-weight:normal}',
   '.info-line{font-size:11.5px;margin-bottom:8px}',
@@ -11244,12 +11278,31 @@ const ADMIN_SHEET_CSS = [
   'th{background:#f0f0f0;font-weight:600}',
   '.summary-box{border:1px solid #333;padding:8px 10px;font-size:11.5px;line-height:1.7;margin-bottom:10px}',
   '.cohort-line{font-size:12px;margin-bottom:10px}',
-  '.sign-table td{font-size:10.5px;padding:6px 4px;text-align:center}',
+  '.sign-table{table-layout:fixed}',
+  '.sign-table td{font-size:10.5px;padding:6px 4px;text-align:center;width:20%}',
   '.sheet-page{page-break-after:always}',
   '.sheet-page:last-child{page-break-after:auto}',
+];
+const ADMIN_SHEET_CSS = ADMIN_SHEET_CSS_RULES.concat([
   '@page{margin:1cm;size:A4 landscape}',
   '@media print{body{margin:0}}'
-].join('');
+]).join('');
+
+// 把上面那份規則改寫成「限定在某個外層class之下才生效」的版本，用於批次匯出PDF時注入主畫面<head>，
+// 避免bare的body/table/th/td/h2/h3選擇器污染整個後台畫面。@page、@media print這類跟畫面顯示/截圖
+// 無關的規則直接丟棄。scopeClass需自己包含開頭的「.」，例如'.admin-sheet-pdf-scope'。
+function scopeSheetCSS(rules, scopeClass) {
+  return rules
+    .filter(rule => !rule.startsWith('@'))
+    .map(rule => {
+      const idx = rule.indexOf('{');
+      const selectors = rule.slice(0, idx).split(',');
+      const rest = rule.slice(idx);
+      return selectors.map(sel => `${scopeClass} ${sel.trim()}`).join(',') + rest;
+    })
+    .join('');
+}
+const ADMIN_SHEET_CSS_SCOPED = scopeSheetCSS(ADMIN_SHEET_CSS_RULES, '.admin-sheet-pdf-scope');
 
 // 抓某位學生某學期的已確認選課資料，回傳整理好的rows + 學生/學期資訊，供列印用
 async function fetchAdminSheetData(studentId, semesterId) {
@@ -11366,6 +11419,71 @@ async function adminPrintBatchSheets() {
     + '</bo'+'dy></ht'+'ml>';
   win.document.write(html);
   win.document.close();
+}
+
+// 📦 批次匯出選課單PDF(2026-09-27新增)：跟批次列印用同一批勾選的學生、同一套版型(buildAdminSheetBodyHtml)，
+// 差別是不開列印視窗，改成逐一用html2canvas截圖+jsPDF轉成PDF，每人各自一個檔案，打包成ZIP一次下載，
+// 檔名格式「{學期}選課單{學號}{姓名}.pdf」，方便行政直接寄送或存檔，不用一份一份手動列印存PDF
+async function adminExportBatchSheetsPDF() {
+  const checked = Array.from(document.querySelectorAll('.eo-row-check:checked'));
+  if (!checked.length) return;
+  if (typeof JSZip === 'undefined') { showToast('打包功能缺少JSZip函式庫，請重新整理頁面','error'); return; }
+  const studentIds = checked.map(cb => cb.value);
+  const semId = document.getElementById('eo-sem').value;
+
+  showToast(`📦 產生中，共 ${studentIds.length} 位，請稍候…`);
+  await ensurePdfLibs();
+  // 2026-09-27修正重大bug：這裡是直接把樣式注入「主畫面」的<head>，不是像列印彈出視窗那樣是獨立文件，
+  // 之前誤用了ADMIN_SHEET_CSS(裡面有bare的body/table/th,td/h2/h3選擇器)，結果把整個後台畫面的樣式都
+  // 蓋掉了(字型變標楷體、所有表格/表頭樣式跟著跑掉)。改用限定範圍的ADMIN_SHEET_CSS_SCOPED，
+  // 只有在.admin-sheet-pdf-scope這個容器底下才會生效，不會影響到容器以外的畫面
+  if (!document.getElementById('admin-sheet-pdf-style')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'admin-sheet-pdf-style';
+    styleEl.textContent = ADMIN_SHEET_CSS_SCOPED;
+    document.head.appendChild(styleEl);
+  }
+
+  try {
+    const [{ data: semRow }, results] = await Promise.all([
+      sb.from('semesters').select('label').eq('id', semId).single(),
+      Promise.all(studentIds.map(id => fetchAdminSheetData(id, semId))),
+    ]);
+    const semLabel = semRow?.label || '';
+    const validResults = results.filter(r => r.rows.length > 0);
+    if (!validResults.length) { showToast('勾選的學生都沒有已確認的選課記錄，無法匯出','error'); return; }
+
+    const zip = new JSZip();
+    for (const data of validResults) {
+      const container = document.createElement('div');
+      container.className = 'admin-sheet-pdf-scope';
+      container.style.cssText = 'position:absolute;top:0;left:0;width:1000px;opacity:0;pointer-events:none;z-index:-1';
+      container.innerHTML = buildAdminSheetBodyHtml(data);
+      document.body.appendChild(container);
+      const target = container.firstElementChild;
+      const canvas = await html2canvas(target, { scale: 2, width: target.offsetWidth, windowWidth: target.offsetWidth });
+      container.remove();
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'landscape' }); // 選課單版型是橫式(@page size:A4 landscape)
+      const pageW = 297, pageH = 210, margin = 10;
+      const maxW = pageW - margin*2, maxH = pageH - margin*2;
+      const imgRatio = canvas.width / canvas.height;
+      let w = maxW, h = w / imgRatio;
+      if (h > maxH) { h = maxH; w = h * imgRatio; }
+      const x = (pageW - w) / 2, y = margin;
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, w, h);
+      zip.file(`${semLabel}選課單${data.student.student_code||''}${data.student.name_zh||''}.pdf`, pdf.output('blob'));
+    }
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = `${semLabel}選課單批次匯出(${validResults.length}份).zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    showToast('✅ 全部完成，已下載ZIP');
+  } catch (e) {
+    showToast('產生失敗：'+e.message, 'error');
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -11508,7 +11626,7 @@ async function loadEnrollStats() {
   // 1. 學期(依時間排序)，加入start_date/end_date供後面判斷「這學期是否已經開始」及「這學期當下的歷史狀態」用
   const { data: sems } = await sb.from('semesters').select('id,label,academic_year,semester_num,start_date,end_date').order('academic_year').order('semester_num');
   // 2. 全部學生(不限狀態，完整呈現歷年趨勢；已畢業/休學的人歷史資料仍要算進去)
-  const { data: students } = await sb.from('students').select('id,cohort,gender,status');
+  const { data: students } = await sb.from('students').select('id,cohort,gender,status,student_code');
   const studentMap = {}; (students||[]).forEach(s=>{ studentMap[s.id] = s; });
 
   // 2b. 學生狀態異動歷程，用來重建「某學期結束當下」每個學生的真實狀態(而不是只看現在狀態)
@@ -11611,16 +11729,26 @@ async function loadEnrollStats() {
   // 給表1依學期屆別摘要、表2性別差異、趨勢圖使用，才能反映「某人只有某學期休學、其他學期正常」的真實情況 ──
   const cohortActivePopBySem = {}; // key: semester_id|cohort
   const cohortActiveGenderPopBySem = {}; // key: semester_id|cohort|gender
+  // 逐學期「有登記在這個屆別、但這個學期沒被算進有效人數」的名單+原因，取代人工在Excel上用紅字手動註記——
+  // 每次 statusAsOf() 判斷不是active/graduated，就記一筆，方便對照「總人數」跟「有效人數」的差額具體是哪些人
+  const STATUS_LABEL_ZH = { leave:'休學', withdrawn:'退學', deferred:'保留入學資格', graduated:'已畢業', active:'在學' };
+  const excludedBySem = {}; // key: semester_id|cohort -> [{code, status, label}, ...]
+  const activeStudentIdsBySem = {}; // key: semester_id|cohort -> Set(student_id)，給後面比對「誰未選課」用
   (sems||[]).forEach(sem => {
     const refTime = new Date(sem.end_date + 'T23:59:59').getTime();
     (students||[]).forEach(s => {
-      if (s.cohort==null) return;
+      if (s.cohort==null || s.status==='deferred') return; // deferred本來就不計入總人數，不需要在備註裡重複提醒
       const st = statusAsOf(s.id, refTime);
-      if (!STATUS_COUNTED.has(st)) return;
       const k1 = sem.id+'|'+s.cohort;
-      cohortActivePopBySem[k1] = (cohortActivePopBySem[k1]||0)+1;
-      const k2 = sem.id+'|'+s.cohort+'|'+(s.gender||'?');
-      cohortActiveGenderPopBySem[k2] = (cohortActiveGenderPopBySem[k2]||0)+1;
+      if (STATUS_COUNTED.has(st)) {
+        cohortActivePopBySem[k1] = (cohortActivePopBySem[k1]||0)+1;
+        const k2 = sem.id+'|'+s.cohort+'|'+(s.gender||'?');
+        cohortActiveGenderPopBySem[k2] = (cohortActiveGenderPopBySem[k2]||0)+1;
+        (activeStudentIdsBySem[k1] ||= new Set()).add(s.id);
+      } else {
+        const label = st==null ? '狀態不明(請查歷程記錄)' : (STATUS_LABEL_ZH[st]||st);
+        (excludedBySem[k1] ||= []).push({ code: s.student_code||'?', status: st, label });
+      }
     });
   });
 
@@ -11647,13 +11775,39 @@ async function loadEnrollStats() {
 
   // ── 累計達成率：依屆別，把該屆別「有效人數(在學+已畢業)」學生的「歷來累計已確認學分」加總，除以有效人數，對照畢業學分規定 ──
   // (休學/退學的人：分子分母都不算，避免分子仍含他們過去的學分、分母卻已經把他們排除，導致比例失真)
-  const cumByCohortStudent = {}; // student_id -> total credits(累計)
+  const cumByCohortStudent = {}; // student_id -> total credits(累計，不分必選修，僅供「平均累計學分」欄位參考顯示用)
   detail.forEach(d => { if (!d.isFailed) cumByCohortStudent[d.student_id] = (cumByCohortStudent[d.student_id]||0) + d.credits; });
   const cohortCumulative = {}; // cohort -> {sumCredits}
   (students||[]).forEach(s => {
     if (s.cohort==null || !STATUS_COUNTED.has(s.status)) return;
     if (!cohortCumulative[s.cohort]) cohortCumulative[s.cohort] = { sumCredits:0 };
     cohortCumulative[s.cohort].sumCredits += (cumByCohortStudent[s.id]||0);
+  });
+
+  // ── 達成率的正確算法(2026-09-27修正)：不能用「屆別累計學分加總／屆別應修學分」這種整體加總的方式，
+  // 因為必修/選修超修的學分會互相「補洞」，導致個別同學必修不夠、但選修超修很多時，達成率被灌水成好看的數字。
+  // 正確做法：逐一學生分別計算「必修已修學分(封頂在應修必修學分)」+「選修已修學分(封頂在應修選修學分，含二選一)」，
+  // 除以「應修必修學分+應修選修學分」，得到這位學生自己的達成率，再把全部學生的達成率平均，才是屆別的達成率。
+  // 例：必修12學分(應修9)+選修30學分(應修27)→ 必修封頂9+選修封頂27=36，應修合計36 → 100%(不是用超修部分抵掉別的缺口)。
+  const perStudentReqSel = {}; // student_id -> {req, sel, hasGo}(hasGo=是否選過至少一門「二選一」課程)
+  detail.forEach(d => {
+    if (d.isFailed) return;
+    const p = (perStudentReqSel[d.student_id] ||= { req:0, sel:0, hasGo:false });
+    if (d.req_type==='req') p.req += d.credits;
+    else { p.sel += d.credits; if (d.req_type==='go') p.hasGo = true; }
+  });
+  const cohortAchieve = {}; // cohort -> {sumRate, n, noGoCodes:[學號,...]}
+  (students||[]).forEach(s => {
+    if (s.cohort==null || !STATUS_COUNTED.has(s.status)) return;
+    const req = findGradReq(s.cohort);
+    const reqCap = req?(req.req_credits||0):0, selCap = req?(req.sel_credits||0):0;
+    const totalCap = reqCap + selCap;
+    if (totalCap <= 0) return; // 沒有畢業學分規定可對照，無法算達成率，不計入平均(避免除以0)
+    const p = perStudentReqSel[s.id] || { req:0, sel:0, hasGo:false };
+    const rate = (Math.min(p.req, reqCap) + Math.min(p.sel, selCap)) / totalCap;
+    const a = (cohortAchieve[s.cohort] ||= { sumRate:0, n:0, noGoCodes:[] });
+    a.sumRate += rate; a.n++;
+    if (!p.hasGo) a.noGoCodes.push(s.student_code||'?');
   });
 
   // ── 課程主軸分布：依屆別，僅計入「有效人數(在學+已畢業)」學生的歷來各主軸學分加總(跟累計達成率用同一套人數口徑，分子分母才一致) ──
@@ -11677,8 +11831,8 @@ async function loadEnrollStats() {
   });
 
   _esData = { sems: sems||[], bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortActivePop, cohortActiveGenderPop,
-    cohortActivePopBySem, cohortActiveGenderPopBySem,
-    cohortCumulative, axisTotalByCohort, gradReqs: gradReqs||[], findGradReq, semOrderMap, cohortFirstSemOrder };
+    cohortActivePopBySem, cohortActiveGenderPopBySem, excludedBySem, activeStudentIdsBySem, studentMap,
+    cohortCumulative, cohortAchieve, axisTotalByCohort, gradReqs: gradReqs||[], findGradReq, semOrderMap, cohortFirstSemOrder };
   renderEnrollStats();
 }
 
@@ -11686,7 +11840,7 @@ function renderEnrollStats() {
   if (!_esData) return;
   const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortActivePop, cohortActiveGenderPop,
     cohortActivePopBySem, cohortActiveGenderPopBySem,
-    cohortCumulative, axisTotalByCohort, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
+    cohortCumulative, cohortAchieve, axisTotalByCohort, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
   const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
   const semLabelMap = {}; sems.forEach(s=>{ semLabelMap[s.id] = s.label; });
   const GENDER_ZH = { M:'男', F:'女', O:'其他', '?':'未填' };
@@ -11739,7 +11893,7 @@ function renderEnrollStats() {
         ${relColumns.map(i=>matrixCell(coh,i)).join('')}
       </tr>`).join('')}
     </tbody></table>
-    <div style="font-size:11px;color:var(--ink3);margin-top:8px">每格：<b>平均學分</b>／(平均科目數／該學期有效人數)／未選課人數(若有)／對應日曆學期(灰色小字)。平均值分母是「該學期結束當下」重建出來的真實狀態(在學或已畢業才算，休學/退學/保留入學資格排除)，逐學期各自判斷，不是套用同一個現在的人數——前提是學生的休學/復學記錄要有完整登錄在案，記錄有缺漏的話這裡的人數會失真，需要回學生資料頁補登。背景色：黃=近半數以上未選課，紅=八成以上未選課。各屆別「第1學期」是各自實際入學的第一個學期，不是同一個日曆學期</div>`;
+    <div style="font-size:11px;color:var(--ink3);margin-top:8px">每格：<b>平均學分</b>／(平均科目數／該學期有效人數)／未選課人數(若有)／對應日曆學期(灰色小字)。平均值分母是「該學期結束當下」重建出來的真實狀態(在學或已畢業才算，休學/退學/保留入學資格排除)，逐學期各自判斷，不是套用同一個現在的人數——前提是學生的休學/復學記錄要有完整登錄在案，記錄有缺漏的話這裡的人數會失真，需要回學生資料頁補登。背景色：黃=近半數以上未選課，紅=八成以上未選課。各屆別「第1學期」是各自實際入學的第一個學期，不是同一個日曆學期。※未選課人數：以「當學期仍在學者」為範圍，統計其中還沒選課的人數，具體是哪幾位可在Excel匯出的備註欄查看</div>`;
 
   // ── 表2：性別差異，改成每個屆別一張SVG長條圖，X軸=相對學期(第1學期/第2學期...)，男女並排長條標數字 ──
   const genderChartsHtml = cohorts.map(coh => {
@@ -11757,13 +11911,17 @@ function renderEnrollStats() {
     <thead><tr style="background:var(--navy);color:#fff">
       <th style="padding:5px 12px">屆別</th><th style="padding:5px 12px">總人數</th><th style="padding:5px 12px">在學+已畢業人數</th>
       <th style="padding:5px 12px">平均累計學分</th><th style="padding:5px 12px">畢業應修學分</th>
-      <th style="padding:5px 12px">應修必修學分</th><th style="padding:5px 12px">應修選修學分</th><th style="padding:5px 12px">達成率</th>
+      <th style="padding:5px 12px">應修必修學分</th><th style="padding:5px 12px">應修選修學分</th><th style="padding:5px 12px">達成率</th><th style="padding:5px 12px">備註</th>
     </tr></thead><tbody>
       ${cohorts.map(coh => {
         const pop = cohortActivePop[coh]||1;
         const avgCum = fmt1((cohortCumulative[coh]?.sumCredits||0)/pop);
         const req = findGradReq(coh);
-        const pct = req ? Math.round(avgCum/req.total_min*100) : null;
+        // 達成率(2026-09-27修正)：逐一學生分別把必修/選修封頂在應修學分後算個人達成率，再平均，不是屆別總學分/屆別總應修這種整體加總法——
+        // 否則必修不夠的人會被選修超修的部分「補洞」，達成率會失真偏高
+        const ach = cohortAchieve[coh];
+        const pct = ach && ach.n ? Math.round(ach.sumRate/ach.n*100) : null;
+        const noGoNote = ach && ach.noGoCodes.length ? `尚未選「二選一」：${ach.noGoCodes.join('、')}` : '';
         return `<tr style="border-bottom:1px solid var(--cr2)">
           <td style="padding:4px 12px;text-align:center">${coh}級</td>
           <td style="padding:4px 12px;text-align:center;color:var(--ink3)">${cohortPop[coh]||0}</td>
@@ -11773,9 +11931,11 @@ function renderEnrollStats() {
           <td style="padding:4px 12px;text-align:center">${req?req.req_credits:'—'}</td>
           <td style="padding:4px 12px;text-align:center">${req?req.sel_credits:'—'}</td>
           <td style="padding:4px 12px;text-align:center;color:${pct==null?'var(--ink3)':pct>=100?'#1A6A30':pct>=60?'inherit':'#C0392B'}">${pct==null?'（無規定）':pct+'%'}</td>
+          <td style="padding:4px 12px;font-size:11px;color:#C0392B">${noGoNote}</td>
         </tr>`;
       }).join('')}
-    </tbody></table>`;
+    </tbody></table>
+    <div style="font-size:11px;color:var(--ink3);margin-top:8px">達成率：每位同學的必修學分封頂在「應修必修學分」、選修學分(含二選一)封頂在「應修選修學分」後，算出個人達成率，再取全屆別平均——超修的部分不會拿來抵掉另一邊不足的缺口。</div>`;
 
   // ── 表4：課程主軸分布(依屆別，累計全部學期，平均每人在各主軸修的學分；分母/分子口徑跟表3一致，用「在學+已畢業」有效人數) ──
   const axisKeys = ['底蘊','對話','應用','未分類'];
@@ -11939,8 +12099,8 @@ async function exportEnrollStatsExcel() {
     });
   }
   const { sems, bySemCohort, bySemCohortGender, cohortPop, cohortGenderPop, cohortActivePop, cohortActiveGenderPop,
-    cohortActivePopBySem, cohortActiveGenderPopBySem,
-    cohortCumulative, axisTotalByCohort, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
+    cohortActivePopBySem, cohortActiveGenderPopBySem, excludedBySem, activeStudentIdsBySem, studentMap,
+    cohortCumulative, cohortAchieve, axisTotalByCohort, findGradReq, semOrderMap, cohortFirstSemOrder } = _esData;
   const cohorts = Object.keys(cohortPop).map(Number).sort((a,b)=>a-b);
   const GENDER_ZH = { M:'男', F:'女', O:'其他', '?':'未填' };
   const fmt1 = n => Math.round(n*10)/10;
@@ -11961,22 +12121,50 @@ async function exportEnrollStatsExcel() {
     ['在學+已畢業人數／有效人數：在「總人數」的基礎上，再排除休學、退學的人。'],
     ['　－依學期屆別摘要、性別差異這兩張：逐學期各自認定，某人可能這學期休學被排除、下學期復學又算回來。'],
     ['　－畢業學分達成率、課程主軸分布這兩張：看「現在」的狀態，因為是累計到目前為止的指標，不分學期。'],
+    ['畢業學分達成率：逐一學生分別計算(必修已修學分封頂在應修必修學分)+(選修已修學分含二選一封頂在應修選修學分)，除以應修學分合計，得到個人達成率，再平均全屆別的個人達成率——不是屆別學分總量直接相除，避免必修不夠的人被選修超修的部分「補洞」而灌水。備註欄列出這屆還沒選過任何一門「二選一」課程的學號。'],
     ['逐學期認定需要學生的休學/復學記錄有登錄在「學生狀態異動歷程」裡才會準確，記錄有缺漏的學期，人數會退而求其次比照現在狀態計算。'],
+    ['未選課人數：該學期「有效人數」裡，本學期完全沒有任何一筆已確認選課記錄的人數(有效人數－本學期實際有選課的人數)，不代表退選或休退學，純粹是有學籍但這學期沒選課。'],
+    ['備註：分兩部分，用「；」隔開。前半段是系統依「學生狀態異動歷程」自動列出該學期「屬於這個屆別、但沒被算進屆別人數」的學號+狀態(休學/退學/尚未入學等)，取代人工逐格核對；入學總人數－屆別人數＝這部分列出的人數，兩者應該一致，若對不上代表歷程記錄可能有缺漏，需要回學生資料頁核對補登。後半段「未選課：」則是點名列出「未選課人數」欄具體是哪幾位學號，是有學籍、這學期卻沒有任何一筆已確認選課記錄的人。'],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetNote), '說明');
 
   // 工作表1：依學期×屆別摘要（排除還沒入學/還沒開始的組合，理由同畫面渲染邏輯的註解；加上相對學期欄位，方便對齊不同屆別的第幾學期）
   // 「屆別人數」用的是「該學期結束當下」重建出來的在學+已畢業有效人數，逐學期各自判斷，跟畫面顯示邏輯一致
-  const sheet1 = [['學期','相對學期(第幾學期)','屆別','屆別人數(該學期當下在學+已畢業)','平均科目數','平均學分','平均必修學分','平均選修學分','未選課人數']];
+  // 「入學總人數」是該屆別已實際入學、有正式學籍的總人數(deferred已排除)，不分學期固定不變，方便跟每學期的「屆別人數」互相對照核對
+  // 「備註」自動列出這學期被排除在「屆別人數」之外的學生學號+原因(2026-09-27新增，取代人工紅字註記)
+  const sheet1 = [['學期','相對學期(第幾學期)','屆別','入學總人數','屆別人數(該學期當下在學+已畢業)','平均科目數','平均學分','平均必修學分','平均選修學分','未選課人數','備註']];
   sems.forEach(sem => cohorts.forEach(coh => {
     if (!isRelevantSemCohort(sem, coh)) return;
     const firstOrder = cohortFirstSemOrder[coh];
     const relIdx = activeSemsSorted.filter(s => semOrderMap[s.id] >= firstOrder && semOrderMap[s.id] <= semOrderMap[sem.id]).length;
     const b = bySemCohort[sem.id+'|'+coh];
     const pop = cohortActivePopBySem[sem.id+'|'+coh]||1;
-    sheet1.push([sem.label, '第'+relIdx+'學期', coh+'級', pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0, b?fmt1(b.req/pop):0, b?fmt1(b.sel/pop):0, Math.max(0,pop-(b?b.students.size:0))]);
+    const excluded = excludedBySem[sem.id+'|'+coh] || [];
+    // 「誰未選課」：有效人數(在學/已畢業)裡，這學期完全沒有任何一筆選課記錄的人，逐一點名列在備註裡，
+    // 不是只顯示未選課人數的數字——跟「休學/退學」的名單放在同一欄，用分號隔開兩種原因
+    const activeIds = activeStudentIdsBySem[sem.id+'|'+coh] || new Set();
+    const enrolledIds = b ? b.students : new Set();
+    const noEnrollCodes = [...activeIds].filter(id => !enrolledIds.has(id)).map(id => studentMap[id]?.student_code || '?');
+    const excludedNote = excluded.map(x => x.code+(x.label?x.label:'')).join('、');
+    const noEnrollNote = noEnrollCodes.length ? '未選課：'+noEnrollCodes.join('、') : '';
+    const note = [excludedNote, noEnrollNote].filter(Boolean).join('；');
+    sheet1.push([sem.label, '第'+relIdx+'學期', coh+'級', cohortPop[coh]||0, pop, b?fmt1(b.count/pop):0, b?fmt1(b.credits/pop):0, b?fmt1(b.req/pop):0, b?fmt1(b.sel/pop):0, Math.max(0,pop-(b?b.students.size:0)), note]);
   }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet1), '依學期屆別摘要');
+  // 表格下方加註：白話說明「未選課人數」的認定範圍，不用另外跳去看說明工作表
+  sheet1.push([]);
+  sheet1.push(['※未選課人數：以「當學期仍在學者(在學+已畢業有效人數)」為範圍，統計其中還沒有任何一筆已確認選課記錄的人數；備註欄「未選課：」後面列出的就是具體哪幾位學號。']);
+  const ws1 = XLSX.utils.aoa_to_sheet(sheet1);
+  // 備註欄(第11欄，index 10)內容長短不一，欄寬依實際內容自動調整(取最長字串長度，中文字視為2個字元寬，並設上下限避免過窄或過寬)
+  const noteColIdx = 10;
+  let maxNoteLen = 6;
+  sheet1.forEach(row => {
+    const v = row[noteColIdx];
+    if (typeof v !== 'string' || !v) return;
+    let len = 0; for (const ch of v) len += (ch.charCodeAt(0) > 255 ? 2 : 1);
+    if (len > maxNoteLen) maxNoteLen = len;
+  });
+  ws1['!cols'] = [8,10,8,10,20,10,10,12,12,10, Math.min(Math.max(maxNoteLen+2, 12), 80)].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws1, '依學期屆別摘要');
 
   // 工作表2：性別差異（加上相對學期欄位；人數改用「該學期當下」重建的有效人數，逐學期各自判斷）
   const sheet2 = [['學期','相對學期(第幾學期)','屆別','性別','人數(該學期當下在學+已畢業)','平均科目數','平均學分']];
@@ -11994,15 +12182,22 @@ async function exportEnrollStatsExcel() {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet2), '性別差異');
 
   // 工作表3：畢業學分累計達成率（分母＝現在在學+已畢業有效人數；已畢業的人仍算進去，休學/退學排除；新增應修必修/選修學分欄）
-  const sheet3 = [['屆別','總人數','在學+已畢業人數','平均累計學分','畢業應修學分','應修必修學分','應修選修學分','達成率']];
+  const sheet3 = [['屆別','總人數','在學+已畢業人數','平均累計學分','畢業應修學分','應修必修學分','應修選修學分','達成率','備註']];
   cohorts.forEach(coh => {
     const pop = cohortActivePop[coh]||1;
     const avgCum = fmt1((cohortCumulative[coh]?.sumCredits||0)/pop);
     const req = findGradReq(coh);
-    const pct = req ? Math.round(avgCum/req.total_min*100)+'%' : '（無規定）';
-    sheet3.push([coh+'級', cohortPop[coh]||0, cohortActivePop[coh]||0, avgCum, req?req.total_min:'—', req?req.req_credits:'—', req?req.sel_credits:'—', pct]);
+    // 達成率：逐一學生把必修/選修學分各自封頂在應修學分後計算個人達成率，再平均(詳見畫面上表格下方說明)
+    const ach = cohortAchieve[coh];
+    const pct = ach && ach.n ? Math.round(ach.sumRate/ach.n*100)+'%' : '（無規定）';
+    const noGoNote = ach && ach.noGoCodes.length ? '尚未選「二選一」：'+ach.noGoCodes.join('、') : '';
+    sheet3.push([coh+'級', cohortPop[coh]||0, cohortActivePop[coh]||0, avgCum, req?req.total_min:'—', req?req.req_credits:'—', req?req.sel_credits:'—', pct, noGoNote]);
   });
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet3), '畢業學分達成率');
+  sheet3.push([]);
+  sheet3.push(['※達成率：每位同學的必修學分封頂在「應修必修學分」、選修學分(含二選一)封頂在「應修選修學分」後，算出個人達成率，再取全屆別平均，超修的部分不會拿來抵掉另一邊不足的缺口。']);
+  const ws3 = XLSX.utils.aoa_to_sheet(sheet3);
+  ws3['!cols'] = [8,8,14,10,10,10,10,8,40].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws3, '畢業學分達成率');
 
   // 工作表4：課程主軸分布（分母＝現在在學+已畢業有效人數；不及格的課仍算入學分，跟表1平均學分的口徑一致，反映真實修課負擔）
   const axisKeys = ['底蘊','對話','應用','未分類'];
@@ -12032,7 +12227,7 @@ async function loadEnrollOverview() {
   const semId = semSel.value;
   if (!semId) return;
 
-  document.getElementById('eo-body').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
+  document.getElementById('eo-body').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:24px;color:var(--ink3)">載入中…</td></tr>';
 
   // 加退選截止日倒數(沿用教室借用系統國定假日同一張表的查詢慣例,這裡查change_deadline這個系統事件)
   const { data: deadlineEv } = await sb.from('semester_calendar_events').select('end_at').eq('semester_id', semId).eq('event_key','change_deadline').maybeSingle();
@@ -12087,10 +12282,73 @@ async function loadEnrollOverview() {
     enrollMap[e.student_id].credits += creditsByOffering[e.offering_id] || 0;
   });
 
+  // ── 已獲得必修/選修學分數 + 預估畢業學分達成率(2026-09-28新增)：
+  // 「已獲得」＝本學期之前(不含本學期)已確認選課、且未被判定不及格的學分；
+  // 「預估達成率」＝算到本學期為止(含本學期正在選的課，因為本學期成績還沒出來，用選課當作預估已取得)，
+  // 公式跟「選課統計分析」的畢業學分達成率完全一致：必修封頂應修必修學分＋選修封頂應修選修學分，除以應修總學分。
+  const studentIds = (students||[]).map(s=>s.id);
+  let reqBeforeMap = {}, selBeforeMap = {}, reqUpToMap = {}, selUpToMap = {}, achieveRateMap = {}, hasGoMap = {};
+  if (studentIds.length) {
+    const { data: semOrderRows } = await sb.from('semesters').select('id,academic_year,semester_num');
+    const semOrderMap = {}; (semOrderRows||[]).forEach(s => { semOrderMap[s.id] = s.academic_year*10 + s.semester_num; });
+    const currentOrder = semOrderMap[semId];
+
+    const { data: allEnrolls } = await sb.from('enrollments').select('student_id,offering_id,semester_id')
+      .eq('status','confirmed').in('student_id', studentIds);
+    const { data: failedGrades } = await sb.from('grade_entries').select('student_id,offering_id')
+      .eq('grade_type','academic').eq('status','submitted').eq('grade_label','不及格').in('student_id', studentIds);
+    const failedSet = new Set((failedGrades||[]).map(g=>g.student_id+'|'+g.offering_id));
+
+    const allOfferingIds = [...new Set((allEnrolls||[]).map(e=>e.offering_id))];
+    let offMap2 = {}, courseMap2 = {};
+    if (allOfferingIds.length) {
+      const { data: offs2 } = await sb.from('course_offerings').select('id,course_id,req_type_overrides').in('id', allOfferingIds);
+      (offs2||[]).forEach(o => { offMap2[o.id] = o; });
+      const cIds2 = [...new Set((offs2||[]).map(o=>o.course_id).filter(Boolean))];
+      if (cIds2.length) {
+        const { data: courses2 } = await sb.from('courses').select('id,credits,req_type').in('id', cIds2);
+        (courses2||[]).forEach(c => { courseMap2[c.id] = c; });
+      }
+    }
+    const studentCohortMap = {}; (students||[]).forEach(s => { studentCohortMap[s.id] = s.cohort; });
+
+    (allEnrolls||[]).forEach(e => {
+      if (failedSet.has(e.student_id+'|'+e.offering_id)) return;
+      const off = offMap2[e.offering_id]; if (!off || !off.course_id) return;
+      const course = courseMap2[off.course_id]; if (!course) return;
+      const order = semOrderMap[e.semester_id];
+      if (order == null || currentOrder == null || order > currentOrder) return; // 只算本學期(含)以前的
+      const reqType = resolveReqType(course.req_type, off.req_type_overrides, studentCohortMap[e.student_id]);
+      const isReq = reqType === 'req';
+      const upToMap = isReq ? reqUpToMap : selUpToMap;
+      upToMap[e.student_id] = (upToMap[e.student_id]||0) + (course.credits||0);
+      if (reqType === 'go') hasGoMap[e.student_id] = true; // 算到本學期(含)為止，是否選過至少一門「二選一」課程
+      if (order < currentOrder) { // 嚴格早於本學期，才算「已獲得」
+        const beforeMap = isReq ? reqBeforeMap : selBeforeMap;
+        beforeMap[e.student_id] = (beforeMap[e.student_id]||0) + (course.credits||0);
+      }
+    });
+
+    const { data: gradReqs2 } = await sb.from('graduation_requirements').select('cohort_from,cohort_to,req_credits,sel_credits');
+    const findGradReq2 = (cohort) => (gradReqs2||[]).find(r => cohort >= r.cohort_from && (r.cohort_to==null || cohort <= r.cohort_to));
+    (students||[]).forEach(s => {
+      const req = findGradReq2(s.cohort);
+      if (!req) return;
+      const reqCap = req.req_credits||0, selCap = req.sel_credits||0, totalCap = reqCap+selCap;
+      if (totalCap <= 0) return;
+      const rate = (Math.min(reqUpToMap[s.id]||0, reqCap) + Math.min(selUpToMap[s.id]||0, selCap)) / totalCap;
+      achieveRateMap[s.id] = rate;
+    });
+  }
+
   _eoData = (students||[]).map(s => ({
     student_id: s.id, student_code: s.student_code, name_zh: s.name_zh, cohort: s.cohort,
     course_count: enrollMap[s.id]?.count || 0,
     credits: enrollMap[s.id]?.credits || 0,
+    req_before: reqBeforeMap[s.id] || 0,
+    sel_before: selBeforeMap[s.id] || 0,
+    achieve_rate: achieveRateMap[s.id] != null ? achieveRateMap[s.id] : -1, // -1代表沒有畢業學分規定可對照，排序時排最後
+    go_taken: !!hasGoMap[s.id],
   }));
   console.log('[選課完成度總覽] 最終結果(前3筆):', _eoData.slice(0,3));
 
@@ -12133,11 +12391,15 @@ function renderEnrollOverviewTable() {
       <td style="text-align:center">${s.cohort||'—'}</td>
       <td style="text-align:center">${s.course_count}</td>
       <td style="text-align:center">${s.credits}</td>
+      <td style="text-align:center">${s.req_before}</td>
+      <td style="text-align:center">${s.sel_before}</td>
+      <td style="text-align:center">${s.achieve_rate<0?'<span style="color:var(--ink3)">—</span>':(s.achieve_rate*100).toFixed(1)+'%'}</td>
+      <td style="text-align:center">${s.go_taken?'已選修':''}</td>
       <td style="text-align:center">${s.course_count===0
         ? '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#FDEBEC;color:#C0392B;border:1px solid #F0B0B5">尚未選課</span>'
         : '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#EAF4EE;color:#1F5C3A;border:1px solid #C0DD97">已選課</span>'}</td>
       <td style="text-align:center">${s.course_count>0?`<button class="btn btn-sm" onclick="adminPrintSingleSheet('${s.student_id}')" title="列印這位同學的選課單">🖨</button>`:'—'}</td>
-    </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">沒有符合條件的學生</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="12" style="text-align:center;padding:24px;color:var(--ink3)">沒有符合條件的學生</td></tr>';
   const selectAllEo = document.getElementById('eo-check-all');
   if (selectAllEo) selectAllEo.checked = false;
   updateEoBatchPrintButton();
