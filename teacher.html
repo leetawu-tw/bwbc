@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v2.9 2026-08-15 -->
+<!-- BWBC Teacher v3.0 2026-09-28 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -43,6 +43,16 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .topbar-logo{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600}
 .topbar-user{margin-left:auto;font-size:12.5px;opacity:.8}
 .topbar-btn{padding:5px 12px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:transparent;color:#fff;font-size:12px;cursor:pointer;font-family:inherit}
+.sidebar-toggle-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.sidebar-toggle-btn:hover{background:rgba(255,255,255,.15)}
+.side-nav{width:140px;flex-shrink:0;background:#fff;border-right:1px solid #E8E8E8;padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;transition:width .18s ease}
+/* 側邊欄收合：文字用font-size:0藏起來，圖示用.nav-icon另外指定字級蓋回來(比照admin.html的做法) */
+.side-nav.collapsed{width:56px}
+.side-nav.collapsed .side-nav-label{display:none}
+.side-nav.collapsed .side-item{justify-content:center;padding:10px 0;font-size:0;gap:0}
+.side-nav.collapsed .side-item .nav-icon{font-size:16px}
+.nav-icon{width:20px;text-align:center;flex-shrink:0;display:inline-block}
+
 .main{max-width:1100px;margin:52px auto 0;padding:24px 20px 60px}
 .tabs{display:flex;gap:2px;background:var(--cr2);border-radius:var(--r);padding:3px;margin-bottom:20px;width:fit-content}
 .tab{padding:7px 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--ink3);font-family:inherit;transition:all .15s}
@@ -212,26 +222,27 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
 <!-- APP -->
 <div id="app-screen" style="display:none">
   <div class="topbar">
+    <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="收合/展開選單">☰</button>
     <div class="topbar-logo">福智佛教學院 · 教師入口</div>
     <div class="topbar-user" id="t-user-label"></div>
     <button class="topbar-btn" onclick="signOut()">登出</button>
   </div>
   <div style="display:flex;height:calc(100vh - 52px);overflow:hidden">
     <!-- 左側導覽 -->
-    <div style="width:140px;flex-shrink:0;background:#fff;border-right:1px solid #E8E8E8;padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto">
+    <div class="side-nav" id="teacher-side-nav">
       <div style="font-size:11px;font-weight:600;color:#888;padding:0 16px 8px;letter-spacing:.05em">功能選單</div>
-      <div class="side-item" id="nav-ann"         onclick="showSection('ann')">📢 公佈欄</div>
-      <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')">📚 我的課程</div>
-      <div class="side-item" id="nav-profile"     onclick="showSection('profile')">👤 個人資料</div>
-      <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')">🗂 所有課程</div>
-      <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')">🎯 課堂調查即時秀</div>
-      <div class="side-item" id="nav-survey"      onclick="showSection('survey')">📊 教學意見</div>
-      <div class="side-item" id="nav-scholarship" onclick="showSection('scholarship')">🏆 獎學金推薦</div>
-      <div class="side-item" id="nav-forms"       onclick="showSection('forms')">📄 常用表單</div>
-      <div class="side-item" id="nav-regulations" onclick="showSection('regulations')">⚖️ 相關法規查詢</div>
-      <div class="side-item" id="nav-grades"      onclick="showSection('grades')">📊 成績登錄</div>
-      <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')">🧭 操行評分</div>
-      <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')">📋 課堂點名</div>
+      <div class="side-item" id="nav-ann"         onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
+      <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')"><span class="nav-icon">📚</span><span class="nav-txt">我的課程</span></div>
+      <div class="side-item" id="nav-profile"     onclick="showSection('profile')"><span class="nav-icon">👤</span><span class="nav-txt">個人資料</span></div>
+      <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')"><span class="nav-icon">🗂</span><span class="nav-txt">所有課程</span></div>
+      <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')"><span class="nav-icon">🎯</span><span class="nav-txt">課堂調查即時秀</span></div>
+      <div class="side-item" id="nav-survey"      onclick="showSection('survey')"><span class="nav-icon">📊</span><span class="nav-txt">教學意見</span></div>
+      <div class="side-item" id="nav-scholarship" onclick="showSection('scholarship')"><span class="nav-icon">🏆</span><span class="nav-txt">獎學金推薦</span></div>
+      <div class="side-item" id="nav-forms"       onclick="showSection('forms')"><span class="nav-icon">📄</span><span class="nav-txt">常用表單</span></div>
+      <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
+      <div class="side-item" id="nav-grades"      onclick="showSection('grades')"><span class="nav-icon">📊</span><span class="nav-txt">成績登錄</span></div>
+      <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')"><span class="nav-icon">🧭</span><span class="nav-txt">操行評分</span></div>
+      <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
     </div>
     <!-- 右側主內容 -->
     <div class="main" style="flex:1;overflow-y:auto;height:100%">
@@ -989,6 +1000,24 @@ async function loadTeacherTimeline() {
   el.innerHTML = html || '<div style="color:var(--ink3)">無時程資料</div>';
 }
 
+/* 側邊欄收合/展開：記住使用者上次的選擇(localStorage)，下次登入自動套用 */
+function toggleSidebar() {
+  const sb = document.querySelector('.side-nav');
+  if (!sb) return;
+  const collapsed = sb.classList.toggle('collapsed');
+  try { localStorage.setItem('bwbc_teacher_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+(function initSidebarCollapseState(){
+  try {
+    if (localStorage.getItem('bwbc_teacher_sidebar_collapsed') === '1') {
+      document.addEventListener('DOMContentLoaded', function(){
+        const sb = document.querySelector('.side-nav');
+        if (sb) sb.classList.add('collapsed');
+      });
+    }
+  } catch(e) {}
+})();
+
 async function signOut() {
   await sb.auth.signOut();
   location.reload();
@@ -1095,11 +1124,12 @@ async function loadMyCourses() {
   }
   const ids = ot.map(o => o.offering_id);
 
-  const [csRes, otTeachersRes] = await Promise.all([
+  const [csRes, otTeachersRes, enrollCountRes] = await Promise.all([
     sb.from('v_course_schedule').select('*').in('offering_id', ids)
       .order('semester_label',{ascending:false}).order('day'),
     sb.from('v_offering_teachers').select('offering_id, name_zh, teacher_id, sort_order')
-      .in('offering_id', ids).order('sort_order', { ascending:true })
+      .in('offering_id', ids).order('sort_order', { ascending:true }),
+    sb.from('enrollments').select('offering_id').eq('status','confirmed').in('offering_id', ids)
   ]);
 
   const teacherMap = {};
@@ -1108,11 +1138,16 @@ async function loadMyCourses() {
     teacherMap[t.offering_id].push({ name: t.name_zh, isSelf: t.teacher_id === ME.id });
   });
 
+  // 已選人數(confirmed)：學生名單按鈕旁邊顯示用
+  const enrollCountMap = {};
+  (enrollCountRes.data || []).forEach(e => { enrollCountMap[e.offering_id] = (enrollCountMap[e.offering_id]||0) + 1; });
+
   MY_COURSES = (csRes.data || []).map(c => ({
     ...c,
     teachers_str: (teacherMap[c.offering_id] || []).map(t =>
       t.isSelf ? '<strong style="color:var(--navy)">' + t.name + '</strong>' : t.name
-    ).join('、') || '—'
+    ).join('、') || '—',
+    enrolled_count: enrollCountMap[c.offering_id] || 0
   }));
 
   const sems = [...new Set(MY_COURSES.map(c=>c.semester_label))].sort().reverse();
@@ -1222,7 +1257,7 @@ function renderMyCourseCards(courses, sylMap) {
       '<div class="cc-info"><span>⏰ '+(c.time_raw||'待確認')+'</span><span>🏛 '+(c.classroom_name||'待確認')+'</span></div>' +
       '</div><div class="cc-bot">' +
       '<span class="cc-cred">'+c.credits+' 學分 <span style="font-size:11px;color:var(--ink3)">'+(REQ_ZH[c.req_type]||'')+'</span></span>' +
-      '<button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="margin-right:6px">👥 學生名單</button>' +
+      '<button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="margin-right:6px">👥 學生名單（'+(c.enrolled_count||0)+'人）</button>' +
       '<button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')">'+btnText+'</button>' +
       '</div></div>';
   }).join('');
@@ -1246,7 +1281,7 @@ function renderMyCourseTable(courses, sylMap) {
       '<td style="font-size:12px">'+(c.teachers_str||'—')+'</td>' +
       '<td style="font-size:12px">'+(c.time_raw||'待確認')+'</td>' +
       '<td style="font-size:12px">'+(c.classroom_name||'待確認')+'</td>' +
-      '<td style="text-align:center"><button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="padding:3px 10px;font-size:11.5px;margin-right:4px">👥</button><button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="padding:3px 10px;font-size:11.5px">'+btnText+'</button></td>' +
+      '<td style="text-align:center"><button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" title="學生名單（'+(c.enrolled_count||0)+'人）" style="padding:3px 10px;font-size:11.5px;margin-right:4px">👥 '+(c.enrolled_count||0)+'</button><button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="padding:3px 10px;font-size:11.5px">'+btnText+'</button></td>' +
     '</tr>';
   }).join('');
 }

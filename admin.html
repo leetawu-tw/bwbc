@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.46 2026-09-27 -->
+<!-- BWBC Admin v10.47 2026-09-28 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -2658,6 +2658,34 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeCalEventsModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 加退選期程設定 Modal（2026-09-28新增：enrollment_settings才是真正管控學生選課/退選/停修權限的表，
+     跟上面的學期行事曆是分開兩張表，這個modal存檔時會自動同步寫回行事曆的🔒加退選截止／停修截止，避免兩邊各自漂移） ══ -->
+<div class="modal-bg" id="enroll-period-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="enroll-period-title">🔓 加退選期程設定</div>
+      <button class="modal-close" onclick="closeEnrollPeriodModal()">✕</button>
+    </div>
+    <div style="padding:18px 20px">
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;background:var(--navy3);padding:10px 12px;border-radius:8px">
+        這裡是真正控制學生「能不能選課／退選／停修」的時間，跟上面「📅 行事曆」是分開的兩張表。存檔後會自動同步更新行事曆裡🔒加退選截止／停修截止這兩個系統事件的顯示時間，兩邊會保持一致，不用兩處分開改。
+      </div>
+      <div class="frow-2">
+        <div><label class="flabel">選課開放時間 *</label><input type="datetime-local" id="ep-open-at" class="finput"></div>
+        <div><label class="flabel">加退選截止 *</label><input type="datetime-local" id="ep-close-at" class="finput"></div>
+      </div>
+      <div class="frow-2">
+        <div><label class="flabel">停修截止（選填，留空則系統以加退選截止為準）</label><input type="datetime-local" id="ep-withdraw-at" class="finput"></div>
+        <div></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEnrollPeriodModal()">取消</button>
+      <button class="btn-save" onclick="saveEnrollPeriod()">💾 儲存並同步行事曆</button>
     </div>
   </div>
 </div>
@@ -8469,6 +8497,7 @@ async function loadSemesterPage() {
       <td style="padding:11px 14px;font-size:13px;color:var(--ink3)">${s.end_date||''}</td>
       <td style="padding:11px 14px;text-align:center">
         <button class="btn btn-sm" style="background:var(--navy3);color:var(--navy);border:1px solid rgba(43,95,160,.2)" onclick="openCalEventsModal('${s.id}','${s.label}')">📅 行事曆</button>
+        <button class="btn btn-sm" style="background:#FFF3E0;color:var(--orange);border:1px solid rgba(176,80,16,.25);margin-left:4px" onclick="openEnrollPeriodModal('${s.id}','${s.label}')" title="真正控制學生能不能選課/退選/停修的時間設定">🔓 加退選期程</button>
       </td>
       <td style="padding:11px 14px;text-align:center">${s.is_current?'<span style="color:var(--green);font-size:13px">✅ 是</span>':'<span style="color:var(--ink3);font-size:12px">—</span>'}</td>
       <td style="padding:11px 14px;text-align:right;font-size:13px">
@@ -8559,12 +8588,12 @@ function renderCalEvents() {
           <div>
             <label class="flabel" style="font-size:11px">開始時間（可留空）</label>
             <input class="finput" style="padding:6px 10px;font-size:12.5px" type="datetime-local"
-              value="${e.start_at?e.start_at.slice(0,16):''}" onchange="updateCalEvent(${i},'start_at',this.value)">
+              value="${utcIsoToTaipeiInputValue(e.start_at)}" onchange="updateCalEvent(${i},'start_at',this.value)">
           </div>
           <div>
             <label class="flabel" style="font-size:11px">結束/截止時間 *</label>
             <input class="finput" style="padding:6px 10px;font-size:12.5px" type="datetime-local"
-              value="${e.end_at?e.end_at.slice(0,16):''}" onchange="updateCalEvent(${i},'end_at',this.value)">
+              value="${utcIsoToTaipeiInputValue(e.end_at)}" onchange="updateCalEvent(${i},'end_at',this.value)">
           </div>
         </div>
         ${!e.is_system ? `
@@ -8585,9 +8614,37 @@ function addCalEventRow() {
 
 async function updateCalEvent(i, field, value) {
   const e = _calEvents[i];
-  e[field] = value || null;
+  // start_at/end_at這兩個欄位的value是<input type="datetime-local">給的「畫面上看到的文字」，
+  // 要先用taipeiInputValueToUtcIso()轉成正確的UTC時間字串再存進去，不能直接存原始字串
+  // (詳見下面taipeiInputValueToUtcIso的說明，這是2026-09-28修正的時區bug)
+  e[field] = (field==='start_at'||field==='end_at') ? taipeiInputValueToUtcIso(value) : (value || null);
   e._dirty = true;
   await persistCalEvent(i);
+}
+
+// ── 時區處理(2026-09-28修正)：學期行事曆這些截止時間(加退選截止、停修截止...)的意義永遠是
+// 「台灣當地時間幾點」，不應該受承辦人「電腦目前系統時區」影響——例如承辦人出國時電腦系統時區
+// 變成當地時區，若這裡直接用瀏覽器的Date物件(會用系統時區解讀)去轉換，畫面上打「23:59」送出去
+// 儲存的就會變成「當地時間23:59」，而不是「台灣時間23:59」，造成實際截止時間整個跑掉。
+// 解法：不依賴瀏覽器系統時區，直接用固定的UTC+8(台灣沒有日光節約時間，全年不變)手動換算，
+// 不管承辦人人在哪裡、電腦時區設定是什麼，畫面上永遠是「台灣當地時間」，存進資料庫的永遠是
+// 正確對應的UTC時間，這樣才能跟選課完成度總覽徽章(用new Date().toLocaleString()轉當地時間顯示)
+// 及其他所有讀取這個時間的地方對得起來。
+const TAIPEI_OFFSET_MS = 8 * 60 * 60 * 1000;
+// 資料庫存的UTC時間字串 → <input type="datetime-local">要顯示的「台灣當地時間」文字("YYYY-MM-DDTHH:mm")
+function utcIsoToTaipeiInputValue(isoStr) {
+  if (!isoStr) return '';
+  const t = new Date(new Date(isoStr).getTime() + TAIPEI_OFFSET_MS); // 平移到台灣時間，再用UTC getter讀，避免瀏覽器系統時區二次介入
+  const pad = n => String(n).padStart(2,'0');
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}-${pad(t.getUTCDate())}T${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`;
+}
+// <input type="datetime-local">裡「台灣當地時間」文字 → 要存進資料庫的正確UTC時間字串(ISO格式)
+function taipeiInputValueToUtcIso(localStr) {
+  if (!localStr) return null;
+  // 先當作UTC去解析(讓數字原封不動對應)，再減掉8小時，換算回真正的UTC時刻
+  const fakeUtcMs = Date.parse(localStr.length===16 ? localStr+':00Z' : localStr+'Z');
+  if (Number.isNaN(fakeUtcMs)) return null;
+  return new Date(fakeUtcMs - TAIPEI_OFFSET_MS).toISOString();
 }
 
 async function persistCalEvent(i) {
@@ -8622,6 +8679,72 @@ async function deleteCalEvent(i) {
   _calEvents.splice(i, 1);
   renderCalEvents();
   showToast('已刪除');
+}
+
+/* ════════════════════════════════════════
+   加退選期程設定（2026-09-28新增）
+   enrollment_settings 才是真正驅動學生端 CAN_ENROLL/CAN_DROP 判斷、以及選課頁banner文字的來源，
+   跟上面 semester_calendar_events(學期行事曆) 完全是兩張獨立的表，過去 admin 沒有任何畫面能編輯
+   enrollment_settings，只能直接進Supabase改，這是這次補的功能。
+   存檔時額外把 close_at/withdraw_deadline 同步寫進行事曆的🔒系統事件(change_deadline/withdraw_deadline)，
+   讓兩邊顯示永遠一致，不會再各自漂移。
+   ════════════════════════════════════════ */
+let _epSemId = null;
+let _epExisting = null;
+
+async function openEnrollPeriodModal(semId, semLabel) {
+  _epSemId = semId;
+  document.getElementById('enroll-period-title').textContent = `🔓 加退選期程設定 — ${semLabel}`;
+  document.getElementById('enroll-period-modal').classList.add('show');
+  await loadEnrollPeriod();
+}
+function closeEnrollPeriodModal() { document.getElementById('enroll-period-modal').classList.remove('show'); }
+
+async function loadEnrollPeriod() {
+  const { data, error } = await sb.from('enrollment_settings').select('*').eq('semester_id', _epSemId).maybeSingle();
+  if (error) { showToast('載入失敗：'+error.message,'error'); return; }
+  _epExisting = data || null;
+  document.getElementById('ep-open-at').value     = utcIsoToTaipeiInputValue(data?.open_at);
+  document.getElementById('ep-close-at').value    = utcIsoToTaipeiInputValue(data?.close_at);
+  document.getElementById('ep-withdraw-at').value = utcIsoToTaipeiInputValue(data?.withdraw_deadline);
+}
+
+async function saveEnrollPeriod() {
+  const openAt     = taipeiInputValueToUtcIso(document.getElementById('ep-open-at').value);
+  const closeAt    = taipeiInputValueToUtcIso(document.getElementById('ep-close-at').value);
+  const withdrawAt = taipeiInputValueToUtcIso(document.getElementById('ep-withdraw-at').value);
+  if (!openAt || !closeAt) { showToast('選課開放時間、加退選截止都必填','error'); return; }
+
+  const payload = { semester_id: _epSemId, open_at: openAt, close_at: closeAt, withdraw_deadline: withdrawAt };
+  let error;
+  if (_epExisting) ({ error } = await sb.from('enrollment_settings').update(payload).eq('id', _epExisting.id));
+  else ({ error } = await sb.from('enrollment_settings').insert(payload));
+  if (error) { showToast('儲存失敗：'+error.message,'error'); return; }
+
+  await syncEnrollDeadlinesToCalendar(_epSemId, { close_at: closeAt, withdraw_deadline: withdrawAt });
+  showToast('✅ 已儲存，行事曆已同步更新');
+  closeEnrollPeriodModal();
+}
+
+// 把加退選/停修截止同步寫進學期行事曆的系統事件；該學期第一次設定時自動建立系統列，之後只更新時間
+async function syncEnrollDeadlinesToCalendar(semId, { close_at, withdraw_deadline }) {
+  const jobs = [
+    { key: 'change_deadline',   label: '加退選截止', end_at: close_at },
+    { key: 'withdraw_deadline', label: '停修截止',   end_at: withdraw_deadline },
+  ];
+  for (const j of jobs) {
+    if (!j.end_at) continue; // 沒填停修截止就不動行事曆現有的那筆，避免用空值覆蓋掉既有設定
+    const { data: existing } = await sb.from('semester_calendar_events')
+      .select('id').eq('semester_id', semId).eq('event_key', j.key).maybeSingle();
+    if (existing) {
+      await sb.from('semester_calendar_events').update({ end_at: j.end_at, is_system: true }).eq('id', existing.id);
+    } else {
+      await sb.from('semester_calendar_events').insert({
+        semester_id: semId, event_key: j.key, event_label: j.label,
+        start_at: null, end_at: j.end_at, sort_order: 0, is_system: true
+      });
+    }
+  }
 }
 
 /* ── 移轉（改錯學期用，原學期記錄消失） ── */
@@ -10646,6 +10769,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.47', date: '2026-09-28',
+    items: [
+      '新增「加退選期程設定」畫面(學期管理頁每學期一顆🔓按鈕)：發現enrollment_settings這張表(真正控制學生選課頁能不能加選/退選/停修，以及選課頁上方逾期提示banner的文字)過去完全沒有admin畫面可以編輯，只能直接進Supabase改，導致這次使用者在「學期行事曆」改了加退選截止時間，學生端banner卻沒有跟著變(因為行事曆改的是另一張顯示用的表semester_calendar_events，跟真正管控權限的enrollment_settings是兩張独立的表，從來沒有互相同步過)。新增這個畫面直接編輯open_at/close_at/withdraw_deadline，存檔時額外自動同步寫回行事曆的🔒加退選截止／停修截止兩個系統事件，之後只要在一個地方改，行事曆顯示、學生實際選退課權限、選課完成度總覽倒數徽章三處就會保持一致',
+      'teacher.html「我的課程」課卡片與表格檢視，「學生名單」按鈕加上目前已選人數，例如「👥 學生名單（23人）」，不用點開才知道人數',
+      'teacher.html／student.html 左側功能選單新增收合/展開按鈕(比照admin後台)，可縮成只顯示圖示，並記住使用者上次的選擇',
+    ]
+  },
+  {
     version: 'v10.46', date: '2026-09-27',
     items: [
       '修正選課統計分析漏算1人的bug：上次批次補登「舊生入學初始狀態」時，少數學生因為enrolled_date是空的、fallback抓到的最早選課學期比實際入學學期晚，導致這些人在自己真正的入學第1學期反而被系統誤判成「尚未入學」而被排除(如114-1學期114級屆別人數少算1人)。程式邏輯本身沒問題，是資料時間點誤植，已提供SQL(fix_backfill_wrong_semester.sql)修正對應記錄的時間點',
@@ -10660,6 +10791,8 @@ const APP_CHANGELOG = [
       '選課單下方簽名列（學生簽名/佛應所助理/佛應所所長/教育處承辦人/教育長）改成固定平均分配欄寬，不再依文字長短自動縮放導致欄位寬窄不一',
       '修正重大bug：「批次匯出選課單PDF」誤把選課單專用的CSS(含body、table、th、td、h2、h3等未限定範圍的選擇器)整份注入到後台主畫面的&lt;head&gt;，導致按過這個功能一次後，整個後台畫面(不只選課單)全部變成選課單的標楷體字型、表格樣式、表頭配色，變得又醜又難閱讀。改成注入一份限定只在選課單截圖容器內才生效的CSS(前面統一加上.admin-sheet-pdf-scope範圍)，不會再影響到後台畫面本身。若畫面目前仍顯示錯亂，請重新整理(F5)頁面清除舊的樣式',
       '選課完成度總覽新增四欄：「已獲得必修學分」「已獲得選修學分」(皆為本學期之前、不含本學期正在選的課，已確認且未被判不及格的學分)、「預估畢業學分達成率」(算到本學期為止、含本學期正在選的課，公式跟選課統計分析的畢業學分達成率完全一致：必修封頂應修必修學分＋選修封頂應修選修學分，除以應修總學分；沒有畢業學分規定可對照的屆別顯示"—")，以及「二選一」(算到本學期為止，選過至少一門標記為「二選一」的課程就顯示"已選修"，否則空白)',
+      '修正「學期行事曆」時間顯示跟實際不符的重大bug(2026-09-28發現)：畫面上「加退選截止」等系統事件顯示的結束/截止時間，其實是資料庫存的UTC原始時間，沒有轉換成台灣時間就直接顯示，導致跟選課完成度總覽徽章(有正確轉換成台灣時間顯示)之間永遠差8小時，例如畫面顯示23:59、徽章卻顯示隔天07:59。修正為固定用UTC+8(不受承辦人電腦目前系統時區影響，出國操作也不會跑掉)換算：畫面一律顯示/輸入台灣當地時間，存進資料庫時正確轉換成UTC。修正後麻煩重新打開行事曆確認「加退選截止」等時間欄位、並視需要改回正確的台灣時間',
+      '同一個時區顯示bug也一併修正「操行成績登錄期程」(cd-open-at/cd-close-at)、「學科成績登錄期程」(gs-open-at/gs-close-at)這兩處開始/截止時間欄位，做法跟學期行事曆一致，畫面一律顯示/輸入台灣當地時間',
     ]
   },
   {
@@ -13449,8 +13582,8 @@ async function loadConductPeriod() {
   const btn = document.getElementById('cd-activate-btn');
   const badge = document.getElementById('cd-status-badge');
   if (data) {
-    document.getElementById('cd-open-at').value  = data.open_at  ? data.open_at.slice(0,16)  : '';
-    document.getElementById('cd-close-at').value = data.close_at ? data.close_at.slice(0,16) : '';
+    document.getElementById('cd-open-at').value  = utcIsoToTaipeiInputValue(data.open_at);
+    document.getElementById('cd-close-at').value = utcIsoToTaipeiInputValue(data.close_at);
     btn.textContent = data.is_active ? '⏹ 停止登錄' : '▶ 重新啟動';
     badge.innerHTML = data.is_active
       ? '<span style="color:var(--green);font-weight:600">✅ 登錄中（導師/所長可登入填寫）</span>'
@@ -13468,8 +13601,8 @@ async function saveConductPeriod() {
   if (!semId) { showToast('請選擇學期','error'); return; }
   const payload = {
     semester_id: semId, grade_type: 'conduct',
-    open_at:  document.getElementById('cd-open-at').value  || null,
-    close_at: document.getElementById('cd-close-at').value || null,
+    open_at:  taipeiInputValueToUtcIso(document.getElementById('cd-open-at').value),
+    close_at: taipeiInputValueToUtcIso(document.getElementById('cd-close-at').value),
   };
   let error;
   if (_currentConductPeriod) ({ error } = await sb.from('grade_periods').update(payload).eq('id', _currentConductPeriod.id));
@@ -20777,8 +20910,8 @@ async function loadGradePeriod() {
   const btn = document.getElementById('gs-activate-btn');
   const badge = document.getElementById('gs-status-badge');
   if (data) {
-    document.getElementById('gs-open-at').value  = data.open_at  ? data.open_at.slice(0,16)  : '';
-    document.getElementById('gs-close-at').value = data.close_at ? data.close_at.slice(0,16) : '';
+    document.getElementById('gs-open-at').value  = utcIsoToTaipeiInputValue(data.open_at);
+    document.getElementById('gs-close-at').value = utcIsoToTaipeiInputValue(data.close_at);
     renderGradeScaleEditor(data.grade_scale || DEFAULT_GRADE_SCALE);
     btn.textContent = data.is_active ? '⏹ 停止登錄' : '▶ 重新啟動';
     btn.style.background = data.is_active ? 'var(--red)' : '';
@@ -20801,8 +20934,8 @@ async function saveGradePeriod(type) {
   const payload = {
     semester_id: semId,
     grade_type:  type,
-    open_at:     document.getElementById('gs-open-at').value  || null,
-    close_at:    document.getElementById('gs-close-at').value || null,
+    open_at:     taipeiInputValueToUtcIso(document.getElementById('gs-open-at').value),
+    close_at:    taipeiInputValueToUtcIso(document.getElementById('gs-close-at').value),
     grade_scale: getCurrentScale(),
   };
   const existing = _currentGradePeriod.academic;

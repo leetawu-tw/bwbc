@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.11 2026-09-20 -->
+<!-- BWBC Student v3.13 2026-09-28 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -47,6 +47,17 @@ input{font-family:inherit}
 .topbar-user{margin-left:auto;font-size:12.5px;opacity:.8}
 .topbar-btn{padding:5px 12px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:transparent;color:#fff;font-size:12px}
 .topbar-btn:hover{background:rgba(255,255,255,.1)}
+.sidebar-toggle-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.sidebar-toggle-btn:hover{background:rgba(255,255,255,.15)}
+/* 側邊欄收合：文字用font-size:0藏起來，圖示用.nav-icon另外指定字級蓋回來(比照admin.html的做法) */
+.side-nav{transition:width .18s ease}
+.side-nav.collapsed{width:56px}
+.side-nav.collapsed .side-nav-label,
+.side-nav.collapsed .side-nav-footer{display:none}
+.side-nav.collapsed .side-item{justify-content:center;padding:10px 0;font-size:0;gap:0}
+.side-nav.collapsed .side-item .nav-icon{font-size:16px}
+.nav-icon{width:20px;text-align:center;flex-shrink:0;display:inline-block}
+
 
 /* ── MAIN ── */
 .main{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
@@ -222,6 +233,7 @@ input{font-family:inherit}
 <!-- ══ APP ══ -->
 <div id="app-screen" style="display:none">
   <div class="topbar">
+    <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="收合/展開選單">☰</button>
     <div class="topbar-logo">福智佛教學院 · 學生選課入口</div>
     <div class="topbar-user" id="s-user-label"></div>
     <button class="topbar-btn" onclick="signOut()">登出</button>
@@ -232,17 +244,17 @@ input{font-family:inherit}
     <div class="side-nav">
       <div class="side-nav-scroll">
       <div class="side-nav-label">功能選單</div>
-      <div class="side-item" id="nav-ann"    onclick="showSection('ann')">📢 公佈欄</div>
-      <div class="side-item" id="nav-select" onclick="showSection('select')">📚 選課</div>
-      <div class="side-item" id="nav-ta-apply" onclick="showSection('ta-apply')">🙋 TA申請</div>
-      <div class="side-item" id="nav-attendance" onclick="showSection('attendance')" style="display:none">📋 課堂點名</div>
-      <div class="side-item" id="nav-thesis" onclick="showSection('thesis')">📝 畢業論文</div>
-      <div class="side-item" id="nav-survey" onclick="showSection('survey')">📋 意見調查</div>
-      <div class="side-item" id="nav-forms" onclick="showSection('forms')">📄 常用表單</div>
-      <div class="side-item" id="nav-regulations" onclick="showSection('regulations')">⚖️ 相關法規查詢</div>
+      <div class="side-item" id="nav-ann"    onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
+      <div class="side-item" id="nav-select" onclick="showSection('select')"><span class="nav-icon">📚</span><span class="nav-txt">選課</span></div>
+      <div class="side-item" id="nav-ta-apply" onclick="showSection('ta-apply')"><span class="nav-icon">🙋</span><span class="nav-txt">TA申請</span></div>
+      <div class="side-item" id="nav-attendance" onclick="showSection('attendance')" style="display:none"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
+      <div class="side-item" id="nav-thesis" onclick="showSection('thesis')"><span class="nav-icon">📝</span><span class="nav-txt">畢業論文</span></div>
+      <div class="side-item" id="nav-survey" onclick="showSection('survey')"><span class="nav-icon">📋</span><span class="nav-txt">意見調查</span></div>
+      <div class="side-item" id="nav-forms" onclick="showSection('forms')"><span class="nav-icon">📄</span><span class="nav-txt">常用表單</span></div>
+      <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.11　2026-09-20</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.13　2026-09-28</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -620,6 +632,19 @@ function resolveReqType(baseReqType, overrides, cohort) {
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
   {
+    version: 'v3.13', date: '2026-09-28',
+    items: [
+      '修正加退選截止banner只顯示日期、看不出時間、也沒有停修截止資訊的問題：改成同時顯示加退選截止與停修截止的完整日期時間，停修截止若尚未到期會提示可洽辦公室辦理，已過則標示「已過」；資料完全來自「加退選期程設定」，往後日期異動不用改程式',
+      '修正畢業進度卡片「本學期／新學期」學分歸類邏輯：原本用選課設定的學期(可能是已開放選課但還沒真正開學的下一學期)當「新學期」基準，導致已經開學一段時間的學期還被誤標成「新學期」。改成一律以真正現在的學期(依今天日期判斷，跟公佈欄、選課頁邏輯一致)當「本學期」，之後才有的學期才算「新學期」',
+    ]
+  },
+  {
+    version: 'v3.12', date: '2026-09-28',
+    items: [
+      '左側功能選單新增收合/展開按鈕(比照admin後台)，可以把選單縮成只顯示圖示，讓右側內容區有更多空間，收合狀態會記住上次的選擇',
+    ]
+  },
+  {
     version: 'v3.11', date: '2026-09-20',
     items: [
       '新增學籍狀態「保留入學資格」(deferred)的處理：這類學生比照休學，本學期無法選課，並顯示對應的正確提示文字',
@@ -849,8 +874,17 @@ async function enterApp(user) {
     const openDate = new Date(setting.open_at).toLocaleDateString('zh-TW');
     showBanner('info',`📅 選課開放時間：${openDate}，目前尚未開放。`);
   } else if (now > new Date(setting.close_at)) {
-    const closeDate = new Date(setting.close_at).toLocaleDateString('zh-TW');
-    showBanner('warn',`⏰ 加退選截止（${closeDate}）已過，如需停修請聯絡行政辦公室。`);
+    // 完全依資料算出文字，不寫死日期：停修截止沒填就以加退選截止為準(跟admin端「加退選期程設定」畫面的留空規則一致)，
+    // 停修截止還沒到就直接顯示時間，已過的話才加註「已過」，以後改期程日期不用改這段程式
+    const fmtDT = d => new Date(d).toLocaleString('zh-TW', {year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+    const closeDT = fmtDT(setting.close_at);
+    const withdrawRaw = setting.withdraw_deadline || setting.close_at;
+    const withdrawDT = fmtDT(withdrawRaw);
+    const withdrawPassed = now > new Date(withdrawRaw);
+    const withdrawText = withdrawPassed
+      ? `停修截止日（${withdrawDT}）已過，如仍有需求請洽行政辦公室`
+      : `停修截止日（${withdrawDT}），如需停修請於截止前聯絡行政辦公室`;
+    showBanner('warn',`⏰ 加退選截止（${closeDT}）已過，${withdrawText}。`);
   } else {
     // 選課進行中不顯示綠色 banner（避免每頁都看到），改為更新 sem-period 顯示
     document.getElementById('sem-period').textContent = `${CURRENT_SEM_LABEL}`;
@@ -1271,6 +1305,24 @@ async function deleteSession(sessionId, dateStr) {
   loadAttendanceSessionList();
 }
 
+/* 側邊欄收合/展開：記住使用者上次的選擇(localStorage)，下次登入自動套用 */
+function toggleSidebar() {
+  const sb = document.querySelector('.side-nav');
+  if (!sb) return;
+  const collapsed = sb.classList.toggle('collapsed');
+  try { localStorage.setItem('bwbc_student_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+(function initSidebarCollapseState(){
+  try {
+    if (localStorage.getItem('bwbc_student_sidebar_collapsed') === '1') {
+      document.addEventListener('DOMContentLoaded', function(){
+        const sb = document.querySelector('.side-nav');
+        if (sb) sb.classList.add('collapsed');
+      });
+    }
+  } catch(e) {}
+})();
+
 async function signOut() { await sb.auth.signOut(); location.reload(); }
 
 /* ════ 公佈欄公告 ════ */
@@ -1386,12 +1438,14 @@ async function loadGraduationProgress() {
 
   if (!allEnr?.length) {
     // 沒選課記錄:用空資料初始化 UI（讓進度條軌道仍可見）
-    const curSem = (allSems||[]).find(s=>s.id===CURRENT_SEM_ID);
+    // 「本學期」一律用真正現在的學期(ACTIVE_SEM_ID，依日期判斷)，不是選課設定的CURRENT_SEM_ID，理由見下方主邏輯的說明
+    const curSem = (allSems||[]).find(s=>s.id===ACTIVE_SEM_ID) || (allSems||[]).find(s=>s.id===CURRENT_SEM_ID);
     const curOrder = curSem ? curSem.academic_year*10+curSem.semester_num : 99999;
     const semOrders = (allSems||[]).map(s=>s.academic_year*10+s.semester_num).sort((a,b)=>a-b);
-    const curIdx = semOrders.indexOf(curOrder);
-    const prevOrder = curIdx > 0 ? semOrders[curIdx-1] : curOrder - 1;
-    updateGradUI(allSems||[], {}, prevOrder, curOrder, reqs, []);
+    const futureOrders = semOrders.filter(o=>o>curOrder);
+    const prevOrder = curOrder; // 本學期基準(沿用updateGradUI既有參數名稱)
+    const newOrder = futureOrders.length ? futureOrders[0] : -1; // 新學期基準，沒有更晚的學期就設成不會命中的值
+    updateGradUI(allSems||[], {}, prevOrder, newOrder, reqs, []);
     return;
   }
 
@@ -1434,8 +1488,13 @@ async function loadGraduationProgress() {
     if (c && !failedOfferingIdsForGrad.has(e.offering_id)) passedCourseIdsForGrad.add(c.course_id);
   });
 
-  // 判斷 CURRENT_SEM 的順序值
-  const curSem = (allSems||[]).find(s=>s.id===CURRENT_SEM_ID);
+  // 判斷「本學期」的順序值：一律用真正現在的學期(ACTIVE_SEM_ID，依今天日期比對semesters.start_date/end_date算出來，
+  // 跟公佈欄、選課頁「現在學期」用的是同一套邏輯)，不能用CURRENT_SEM_ID。
+  // CURRENT_SEM_ID是「選課設定」開放的學期，可能是還沒開學、但已經開放預選/加退選的下一個學期，
+  // 兩者在加退選期間是同一個學期沒問題，但一旦加退選截止、正式開學後，CURRENT_SEM_ID通常還是同一個值，
+  // 這時ACTIVE_SEM_ID才是正確答案(2026-09-28修正：原本直接拿CURRENT_SEM_ID當「新學期」基準，
+  // 前一個學期當「本學期」，導致已經開學一段時間的學期還被誤標成「新學期」)
+  const curSem = (allSems||[]).find(s=>s.id===ACTIVE_SEM_ID) || (allSems||[]).find(s=>s.id===CURRENT_SEM_ID);
   const curOrder = curSem ? curSem.academic_year*10+curSem.semester_num : 99999;
 
   // 按學期分組計算 req/sel
@@ -1470,12 +1529,13 @@ async function loadGraduationProgress() {
       warnings.push(`⚠️ 「${grp}」尚未完成選擇（已選 ${val.enrolled}，需選 ${val.required}）`);
   });
 
-  // 只保留有選課記錄的學期（但全部顯示，包括 0 學分的）
-  // 依順序分為：已取得（order < curOrder - 1）、本學期（curOrder - 1）、新學期（curOrder）
-  // 找前一個學期的 order
+  // 依順序分為：已取得（order < curOrder）、本學期（=== curOrder）、新學期（比本學期更晚、且已有選課設定/記錄的下一個學期）
+  // updateGradUI內部沿用「prevOrder=本學期基準、curOrder=新學期基準」這組既有參數名稱，這裡對應傳入：
+  // prevOrder = 真正本學期(curOrder)；下面另外算出的newSemOrder = 新學期(找不到就設成不會命中任何學期的-1)
   const semOrders = (allSems||[]).map(s=>s.academic_year*10+s.semester_num).sort((a,b)=>a-b);
-  const curIdx = semOrders.indexOf(curOrder);
-  const prevOrder = curIdx > 0 ? semOrders[curIdx-1] : -1;
+  const futureOrders = semOrders.filter(o=>o>curOrder);
+  const prevOrder = curOrder;
+  const newSemOrder = futureOrders.length ? futureOrders[0] : -1;
 
   // 篩選有選課記錄的學期
   const enrSemIds = new Set(allEnr.map(e=>e.semester_id));
@@ -1483,7 +1543,7 @@ async function loadGraduationProgress() {
     .filter(s=>enrSemIds.has(s.id))
     .sort((a,b)=>(a.academic_year*10+a.semester_num)-(b.academic_year*10+b.semester_num));
 
-  updateGradUI(activeSems, semData, prevOrder, curOrder, reqs, warnings);
+  updateGradUI(activeSems, semData, prevOrder, newSemOrder, reqs, warnings);
   } catch(e) { console.warn('loadGraduationProgress error:', e); }
 }
 
@@ -1507,10 +1567,10 @@ function updateGradUI(activeSems, semData, prevOrder, curOrder, reqs, warnings=[
       doneSelByLabel[sd.label] += sd.sel;
       doneSemsReq.push({label:sd.label, req:sd.req, sel:sd.sel});
     } else if (order === prevOrder) {
-      // 本學期（CURRENT_SEM 的前一個學期）
+      // 本學期（真正現在的學期，依日期判斷，2026-09-28修正：不再用選課設定的CURRENT_SEM_ID）
       curReq = sd.req; curSel = sd.sel;
     } else if (order === curOrder) {
-      // 新學期（CURRENT_SEM，正在選課）
+      // 新學期（比本學期更晚、已有選課設定/記錄的下一個學期；沒有就不會有任何學期命中這裡）
       newReq = sd.req; newSel = sd.sel;
     }
   });
