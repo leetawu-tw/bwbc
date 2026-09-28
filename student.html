@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.14 2026-09-28 -->
+<!-- BWBC Student v3.31 2026-09-28 TA本人若同時是選課學生，該課程批閱功能整個停用(利益衝突防呆) -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -125,6 +125,41 @@ input{font-family:inherit}
 .badge-withdrawn{background:#FFF3E0;color:#B05010}
 .badge-waitlist{background:#EDE7F6;color:#6A1B9A}
 
+/* ── 教材與作業 ── */
+.assign-unit-hdr{font-size:12.5px;font-weight:600;color:var(--navy);margin:18px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--navy3)}
+.assign-unit-hdr:first-child{margin-top:0}
+.assign-course-block{border-radius:10px;margin-bottom:16px;padding:2px 2px 10px}
+.assign-course-hdr{font-size:15px;font-weight:700;color:var(--ink);margin:0;padding:10px 14px;border-radius:8px 8px 0 0}
+.assign-course-hdr.collapsed{border-radius:8px}
+.assign-card{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
+.assign-card-hdr{padding:13px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;flex-wrap:wrap}
+.assign-card-hdr:hover{background:var(--cr3)}
+.assign-title{font-weight:600;font-size:14px;color:var(--ink)}
+.assign-meta{font-size:11.5px;color:var(--ink3)}
+.assign-body{padding:0 16px 16px;border-top:1px solid var(--cr2);display:none}
+.assign-body.open{display:block}
+.assign-card-hdr.open{background:var(--navy3)}
+.badge-done{background:var(--green3);color:var(--green)}
+.badge-todo{background:var(--gold3);color:var(--gold)}
+.badge-late{background:#FFF3E0;color:#B05010}
+.badge-overdue{background:#FEE;color:#C04030}
+.result-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 9px;border-radius:12px;font-weight:500}
+.result-特優{background:#FFF8E1;color:#B8860B}
+.result-達標{background:var(--green3);color:var(--green)}
+.result-待改進{background:#FFF3E0;color:#B05010}
+.qz-question-card{border:1px solid var(--cr2);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.qz-option-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;cursor:pointer}
+/* TA課程管理：全班完成度總覽表格用色 */
+.ov-miss{color:#9C0006;background:#FFC7CE}
+.ov-pending{color:#808080;background:#F2F2F2}
+.ov-wait{color:#9C6500;background:#FFEB9C}
+.ov-done{color:#006100;background:#C6EFCE}
+.ov-top{color:#7F6000;background:#FFD966}
+.ov-bad{color:#C65911;background:#FCE4D6}
+.ov-pct-hi{color:#006100;background:#C6EFCE}
+.ov-pct-mid{color:#9C6500;background:#FFEB9C}
+.ov-pct-lo{color:#9C0006;background:#FFC7CE}
+
 /* ── SECTION TITLE ── */
 .section-title{font-family:'Noto Serif TC',serif;font-size:16px;font-weight:600;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .section-count{font-size:12px;padding:2px 10px;border-radius:20px;background:var(--navy3);color:var(--navy);font-weight:400}
@@ -246,7 +281,9 @@ input{font-family:inherit}
       <div class="side-nav-label">功能選單</div>
       <div class="side-item" id="nav-ann"    onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
       <div class="side-item" id="nav-select" onclick="showSection('select')"><span class="nav-icon">📚</span><span class="nav-txt">選課</span></div>
+      <div class="side-item" id="nav-assignments" onclick="showSection('assignments')"><span class="nav-icon">📝</span><span class="nav-txt">教材與作業</span></div>
       <div class="side-item" id="nav-ta-apply" onclick="showSection('ta-apply')"><span class="nav-icon">🙋</span><span class="nav-txt">TA申請</span></div>
+      <div class="side-item" id="nav-ta-mode" onclick="showSection('ta-mode')" style="display:none"><span class="nav-icon">🎓</span><span class="nav-txt">TA課程管理</span></div>
       <div class="side-item" id="nav-attendance" onclick="showSection('attendance')" style="display:none"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
       <div class="side-item" id="nav-thesis" onclick="showSection('thesis')"><span class="nav-icon">📝</span><span class="nav-txt">畢業論文</span></div>
       <div class="side-item" id="nav-survey" onclick="showSection('survey')"><span class="nav-icon">📋</span><span class="nav-txt">意見調查</span></div>
@@ -254,7 +291,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.13　2026-09-28</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.31　2026-09-28</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -262,6 +299,7 @@ input{font-family:inherit}
     <!-- 右側主內容 -->
     <div class="main" style="flex:1;max-width:none">
       <div id="status-banner" style="display:none"></div>
+      <div id="assign-reminder-banner" style="display:none" onclick="showSection('assignments')" title="點擊前往查看"></div>
 
       <!-- ── 公佈欄 ── -->
       <div id="sec-ann" class="t-section">
@@ -459,6 +497,13 @@ input{font-family:inherit}
         <div id="regulations-list-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
 
+      <!-- ── 教材與作業 ── -->
+      <div id="sec-assignments" class="t-section">
+        <div class="section-title">📝 教材與作業</div>
+        <div id="assign-s-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">目前沒有已選課的課程</div>
+        <div id="assign-s-list"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
       <!-- ── TA申請 ── -->
       <div id="sec-ta-apply" class="t-section">
         <div class="section-title">🙋 TA申請</div>
@@ -478,6 +523,58 @@ input{font-family:inherit}
         </div>
         <div id="att-session-pills" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"></div>
         <div id="att-detail-wrap"></div>
+      </div>
+
+      <!-- ── TA課程管理：課程清單 ── -->
+      <div id="sec-ta-mode" class="t-section">
+        <div class="section-title">🎓 TA課程管理</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">你目前擔任下列課程（本學期）的TA，可查看作業/教材、進行批閱、查看全班完成度總覽（建立/編輯/發布作業仍由授課老師負責）</div>
+        <div id="ta-offering-list"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── TA課程管理：該課作業/教材列表 ── -->
+      <div id="sec-ta-course" class="t-section">
+        <div style="margin-bottom:10px;font-size:12.5px;color:var(--ink3)">
+          <a onclick="showSection('ta-mode')" style="cursor:pointer;color:var(--navy);text-decoration:underline">TA課程管理</a>
+          <span>／</span>
+          <span id="ta-crumb-course" style="color:var(--ink)"></span>
+        </div>
+        <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          📝 作業/教材列表
+          <button class="btn btn-sec btn-sm" style="margin-left:auto" onclick="openTaOverview()">📊 全班完成度總覽</button>
+        </div>
+        <div id="ta-assign-list-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── TA課程管理：批閱 ── -->
+      <div id="sec-ta-review" class="t-section">
+        <div style="margin-bottom:10px;font-size:12.5px;color:var(--ink3)">
+          <a onclick="showSection('ta-mode')" style="cursor:pointer;color:var(--navy);text-decoration:underline">TA課程管理</a>
+          <span>／</span>
+          <a onclick="showSection('ta-course')" style="cursor:pointer;color:var(--navy);text-decoration:underline" id="ta-rv-crumb-course"></a>
+          <span>／</span>
+          <span style="color:var(--ink)">批閱</span>
+        </div>
+        <div class="section-title" id="ta-rv-title">👥 批閱</div>
+        <div id="ta-rv-stats" style="font-size:12.5px;color:var(--ink3);margin-bottom:14px"></div>
+        <div id="ta-rv-list-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── TA課程管理：全班完成度總覽 ── -->
+      <div id="sec-ta-overview" class="t-section">
+        <div style="margin-bottom:10px;font-size:12.5px;color:var(--ink3)">
+          <a onclick="showSection('ta-mode')" style="cursor:pointer;color:var(--navy);text-decoration:underline">TA課程管理</a>
+          <span>／</span>
+          <a onclick="showSection('ta-course')" style="cursor:pointer;color:var(--navy);text-decoration:underline" id="ta-ov-crumb-course"></a>
+          <span>／</span>
+          <span style="color:var(--ink)">全班完成度總覽</span>
+        </div>
+        <div class="section-title" style="display:flex;align-items:center;gap:12px">
+          📊 全班完成度總覽
+          <button class="btn btn-sec btn-sm" style="margin-left:auto" onclick="exportTaOverviewXlsx()">📥 匯出 Excel</button>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:10px">只統計「已確認選課」的學生，以及「已發布」的作業/教材；表格可左右捲動查看更多欄位</div>
+        <div id="ta-ov-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
 
     </div><!-- end main -->
@@ -631,6 +728,112 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.31', date: '2026-09-28',
+    items: [
+      '「TA課程管理」新增利益衝突防呆：如果TA本人同時也是該門課已確認選課的學生，該課程的「批閱」功能整個停用(課程列表/作業列表都會顯示提示)，避免自己或同班同學互相批閱；「全班完成度總覽」不受影響，仍可查看',
+    ]
+  },
+  {
+    version: 'v3.30', date: '2026-09-28',
+    items: [
+      '「TA課程管理」全班完成度總覽的「全部收合／全部展開」合併成一顆按鈕，跟teacher.html同步',
+    ]
+  },
+  {
+    version: 'v3.29', date: '2026-09-28',
+    items: [
+      '「TA課程管理」全班完成度總覽加圖例說明(顏色狀態＋x/y在不同欄位的意義)，跟teacher.html同步',
+    ]
+  },
+  {
+    version: 'v3.28', date: '2026-09-28',
+    items: [
+      '「TA課程管理」全班完成度總覽版面優化：學號/姓名固定在左側、單元可點擊收合/展開＋全部收合/展開按鈕、字體欄寬縮小，跟teacher.html同步',
+    ]
+  },
+  {
+    version: 'v3.27', date: '2026-09-28',
+    items: [
+      '「TA課程管理」的作業列表/批閱名單/全班完成度總覽這三個表格標題新增點擊排序功能，跟teacher.html同步',
+      '「TA課程管理」全班完成度總覽畫面上的儲存格顏色比照Excel匯出版本自動上色（不用等匯出才看得到），完成率欄位也依高低上色',
+    ]
+  },
+  {
+    version: 'v3.26', date: '2026-09-28',
+    items: [
+      'TA批閱面板的檔案繳交新增「👁 線上看」：圖片/影片直接內嵌預覽，PDF/Word/PowerPoint/Excel透過線上檢視器開啟，不用下載就能檢查',
+      '「TA課程管理」全班完成度總覽匯出的Excel改用ExcelJS，依狀態自動上色（未繳/待批閱/特優/達標/待改進各一色），完成率欄位也依高低上色，跟teacher.html同步更新',
+    ]
+  },
+  {
+    version: 'v3.25', date: '2026-09-28',
+    items: [
+      '新增「🎓 TA課程管理」：擔任TA的課程（本學期，配對記錄在offering_staff）會在側邊欄出現此項目，可查看該課作業/教材列表、進行批閱（含是非選擇題自動計分、題目版本鎖定的多版本比對）、查看全班完成度總覽並匯出Excel；建立/編輯/發布作業與出題仍只有授課老師能操作',
+    ]
+  },
+  {
+    version: 'v3.24', date: '2026-09-28',
+    items: [
+      '修正「截止時間內也無法修改已繳交作業」的問題：原本一定要老師另外打開「允許補交/重新提交」才能改，改成只要還在截止時間內，本來就可以自由重新修改提交；逾期之後才需要老師有開放補交，才能繼續修改',
+    ]
+  },
+  {
+    version: 'v3.23', date: '2026-09-28',
+    items: [
+      '配合老師端「題目版本鎖定」功能：是非/選擇題作答一律抓「目前最新版本」的題目，並記錄作答當下的版本號；只有版本沒變時重新提交才會預填上次的作答內容，版本不同代表題目已更新，不會誤帶舊答案',
+    ]
+  },
+  {
+    version: 'v3.22', date: '2026-09-28',
+    items: [
+      '📎檔案繳交型作業(submission)正式開放上傳：可一次選多個檔案(最多5個，單檔20MB)，常見文件/圖片/影片/壓縮檔格式皆可；已繳交的檔案可直接點下載重新查看，補交/重新提交時舊檔案仍保留原紀錄',
+    ]
+  },
+  {
+    version: 'v3.21', date: '2026-09-28',
+    items: [
+      '「教材與作業」改成每門課固定分配一種淡色（藍/綠/紫/橘/粉/黃輪流），課程標題列跟展開後的整塊背景都套用同一色，取代原本的縮排線，多門課同時展開時更容易一眼分辨',
+    ]
+  },
+  {
+    version: 'v3.20', date: '2026-09-28',
+    items: [
+      '「教材與作業」課程展開時，內容改成用左側縮排線跟課程標題明確區隔，避免多門課同時展開時分不清楚是哪一門課底下的單元/作業',
+      '🔒修正「畫面莫名其妙自己跳回公佈欄」的問題：分頁切回前景或電腦睡眠喚醒時，Supabase Auth常會重複觸發登入事件，原本每次都會整個重置畫面；改成只有真正換帳號登入才重置，背景續期不再打斷正在操作的畫面（teacher.html同步修正）',
+    ]
+  },
+  {
+    version: 'v3.19', date: '2026-09-28',
+    items: [
+      '修正打卡回報型作業已完成後，按鈕仍顯示「✅ 回報完成」容易誤會還沒完成的問題：改成先顯示「✅ 已回報完成」再搭配「🔁 重新回報」次要按鈕',
+      '「教材與作業」畫面的課程改成可收合(📘)/展開(📖)：有未繳交項目的課程預設展開，全部繳完的課程預設收合，減少畫面雜亂；點課程標題列即可手動切換',
+    ]
+  },
+  {
+    version: 'v3.18', date: '2026-09-28',
+    items: [
+      '「教材與作業」畫面改版：移除原本要自己拉選課程的下拉選單，改成一次列出「所有已確認選課」課程裡有發布作業/教材的課程（依課程分組、組內再依單元分組），一眼就能看到哪些課有作業要處理，不用一門一門課點進去找',
+    ]
+  },
+  {
+    version: 'v3.17', date: '2026-09-28',
+    items: [
+      '新增登入提醒橫幅：一登入（或回到任何畫面）就會自動統計「所有已確認選課」課程裡尚未完成的作業/教材數量，分別顯示待繳與已逾期的筆數，點一下直接跳去「教材與作業」畫面，不用自己一門一門課點進去找；完成繳交後會自動重新計算',
+    ]
+  },
+  {
+    version: 'v3.16', date: '2026-09-28',
+    items: [
+      '🔒配合老師端安全性修正：是非/選擇題作答改成直接查 assignment_questions（該表已不再含正確答案欄位，正確答案搬到只有老師/TA/admin讀得到的獨立表），原本的 v_assignment_questions_student 視圖已移除',
+    ]
+  },
+  {
+    version: 'v3.15', date: '2026-09-28',
+    items: [
+      '新增「📝 教材與作業」畫面：可依課程查看老師發布的作業/教材（依單元分組），支援打卡回報、問答/報告文字繳交、是非/選擇題作答（可能依老師設定每人題目順序不同），可看到批閱結果（特優👑/達標/待改進🌶）與老師評語；逾期政策依老師設定擋下或標記遲交，補交期限內可重新提交。檔案繳交類型（📎）尚未開放，先顯示提示訊息',
+    ]
+  },
   {
     version: 'v3.14', date: '2026-09-28',
     items: [
@@ -908,7 +1111,9 @@ async function enterApp(user) {
   await Promise.all([loadMyEnrollments(), loadAvailableCourses()]);
   loadPublicAnnouncements('student');
   checkAttendanceRecorderStatus();
+  checkTaModeStatus();
   loadStudentTimeline();
+  loadAssignmentReminder();
   showSection('ann');
 }
 
@@ -1001,6 +1206,721 @@ async function checkAttendanceRecorderStatus() {
       document.getElementById('nav-attendance').style.display = '';
     }
   } catch (e) { console.warn('checkAttendanceRecorderStatus:', e); }
+}
+
+/* ════════════════════════════════════════
+   TA課程管理（2026-09-28新增）
+   背景：TA的身分本質是學生(透過「TA申請」被配對成某課程的TA，記錄在offering_staff)，
+   RLS從一開始就設計好TA可讀寫assignments/assignment_submissions/assignment_reviews等表(is_offering_ta())，
+   但管理端功能一直只做在teacher.html(登入要比對teachers表，TA完全沒有教師資料，連teacher.html都進不去)，
+   導致TA對「教材與作業」完全沒有入口可用。這裡在學生端補上一塊「TA模式」，
+   範圍依使用者確認：查看＋批閱＋完成度總覽(不含建立/編輯/發布作業、不含出題，這些仍由授課老師負責)。
+   ════════════════════════════════════════ */
+const TA_TYPE_LABEL = { checkin:'✅ 打卡回報', submission:'📎 檔案繳交', quiz:'📋 是非/選擇題', essay:'✍️ 問答/報告' };
+let TA_OFFERINGS = [];        // 目前學生擔任TA的課程(本學期)
+let TA_CUR_OFFERING = null;   // { id, name_zh }
+let TA_UNITS = [];
+let TA_ASSIGNMENTS = [];
+let TA_ASSIGN_SUBCOUNT = {};  // { assignment_id: 已繳交人數 }
+
+async function checkTaModeStatus() {
+  try {
+    const curSem = await getCurrentSemesterByDate();
+    if (!curSem) return;
+    const { data } = await sb.from('offering_staff')
+      .select('id, course_offerings!inner(semester_id)')
+      .eq('student_id', ME.id).eq('role', 'ta').eq('course_offerings.semester_id', curSem.id).limit(1);
+    if (data && data.length > 0) {
+      document.getElementById('nav-ta-mode').style.display = '';
+    }
+  } catch (e) { console.warn('checkTaModeStatus:', e); }
+}
+
+async function loadTaOfferings() {
+  const wrap = document.getElementById('ta-offering-list');
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  const curSem = await getCurrentSemesterByDate();
+  if (!curSem) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">目前不在任何學期範圍內</div>'; return; }
+  const { data, error } = await sb.from('offering_staff')
+    .select('offering_id, course_offerings!inner(id, semester_id, courses(name_zh))')
+    .eq('student_id', ME.id).eq('role', 'ta').eq('course_offerings.semester_id', curSem.id);
+  if (error) { wrap.innerHTML = '<div style="color:var(--red);padding:20px;font-size:13px">載入失敗：'+esc(error.message)+'</div>'; return; }
+  TA_OFFERINGS = (data || []).map(r => ({
+    offering_id: r.offering_id,
+    name_zh: r.course_offerings?.courses?.name_zh || '（課程名稱待確認）'
+  }));
+  if (!TA_OFFERINGS.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">本學期目前沒有擔任任何課程的TA</div>';
+    return;
+  }
+  // 檢查這幾門課裡，有沒有TA本人同時也是選課學生的情況(利益衝突，批閱功能會停用)
+  const offeringIds = TA_OFFERINGS.map(o => o.offering_id);
+  const { data: selfEnroll } = await sb.from('enrollments').select('offering_id')
+    .eq('student_id', ME.id).eq('status', 'confirmed').in('offering_id', offeringIds);
+  const selfSet = new Set((selfEnroll || []).map(e => e.offering_id));
+  TA_OFFERINGS.forEach(o => { o.selfEnrolled = selfSet.has(o.offering_id); });
+
+  wrap.innerHTML = TA_OFFERINGS.map(o =>
+    '<div style="background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px">' +
+      '<div style="flex:1">' +
+        '<div style="font-size:14px;font-weight:600">'+esc(o.name_zh)+'</div>' +
+        (o.selfEnrolled ? '<div style="font-size:11px;color:#B05010;margin-top:2px">⚠️ 您本身也是這門課的選課學生，批閱功能已停用</div>' : '') +
+      '</div>' +
+      '<button class="btn btn-sec btn-sm" onclick="openTaCourse(\''+o.offering_id+'\',\''+esc(o.name_zh).replace(/'/g,"\\'")+'\')">進入管理 →</button>' +
+    '</div>'
+  ).join('');
+}
+
+async function openTaCourse(offeringId, courseName) {
+  TA_CUR_OFFERING = { id: offeringId, name_zh: courseName, selfEnrolled: false };
+  document.getElementById('ta-crumb-course').textContent = courseName;
+  showSection('ta-course');
+  document.getElementById('ta-assign-list-wrap').innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+
+  const [unitsRes, assignRes, subRes, selfEnrollRes] = await Promise.all([
+    sb.from('teaching_units').select('*').eq('offering_id', offeringId).order('sort_order'),
+    sb.from('assignments').select('*').eq('offering_id', offeringId).order('created_at'),
+    sb.from('assignment_submissions').select('id, assignment_id'),
+    sb.from('enrollments').select('id').eq('offering_id', offeringId).eq('student_id', ME.id).eq('status','confirmed').maybeSingle()
+  ]);
+  TA_UNITS = unitsRes.data || [];
+  TA_ASSIGNMENTS = assignRes.data || [];
+  const subCountMap = {};
+  (subRes.data || []).forEach(s => { subCountMap[s.assignment_id] = (subCountMap[s.assignment_id]||0) + 1; });
+  TA_ASSIGN_SUBCOUNT = subCountMap;
+  // 利益衝突防呆：TA本人如果同時也是這門課已確認選課的學生，批閱功能整個停用(避免自己/同班互相批閱)
+  TA_CUR_OFFERING.selfEnrolled = !!(selfEnrollRes && selfEnrollRes.data);
+  renderTaAssignments();
+}
+
+/* ── 通用表格排序小工具(供TA課程管理底下的表格共用：作業列表/批閱名單/全班完成度總覽) ── */
+function toggleSort(state, key, rerenderFn) {
+  if (state.key === key) state.dir = -state.dir; else { state.key = key; state.dir = 1; }
+  rerenderFn();
+}
+function sortArrow(state, key) {
+  if (state.key !== key) return '⇅';
+  return state.dir === 1 ? '▲' : '▼';
+}
+function sortRows(rows, state, keyFns) {
+  if (!state.key || !keyFns[state.key]) return rows;
+  const fn = keyFns[state.key];
+  return rows.slice().sort((a,b) => {
+    const va = fn(a), vb = fn(b);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    let cmp;
+    if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
+    else if (va instanceof Date && vb instanceof Date) cmp = va - vb;
+    else cmp = String(va).localeCompare(String(vb), 'zh-Hant');
+    return cmp * state.dir;
+  });
+}
+function thSort(label, key, state, fnName, extraStyle) {
+  return '<th onclick="'+fnName+'(\''+key+'\')" style="cursor:pointer;user-select:none'+(extraStyle?';'+extraStyle:'')+'">'+label+' <span style="opacity:.65;font-size:10px">'+sortArrow(state,key)+'</span></th>';
+}
+
+let TA_ASSIGN_SORT = { key: null, dir: 1 };
+const TA_ASSIGN_SORT_FNS = {
+  status: a => a.status,
+  unit: a => (TA_UNITS.find(u=>u.id===a.unit_id)||{}).title || '',
+  type: a => TA_TYPE_LABEL[a.type] || a.type,
+  title: a => a.title,
+  due: a => a.due_at ? new Date(a.due_at) : null,
+  subcount: a => TA_ASSIGN_SUBCOUNT[a.id] || 0,
+};
+function taAssignSortBy(key) { toggleSort(TA_ASSIGN_SORT, key, renderTaAssignments); }
+
+function renderTaAssignments() {
+  const wrap = document.getElementById('ta-assign-list-wrap');
+  const unitMap = {}; TA_UNITS.forEach(u => { unitMap[u.id] = u.title; });
+  const selfEnrolled = !!(TA_CUR_OFFERING && TA_CUR_OFFERING.selfEnrolled);
+  const banner = selfEnrolled
+    ? '<div style="background:#FFF3E0;color:#8A5300;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px">⚠️ 您本身也是這門課已確認選課的學生，為避免利益衝突，此課程的「批閱」功能已停用；如需了解全班繳交狀況，仍可使用「全班完成度總覽」</div>'
+    : '';
+  if (!TA_ASSIGNMENTS.length) {
+    wrap.innerHTML = banner + '<div style="color:var(--ink3);font-size:13px;padding:20px">這門課目前尚未建立任何作業/教材</div>';
+    return;
+  }
+  const list = sortRows(TA_ASSIGNMENTS, TA_ASSIGN_SORT, TA_ASSIGN_SORT_FNS);
+  wrap.innerHTML = banner + '<table class="my-table"><thead><tr>' +
+    thSort('狀態','status',TA_ASSIGN_SORT,'taAssignSortBy') +
+    thSort('單元','unit',TA_ASSIGN_SORT,'taAssignSortBy') +
+    thSort('類型','type',TA_ASSIGN_SORT,'taAssignSortBy') +
+    thSort('標題','title',TA_ASSIGN_SORT,'taAssignSortBy') +
+    thSort('截止時間','due',TA_ASSIGN_SORT,'taAssignSortBy') +
+    thSort('已繳交','subcount',TA_ASSIGN_SORT,'taAssignSortBy','text-align:center') +
+    '<th>操作</th>' +
+    '</tr></thead><tbody>' +
+    list.map(a => {
+      const overdue = a.due_at && new Date(a.due_at) < new Date() && a.status === 'published';
+      const statusBadge = a.status === 'published'
+        ? '<span class="result-badge result-達標">✅ 已發布</span>'
+        : '<span class="result-badge" style="background:var(--cr3);color:var(--ink3)">📝 草稿</span>';
+      const dueStr = a.due_at ? new Date(a.due_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+      return '<tr>' +
+        '<td>'+statusBadge+'</td>' +
+        '<td style="font-size:12.5px">'+esc(unitMap[a.unit_id]||'—')+'</td>' +
+        '<td style="font-size:12.5px">'+(TA_TYPE_LABEL[a.type]||a.type)+'</td>' +
+        '<td><strong>'+esc(a.title)+'</strong></td>' +
+        '<td style="font-size:12.5px'+(overdue?';color:var(--red)':'')+'">'+dueStr+(overdue?' 🔴已逾期':'')+'</td>' +
+        '<td style="text-align:center">'+(TA_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' +
+        '<td>'+(selfEnrolled ? '<span style="font-size:11.5px;color:var(--ink3)">批閱已停用</span>' : '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👥 批閱</button>')+'</td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table>';
+}
+
+/* ── TA批閱(跟老師端批閱面板同一套邏輯，包含題目版本鎖定的多版本比對) ── */
+let TA_REVIEW_ASSIGN = null;
+let TA_REVIEW_ROSTER = [];
+let TA_REVIEW_KEYS = {};
+let TA_REVIEW_QUESTIONS_BY_VERSION = {};
+
+async function openTaReview(assignId) {
+  if (TA_CUR_OFFERING && TA_CUR_OFFERING.selfEnrolled) {
+    showToast('您本身也是這門課的選課學生，批閱功能已停用（避免利益衝突）', 'error');
+    return;
+  }
+  const a = TA_ASSIGNMENTS.find(x => x.id === assignId);
+  if (!a) return;
+  TA_REVIEW_ASSIGN = a;
+  document.getElementById('ta-rv-crumb-course').textContent = TA_CUR_OFFERING.name_zh;
+  document.getElementById('ta-rv-title').textContent = '👥 批閱：'+a.title;
+  showSection('ta-review');
+  document.getElementById('ta-rv-list-wrap').innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  await loadTaReviewData();
+}
+
+async function loadTaReviewData() {
+  const a = TA_REVIEW_ASSIGN;
+  if (!a) return;
+
+  const [enrollRes, subRes] = await Promise.all([
+    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)').eq('offering_id', a.offering_id).eq('status','confirmed'),
+    sb.from('assignment_submissions').select('*').eq('assignment_id', a.id).order('submitted_at', { ascending: false })
+  ]);
+  const students = (enrollRes.data || []).map(e => e.students).filter(Boolean)
+    .sort((x,y) => (x.student_code||'').localeCompare(y.student_code||''));
+
+  const latestSubByStudent = {};
+  (subRes.data || []).forEach(s => { if (!latestSubByStudent[s.student_id]) latestSubByStudent[s.student_id] = s; });
+
+  const subIds = Object.values(latestSubByStudent).map(s => s.id);
+  let reviewMap = {};
+  if (subIds.length) {
+    const { data: reviews } = await sb.from('assignment_reviews').select('*').in('submission_id', subIds).order('reviewed_at', { ascending: false });
+    (reviews || []).forEach(r => { if (!reviewMap[r.submission_id]) reviewMap[r.submission_id] = r; });
+  }
+
+  TA_REVIEW_QUESTIONS_BY_VERSION = {};
+  TA_REVIEW_KEYS = {};
+  if (a.type === 'quiz') {
+    const { data: qs } = await sb.from('assignment_questions').select('*').eq('assignment_id', a.id).order('sort_order');
+    (qs || []).forEach(q => { const v = q.version || 1; (TA_REVIEW_QUESTIONS_BY_VERSION[v] ||= []).push(q); });
+    const qIds = (qs || []).map(q => q.id);
+    if (qIds.length) {
+      const { data: keys } = await sb.from('assignment_answer_keys').select('*').in('question_id', qIds);
+      (keys || []).forEach(k => { TA_REVIEW_KEYS[k.question_id] = k.correct_answer; });
+    }
+  }
+
+  const now = new Date();
+  TA_REVIEW_ROSTER = students.map(st => {
+    const sub = latestSubByStudent[st.id] || null;
+    const review = sub ? (reviewMap[sub.id] || null) : null;
+    const overdue = !sub && a.due_at && new Date(a.due_at) < now;
+    return { student_id: st.id, student_code: st.student_code, name_zh: st.name_zh, submission: sub, review, overdue };
+  });
+
+  renderTaReviewStats();
+  renderTaReviewTable();
+}
+
+function renderTaReviewStats() {
+  const total = TA_REVIEW_ROSTER.length;
+  const submitted = TA_REVIEW_ROSTER.filter(r => r.submission).length;
+  const late = TA_REVIEW_ROSTER.filter(r => r.submission && r.submission.is_late).length;
+  const reviewed = TA_REVIEW_ROSTER.filter(r => r.review).length;
+  document.getElementById('ta-rv-stats').textContent =
+    `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）・已批閱 ${reviewed} 人`;
+}
+
+function taQuizScoreFor(sub) {
+  if (!sub) return null;
+  const qs = TA_REVIEW_QUESTIONS_BY_VERSION[sub.question_version || 1] || [];
+  if (!qs.length) return null;
+  const answers = sub.content || {};
+  let correct = 0;
+  qs.forEach(q => { if (answers[q.id] !== undefined && answers[q.id] === TA_REVIEW_KEYS[q.id]) correct++; });
+  return { correct, total: qs.length };
+}
+
+let TA_REVIEW_SORT = { key: null, dir: 1 };
+const TA_REVIEW_SORT_FNS = {
+  code: r => r.student_code || '',
+  name: r => r.name_zh || '',
+  status: r => r.submission ? (r.submission.is_late ? 1 : 2) : (r.overdue ? -1 : 0),
+  result: r => r.review ? r.review.result : (r.submission ? '尚未批閱' : ''),
+};
+function taReviewSortBy(key) { toggleSort(TA_REVIEW_SORT, key, renderTaReviewTable); }
+
+function renderTaReviewTable() {
+  const wrap = document.getElementById('ta-rv-list-wrap');
+  if (!TA_REVIEW_ROSTER.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">這門課目前沒有已確認選課的學生</div>';
+    return;
+  }
+  const roster = sortRows(TA_REVIEW_ROSTER, TA_REVIEW_SORT, TA_REVIEW_SORT_FNS);
+  wrap.innerHTML = '<table class="my-table"><thead><tr>' +
+    thSort('學號','code',TA_REVIEW_SORT,'taReviewSortBy') +
+    thSort('姓名','name',TA_REVIEW_SORT,'taReviewSortBy') +
+    thSort('繳交狀態','status',TA_REVIEW_SORT,'taReviewSortBy') +
+    thSort('批閱結果','result',TA_REVIEW_SORT,'taReviewSortBy') +
+    '<th>操作</th>' +
+    '</tr></thead><tbody>' +
+    roster.map(r => {
+      let statusHtml;
+      if (r.submission) {
+        statusHtml = r.submission.is_late
+          ? '<span class="result-badge" style="background:#FEE;color:var(--red)">🔴 遲交</span>'
+          : '<span class="result-badge result-達標">✅ 已繳交</span>';
+      } else if (r.overdue) {
+        statusHtml = '<span class="result-badge" style="background:#FEE;color:var(--red)">⛔ 逾期未交</span>';
+      } else {
+        statusHtml = '<span class="result-badge" style="background:var(--cr3);color:var(--ink3)">⏳ 未繳交</span>';
+      }
+      const resultHtml = r.review
+        ? '<span class="result-badge result-'+r.review.result+'">'+resultIcon(r.review)+' '+r.review.result+'</span>'
+        : (r.submission ? '<span class="result-badge" style="background:var(--cr3);color:var(--ink3)">尚未批閱</span>' : '—');
+      return '<tr>' +
+        '<td style="font-size:12.5px">'+esc(r.student_code||'')+'</td>' +
+        '<td>'+esc(r.name_zh)+'</td>' +
+        '<td>'+statusHtml+'</td>' +
+        '<td>'+resultHtml+'</td>' +
+        '<td>'+(r.submission ? '<button class="btn btn-sec btn-sm" onclick="openTaReviewModal(\''+r.student_id+'\')">'+(r.review?'✎ 修改批閱':'📝 批閱')+'</button>' : '—')+'</td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table>';
+}
+
+function taFileListHtml(files) {
+  if (!files || !files.length) return '<div style="font-size:12px;color:var(--ink3)">（沒有檔案資料）</div>';
+  return files.map(f => {
+    const ext = (f.name.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+    const canView = VIEWER_ALL_EXT.includes(ext);
+    const safeName = f.name.replace(/'/g,"\\'");
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--cr3);border-radius:6px;font-size:12.5px;margin-bottom:4px">' +
+      '<span>📎 '+esc(f.name)+'</span><span style="color:var(--ink3);font-size:11px">'+formatFileSize(f.size)+'</span>' +
+      '<span style="margin-left:auto;display:flex;gap:10px">' +
+        (canView ? '<span style="color:var(--navy);text-decoration:underline;cursor:pointer" onclick="viewSubmissionFileTa(\''+f.path+'\',\''+ext+'\',\''+safeName+'\')">👁 線上看</span>' : '') +
+        '<span style="color:var(--navy);text-decoration:underline;cursor:pointer" onclick="downloadSubmissionFile(\''+f.path+'\')">⬇ 下載</span>' +
+      '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function renderTaSubmissionContentForReview(a, sub) {
+  if (a.type === 'checkin') return '<div style="font-size:13px;color:var(--ink2)">✅ 已回報完成（'+new Date(sub.content?.completed_at||sub.submitted_at).toLocaleString('zh-TW')+'）</div>';
+  if (a.type === 'essay') return '<div style="background:var(--cr3);border-radius:8px;padding:10px 12px;font-size:13px;white-space:pre-wrap">'+esc(sub.content?.text||'')+'</div>';
+  if (a.type === 'submission') return taFileListHtml(sub.content?.files);
+  if (a.type === 'quiz') {
+    const qVersion = sub.question_version || 1;
+    const qs = TA_REVIEW_QUESTIONS_BY_VERSION[qVersion] || [];
+    const answers = sub.content || {};
+    const sc = taQuizScoreFor(sub);
+    return '<div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px">自動計分：'+(sc?sc.correct+'/'+sc.total:'—')+
+      (qVersion > 1 ? ' <span style="color:var(--ink3);font-size:11.5px">（作答版本：v'+qVersion+'）</span>' : '')+'</div>' +
+      qs.map((q,i) => {
+        const ans = answers[q.id];
+        const correct = TA_REVIEW_KEYS[q.id];
+        const isRight = ans !== undefined && ans === correct;
+        return '<div style="font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--cr2)">'+
+          (i+1)+'. '+esc(q.content)+'　'+
+          '<span style="color:'+(isRight?'var(--green)':'var(--red)')+'">學生答：'+esc(ans===undefined?'（未作答）':String(ans))+'</span>'+
+          (isRight?'':'　正解：'+esc(String(correct)))+
+        '</div>';
+      }).join('');
+  }
+  return '';
+}
+
+function openTaReviewModal(studentId) {
+  const r = TA_REVIEW_ROSTER.find(x => x.student_id === studentId);
+  if (!r || !r.submission) return;
+  const a = TA_REVIEW_ASSIGN;
+  const rv = r.review;
+  const body = `
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:10px">${esc(r.student_code||'')}　${esc(r.name_zh)}${r.submission.is_late?'　<span style="color:var(--red)">（遲交）</span>':''}</div>
+    <div style="margin-bottom:14px">${renderTaSubmissionContentForReview(a, r.submission)}</div>
+    <div class="frow">
+      <label class="flabel">批閱結果</label>
+      <div style="display:flex;gap:14px;font-size:13px;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="ta-rv-result" value="特優" ${rv?.result==='特優'?'checked':''} onchange="onTaReviewResultChange()">👑 特優</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="ta-rv-result" value="達標" ${(!rv||rv.result==='達標')?'checked':''} onchange="onTaReviewResultChange()">✅ 達標</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="ta-rv-result" value="待改進" ${rv?.result==='待改進'?'checked':''} onchange="onTaReviewResultChange()">🌶 待改進</label>
+      </div>
+      <div id="ta-rv-pepper-row" style="display:${rv?.result==='待改進'?'':'none'};margin-bottom:8px">
+        <label class="flabel">辣椒等級</label>
+        <select class="finput" id="ta-rv-pepper" style="width:100px">
+          <option value="1" ${rv?.pepper_level===1?'selected':''}>×1</option>
+          <option value="2" ${rv?.pepper_level===2?'selected':''}>×2</option>
+          <option value="3" ${rv?.pepper_level===3?'selected':''}>×3</option>
+        </select>
+      </div>
+      <label class="flabel">評語（特優／待改進必填，達標選填）</label>
+      <textarea class="finput" id="ta-rv-comment" rows="3" style="resize:vertical">${esc(rv?.comment||'')}</textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      <button class="btn btn-sec btn-sm" onclick="closeThModal()">取消</button>
+      <button class="btn-save" onclick="saveTaReview('${studentId}')">儲存批閱</button>
+    </div>
+  `;
+  openThModal((rv?'修改批閱':'批閱')+'：'+a.title, body);
+}
+
+function onTaReviewResultChange() {
+  const result = document.querySelector('input[name="ta-rv-result"]:checked')?.value;
+  document.getElementById('ta-rv-pepper-row').style.display = result === '待改進' ? '' : 'none';
+}
+
+async function saveTaReview(studentId) {
+  if (TA_CUR_OFFERING && TA_CUR_OFFERING.selfEnrolled) {
+    showToast('您本身也是這門課的選課學生，批閱功能已停用（避免利益衝突）', 'error');
+    return;
+  }
+  const r = TA_REVIEW_ROSTER.find(x => x.student_id === studentId);
+  if (!r || !r.submission) return;
+  const result = document.querySelector('input[name="ta-rv-result"]:checked')?.value;
+  const comment = document.getElementById('ta-rv-comment').value.trim();
+  const pepperLevel = result === '待改進' ? parseInt(document.getElementById('ta-rv-pepper').value, 10) : null;
+  if (result !== '達標' && !comment) { showToast('特優／待改進請填寫評語', 'error'); return; }
+
+  if (r.review) {
+    await sb.from('assignment_reviews').delete().eq('id', r.review.id);
+  }
+  const { error } = await sb.from('assignment_reviews').insert({
+    submission_id: r.submission.id,
+    result, pepper_level: pepperLevel, comment: comment || null,
+    reviewed_by: ME.id
+  });
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+  closeThModal();
+  showToast('✅ 已儲存批閱結果');
+  await loadTaReviewData();
+}
+
+/* ── TA全班完成度總覽(跟老師端同一套邏輯) ── */
+let TA_OV_ASSIGNS = [];
+let TA_OV_STUDENTS = [];
+let TA_OV_SUBS = {};
+let TA_OV_REVIEWS = {};
+let TA_OV_QUIZ_Q = {};
+let TA_OV_QUIZ_KEYS = {};
+
+async function openTaOverview() {
+  if (!TA_CUR_OFFERING) { showSection('ta-mode'); return; }
+  document.getElementById('ta-ov-crumb-course').textContent = TA_CUR_OFFERING.name_zh;
+  showSection('ta-overview');
+  document.getElementById('ta-ov-wrap').innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  await loadTaOverview();
+}
+
+async function loadTaOverview() {
+  const offeringId = TA_CUR_OFFERING.id;
+  const [enrollRes, assignRes] = await Promise.all([
+    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)').eq('offering_id', offeringId).eq('status','confirmed'),
+    sb.from('assignments').select('*').eq('offering_id', offeringId).eq('status','published').order('created_at')
+  ]);
+  TA_OV_STUDENTS = (enrollRes.data || []).map(e => e.students).filter(Boolean)
+    .sort((a,b) => (a.student_code||'').localeCompare(b.student_code||''));
+
+  const unitMap = {}; const unitSort = {};
+  TA_UNITS.forEach((u,i) => { unitMap[u.id] = u.title; unitSort[u.id] = i; });
+  TA_OV_ASSIGNS = (assignRes.data || []).slice().sort((a,b) => {
+    const su = (unitSort[a.unit_id]??999) - (unitSort[b.unit_id]??999);
+    return su !== 0 ? su : (new Date(a.created_at) - new Date(b.created_at));
+  });
+  TA_OV_ASSIGNS.forEach(a => { a._unitTitle = unitMap[a.unit_id] || '未分類單元'; });
+
+  TA_OV_SUBS = {}; TA_OV_REVIEWS = {}; TA_OV_QUIZ_Q = {}; TA_OV_QUIZ_KEYS = {};
+
+  if (TA_OV_ASSIGNS.length && TA_OV_STUDENTS.length) {
+    const assignIds = TA_OV_ASSIGNS.map(a => a.id);
+    const { data: subs } = await sb.from('assignment_submissions').select('*')
+      .in('assignment_id', assignIds).order('submitted_at', { ascending: false });
+    (subs || []).forEach(s => {
+      const key = s.student_id + '_' + s.assignment_id;
+      if (!TA_OV_SUBS[key]) TA_OV_SUBS[key] = s;
+    });
+
+    const subIds = Object.values(TA_OV_SUBS).map(s => s.id);
+    if (subIds.length) {
+      const { data: reviews } = await sb.from('assignment_reviews').select('*').in('submission_id', subIds).order('reviewed_at', { ascending: false });
+      (reviews || []).forEach(r => { if (!TA_OV_REVIEWS[r.submission_id]) TA_OV_REVIEWS[r.submission_id] = r; });
+    }
+
+    const quizIds = TA_OV_ASSIGNS.filter(a => a.type === 'quiz').map(a => a.id);
+    if (quizIds.length) {
+      const { data: qs } = await sb.from('assignment_questions').select('*').in('assignment_id', quizIds);
+      (qs || []).forEach(q => {
+        const v = q.version || 1;
+        TA_OV_QUIZ_Q[q.assignment_id] = TA_OV_QUIZ_Q[q.assignment_id] || {};
+        (TA_OV_QUIZ_Q[q.assignment_id][v] ||= []).push(q);
+      });
+      const qIds = (qs || []).map(q => q.id);
+      if (qIds.length) {
+        const { data: keys } = await sb.from('assignment_answer_keys').select('*').in('question_id', qIds);
+        (keys || []).forEach(k => { TA_OV_QUIZ_KEYS[k.question_id] = k.correct_answer; });
+      }
+    }
+  }
+
+  renderTaOverview();
+}
+
+function taOverviewQuizScore(assignId, sub) {
+  const byVer = TA_OV_QUIZ_Q[assignId];
+  if (!byVer) return null;
+  const qs = byVer[sub.question_version || 1] || [];
+  if (!qs.length) return null;
+  const answers = sub.content || {};
+  let correct = 0;
+  qs.forEach(q => { if (answers[q.id] !== undefined && answers[q.id] === TA_OV_QUIZ_KEYS[q.id]) correct++; });
+  return { correct, total: qs.length };
+}
+
+const TA_OV_CLASS_BY_KEY = { miss:'ov-miss', pending:'ov-pending', wait:'ov-wait', top:'ov-top', ok:'ov-done', bad:'ov-bad' };
+function taOverviewCellInfo(a, sub, review) {
+  const cls = TA_OV_CLASS_BY_KEY[taOverviewColorKey(a, sub, review)] || 'ov-pending';
+  const overdue = a.due_at && new Date(a.due_at) < new Date();
+  if (!sub) return { text: overdue ? '未繳（逾期）' : '未繳', cls };
+  let text = sub.is_late ? '已繳（遲交）' : '已繳';
+  if (a.type === 'quiz') {
+    const sc = taOverviewQuizScore(a.id, sub);
+    if (sc) text += ' '+sc.correct+'/'+sc.total;
+  }
+  if (review) return { text: text+' '+resultIcon(review)+review.result, cls };
+  return { text: text+'（待批閱）', cls };
+}
+
+let TA_OV_SORT = { key: null, dir: 1 };
+function taOvComputeStats(st) {
+  let doneCount = 0;
+  TA_OV_ASSIGNS.forEach(a => { if (TA_OV_SUBS[st.id+'_'+a.id]) doneCount++; });
+  const total = TA_OV_ASSIGNS.length || 1;
+  return { doneCount, pct: Math.round(doneCount / total * 100) };
+}
+const TA_OV_SORT_FNS = {
+  code: st => st.student_code || '',
+  name: st => st.name_zh || '',
+  pct: st => taOvComputeStats(st).pct,
+};
+function taOvSortBy(key) { toggleSort(TA_OV_SORT, key, renderTaOverview); }
+function taOvPctClass(pct) { return pct>=80?'ov-pct-hi':pct>=50?'ov-pct-mid':'ov-pct-lo'; }
+
+// 各單元是否收合(記在key=unit_id)，跟teacher.html同一套設計，畫面才不會隨作業愈來愈多而爆版
+let TA_OV_COLLAPSED_UNITS = new Set();
+function taOvToggleUnit(key) {
+  if (TA_OV_COLLAPSED_UNITS.has(key)) TA_OV_COLLAPSED_UNITS.delete(key); else TA_OV_COLLAPSED_UNITS.add(key);
+  renderTaOverview();
+}
+function taOvCollapseAll(collapse) {
+  TA_OV_COLLAPSED_UNITS = collapse ? new Set(TA_OV_ASSIGNS.map(a => a.unit_id || a._unitTitle)) : new Set();
+  renderTaOverview();
+}
+function taOvToggleAll() { taOvCollapseAll(TA_OV_COLLAPSED_UNITS.size === 0); }
+function taOvGroupStats(st, group) {
+  let done = 0;
+  group.assigns.forEach(a => { if (TA_OV_SUBS[st.id+'_'+a.id]) done++; });
+  return { done, total: group.assigns.length, pct: Math.round(done / group.assigns.length * 100) };
+}
+
+const TA_OV_CODE_W = 88, TA_OV_NAME_W = 76;
+function renderTaOverview() {
+  const wrap = document.getElementById('ta-ov-wrap');
+  if (!TA_OV_STUDENTS.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">這門課目前沒有已確認選課的學生</div>';
+    return;
+  }
+  if (!TA_OV_ASSIGNS.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">這門課目前沒有已發布的作業/教材</div>';
+    return;
+  }
+  const totalAssigns = TA_OV_ASSIGNS.length;
+  const students = sortRows(TA_OV_STUDENTS, TA_OV_SORT, TA_OV_SORT_FNS);
+
+  const unitGroups = [];
+  TA_OV_ASSIGNS.forEach(a => {
+    const key = a.unit_id || a._unitTitle;
+    let g = unitGroups[unitGroups.length - 1];
+    if (!g || g.key !== key) { g = { key, title: a._unitTitle, assigns: [] }; unitGroups.push(g); }
+    g.assigns.push(a);
+  });
+
+  let html = '<div style="margin-bottom:6px;display:flex;gap:8px">' +
+    '<button class="btn btn-sec btn-sm" style="padding:3px 10px;font-size:11px" onclick="taOvToggleAll()">'+(TA_OV_COLLAPSED_UNITS.size>0?'⊞ 全部展開':'⊟ 全部收合')+'</button>' +
+    '<span style="font-size:11px;color:var(--ink3);align-self:center">點單元標題可個別收合／展開</span>' +
+  '</div>';
+  html += '<div style="font-size:10.5px;color:var(--ink3);line-height:1.8;margin-bottom:6px;padding:6px 10px;background:var(--cr3);border-radius:6px">' +
+    '<strong>圖例：</strong>' +
+    '<span class="ov-miss" style="padding:1px 5px;border-radius:3px">未繳(逾期)</span> ' +
+    '<span class="ov-pending" style="padding:1px 5px;border-radius:3px">未繳(未到期)</span> ' +
+    '<span class="ov-wait" style="padding:1px 5px;border-radius:3px">已繳待批閱</span> ' +
+    '<span class="ov-top" style="padding:1px 5px;border-radius:3px">特優</span> ' +
+    '<span class="ov-done" style="padding:1px 5px;border-radius:3px">達標</span> ' +
+    '<span class="ov-bad" style="padding:1px 5px;border-radius:3px">待改進</span>' +
+    '　｜　測驗題格內「x/y」＝自動計分(答對題數/總題數)，僅供參考；收合單元後小計欄「x/y」＝該單元完成項數/該單元作業總數；最右側完成率＝全課程完成項數/全課程作業總數' +
+  '</div>';
+  html += '<div style="overflow:auto;max-height:70vh;border:1px solid var(--cr2);border-radius:10px"><table style="border-collapse:collapse;font-size:11px"><thead>';
+  html += '<tr>' +
+    '<th rowspan="2" onclick="taOvSortBy(\'code\')" style="position:sticky;left:0;top:0;background:var(--navy);color:#fff;z-index:3;min-width:'+TA_OV_CODE_W+'px;width:'+TA_OV_CODE_W+'px;padding:5px 4px;cursor:pointer;user-select:none">學號 <span style="opacity:.65;font-size:9px">'+sortArrow(TA_OV_SORT,'code')+'</span></th>' +
+    '<th rowspan="2" onclick="taOvSortBy(\'name\')" style="position:sticky;left:'+TA_OV_CODE_W+'px;top:0;background:var(--navy);color:#fff;z-index:3;min-width:'+TA_OV_NAME_W+'px;width:'+TA_OV_NAME_W+'px;padding:5px 4px;cursor:pointer;user-select:none">姓名 <span style="opacity:.65;font-size:9px">'+sortArrow(TA_OV_SORT,'name')+'</span></th>' +
+    unitGroups.map(g => {
+      const collapsed = TA_OV_COLLAPSED_UNITS.has(g.key);
+      const span = collapsed ? 1 : g.assigns.length;
+      const safeKey = String(g.key).replace(/'/g,"\\'");
+      return '<th colspan="'+span+'" onclick="taOvToggleUnit(\''+safeKey+'\')" style="position:sticky;top:0;background:var(--navy);color:#fff;z-index:2;text-align:center;padding:5px 6px;cursor:pointer;user-select:none;font-size:11px" title="點擊'+(collapsed?'展開':'收合')+'此單元">'+(collapsed?'▶':'▼')+' '+esc(g.title)+(collapsed?'（'+g.assigns.length+'項）':'')+'</th>';
+    }).join('') +
+    '<th rowspan="2" onclick="taOvSortBy(\'pct\')" style="position:sticky;top:0;background:var(--navy);color:#fff;z-index:2;min-width:74px;width:74px;padding:5px 4px;cursor:pointer;user-select:none">完成率 <span style="opacity:.65;font-size:9px">'+sortArrow(TA_OV_SORT,'pct')+'</span></th>' +
+  '</tr><tr>' +
+    unitGroups.map(g => {
+      if (TA_OV_COLLAPSED_UNITS.has(g.key)) return '<th style="position:sticky;top:29px;background:var(--navy2);color:#DCE4F0;z-index:2;font-size:10px;min-width:64px;padding:4px 4px">已收合</th>';
+      return g.assigns.map(a => '<th style="position:sticky;top:29px;background:var(--navy2);color:#fff;z-index:2;font-size:10.5px;min-width:92px;max-width:120px;padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(a.title)+'">'+esc(a.title)+'</th>').join('');
+    }).join('') +
+  '</tr></thead><tbody>';
+
+  students.forEach(st => {
+    let doneCount = 0;
+    const rowCells = unitGroups.map(g => {
+      if (TA_OV_COLLAPSED_UNITS.has(g.key)) {
+        const gs = taOvGroupStats(st, g);
+        doneCount += gs.done;
+        return '<td class="'+taOvPctClass(gs.pct)+'" style="font-size:11px;text-align:center;white-space:nowrap;padding:4px 4px;border-bottom:1px solid var(--cr2)" title="'+esc(g.title)+'：'+gs.done+'/'+gs.total+'">'+gs.done+'/'+gs.total+'</td>';
+      }
+      return g.assigns.map(a => {
+        const sub = TA_OV_SUBS[st.id+'_'+a.id] || null;
+        const review = sub ? TA_OV_REVIEWS[sub.id] : null;
+        if (sub) doneCount++;
+        const info = taOverviewCellInfo(a, sub, review);
+        return '<td class="'+info.cls+'" style="font-size:11px;text-align:center;white-space:nowrap;padding:4px 6px;border-bottom:1px solid var(--cr2)">'+esc(info.text)+'</td>';
+      }).join('');
+    }).join('');
+    const pct = Math.round(doneCount / totalAssigns * 100);
+    html += '<tr>' +
+      '<td style="position:sticky;left:0;background:#fff;font-size:11px;padding:4px 4px;border-bottom:1px solid var(--cr2)">'+esc(st.student_code||'')+'</td>' +
+      '<td style="position:sticky;left:'+TA_OV_CODE_W+'px;background:#fff;font-size:11px;padding:4px 4px;border-bottom:1px solid var(--cr2)">'+esc(st.name_zh)+'</td>' +
+      rowCells +
+      '<td class="'+taOvPctClass(pct)+'" style="text-align:center;font-size:11px;font-weight:600;padding:4px 4px;border-bottom:1px solid var(--cr2)">'+doneCount+'/'+totalAssigns+'　'+pct+'%</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+// 判斷這一格要上什麼顏色，跟畫面上的ov-miss/ov-pending/ov-wait/ov-done分類同一套邏輯，
+// 但匯出Excel再依批閱結果(特優/達標/待改進)細分成更多顏色，方便一眼掃過去
+const TA_OV_XLSX_COLORS = {
+  miss:    { fill:'FFFFC7CE', font:'FF9C0006' }, // 紅：未繳(逾期)
+  pending: { fill:'FFF2F2F2', font:'FF808080' }, // 灰：未繳(未到期)
+  wait:    { fill:'FFFFEB9C', font:'FF9C6500' }, // 黃：已繳待批閱
+  top:     { fill:'FFFFD966', font:'FF7F6000' }, // 金：特優
+  ok:      { fill:'FFC6EFCE', font:'FF006100' }, // 綠：達標
+  bad:     { fill:'FFFCE4D6', font:'FFC65911' }, // 橘：待改進
+};
+function taOverviewColorKey(a, sub, review) {
+  if (!sub) return (a.due_at && new Date(a.due_at) < new Date()) ? 'miss' : 'pending';
+  if (!review) return 'wait';
+  return review.result === '特優' ? 'top' : review.result === '待改進' ? 'bad' : 'ok';
+}
+
+async function ensureExcelJSLibS() {
+  if (window.ExcelJS) return;
+  await new Promise((res,rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+async function exportTaOverviewXlsx() {
+  if (!TA_OV_STUDENTS.length || !TA_OV_ASSIGNS.length) { showToast('目前沒有資料可匯出', 'error'); return; }
+  await ensureExcelJSLibS();
+  const totalAssigns = TA_OV_ASSIGNS.length;
+  const totalCols = totalAssigns + 3;
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('完成度總覽'.slice(0,31));
+
+  const legendRow = ws.addRow(['圖例：🔴未繳(逾期)　⚪未繳(未到期)　🟡已繳待批閱　🟨特優　🟩達標　🟧待改進']);
+  ws.mergeCells(1, 1, 1, totalCols);
+  legendRow.getCell(1).font = { italic:true, size:10, color:{argb:'FF888888'} };
+
+  const row1 = ws.addRow(['學號','姓名', ...TA_OV_ASSIGNS.map(a => a._unitTitle), '完成率']);
+  const row2 = ws.addRow(['', '', ...TA_OV_ASSIGNS.map(a => a.title), '']);
+  [row1, row2].forEach((r,ri) => r.eachCell(c => {
+    c.fill = { type:'pattern', pattern:'solid', fgColor:{argb: ri===0?'FF1B3A6B':'FF2B5FA0'} };
+    c.font = { color:{argb:'FFFFFFFF'}, bold:true, size:11 };
+    c.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+  }));
+  ws.mergeCells(2, 1, 3, 1);
+  ws.mergeCells(2, 2, 3, 2);
+  ws.mergeCells(2, totalCols, 3, totalCols);
+  let colIdx = 3, curUnit = null, startCol = 3;
+  TA_OV_ASSIGNS.forEach(a => {
+    if (a._unitTitle !== curUnit) {
+      if (curUnit !== null && colIdx - startCol > 1) ws.mergeCells(2, startCol, 2, colIdx-1);
+      curUnit = a._unitTitle; startCol = colIdx;
+    }
+    colIdx++;
+  });
+  if (curUnit !== null && colIdx - startCol > 1) ws.mergeCells(2, startCol, 2, colIdx-1);
+
+  TA_OV_STUDENTS.forEach(st => {
+    let doneCount = 0;
+    const rowData = [st.student_code||'', st.name_zh];
+    const colorKeys = [];
+    TA_OV_ASSIGNS.forEach(a => {
+      const sub = TA_OV_SUBS[st.id+'_'+a.id] || null;
+      const review = sub ? TA_OV_REVIEWS[sub.id] : null;
+      if (sub) doneCount++;
+      rowData.push(taOverviewCellInfo(a, sub, review).text);
+      colorKeys.push(taOverviewColorKey(a, sub, review));
+    });
+    const pct = Math.round(doneCount / totalAssigns * 100);
+    rowData.push(doneCount+'/'+totalAssigns+'  '+pct+'%');
+    const row = ws.addRow(rowData);
+    row.getCell(1).alignment = { horizontal:'center' };
+    row.getCell(2).alignment = { horizontal:'center' };
+    TA_OV_ASSIGNS.forEach((a, i) => {
+      const cell = row.getCell(3+i);
+      cell.alignment = { horizontal:'center' };
+      const c = TA_OV_XLSX_COLORS[colorKeys[i]];
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:c.fill} };
+      cell.font = { color:{argb:c.font} };
+    });
+    const pctCell = row.getCell(totalCols);
+    pctCell.alignment = { horizontal:'center' };
+    pctCell.font = { bold:true };
+    pctCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb: pct>=80?'FFC6EFCE':pct>=50?'FFFFEB9C':'FFFFC7CE'} };
+  });
+
+  ws.getColumn(1).width = 12;
+  ws.getColumn(2).width = 10;
+  for (let i=0;i<totalAssigns;i++) ws.getColumn(3+i).width = 18;
+  ws.getColumn(totalCols).width = 14;
+  ws.views = [{ state:'frozen', xSplit:2, ySplit:3 }];
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type:'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const fileTag = (TA_CUR_OFFERING.name_zh||'課程').replace(/[\\/?*\[\]:]/g,'_');
+  link.href = url; link.download = `教材與作業完成度_${fileTag}.xlsx`;
+  document.body.appendChild(link); link.click(); link.remove();
+  URL.revokeObjectURL(url);
 }
 
 /* ════ 課堂點名 ════ */
@@ -2633,11 +3553,500 @@ function printMyCourseSheet() {
   w.document.close();
 }
 
+/* ════════════════════════════════════════════════════════════════════
+ * 教材與作業
+ * ════════════════════════════════════════════════════════════════════ */
+function esc(str) { return (str||'').replace(/"/g,'&quot;'); }
+
+let ASSIGN_S_OFFERINGS = [];
+let ASSIGN_S_UNITS = [];
+let ASSIGN_S_LIST = [];
+let ASSIGN_S_SUBMISSIONS = {}; // { assignment_id: 最新一筆繳交記錄 }
+let ASSIGN_S_REVIEWS = {};     // { submission_id: 批閱記錄 }
+let ASSIGN_S_OPEN_ID = null;   // 目前展開的作業id
+let ASSIGN_S_COLLAPSED = {};   // {offering_id: true=已收合} 第一次算出預設值後就記住，同一次瀏覽session手動點開/收合都會保留
+const ASSIGN_TYPE_ICON = { checkin:'✅', submission:'📎', quiz:'📋', essay:'✍️' };
+
+/* ── 檔案繳交(submission類型) ── */
+const SUBMISSION_BUCKET = 'assignment-submissions';
+const SUBMISSION_MAX_SIZE = 20 * 1024 * 1024; // 20MB，跟phase2_file_upload.sql的bucket設定一致
+const SUBMISSION_MAX_FILES = 5;
+const SUBMISSION_ALLOWED_EXT = ['pdf','doc','docx','ppt','pptx','xls','xlsx','jpg','jpeg','png','gif','heic','webp','mp4','mov','zip','rar','7z','txt'];
+let SUBMISSION_PENDING_FILES = {}; // { assignment_id: [File, ...] } 已選擇但還沒上傳的檔案
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+// 檔名只留英數字/中文/常見符號，避免特殊字元跑進Storage路徑造成問題
+function sanitizeFilename(name) {
+  return name.replace(/[^\w.\-一-龥]/g, '_');
+}
+
+function onSubmissionFilesPicked(assignId) {
+  const input = document.getElementById('sub-file-input-'+assignId);
+  const queue = SUBMISSION_PENDING_FILES[assignId] || (SUBMISSION_PENDING_FILES[assignId] = []);
+  Array.from(input.files).forEach(f => {
+    if (queue.length >= SUBMISSION_MAX_FILES) { showToast('最多只能上傳'+SUBMISSION_MAX_FILES+'個檔案', 'error'); return; }
+    const ext = (f.name.split('.').pop()||'').toLowerCase();
+    if (!SUBMISSION_ALLOWED_EXT.includes(ext)) { showToast('不支援的檔案格式：'+f.name, 'error'); return; }
+    if (f.size > SUBMISSION_MAX_SIZE) { showToast('檔案超過20MB：'+f.name, 'error'); return; }
+    queue.push(f);
+  });
+  input.value = ''; // 清空，讓同一個檔案可以重新選取
+  renderPendingFileList(assignId);
+}
+
+function removePendingFile(assignId, idx) {
+  (SUBMISSION_PENDING_FILES[assignId]||[]).splice(idx, 1);
+  renderPendingFileList(assignId);
+}
+
+function renderPendingFileList(assignId) {
+  const el = document.getElementById('sub-file-list-'+assignId);
+  if (!el) return;
+  const queue = SUBMISSION_PENDING_FILES[assignId] || [];
+  if (!queue.length) { el.innerHTML = '<div style="color:var(--ink3);font-size:12px">尚未選擇檔案</div>'; return; }
+  el.innerHTML = queue.map((f,i) =>
+    '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--cr3);border-radius:6px;font-size:12.5px;margin-bottom:4px">' +
+      '<span>📎 '+esc(f.name)+'</span><span style="color:var(--ink3);font-size:11px">'+formatFileSize(f.size)+'</span>' +
+      '<span style="margin-left:auto;color:#C04030;cursor:pointer" onclick="removePendingFile(\''+assignId+'\','+i+')">✕ 移除</span>' +
+    '</div>'
+  ).join('');
+}
+
+async function downloadSubmissionFile(path) {
+  const { data, error } = await sb.storage.from(SUBMISSION_BUCKET).createSignedUrl(path, 300);
+  if (error) { showToast('無法取得下載連結：'+error.message, 'error'); return; }
+  window.open(data.signedUrl, '_blank');
+}
+async function viewSubmissionFileTa(path, ext, fileName) {
+  const { data, error } = await sb.storage.from(SUBMISSION_BUCKET).createSignedUrl(path, 600);
+  if (error) { showToast('無法取得預覽連結：'+error.message, 'error'); return; }
+  openViewer(encodeURIComponent(data.signedUrl), ext, fileName);
+}
+
+async function submitFileUpload(assignId) {
+  const queue = SUBMISSION_PENDING_FILES[assignId] || [];
+  if (!queue.length) { showToast('請先選擇至少一個檔案', 'error'); return; }
+  const btn = document.getElementById('sub-submit-btn-'+assignId);
+  if (btn) { btn.disabled = true; btn.textContent = '上傳中…'; }
+
+  const uploaded = [];
+  for (const f of queue) {
+    const path = assignId+'/'+ME.id+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+sanitizeFilename(f.name);
+    const { error } = await sb.storage.from(SUBMISSION_BUCKET).upload(path, f);
+    if (error) {
+      showToast('上傳失敗（'+f.name+'）：'+error.message, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '📤 上傳並繳交'; }
+      return;
+    }
+    uploaded.push({ name: f.name, path, size: f.size, type: f.type });
+  }
+  SUBMISSION_PENDING_FILES[assignId] = [];
+  await saveSubmission(assignId, 'file', { files: uploaded });
+}
+
+// 登入/回到任何畫面時都會算一次：橫跨該生「所有已確認選課」的課程，統計尚未繳交(含已逾期)的作業/教材數量，
+// 不用自己一個個課程點進去找。獨立於 status-banner(選課期程狀態) 之外，兩者可以同時顯示不互相覆蓋。
+async function loadAssignmentReminder() {
+  const bannerEl = document.getElementById('assign-reminder-banner');
+  if (!bannerEl || !ME) return;
+
+  const { data: enrolls } = await sb.from('enrollments').select('offering_id').eq('student_id', ME.id).eq('status','confirmed');
+  const offIds = [...new Set((enrolls||[]).map(e => e.offering_id))];
+  if (!offIds.length) { bannerEl.style.display = 'none'; return; }
+
+  const { data: assigns } = await sb.from('assignments').select('id, due_at').eq('status','published').in('offering_id', offIds);
+  const list = assigns || [];
+  if (!list.length) { bannerEl.style.display = 'none'; return; }
+
+  const assignIds = list.map(a => a.id);
+  const { data: subs } = await sb.from('assignment_submissions').select('assignment_id').eq('student_id', ME.id).in('assignment_id', assignIds);
+  const submittedSet = new Set((subs||[]).map(s => s.assignment_id));
+
+  const now = new Date();
+  let overdue = 0, pending = 0;
+  list.forEach(a => {
+    if (submittedSet.has(a.id)) return; // 已繳交（含遲交）就不算未完成，即使曾經逾期
+    if (a.due_at && new Date(a.due_at) < now) overdue++; else pending++;
+  });
+
+  if (!overdue && !pending) { bannerEl.style.display = 'none'; return; }
+
+  const parts = [];
+  if (overdue) parts.push('<strong style="color:#C04030">'+overdue+' 項已逾期</strong>');
+  if (pending) parts.push(pending+' 項待繳');
+  bannerEl.className = 'banner ' + (overdue ? 'banner-err' : 'banner-warn');
+  bannerEl.style.cursor = 'pointer';
+  bannerEl.innerHTML = '<span>📝 您有作業/教材尚未完成：'+parts.join('、')+'</span>' +
+    '<span style="margin-left:auto;font-weight:500;text-decoration:underline;white-space:nowrap">前往查看 →</span>';
+  bannerEl.style.display = 'flex';
+}
+
+// 2026-09-28改版：不再讓同學自己拉課程下拉選單，改成一次把「所有已確認選課」的課程都撈出來，
+// 只列出真的有已發布作業/教材的課程（依課程分組、組內再依單元分組），一眼就能看到哪些課有作業要處理
+async function loadAssignmentOfferings() {
+  const { data: enrolls } = await sb.from('enrollments').select('offering_id').eq('student_id', ME.id).eq('status','confirmed');
+  const ids = [...new Set((enrolls||[]).map(e => e.offering_id))];
+  if (!ids.length) {
+    document.getElementById('assign-s-empty').style.display = '';
+    document.getElementById('assign-s-list').innerHTML = '';
+    ASSIGN_S_OFFERINGS = [];
+    return;
+  }
+  document.getElementById('assign-s-empty').style.display = 'none';
+  const { data: courses } = await sb.from('v_course_schedule').select('offering_id, code, name_zh, semester_label')
+    .in('offering_id', ids).order('semester_label', { ascending:false });
+  ASSIGN_S_OFFERINGS = courses || [];
+  await loadAssignmentList();
+}
+
+async function loadAssignmentList() {
+  const wrap = document.getElementById('assign-s-list');
+  const offeringIds = ASSIGN_S_OFFERINGS.map(c => c.offering_id);
+  if (!offeringIds.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  ASSIGN_S_OPEN_ID = null;
+
+  const [unitsRes, assignRes] = await Promise.all([
+    sb.from('teaching_units').select('*').in('offering_id', offeringIds).order('sort_order'),
+    sb.from('assignments').select('*').in('offering_id', offeringIds).eq('status', 'published').order('created_at')
+  ]);
+  ASSIGN_S_UNITS = unitsRes.data || [];
+  ASSIGN_S_LIST = assignRes.data || [];
+
+  if (!ASSIGN_S_LIST.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">目前所有已選課程都還沒有發布的作業/教材</div>';
+    return;
+  }
+
+  const assignIds = ASSIGN_S_LIST.map(a => a.id);
+  const { data: subs } = await sb.from('assignment_submissions').select('*')
+    .eq('student_id', ME.id).in('assignment_id', assignIds).order('submitted_at', { ascending:false });
+  ASSIGN_S_SUBMISSIONS = {};
+  (subs||[]).forEach(s => { if (!ASSIGN_S_SUBMISSIONS[s.assignment_id]) ASSIGN_S_SUBMISSIONS[s.assignment_id] = s; }); // 已依時間新到舊排序，第一筆就是最新版本
+
+  const subIds = Object.values(ASSIGN_S_SUBMISSIONS).map(s => s.id);
+  ASSIGN_S_REVIEWS = {};
+  if (subIds.length) {
+    const { data: reviews } = await sb.from('assignment_reviews').select('*').in('submission_id', subIds);
+    (reviews||[]).forEach(r => { ASSIGN_S_REVIEWS[r.submission_id] = r; });
+  }
+
+  renderAssignmentList();
+}
+
+// 每門課固定分配一種淡色（依課程順序輪流），課程標題列跟展開後的整塊背景都套用同一色，
+// 這樣同時展開好幾門課時，光看背景顏色就能分辨這是哪一門課底下的內容，不用靠縮排線去推
+const ASSIGN_COURSE_COLORS = [
+  { bg:'#EAF2FF', hdr:'#D8E8FF' }, // 淡藍
+  { bg:'#EAF8EF', hdr:'#D6F0DE' }, // 淡綠
+  { bg:'#F5EEFB', hdr:'#E9DCF7' }, // 淡紫
+  { bg:'#FFF4E8', hdr:'#FFE7CC' }, // 淡橘
+  { bg:'#FDF0F3', hdr:'#FBDEE5' }, // 淡粉
+  { bg:'#FFFBE6', hdr:'#FFF2B8' }, // 淡黃
+];
+
+function renderAssignmentList() {
+  const wrap = document.getElementById('assign-s-list');
+  const unitMap = {};
+  ASSIGN_S_UNITS.forEach(u => unitMap[u.id] = u);
+
+  const byCourse = {};
+  ASSIGN_S_LIST.forEach(a => { (byCourse[a.offering_id] ||= []).push(a); });
+
+  let html = '';
+  let colorIdx = 0;
+  // 依ASSIGN_S_OFFERINGS原本的排序(學期新到舊)顯示課程，只列出真的有已發布作業的課程；
+  // 每個課程可收合(📘)/展開(📖)：第一次顯示時，有未繳交項目的課程預設展開，全部繳完的課程預設收合，避免畫面太長，
+  // 之後同學自己手動點開/收合的狀態，在這次瀏覽期間會保留(不會每次重繪就跳回預設)
+  ASSIGN_S_OFFERINGS.forEach(c => {
+    const list = byCourse[c.offering_id];
+    if (!list || !list.length) return;
+    const hasPending = list.some(a => !ASSIGN_S_SUBMISSIONS[a.id]);
+    if (ASSIGN_S_COLLAPSED[c.offering_id] === undefined) ASSIGN_S_COLLAPSED[c.offering_id] = !hasPending;
+    const collapsed = ASSIGN_S_COLLAPSED[c.offering_id];
+    const color = ASSIGN_COURSE_COLORS[colorIdx % ASSIGN_COURSE_COLORS.length];
+    colorIdx++;
+
+    html += '<div class="assign-course-block" style="background:'+color.bg+'">' +
+      '<div class="assign-course-hdr'+(collapsed?' collapsed':'')+'" onclick="toggleCourseCollapse(\''+c.offering_id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;background:'+color.hdr+'">' +
+        '<span>'+(collapsed?'📘':'📖')+'</span><span>'+esc(c.name_zh)+'（'+esc(c.semester_label)+'）</span>' +
+        '<span style="margin-left:auto;font-size:12px;color:var(--ink3);font-weight:400">'+(collapsed?'展開 ▾':'收合 ▴')+'</span>' +
+      '</div>';
+
+    if (!collapsed) {
+      html += '<div style="padding:10px 14px 2px">';
+      const grouped = {};
+      list.forEach(a => { (grouped[a.unit_id] ||= []).push(a); });
+      const courseUnitIds = ASSIGN_S_UNITS.filter(u => u.offering_id === c.offering_id).map(u => u.id);
+      const unitOrder = [...courseUnitIds, ...Object.keys(grouped).filter(id => !unitMap[id])];
+      unitOrder.forEach(uid => {
+        const ulist = grouped[uid];
+        if (!ulist || !ulist.length) return;
+        const u = unitMap[uid];
+        html += '<div class="assign-unit-hdr">🗂 '+(u ? esc(u.title) : '（其他）')+'</div>';
+        ulist.forEach(a => { html += renderAssignmentCard(a); });
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+function toggleCourseCollapse(offeringId) {
+  ASSIGN_S_COLLAPSED[offeringId] = !ASSIGN_S_COLLAPSED[offeringId];
+  renderAssignmentList();
+}
+
+function resultIcon(review) {
+  if (review.result === '特優') return '👑';
+  if (review.result === '待改進') return '🌶'.repeat(review.pepper_level || 1);
+  return '✅';
+}
+
+function renderAssignmentCard(a) {
+  const sub = ASSIGN_S_SUBMISSIONS[a.id];
+  const review = sub ? ASSIGN_S_REVIEWS[sub.id] : null;
+  const overdue = a.due_at && new Date(a.due_at) < new Date();
+  const dueStr = a.due_at ? new Date(a.due_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '無截止時間';
+
+  let statusBadge;
+  if (review) {
+    statusBadge = '<span class="result-badge result-'+review.result+'">'+resultIcon(review)+' '+review.result+'</span>';
+  } else if (sub) {
+    statusBadge = sub.is_late ? '<span class="badge badge-late">⏰ 已繳交（遲交）</span>' : '<span class="badge badge-done">✅ 已繳交</span>';
+  } else if (overdue) {
+    statusBadge = '<span class="badge badge-overdue">🔴 已逾期未繳交</span>';
+  } else {
+    statusBadge = '<span class="badge badge-todo">📝 尚未繳交</span>';
+  }
+
+  const isOpen = ASSIGN_S_OPEN_ID === a.id;
+  return '<div class="assign-card">' +
+    '<div class="assign-card-hdr'+(isOpen?' open':'')+'" onclick="toggleAssignmentCard(\''+a.id+'\')">' +
+      '<span>'+(ASSIGN_TYPE_ICON[a.type]||'')+'</span>' +
+      '<div style="flex:1;min-width:160px">' +
+        '<div class="assign-title">'+esc(a.title)+'</div>' +
+        '<div class="assign-meta">截止：'+dueStr+(a.counts_as_grade ? '　・　列入成績' : '')+'</div>' +
+      '</div>' +
+      statusBadge +
+    '</div>' +
+    '<div class="assign-body'+(isOpen?' open':'')+'" id="assign-body-'+a.id+'"></div>' +
+  '</div>';
+}
+
+async function toggleAssignmentCard(assignId) {
+  const wasOpen = ASSIGN_S_OPEN_ID === assignId;
+  ASSIGN_S_OPEN_ID = wasOpen ? null : assignId;
+  renderAssignmentList();
+  if (!wasOpen) await renderAssignmentBody(assignId);
+}
+
+async function renderAssignmentBody(assignId) {
+  const body = document.getElementById('assign-body-'+assignId);
+  if (!body) return;
+  body.innerHTML = '<div style="color:var(--ink3);font-size:12.5px;padding:10px 0">載入中…</div>';
+  const a = ASSIGN_S_LIST.find(x => x.id === assignId);
+  const sub = ASSIGN_S_SUBMISSIONS[assignId];
+  const review = sub ? ASSIGN_S_REVIEWS[sub.id] : null;
+
+  let html = '';
+  if (a.instructions) html += '<div style="font-size:13px;color:var(--ink2);white-space:pre-wrap;margin:12px 0">'+esc(a.instructions)+'</div>';
+
+  if (review) {
+    html += '<div style="background:var(--cr3);border-radius:8px;padding:10px 14px;margin-bottom:12px">' +
+      '<div style="margin-bottom:4px"><span class="result-badge result-'+review.result+'">'+resultIcon(review)+' '+review.result+'</span></div>' +
+      (review.comment ? '<div style="font-size:13px;color:var(--ink2)">'+esc(review.comment)+'</div>' : '') +
+    '</div>';
+  }
+
+  const now = new Date();
+  const overdue = a.due_at && new Date(a.due_at) < now;
+  const blocked = overdue && a.late_policy === 'block' && !sub;
+  // 截止時間內：不需要老師特別打開「允許補交」，本來就可以自由修改重新提交；
+  // 逾期之後：才需要老師有打開「允許補交/重新提交」，且還在補交期限內，才能繼續修改。
+  const canResubmit = sub && (!overdue || (a.allow_resubmit && (!a.resubmit_deadline || new Date(a.resubmit_deadline) >= now)));
+  const readOnly = sub && !canResubmit;
+
+  if (blocked) {
+    html += '<div style="color:#C04030;font-size:13px;padding:10px 0">⏰ 已逾期，此作業不開放繳交</div>';
+    body.innerHTML = html;
+    return;
+  }
+
+  if (readOnly) {
+    html += '<div style="color:var(--ink3);font-size:12.5px;padding:6px 0">已逾期，不開放修改'+(sub.is_late?'（遲交）':'')+'</div>' + renderSubmissionPreview(a, sub);
+    body.innerHTML = html;
+    return;
+  }
+
+  if (sub && canResubmit) {
+    html += '<div style="color:var(--ink3);font-size:12.5px;padding:6px 0 10px">已於 '+new Date(sub.submitted_at).toLocaleString('zh-TW')+' 繳交，'+
+      (overdue ? '已逾期但老師開放補交，可重新提交' : '截止時間內可重新修改提交')+
+      (overdue && a.resubmit_score_factor!=null && a.resubmit_score_factor<1 ? '（補交成績打'+Math.round(a.resubmit_score_factor*100)+'折）' : '')+'</div>';
+    html += renderSubmissionPreview(a, sub);
+  }
+
+  body.innerHTML = html;
+  await renderSubmissionForm(a, sub, !!(sub && canResubmit));
+}
+
+function renderSubmissionPreview(a, sub) {
+  if (a.type === 'essay') return '<div style="background:#fff;border:1px dashed var(--cr2);border-radius:8px;padding:10px 12px;font-size:13px;white-space:pre-wrap;margin-bottom:10px">'+esc(sub.content?.text||'')+'</div>';
+  if (a.type === 'quiz') return '<div style="font-size:12px;color:var(--ink3);margin-bottom:10px">已作答 '+Object.keys(sub.content||{}).length+' 題</div>';
+  if (a.type === 'submission') {
+    const files = (sub.content && sub.content.files) || [];
+    if (!files.length) return '<div style="font-size:12px;color:var(--ink3);margin-bottom:10px">（沒有檔案資料）</div>';
+    return '<div style="margin-bottom:10px">' + files.map(f =>
+      '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px dashed var(--cr2);border-radius:6px;font-size:12.5px;margin-bottom:4px">' +
+        '<span>📎 '+esc(f.name)+'</span><span style="color:var(--ink3);font-size:11px">'+formatFileSize(f.size)+'</span>' +
+        '<span style="margin-left:auto;color:var(--navy);text-decoration:underline;cursor:pointer" onclick="downloadSubmissionFile(\''+f.path+'\')">⬇ 下載</span>' +
+      '</div>'
+    ).join('') + '</div>';
+  }
+  return '';
+}
+
+async function renderSubmissionForm(a, sub, isResubmit) {
+  const body = document.getElementById('assign-body-'+a.id);
+  const extra = document.createElement('div');
+
+  if (a.type === 'checkin') {
+    // isResubmit=true代表已經回報過(不管是不是遲交)，按鈕文字要跟著變，不然同學會以為還沒完成
+    extra.innerHTML = isResubmit
+      ? '<div style="color:#1A6A30;font-size:12.5px;margin-bottom:8px">✅ 已回報完成</div><button class="btn btn-sec" onclick="submitCheckin(\''+a.id+'\')">🔁 重新回報</button>'
+      : '<button class="btn btn-pri" onclick="submitCheckin(\''+a.id+'\')">✅ 回報完成</button>';
+    body.appendChild(extra);
+  } else if (a.type === 'essay') {
+    extra.innerHTML =
+      '<textarea class="finput" id="essay-input-'+a.id+'" rows="5" style="resize:vertical;margin-bottom:8px" placeholder="請輸入內容…">'+(isResubmit?esc(sub.content?.text||''):'')+'</textarea>' +
+      '<button class="btn btn-pri" onclick="submitEssay(\''+a.id+'\')">'+(isResubmit?'🔁 重新提交':'📤 提交')+'</button>';
+    body.appendChild(extra);
+  } else if (a.type === 'submission') {
+    extra.innerHTML =
+      '<input type="file" id="sub-file-input-'+a.id+'" multiple style="font-size:12.5px;margin-bottom:8px" onchange="onSubmissionFilesPicked(\''+a.id+'\')">' +
+      '<div id="sub-file-list-'+a.id+'" style="margin-bottom:8px"></div>' +
+      '<div style="font-size:11.5px;color:var(--ink3);margin-bottom:8px">單檔上限20MB，最多可上傳'+SUBMISSION_MAX_FILES+'個檔案（doc/pdf/圖片/影片/壓縮檔等常見格式皆可）</div>' +
+      '<button class="btn btn-pri" id="sub-submit-btn-'+a.id+'" onclick="submitFileUpload(\''+a.id+'\')">'+(isResubmit?'🔁 重新提交':'📤 上傳並繳交')+'</button>';
+    body.appendChild(extra);
+    SUBMISSION_PENDING_FILES[a.id] = [];
+    renderPendingFileList(a.id);
+  } else if (a.type === 'quiz') {
+    extra.id = 'qz-placeholder-'+a.id;
+    extra.innerHTML = '<div style="color:var(--ink3);font-size:12.5px">載入題目中…</div>';
+    body.appendChild(extra);
+    await renderQuizForm(a, sub, isResubmit);
+  }
+}
+
+async function submitCheckin(assignId) {
+  await saveSubmission(assignId, 'checkin', { completed_at: new Date().toISOString() });
+}
+
+async function submitEssay(assignId) {
+  const text = document.getElementById('essay-input-'+assignId).value.trim();
+  if (!text) { showToast('請輸入內容', 'error'); return; }
+  await saveSubmission(assignId, 'answers', { text });
+}
+
+async function saveSubmission(assignId, contentType, content, extra) {
+  const a = ASSIGN_S_LIST.find(x => x.id === assignId);
+  const prevSub = ASSIGN_S_SUBMISSIONS[assignId];
+  const isLate = !!(a.due_at && new Date(a.due_at) < new Date());
+  const payload = {
+    assignment_id: assignId,
+    student_id: ME.id,
+    content_type: contentType,
+    content,
+    is_late: isLate,
+    resubmit_of: prevSub ? prevSub.id : null,
+    ...(extra || {}) // 目前只有quiz類型會帶question_version，記錄這次作答是依哪個題目版本作答的
+  };
+  const { error } = await sb.from('assignment_submissions').insert(payload);
+  if (error) { showToast('繳交失敗：'+error.message, 'error'); return; }
+  showToast(isLate ? '✅ 已繳交（遲交）' : '✅ 已繳交');
+  await loadAssignmentList(); // 內部會把 ASSIGN_S_OPEN_ID 重置為 null
+  ASSIGN_S_OPEN_ID = assignId; // 繳交完直接重新展開這一筆，讓學生馬上看到最新狀態
+  renderAssignmentList();
+  await renderAssignmentBody(assignId);
+  loadAssignmentReminder(); // 繳交後重新計算頂部提醒橫幅的未完成數量
+}
+
+/* ── 是非/選擇題作答 ──
+   題目版本鎖定：老師端如果在有人作答後又修改題目，會自動產生新版本，這裡一律抓「目前最新版本」的題目來作答，
+   並把作答當下的版本號記在question_version上，之後老師批閱畫面才能對應到「這位同學當初看到的是哪一版題目」 */
+async function renderQuizForm(a, sub, isResubmit) {
+  const body = document.getElementById('assign-body-'+a.id);
+  // assignment_questions已不含正確答案欄位(獨立搬到只有老師/TA/admin讀得到的assignment_answer_keys)，這裡直接查表即可，不會拿到答案
+  const { data: qs } = await sb.from('assignment_questions').select('*').eq('assignment_id', a.id).order('sort_order');
+  const all = qs || [];
+  const latestVersion = all.length ? Math.max(...all.map(q => q.version || 1)) : 1;
+  let questions = all.filter(q => (q.version || 1) === latestVersion);
+  if (a.shuffle_questions) questions = shuffleSeeded(questions, String(ME.id) + a.id);
+
+  // 只有「上次作答的版本」跟「目前最新版本」一樣時，才帶入上次的作答內容預填；版本不同代表題目已經變了，預填舊答案沒有意義
+  const sameVersion = isResubmit && (sub.question_version || 1) === latestVersion;
+  const prevAnswers = sameVersion ? (sub.content || {}) : {};
+  let html = '<div id="qz-form-'+a.id+'">';
+  questions.forEach((q, i) => {
+    html += '<div class="qz-question-card"><div style="font-weight:500;font-size:13.5px;margin-bottom:8px">'+(i+1)+'. '+esc(q.content)+'</div>';
+    if (q.question_type === 'true_false') {
+      const prev = prevAnswers[q.id];
+      html += '<label class="qz-option-row"><input type="radio" name="qzq-'+q.id+'" value="true" '+(prev==='true'?'checked':'')+'> 是（○）</label>' +
+              '<label class="qz-option-row"><input type="radio" name="qzq-'+q.id+'" value="false" '+(prev==='false'?'checked':'')+'> 否（✕）</label>';
+    } else {
+      (q.options||[]).forEach(opt => {
+        const prev = prevAnswers[q.id];
+        html += '<label class="qz-option-row"><input type="radio" name="qzq-'+q.id+'" value="'+esc(opt)+'" '+(prev===opt?'checked':'')+'> '+esc(opt)+'</label>';
+      });
+    }
+    html += '</div>';
+  });
+  html += '<button class="btn btn-pri" onclick="submitQuiz(\''+a.id+'\')">'+(isResubmit?'🔁 重新提交':'📤 提交')+'</button></div>';
+  const placeholder = document.getElementById('qz-placeholder-'+a.id);
+  if (placeholder) placeholder.outerHTML = html;
+  body.dataset.qzQuestionIds = JSON.stringify(questions.map(q => q.id));
+  body.dataset.qzVersion = String(latestVersion);
+}
+
+async function submitQuiz(assignId) {
+  const body = document.getElementById('assign-body-'+assignId);
+  const qIds = JSON.parse(body.dataset.qzQuestionIds || '[]');
+  const version = parseInt(body.dataset.qzVersion || '1', 10);
+  const answers = {};
+  let unanswered = 0;
+  qIds.forEach(qid => {
+    const sel = document.querySelector('input[name="qzq-'+qid+'"]:checked');
+    if (sel) answers[qid] = sel.value; else unanswered++;
+  });
+  if (unanswered) { showToast('還有 '+unanswered+' 題未作答', 'error'); return; }
+  await saveSubmission(assignId, 'answers', answers, { question_version: version });
+}
+
+// 依字串種子產生穩定亂序：同一位學生同一份測驗，順序固定不會每次重整就變，但不同學生彼此不同
+function shuffleSeeded(arr, seedStr) {
+  let seed = 0;
+  for (let i=0;i<seedStr.length;i++) seed = (seed*31 + seedStr.charCodeAt(i)) >>> 0;
+  const rnd = () => { seed = (seed*1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  const copy = arr.slice();
+  for (let i=copy.length-1;i>0;i--) {
+    const j = Math.floor(rnd()*(i+1));
+    [copy[i],copy[j]] = [copy[j],copy[i]];
+  }
+  return copy;
+}
+
 function showSection(id) {
   document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
   document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
   const sec = document.getElementById('sec-' + id);
-  const nav = document.getElementById('nav-' + id);
+  // TA課程管理的子畫面(該課作業列表/批閱/完成度總覽)沒有自己的側邊欄項目，掛在「TA課程管理」底下，維持該項反白
+  const navId = ['ta-course','ta-review','ta-overview'].includes(id) ? 'ta-mode' : id;
+  const nav = document.getElementById('nav-' + navId);
   if (sec) sec.classList.add('on');
   if (nav) nav.classList.add('active');
   if (id === 'thesis') { loadThesisView(); loadEthicsReviewSection(); }
@@ -2646,6 +4055,8 @@ function showSection(id) {
   if (id === 'regulations') loadRegulationsSectionS();
   if (id === 'ta-apply') loadTaApplySection();
   if (id === 'attendance') loadAttendanceOfferings();
+  if (id === 'assignments') loadAssignmentOfferings();
+  if (id === 'ta-mode') loadTaOfferings();
 }
 
 function switchTab(id, btn) {
@@ -2661,10 +4072,24 @@ function switchTab(id, btn) {
 
 /* ════ 批次A：論文進度唯讀顯示 ════ */
 // 附件線上看（PDF瀏覽器原生顯示，Word用微軟線上檢視器嵌入）
+const VIEWER_IMG_EXT = ['jpg','jpeg','png','gif','heic','webp'];
+const VIEWER_VIDEO_EXT = ['mp4','mov','quicktime'];
+const VIEWER_ALL_EXT = ['pdf','doc','docx','ppt','pptx','xls','xlsx', ...VIEWER_IMG_EXT, ...VIEWER_VIDEO_EXT];
 function openViewer(encodedUrl, ext, fileName) {
   const url = decodeURIComponent(encodedUrl);
-  const isPdf = ext === 'pdf';
-  const src = isPdf ? url : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+  const e = (ext||'').toLowerCase();
+  const isPdf = e === 'pdf';
+  const isImg = VIEWER_IMG_EXT.includes(e);
+  const isVideo = VIEWER_VIDEO_EXT.includes(e);
+  let bodyHtml;
+  if (isImg) {
+    bodyHtml = `<div class="viewer-frame" style="display:flex;align-items:center;justify-content:center;background:#1a1a1a"><img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain"></div>`;
+  } else if (isVideo) {
+    bodyHtml = `<div class="viewer-frame" style="display:flex;align-items:center;justify-content:center;background:#1a1a1a"><video src="${url}" controls autoplay style="max-width:100%;max-height:100%"></video></div>`;
+  } else {
+    const src = isPdf ? url : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    bodyHtml = `<iframe src="${src}" class="viewer-frame"></iframe>`;
+  }
   const overlay = document.createElement('div');
   overlay.className = 'viewer-overlay';
   overlay.innerHTML = `
@@ -2673,7 +4098,7 @@ function openViewer(encodedUrl, ext, fileName) {
         <span>${fileName.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
         <button onclick="this.closest('.viewer-overlay').remove()">✕ 關閉</button>
       </div>
-      <iframe src="${src}" class="viewer-frame"></iframe>
+      ${bodyHtml}
     </div>`;
   document.body.appendChild(overlay);
 }
@@ -3608,9 +5033,19 @@ function showToast(msg, type='success') {
 }
 
 /* ════ AUTH STATE ════ */
+// ⚠️ 2026-09-28修正「畫面莫名其妙自己跳回公佈欄」的問題：
+// Supabase Auth的client在分頁從背景切回前景、或電腦睡眠喚醒後，會重新驗證session，
+// 常常會「重複」觸發一次SIGNED_IN事件（不是真的重新登入），如果每次都整個重跑enterApp()，
+// 裡面最後的showSection('ann')就會把同學正在看的畫面強制切回公佈欄，體感就是「畫面自己亂跳」。
+// 修正：同一個使用者已經進過app了，之後同一人的SIGNED_IN事件視為session背景續期，不重跑enterApp()。
+let _appEnteredForUserId = null;
 sb.auth.onAuthStateChange((event,session)=>{
-  if (event==='SIGNED_IN'&&session) enterApp(session.user);
-  else if (event==='SIGNED_OUT') {
+  if (event==='SIGNED_IN'&&session) {
+    if (_appEnteredForUserId === session.user.id) return; // 同一人重複觸發，忽略，不打斷正在操作的畫面
+    _appEnteredForUserId = session.user.id;
+    enterApp(session.user);
+  } else if (event==='SIGNED_OUT') {
+    _appEnteredForUserId = null;
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('app-screen').style.display='none';
   }

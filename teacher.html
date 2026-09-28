@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.2 2026-09-28 -->
+<!-- BWBC Teacher v3.22 2026-09-28 全班完成度總覽的全部收合/全部展開合併為一顆按鈕，省版面 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -52,6 +52,19 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .side-nav.collapsed .side-item{justify-content:center;padding:10px 0;font-size:0;gap:0}
 .side-nav.collapsed .side-item .nav-icon{font-size:16px}
 .nav-icon{width:20px;text-align:center;flex-shrink:0;display:inline-block}
+.side-nav-footer{margin-top:10px;padding:10px 12px 4px;border-top:1px solid #E8E8E8;font-size:10.5px;color:#999;cursor:pointer;text-align:center;line-height:1.7}
+.side-nav-footer:hover{background:#F5F5F5}
+.side-nav.collapsed .side-nav-footer{display:none}
+/* 全班完成度總覽表格用色 */
+.ov-miss{color:#9C0006;background:#FFC7CE}
+.ov-pending{color:#808080;background:#F2F2F2}
+.ov-wait{color:#9C6500;background:#FFEB9C}
+.ov-done{color:#006100;background:#C6EFCE}
+.ov-top{color:#7F6000;background:#FFD966}
+.ov-bad{color:#C65911;background:#FCE4D6}
+.ov-pct-hi{color:#006100;background:#C6EFCE}
+.ov-pct-mid{color:#9C6500;background:#FFEB9C}
+.ov-pct-lo{color:#9C0006;background:#FFC7CE}
 
 .main{max-width:1100px;margin:52px auto 0;padding:24px 20px 60px}
 .tabs{display:flex;gap:2px;background:var(--cr2);border-radius:var(--r);padding:3px;margin-bottom:20px;width:fit-content}
@@ -78,6 +91,39 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .btn-syl:hover{opacity:.85}
 .ax-badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;margin-bottom:6px}
 
+/* ── 教材/作業 課程小卡入口 ── */
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:6px}
+.hub-card{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:20px 18px;cursor:pointer;transition:all .15s;box-shadow:var(--sh)}
+.hub-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.12);transform:translateY(-2px);border-color:var(--navy2)}
+.hub-card-icon{font-size:26px;margin-bottom:8px}
+.hub-card-title{font-weight:600;font-size:14.5px;color:var(--ink);margin-bottom:3px}
+.hub-card-desc{font-size:11.5px;color:var(--ink3);line-height:1.5}
+.hub-breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:13px}
+.hub-breadcrumb a{color:var(--navy);cursor:pointer;text-decoration:none}
+.hub-breadcrumb a:hover{text-decoration:underline}
+.hub-breadcrumb .sep{color:var(--ink3)}
+.hub-breadcrumb .cur{font-weight:600;color:var(--ink)}
+
+/* ── 單元管理 ── */
+.unit-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:10px 14px;margin-bottom:8px}
+.unit-order-btns{display:flex;flex-direction:column;gap:1px}
+.unit-order-btns button{border:none;background:var(--cr3);width:20px;height:16px;font-size:9px;cursor:pointer;border-radius:2px;color:var(--ink3)}
+.unit-order-btns button:hover{background:var(--cr2)}
+.unit-src-badge{font-size:10px;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.unit-src-syllabus{background:var(--navy3);color:var(--navy)}
+.unit-src-custom{background:#FFF3E0;color:#B05010}
+.unit-title{font-weight:600;font-size:13.5px;color:var(--ink)}
+.unit-desc{font-size:11.5px;color:var(--ink3);margin-top:2px}
+.unit-assign-count{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+
+/* ── 批閱結果 badge ── */
+.result-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 9px;border-radius:12px;font-weight:500}
+.result-特優{background:#FFF8E1;color:#B8860B}
+.result-達標{background:#E8F5E9;color:#1A6A30}
+.result-待改進{background:#FFF3E0;color:#B05010}
+.status-draft{background:var(--cr3);color:var(--ink3)}
+.status-published{background:#E3F2FD;color:#1565C0}
+
 /* ── 課程大綱編輯 (modal) ── */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
 .modal-bg.open{display:flex}
@@ -99,6 +145,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .sy-sec-title{font-size:13.5px;font-weight:600;color:var(--navy);flex:1}
 .sy-sec-body{padding:14px 16px}
 .frow{margin-bottom:12px}
+.frow-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .sy-add{width:100%;padding:7px;border:1.5px dashed var(--cr2);border-radius:var(--r);background:transparent;color:var(--ink3);font-size:12.5px;cursor:pointer;margin-top:4px}
 .sy-add:hover{border-color:var(--navy2);color:var(--navy)}
 .sy-row-obj{display:grid;grid-template-columns:28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px}
@@ -243,6 +290,10 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
       <div class="side-item" id="nav-grades"      onclick="showSection('grades')"><span class="nav-icon">📊</span><span class="nav-txt">成績登錄</span></div>
       <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')"><span class="nav-icon">🧭</span><span class="nav-txt">操行評分</span></div>
+      <div class="side-nav-footer" onclick="openChangelogT()">
+        <div id="app-version-label-t" style="font-weight:600;color:#555">v3.22　2026-09-28</div>
+        <div style="text-decoration:underline">📋 更新紀錄</div>
+      </div>
     </div>
     <!-- 右側主內容 -->
     <div class="main" style="flex:1;overflow-y:auto;height:100%">
@@ -297,8 +348,131 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
             <th class="sortable" onclick="sortMyCourses('teachers_str')">授課教師 <span class="sort-icon">⇅</span></th>
             <th class="sortable" onclick="sortMyCourses('time_raw')">時間 <span class="sort-icon">⇅</span></th>
             <th class="sortable" onclick="sortMyCourses('classroom_name')">教室 <span class="sort-icon">⇅</span></th>
-            <th style="text-align:center">大綱</th>
+            <th style="text-align:center">功能</th>
           </tr></thead><tbody id="my-courses-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ── 教材/作業：課程小卡入口 section ── -->
+      <div id="sec-course-hub" class="t-section">
+        <div class="hub-breadcrumb">
+          <a onclick="showSection('my-courses')">我的課程</a>
+          <span class="sep">／</span>
+          <span class="cur" id="hub-crumb-name"></span>
+        </div>
+        <div class="hub-grid">
+          <div class="hub-card" onclick="openCourseUnits()">
+            <div class="hub-card-icon">🗂</div>
+            <div class="hub-card-title">單元管理</div>
+            <div class="hub-card-desc">依課綱週次或自訂新增教學單元，對應到實際上課場次</div>
+          </div>
+          <div class="hub-card" onclick="openCourseAssignments()">
+            <div class="hub-card-icon">📝</div>
+            <div class="hub-card-title">教材與作業</div>
+            <div class="hub-card-desc">建立作業/教材，設定繳交期限與批閱</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 教材/作業：單元管理 section ── -->
+      <div id="sec-course-units" class="t-section">
+        <div class="hub-breadcrumb">
+          <a onclick="showSection('my-courses')">我的課程</a>
+          <span class="sep">／</span>
+          <a onclick="showSection('course-hub')" id="units-crumb-hub"></a>
+          <span class="sep">／</span>
+          <span class="cur">單元管理</span>
+        </div>
+        <div class="section-title" style="display:flex;align-items:center;gap:12px">
+          🗂 單元管理
+          <button class="btn-save" style="margin-left:auto;padding:7px 16px;font-size:12.5px" onclick="openUnitModal()">＋ 新增單元</button>
+        </div>
+        <div id="unit-list-wrap">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+      </div>
+
+      <!-- ── 教材/作業：作業與教材列表 section ── -->
+      <div id="sec-course-assignments" class="t-section">
+        <div class="hub-breadcrumb">
+          <a onclick="showSection('my-courses')">我的課程</a>
+          <span class="sep">／</span>
+          <a onclick="showSection('course-hub')" id="assign-crumb-hub"></a>
+          <span class="sep">／</span>
+          <span class="cur">教材與作業</span>
+        </div>
+        <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          📝 教材與作業
+          <select id="assign-unit-filter" onchange="renderAssignments()"
+            style="font-size:12px;padding:3px 8px;border:1px solid var(--cr2);border-radius:6px;color:var(--ink);background:#fff">
+            <option value="">全部單元</option>
+          </select>
+          <button class="btn-syl none" style="margin-left:auto;padding:7px 16px;font-size:12.5px" onclick="openCompletionOverview()">📊 全班完成度總覽</button>
+          <button class="btn-save" style="padding:7px 16px;font-size:12.5px" onclick="openAssignmentModal()">＋ 新增作業/教材</button>
+        </div>
+        <div id="assign-list-wrap">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+      </div>
+
+      <!-- ── 教材/作業：是非/選擇題出題 section ── -->
+      <div id="sec-quiz-builder" class="t-section">
+        <div class="hub-breadcrumb">
+          <a onclick="showSection('my-courses')">我的課程</a>
+          <span class="sep">／</span>
+          <a onclick="showSection('course-hub')" id="qz-crumb-hub"></a>
+          <span class="sep">／</span>
+          <a onclick="showSection('course-assignments')">教材與作業</a>
+          <span class="sep">／</span>
+          <span class="cur">出題</span>
+        </div>
+        <div class="section-title" style="display:flex;align-items:center;gap:12px" id="qz-title">🎯 出題</div>
+        <div id="qz-submit-warn" style="display:none;font-size:12.5px;color:#B05010;background:#FFF3E0;border-radius:8px;padding:8px 12px;margin-bottom:14px"></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="btn-secondary" onclick="openQuestionModal(null,'true_false')">＋ 新增是非題</button>
+          <button class="btn-secondary" onclick="openQuestionModal(null,'single_choice')">＋ 新增選擇題</button>
+        </div>
+        <div id="qz-list-wrap">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+      </div>
+
+      <!-- ── 教材/作業：批閱 section ── -->
+      <div id="sec-review-panel" class="t-section">
+        <div class="hub-breadcrumb">
+          <a onclick="showSection('my-courses')">我的課程</a>
+          <span class="sep">／</span>
+          <a onclick="showSection('course-hub')" id="rv-crumb-hub"></a>
+          <span class="sep">／</span>
+          <a onclick="showSection('course-assignments')">教材與作業</a>
+          <span class="sep">／</span>
+          <span class="cur">批閱</span>
+        </div>
+        <div class="section-title" style="display:flex;align-items:center;gap:12px" id="rv-title">👥 批閱</div>
+        <div id="rv-stats" style="font-size:12.5px;color:var(--ink3);margin-bottom:14px"></div>
+        <div id="rv-list-wrap">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
+        </div>
+      </div>
+
+      <!-- ── 教材/作業：全班完成度總覽 section ── -->
+      <div id="sec-completion-overview" class="t-section">
+        <div class="hub-breadcrumb">
+          <a onclick="showSection('my-courses')">我的課程</a>
+          <span class="sep">／</span>
+          <a onclick="showSection('course-hub')" id="ov-crumb-hub"></a>
+          <span class="sep">／</span>
+          <a onclick="showSection('course-assignments')">教材與作業</a>
+          <span class="sep">／</span>
+          <span class="cur">全班完成度總覽</span>
+        </div>
+        <div class="section-title" style="display:flex;align-items:center;gap:12px">
+          📊 全班完成度總覽
+          <button class="btn-syl none" style="margin-left:auto;padding:7px 16px;font-size:12.5px" onclick="exportCompletionOverviewXlsx()">📥 匯出 Excel</button>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:10px">只統計「已確認選課」的學生，以及「已發布」的作業/教材；表格可左右捲動查看更多欄位</div>
+        <div id="ov-wrap">
+          <div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>
         </div>
       </div>
 
@@ -1264,8 +1438,11 @@ function renderMyCourseCards(courses, sylMap) {
       '<div class="cc-info"><span>⏰ '+(c.time_raw||'待確認')+'</span><span>🏛 '+(c.classroom_name||'待確認')+'</span></div>' +
       '</div><div class="cc-bot">' +
       '<span class="cc-cred">'+c.credits+' 學分 <span style="font-size:11px;color:var(--ink3)">'+(REQ_ZH[c.req_type]||'')+'</span></span>' +
+      '<div>' +
       '<button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="margin-right:6px">👥 學生名單（'+(c.enrolled_count||0)+'人）</button>' +
-      '<button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')">'+btnText+'</button>' +
+      '<button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="margin-right:6px">'+btnText+'</button>' +
+      '<button class="btn-syl none" onclick="openCourseHub(\''+c.offering_id+'\',\''+c.name_zh.replace(/'/g,"\\'")+'\',\''+c.semester_label+'\')">📝 教材/作業</button>' +
+      '</div>' +
       '</div></div>';
   }).join('');
 }
@@ -1288,7 +1465,7 @@ function renderMyCourseTable(courses, sylMap) {
       '<td style="font-size:12px">'+(c.teachers_str||'—')+'</td>' +
       '<td style="font-size:12px">'+(c.time_raw||'待確認')+'</td>' +
       '<td style="font-size:12px">'+(c.classroom_name||'待確認')+'</td>' +
-      '<td style="text-align:center"><button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" title="學生名單（'+(c.enrolled_count||0)+'人）" style="padding:3px 10px;font-size:11.5px;margin-right:4px">👥 '+(c.enrolled_count||0)+'</button><button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="padding:3px 10px;font-size:11.5px">'+btnText+'</button></td>' +
+      '<td style="text-align:center;white-space:nowrap"><button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" title="學生名單（'+(c.enrolled_count||0)+'人）" style="padding:3px 10px;font-size:11.5px;margin-right:4px">👥 '+(c.enrolled_count||0)+'</button><button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="padding:3px 10px;font-size:11.5px;margin-right:4px">'+btnText+'</button><button class="btn-syl none" onclick="openCourseHub(\''+c.offering_id+'\',\''+c.name_zh.replace(/'/g,"\\'")+'\',\''+c.semester_label+'\')" style="padding:3px 10px;font-size:11.5px">📝</button></td>' +
     '</tr>';
   }).join('');
 }
@@ -1298,6 +1475,1414 @@ function setMyView(mode) {
   document.getElementById('my-courses-table-wrap').style.display = (mode==='table') ? '' : 'none';
   document.getElementById('my-view-card-btn').classList.toggle('on', mode==='card');
   document.getElementById('my-view-table-btn').classList.toggle('on', mode==='table');
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 教材/作業（教學課務）
+ * ════════════════════════════════════════════════════════════════════ */
+let CUR_HUB = null;      // { offeringId, name, semLabel }
+let CUR_UNITS = [];      // 目前課程的單元清單
+let CUR_SYL_WEEKS = [];  // 目前課程的課綱週次（供單元來源選擇）
+const RESULT_LABEL = { '特優':'👑 特優', '達標':'✅ 達標', '待改進':'🌶 待改進' };
+
+function openCourseHub(offeringId, name, semLabel) {
+  CUR_HUB = { offeringId, name, semLabel };
+  document.getElementById('hub-crumb-name').textContent = name + '（' + semLabel + '）';
+  showSection('course-hub');
+}
+
+async function openCourseUnits() {
+  if (!CUR_HUB) { showSection('my-courses'); return; }
+  document.getElementById('units-crumb-hub').textContent = CUR_HUB.name;
+  showSection('course-units');
+  await loadUnits();
+}
+
+let CUR_SESSIONS = [];   // 目前課程的上課場次（class_sessions），供單元勾選涵蓋範圍
+let CUR_UNIT_SESSIONS = {}; // { unit_id: [session_id, ...] }
+
+async function loadUnits() {
+  const wrap = document.getElementById('unit-list-wrap');
+  wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
+
+  const [unitsRes, sylRes, assignCountRes, sessRes] = await Promise.all([
+    sb.from('teaching_units').select('*').eq('offering_id', CUR_HUB.offeringId).order('sort_order'),
+    sb.from('syllabi').select('weeks').eq('offering_id', CUR_HUB.offeringId).maybeSingle(),
+    sb.from('assignments').select('id, unit_id').eq('offering_id', CUR_HUB.offeringId),
+    sb.from('class_sessions').select('id, session_date, is_makeup, session_status')
+      .eq('offering_id', CUR_HUB.offeringId).order('session_date')
+  ]);
+  CUR_UNITS = unitsRes.data || [];
+  CUR_SYL_WEEKS = (sylRes.data?.weeks) || [];
+  CUR_SESSIONS = sessRes.data || [];
+
+  const countMap = {};
+  (assignCountRes.data || []).forEach(a => { countMap[a.unit_id] = (countMap[a.unit_id]||0) + 1; });
+  CUR_UNITS._assignCount = countMap;
+
+  // 單元 ↔ 課次 多對多關聯（unit_sessions），一次撈這門課全部單元的關聯回來
+  CUR_UNIT_SESSIONS = {};
+  if (CUR_UNITS.length) {
+    const { data: usRows } = await sb.from('unit_sessions')
+      .select('unit_id, session_id').in('unit_id', CUR_UNITS.map(u=>u.id));
+    (usRows || []).forEach(r => {
+      (CUR_UNIT_SESSIONS[r.unit_id] ||= []).push(r.session_id);
+    });
+  }
+
+  renderUnits();
+}
+
+function renderUnits() {
+  const wrap = document.getElementById('unit-list-wrap');
+  if (!CUR_UNITS.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">尚未建立任何單元，請點右上角「＋ 新增單元」開始建立</div>';
+    return;
+  }
+  const countMap = CUR_UNITS._assignCount || {};
+  wrap.innerHTML = CUR_UNITS.map((u, i) => {
+    const srcLabel = u.source_type === 'syllabus'
+      ? '<span class="unit-src-badge unit-src-syllabus">課綱第'+u.syllabus_week_ref+'週</span>'
+      : '<span class="unit-src-badge unit-src-custom">自訂</span>';
+    const acount = countMap[u.id] || 0;
+    const scount = (CUR_UNIT_SESSIONS[u.id] || []).length;
+    return '<div class="unit-row">' +
+      '<div class="unit-order-btns">' +
+        '<button onclick="moveUnit('+i+',-1)" '+(i===0?'disabled style="opacity:.3"':'')+'>▲</button>' +
+        '<button onclick="moveUnit('+i+',1)" '+(i===CUR_UNITS.length-1?'disabled style="opacity:.3"':'')+'>▼</button>' +
+      '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="unit-title">'+srcLabel+' '+esc(u.title)+'</div>' +
+        (u.description ? '<div class="unit-desc">'+esc(u.description)+'</div>' : '') +
+      '</div>' +
+      '<div class="unit-assign-count">'+(scount ? '涵蓋 '+scount+' 堂課次' : '<span style="color:#B05010">尚未勾選課次</span>')+'</div>' +
+      '<div class="unit-assign-count">'+(acount ? acount+' 項作業/教材' : '尚無作業')+'</div>' +
+      '<button class="btn-syl none" style="padding:5px 12px;font-size:12px" onclick="openUnitModal(\''+u.id+'\')">✎ 編輯</button>' +
+      '<button class="btn-syl none" style="padding:5px 12px;font-size:12px;color:#C04030" onclick="deleteUnit(\''+u.id+'\')">🗑</button>' +
+      '</div>';
+  }).join('');
+}
+
+async function moveUnit(index, dir) {
+  const other = index + dir;
+  if (other < 0 || other >= CUR_UNITS.length) return;
+  const a = CUR_UNITS[index], b = CUR_UNITS[other];
+  const aOrder = a.sort_order, bOrder = b.sort_order;
+  // 先本地互換再寫回DB，畫面立即反應
+  [CUR_UNITS[index], CUR_UNITS[other]] = [CUR_UNITS[other], CUR_UNITS[index]];
+  renderUnits();
+  await Promise.all([
+    sb.from('teaching_units').update({ sort_order: bOrder }).eq('id', a.id),
+    sb.from('teaching_units').update({ sort_order: aOrder }).eq('id', b.id)
+  ]);
+}
+
+function openUnitModal(unitId) {
+  const u = unitId ? CUR_UNITS.find(x => x.id === unitId) : null;
+  const linkedSessionIds = unitId ? (CUR_UNIT_SESSIONS[unitId] || []) : [];
+  const weekOptions = CUR_SYL_WEEKS.map((w, i) =>
+    '<option value="'+(i+1)+'">第'+(i+1)+'週'+(w.title ? '：'+esc(w.title) : '')+'</option>'
+  ).join('');
+
+  // 新增單元時，參考「上一個單元」的來源接續猜測（老師大多依序建單元，但非強制），
+  // 而不是每次都預設回課綱第1週——上一個單元若是課綱來源，就接續下一週；否則維持自訂
+  let defaultSource = 'custom', defaultWeek = null;
+  if (!u && CUR_UNITS.length) {
+    const lastUnit = CUR_UNITS[CUR_UNITS.length - 1];
+    if (lastUnit.source_type === 'syllabus' && CUR_SYL_WEEKS.length) {
+      defaultSource = 'syllabus';
+      defaultWeek = Math.min((lastUnit.syllabus_week_ref || 0) + 1, CUR_SYL_WEEKS.length);
+    }
+  }
+  const initialSource = u ? u.source_type : defaultSource;
+  const SESS_STATUS_LABEL = { normal:'', rescheduled:'🔁調課', cancelled:'⛔停課' };
+  const sessionCheckboxes = CUR_SESSIONS.length ? CUR_SESSIONS.map(s => {
+    const checked = linkedSessionIds.includes(s.id) ? 'checked' : '';
+    const statusTag = SESS_STATUS_LABEL[s.session_status] || (s.is_makeup ? '🔁調課' : '');
+    return `<label style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12.5px;cursor:pointer">
+      <input type="checkbox" class="um-sess-cb" value="${s.id}" ${checked} style="width:14px;height:14px;cursor:pointer">
+      ${s.session_date}${statusTag ? ' <span style="color:#B05010">'+statusTag+'</span>' : ''}
+    </label>`;
+  }).join('') : '<div style="color:var(--ink3);font-size:12px">這門課目前還沒有建立任何上課場次（請先到課堂點名畫面建立場次）</div>';
+  const body = `
+    <div class="frow">
+      <label class="flabel">單元來源</label>
+      <select class="finput" id="um-source" onchange="toggleUnitSourceFields()">
+        <option value="custom" ${initialSource==='custom'?'selected':''}>自訂單元</option>
+        <option value="syllabus" ${initialSource==='syllabus'?'selected':''} ${!CUR_SYL_WEEKS.length?'disabled':''}>對應課綱週次${!CUR_SYL_WEEKS.length?'（此課程尚未填寫課綱週次）':''}</option>
+      </select>
+    </div>
+    <div class="frow" id="um-week-row" style="display:none">
+      <label class="flabel">對應課綱週次</label>
+      <select class="finput" id="um-week" onchange="onUnitWeekChange()">${weekOptions}</select>
+    </div>
+    <div class="frow">
+      <label class="flabel">單元標題</label>
+      <input class="finput" id="um-title" value="${u ? esc(u.title) : ''}" placeholder="例如：第一單元 緣起法概說">
+    </div>
+    <div class="frow">
+      <label class="flabel">說明（選填）</label>
+      <textarea class="finput" id="um-desc" rows="3" style="resize:vertical">${u ? esc(u.description||'') : ''}</textarea>
+    </div>
+    <div class="frow">
+      <label class="flabel">這個單元涵蓋哪些上課場次（可複選，一堂課次也可以同時屬於多個單元）</label>
+      <div style="max-height:180px;overflow-y:auto;border:1px solid var(--cr2);border-radius:8px;padding:8px 12px">${sessionCheckboxes}</div>
+    </div>`;
+  openGenericModal(u ? '編輯單元' : '新增單元', body, () => saveUnit(unitId));
+  if (initialSource === 'syllabus') {
+    document.getElementById('um-week-row').style.display = '';
+    document.getElementById('um-week').value = u ? u.syllabus_week_ref : defaultWeek;
+    if (!u) onUnitWeekChange(); // 新增單元：把猜測到的週次標題一併帶入標題欄
+  }
+}
+
+function toggleUnitSourceFields() {
+  const isSyl = document.getElementById('um-source').value === 'syllabus';
+  document.getElementById('um-week-row').style.display = isSyl ? '' : 'none';
+  if (isSyl) onUnitWeekChange();
+}
+
+// 切換「對應課綱週次」的週次選擇時，重新把該週標題帶入單元標題（老師選到哪一週就换成哪一週，再自行修改）
+function onUnitWeekChange() {
+  const wk = document.getElementById('um-week');
+  const sel = CUR_SYL_WEEKS[Number(wk.value)-1];
+  if (sel?.title) document.getElementById('um-title').value = sel.title;
+}
+
+async function saveUnit(unitId) {
+  const sourceType = document.getElementById('um-source').value;
+  const title = document.getElementById('um-title').value.trim();
+  const description = document.getElementById('um-desc').value.trim();
+  if (!title) { showToast('請輸入單元標題', 'error'); return; }
+  const payload = {
+    offering_id: CUR_HUB.offeringId,
+    source_type: sourceType,
+    syllabus_week_ref: sourceType === 'syllabus' ? Number(document.getElementById('um-week').value) : null,
+    title, description: description || null
+  };
+  let error, savedUnitId = unitId;
+  if (unitId) {
+    ({ error } = await sb.from('teaching_units').update(payload).eq('id', unitId));
+  } else {
+    payload.sort_order = CUR_UNITS.length ? Math.max(...CUR_UNITS.map(x=>x.sort_order||0)) + 1 : 0;
+    const insRes = await sb.from('teaching_units').insert(payload).select('id').single();
+    error = insRes.error;
+    savedUnitId = insRes.data?.id;
+  }
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+
+  // 同步單元 ↔ 課次 關聯：整組刪除重建（勾選數通常不多，這樣最不容易漏同步）
+  const checkedIds = [...document.querySelectorAll('.um-sess-cb:checked')].map(cb => cb.value);
+  await sb.from('unit_sessions').delete().eq('unit_id', savedUnitId);
+  if (checkedIds.length) {
+    await sb.from('unit_sessions').insert(checkedIds.map(sid => ({ unit_id: savedUnitId, session_id: sid })));
+  }
+
+  closeGenericModal();
+  showToast('✅ 已儲存單元');
+  await loadUnits();
+}
+
+async function deleteUnit(unitId) {
+  const acount = (CUR_UNITS._assignCount || {})[unitId] || 0;
+  const warn = acount
+    ? `這個單元底下還有 ${acount} 項作業/教材，刪除單元會一併刪除這些作業/教材與學生的繳交記錄，確定要刪除嗎？`
+    : '確定要刪除這個單元嗎？';
+  if (!confirm(warn)) return;
+  const { error } = await sb.from('teaching_units').delete().eq('id', unitId);
+  if (error) { showToast('刪除失敗：'+error.message, 'error'); return; }
+  showToast('已刪除單元');
+  await loadUnits();
+}
+
+/* ── 通用表格排序小工具(供本區塊底下幾個表格共用：作業列表/批閱名單/全班完成度總覽) ──
+   用法：<th onclick="XxxSortBy('欄位key')">，配合各自的 XXX_SORT 狀態物件與對應的 sortFns 物件。 */
+function toggleSort(state, key, rerenderFn) {
+  if (state.key === key) state.dir = -state.dir; else { state.key = key; state.dir = 1; }
+  rerenderFn();
+}
+function sortArrow(state, key) {
+  if (state.key !== key) return '⇅';
+  return state.dir === 1 ? '▲' : '▼';
+}
+function sortRows(rows, state, keyFns) {
+  if (!state.key || !keyFns[state.key]) return rows;
+  const fn = keyFns[state.key];
+  return rows.slice().sort((a,b) => {
+    const va = fn(a), vb = fn(b);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    let cmp;
+    if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
+    else if (va instanceof Date && vb instanceof Date) cmp = va - vb;
+    else cmp = String(va).localeCompare(String(vb), 'zh-Hant');
+    return cmp * state.dir;
+  });
+}
+function thSort(label, key, state, fnName, extraStyle) {
+  return '<th onclick="'+fnName+'(\''+key+'\')" style="position:sticky;top:0;background:var(--navy);z-index:2;cursor:pointer;user-select:none'+(extraStyle?';'+extraStyle:'')+'">'+label+' <span style="opacity:.65;font-size:10px">'+sortArrow(state,key)+'</span></th>';
+}
+
+/* ── 教材與作業 ── */
+let CUR_ASSIGNMENTS = [];
+let CUR_ASSIGN_SUBCOUNT = {}; // { assignment_id: 已繳交人數 }
+const ASSIGN_TYPE_LABEL = { checkin:'✅ 打卡回報', submission:'📎 檔案繳交', quiz:'📋 是非/選擇題', essay:'✍️ 問答/報告' };
+const LATE_POLICY_LABEL = { block:'逾期不可繳交', allow_flag:'逾期仍可繳交（標記遲交）' };
+
+async function openCourseAssignments() {
+  if (!CUR_HUB) { showSection('my-courses'); return; }
+  document.getElementById('assign-crumb-hub').textContent = CUR_HUB.name;
+  showSection('course-assignments');
+  // 若還沒進過單元管理載入過單元清單，這裡也要有，因為新增作業要選單元
+  if (!CUR_UNITS.length || CUR_UNITS._offeringId !== CUR_HUB.offeringId) await loadUnits();
+  CUR_UNITS._offeringId = CUR_HUB.offeringId;
+  await loadAssignments();
+}
+
+async function loadAssignments() {
+  const wrap = document.getElementById('assign-list-wrap');
+  wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
+
+  const [assignRes, subRes] = await Promise.all([
+    sb.from('assignments').select('*').eq('offering_id', CUR_HUB.offeringId).order('created_at'),
+    sb.from('assignment_submissions').select('id, assignment_id')
+  ]);
+  CUR_ASSIGNMENTS = assignRes.data || [];
+  const subCountMap = {};
+  (subRes.data || []).forEach(s => { subCountMap[s.assignment_id] = (subCountMap[s.assignment_id]||0) + 1; });
+  CUR_ASSIGN_SUBCOUNT = subCountMap;
+
+  const sel = document.getElementById('assign-unit-filter');
+  sel.innerHTML = '<option value="">全部單元</option>' +
+    CUR_UNITS.map(u => '<option value="'+u.id+'">'+esc(u.title)+'</option>').join('');
+
+  renderAssignments();
+}
+
+let ASSIGN_SORT = { key: null, dir: 1 };
+const ASSIGN_SORT_FNS = {
+  status: a => a.status,
+  unit: a => (CUR_UNITS.find(u=>u.id===a.unit_id)||{}).title || '',
+  type: a => ASSIGN_TYPE_LABEL[a.type] || a.type,
+  title: a => a.title,
+  due: a => a.due_at ? new Date(a.due_at) : null,
+  grade: a => a.counts_as_grade ? 1 : 0,
+  subcount: a => CUR_ASSIGN_SUBCOUNT[a.id] || 0,
+};
+function assignSortBy(key) { toggleSort(ASSIGN_SORT, key, renderAssignments); }
+
+function renderAssignments() {
+  const wrap = document.getElementById('assign-list-wrap');
+  const unitFilter = document.getElementById('assign-unit-filter').value;
+  const unitMap = {};
+  CUR_UNITS.forEach(u => { unitMap[u.id] = u.title; });
+  let list = unitFilter ? CUR_ASSIGNMENTS.filter(a => a.unit_id === unitFilter) : CUR_ASSIGNMENTS;
+  list = sortRows(list, ASSIGN_SORT, ASSIGN_SORT_FNS);
+
+  if (!list.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">'+
+      (CUR_ASSIGNMENTS.length ? '此單元尚無作業/教材' : '尚未建立任何作業/教材，請點右上角「＋ 新增作業/教材」開始建立')+'</div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' +
+    thSort('狀態','status',ASSIGN_SORT,'assignSortBy') +
+    thSort('單元','unit',ASSIGN_SORT,'assignSortBy') +
+    thSort('類型','type',ASSIGN_SORT,'assignSortBy') +
+    thSort('標題','title',ASSIGN_SORT,'assignSortBy') +
+    thSort('截止時間','due',ASSIGN_SORT,'assignSortBy') +
+    thSort('列入成績','grade',ASSIGN_SORT,'assignSortBy','text-align:center') +
+    thSort('已繳交','subcount',ASSIGN_SORT,'assignSortBy','text-align:center') +
+    '<th style="position:sticky;top:0;background:var(--navy);z-index:2">操作</th>' +
+    '</tr></thead><tbody>' +
+    list.map(a => {
+      const overdue = a.due_at && new Date(a.due_at) < new Date() && a.status === 'published';
+      const statusBadge = a.status === 'published'
+        ? '<span class="result-badge status-published">✅ 已發布</span>'
+        : '<span class="result-badge status-draft">📝 草稿</span>';
+      const dueStr = a.due_at ? new Date(a.due_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+      return '<tr>' +
+        '<td>'+statusBadge+'</td>' +
+        '<td style="font-size:12.5px">'+esc(unitMap[a.unit_id]||'—')+'</td>' +
+        '<td style="font-size:12.5px">'+(ASSIGN_TYPE_LABEL[a.type]||a.type)+'</td>' +
+        '<td><strong>'+esc(a.title)+'</strong></td>' +
+        '<td style="font-size:12.5px'+(overdue?';color:#C04030':'')+'">'+dueStr+(overdue?' 🔴已逾期':'')+'</td>' +
+        '<td style="text-align:center">'+(a.counts_as_grade ? '✅' : '—')+'</td>' +
+        '<td style="text-align:center">'+(CUR_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' +
+        '<td style="white-space:nowrap">' +
+          (a.type==='quiz' ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openQuizBuilder(\''+a.id+'\')">🎯 出題</button>' : '') +
+          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openReviewPanel(\''+a.id+'\')">👥 批閱</button>' +
+          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="toggleAssignPublish(\''+a.id+'\')">'+(a.status==='published'?'↩️ 改回草稿':'🚀 發布')+'</button>' +
+          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openAssignmentModal(\''+a.id+'\')">✎ 編輯</button>' +
+          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;color:#C04030" onclick="deleteAssignment(\''+a.id+'\')">🗑</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+async function toggleAssignPublish(id) {
+  const a = CUR_ASSIGNMENTS.find(x => x.id === id);
+  if (!a) return;
+  const next = a.status === 'published' ? 'draft' : 'published';
+  if (next === 'draft' && (CUR_ASSIGN_SUBCOUNT[id]||0) > 0) {
+    if (!confirm('已經有學生繳交這份作業了，改回草稿後學生會暫時看不到這份作業，確定要改回草稿嗎？')) return;
+  }
+  const { error } = await sb.from('assignments').update({ status: next }).eq('id', id);
+  if (error) { showToast('更新失敗：'+error.message, 'error'); return; }
+  a.status = next;
+  showToast(next === 'published' ? '✅ 已發布' : '已改回草稿');
+  renderAssignments();
+}
+
+let AM_IS_NEW = true;
+
+// 用單元涵蓋的課次裡最晚一堂課的日期 +6天 晚上8:00 當截止時間預設值，方便TA抓batch節奏；只在新增時自動帶，編輯既有作業不動它
+function computeDefaultDueForUnit(unitId) {
+  const sessionIds = CUR_UNIT_SESSIONS[unitId] || [];
+  const dates = sessionIds.map(sid => CUR_SESSIONS.find(s => s.id === sid)?.session_date).filter(Boolean);
+  if (!dates.length) return '';
+  const maxDate = dates.slice().sort().slice(-1)[0]; // YYYY-MM-DD 字串排序即可取得最晚日期
+  const d = new Date(maxDate + 'T00:00:00');
+  d.setDate(d.getDate() + 6);
+  d.setHours(20, 0, 0, 0);
+  const pad = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function onAssignUnitChange() {
+  if (!AM_IS_NEW) return;
+  const due = computeDefaultDueForUnit(document.getElementById('am-unit').value);
+  if (due) document.getElementById('am-due').value = due;
+}
+
+function openAssignmentModal(assignId) {
+  const a = assignId ? CUR_ASSIGNMENTS.find(x => x.id === assignId) : null;
+  AM_IS_NEW = !a;
+  if (!CUR_UNITS.length) { showToast('請先到「單元管理」建立至少一個單元', 'error'); return; }
+  const unitOptions = CUR_UNITS.map(u =>
+    '<option value="'+u.id+'" '+(a?.unit_id===u.id?'selected':'')+'>'+esc(u.title)+'</option>'
+  ).join('');
+  const initialUnitId = a ? a.unit_id : CUR_UNITS[0].id;
+  const dueVal = a?.due_at ? toDatetimeLocal(a.due_at) : (AM_IS_NEW ? computeDefaultDueForUnit(initialUnitId) : '');
+  const resubDueVal = a?.resubmit_deadline ? toDatetimeLocal(a.resubmit_deadline) : '';
+  const body = `
+    <div class="frow">
+      <label class="flabel">所屬單元</label>
+      <select class="finput" id="am-unit" onchange="onAssignUnitChange()">${unitOptions}</select>
+    </div>
+    <div class="frow frow-2">
+      <div>
+        <label class="flabel">類型</label>
+        <select class="finput" id="am-type" onchange="toggleAssignTypeFields()">
+          ${Object.entries(ASSIGN_TYPE_LABEL).map(([k,v]) => '<option value="'+k+'" '+(a?.type===k?'selected':(!a&&k==='checkin'?'selected':''))+'>'+v+'</option>').join('')}
+        </select>
+      </div>
+      <div>
+        <label class="flabel">截止時間（選填）</label>
+        <input class="finput" type="datetime-local" id="am-due" value="${dueVal}">
+        ${AM_IS_NEW ? '<div style="font-size:11px;color:var(--ink3);margin-top:3px">已依單元最晚課次日期 +6天 晚上8:00 預帶，可自行修改</div>' : ''}
+      </div>
+    </div>
+    <div class="frow">
+      <label class="flabel">標題</label>
+      <input class="finput" id="am-title" value="${a ? esc(a.title) : ''}" placeholder="例如：第一單元心得回報">
+    </div>
+    <div class="frow">
+      <label class="flabel">說明/題目說明（選填）</label>
+      <textarea class="finput" id="am-instructions" rows="3" style="resize:vertical">${a ? esc(a.instructions||'') : ''}</textarea>
+    </div>
+    <div class="frow" id="am-shuffle-row" style="display:none">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="am-shuffle" ${a?.shuffle_questions?'checked':''} style="width:15px;height:15px;cursor:pointer">
+        每位學生看到的題目順序不同（防止互抄答案）
+      </label>
+    </div>
+    <div class="frow frow-2">
+      <div>
+        <label class="flabel">逾期政策</label>
+        <select class="finput" id="am-late">
+          ${Object.entries(LATE_POLICY_LABEL).map(([k,v]) => '<option value="'+k+'" '+((a?.late_policy||'allow_flag')===k?'selected':'')+'>'+v+'</option>').join('')}
+        </select>
+      </div>
+      <div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;margin-top:26px">
+          <input type="checkbox" id="am-grade" ${a?.counts_as_grade?'checked':''} style="width:15px;height:15px;cursor:pointer">
+          列入正式成績
+        </label>
+      </div>
+    </div>
+    <div class="frow">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="am-resubmit" ${a?.allow_resubmit?'checked':''} onchange="toggleResubmitFields()" style="width:15px;height:15px;cursor:pointer">
+        允許補交/重新提交
+      </label>
+    </div>
+    <div class="frow frow-2" id="am-resubmit-row" style="display:none">
+      <div>
+        <label class="flabel">補交截止時間</label>
+        <input class="finput" type="datetime-local" id="am-resub-due" value="${resubDueVal}">
+      </div>
+      <div>
+        <label class="flabel">補交成績打幾折（0~1，例如0.8）</label>
+        <input class="finput" type="number" id="am-resub-factor" min="0" max="1" step="0.05" value="${a?.resubmit_score_factor ?? 1}">
+      </div>
+    </div>`;
+  openGenericModal(a ? '編輯作業/教材' : '新增作業/教材', body, () => saveAssignment(assignId));
+  toggleAssignTypeFields();
+  toggleResubmitFields();
+}
+
+function toggleAssignTypeFields() {
+  const isQuiz = document.getElementById('am-type').value === 'quiz';
+  document.getElementById('am-shuffle-row').style.display = isQuiz ? '' : 'none';
+}
+function toggleResubmitFields() {
+  const on = document.getElementById('am-resubmit').checked;
+  document.getElementById('am-resubmit-row').style.display = on ? '' : 'none';
+}
+
+function toDatetimeLocal(iso) {
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+
+async function saveAssignment(assignId) {
+  const title = document.getElementById('am-title').value.trim();
+  if (!title) { showToast('請輸入標題', 'error'); return; }
+  const dueRaw = document.getElementById('am-due').value;
+  const resubOn = document.getElementById('am-resubmit').checked;
+  const resubDueRaw = document.getElementById('am-resub-due').value;
+  const payload = {
+    offering_id: CUR_HUB.offeringId,
+    unit_id: document.getElementById('am-unit').value,
+    type: document.getElementById('am-type').value,
+    title,
+    instructions: document.getElementById('am-instructions').value.trim() || null,
+    due_at: dueRaw ? new Date(dueRaw).toISOString() : null,
+    late_policy: document.getElementById('am-late').value,
+    counts_as_grade: document.getElementById('am-grade').checked,
+    shuffle_questions: document.getElementById('am-shuffle').checked,
+    allow_resubmit: resubOn,
+    resubmit_deadline: resubOn && resubDueRaw ? new Date(resubDueRaw).toISOString() : null,
+    resubmit_score_factor: resubOn ? (Number(document.getElementById('am-resub-factor').value) || 1) : null
+  };
+  let error;
+  if (assignId) {
+    ({ error } = await sb.from('assignments').update(payload).eq('id', assignId));
+  } else {
+    payload.status = 'draft'; // 新建一律先進草稿，老師確認內容沒問題再手動發布
+    ({ error } = await sb.from('assignments').insert(payload));
+  }
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+  closeGenericModal();
+  showToast('✅ 已儲存（草稿狀態，記得確認內容後按「🚀 發布」）');
+  await loadAssignments();
+}
+
+async function deleteAssignment(assignId) {
+  const scount = CUR_ASSIGN_SUBCOUNT[assignId] || 0;
+  const warn = scount
+    ? `已經有 ${scount} 位學生繳交這份作業，刪除後這些繳交記錄也會一併刪除，確定要刪除嗎？`
+    : '確定要刪除這份作業/教材嗎？';
+  if (!confirm(warn)) return;
+  const { error } = await sb.from('assignments').delete().eq('id', assignId);
+  if (error) { showToast('刪除失敗：'+error.message, 'error'); return; }
+  showToast('已刪除');
+  await loadAssignments();
+}
+
+/* ── 批閱 ── */
+let CUR_REVIEW_ASSIGN = null;   // 目前批閱中的作業本身
+let CUR_REVIEW_ROSTER = [];     // [{student_id, student_code, name_zh, submission, review, isLate, overdue}]
+let CUR_REVIEW_KEYS = {};       // quiz用：{question_id: correct_answer}
+let CUR_REVIEW_QUESTIONS_BY_VERSION = {};  // quiz用：{version: [題目...]}，因為題目版本鎖定後不同學生可能是用不同版本作答的
+const REVIEW_RESULT_ICON = { '特優':'👑', '達標':'✅', '待改進':'🌶' };
+const SUBMISSION_BUCKET = 'assignment-submissions'; // 跟student.html的檔案上傳bucket是同一個
+
+function formatFileSizeT(bytes) {
+  if (!bytes && bytes !== 0) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+async function downloadReviewFile(path) {
+  const { data, error } = await sb.storage.from(SUBMISSION_BUCKET).createSignedUrl(path, 300);
+  if (error) { showToast('無法取得下載連結：'+error.message, 'error'); return; }
+  window.open(data.signedUrl, '_blank');
+}
+async function viewReviewFile(path, ext, fileName) {
+  const { data, error } = await sb.storage.from(SUBMISSION_BUCKET).createSignedUrl(path, 600);
+  if (error) { showToast('無法取得預覽連結：'+error.message, 'error'); return; }
+  openViewer(encodeURIComponent(data.signedUrl), ext, fileName);
+}
+
+async function openReviewPanel(assignId) {
+  const a = CUR_ASSIGNMENTS.find(x => x.id === assignId);
+  if (!a) return;
+  CUR_REVIEW_ASSIGN = a;
+  document.getElementById('rv-crumb-hub').textContent = CUR_HUB.name;
+  const unitMap = {}; CUR_UNITS.forEach(u => { unitMap[u.id] = u.title; });
+  document.getElementById('rv-title').textContent = '👥 批閱：'+a.title;
+  showSection('review-panel');
+  document.getElementById('rv-list-wrap').innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
+  await loadReviewData();
+}
+
+async function loadReviewData() {
+  const a = CUR_REVIEW_ASSIGN;
+  if (!a) return;
+
+  const [enrollRes, subRes] = await Promise.all([
+    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)').eq('offering_id', a.offering_id).eq('status','confirmed'),
+    sb.from('assignment_submissions').select('*').eq('assignment_id', a.id).order('submitted_at', { ascending: false })
+  ]);
+  const students = (enrollRes.data || []).map(e => e.students).filter(Boolean)
+    .sort((x,y) => (x.student_code||'').localeCompare(y.student_code||''));
+
+  // 每位學生只取最新一筆繳交（有補交就取補交那筆）
+  const latestSubByStudent = {};
+  (subRes.data || []).forEach(s => { if (!latestSubByStudent[s.student_id]) latestSubByStudent[s.student_id] = s; });
+
+  const subIds = Object.values(latestSubByStudent).map(s => s.id);
+  let reviewMap = {};
+  if (subIds.length) {
+    const { data: reviews } = await sb.from('assignment_reviews').select('*').in('submission_id', subIds).order('reviewed_at', { ascending: false });
+    (reviews || []).forEach(r => { if (!reviewMap[r.submission_id]) reviewMap[r.submission_id] = r; });
+  }
+
+  // quiz類型：把題目跟正確答案先撈起來，批閱時可以直接對照
+  // 注意：題目版本鎖定上線後，同一份作業可能同時存在好幾個版本(v1/v2/...)，
+  // 不同學生是用不同版本作答的，所以這裡撈「全部版本」，依version分組，
+  // 對每一筆繳交記錄要用sub.question_version去對應正確的那一組題目，不能只看最新版本
+  CUR_REVIEW_QUESTIONS_BY_VERSION = {};
+  CUR_REVIEW_KEYS = {};
+  if (a.type === 'quiz') {
+    const { data: qs } = await sb.from('assignment_questions').select('*').eq('assignment_id', a.id).order('sort_order');
+    (qs || []).forEach(q => { const v = q.version || 1; (CUR_REVIEW_QUESTIONS_BY_VERSION[v] ||= []).push(q); });
+    const qIds = (qs || []).map(q => q.id);
+    if (qIds.length) {
+      const { data: keys } = await sb.from('assignment_answer_keys').select('*').in('question_id', qIds);
+      (keys || []).forEach(k => { CUR_REVIEW_KEYS[k.question_id] = k.correct_answer; });
+    }
+  }
+
+  const now = new Date();
+  CUR_REVIEW_ROSTER = students.map(st => {
+    const sub = latestSubByStudent[st.id] || null;
+    const review = sub ? (reviewMap[sub.id] || null) : null;
+    const overdue = !sub && a.due_at && new Date(a.due_at) < now;
+    return { student_id: st.id, student_code: st.student_code, name_zh: st.name_zh, submission: sub, review, overdue };
+  });
+
+  renderReviewStats();
+  renderReviewTable();
+}
+
+function renderReviewStats() {
+  const total = CUR_REVIEW_ROSTER.length;
+  const submitted = CUR_REVIEW_ROSTER.filter(r => r.submission).length;
+  const late = CUR_REVIEW_ROSTER.filter(r => r.submission && r.submission.is_late).length;
+  const reviewed = CUR_REVIEW_ROSTER.filter(r => r.review).length;
+  document.getElementById('rv-stats').textContent =
+    `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）・已批閱 ${reviewed} 人`;
+}
+
+function quizScoreFor(sub) {
+  if (!sub) return null;
+  const qs = CUR_REVIEW_QUESTIONS_BY_VERSION[sub.question_version || 1] || [];
+  if (!qs.length) return null;
+  const answers = sub.content || {};
+  let correct = 0;
+  qs.forEach(q => { if (answers[q.id] !== undefined && answers[q.id] === CUR_REVIEW_KEYS[q.id]) correct++; });
+  return { correct, total: qs.length };
+}
+
+let REVIEW_SORT = { key: null, dir: 1 };
+const REVIEW_SORT_FNS = {
+  code: r => r.student_code || '',
+  name: r => r.name_zh || '',
+  status: r => r.submission ? (r.submission.is_late ? 1 : 2) : (r.overdue ? -1 : 0),
+  score: r => { const sc = quizScoreFor(r.submission); return sc ? sc.correct : null; },
+  result: r => r.review ? r.review.result : (r.submission ? '尚未批閱' : ''),
+};
+function reviewSortBy(key) { toggleSort(REVIEW_SORT, key, renderReviewTable); }
+
+function renderReviewTable() {
+  const wrap = document.getElementById('rv-list-wrap');
+  const a = CUR_REVIEW_ASSIGN;
+  if (!CUR_REVIEW_ROSTER.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">這門課目前沒有已確認選課的學生</div>';
+    return;
+  }
+  const roster = sortRows(CUR_REVIEW_ROSTER, REVIEW_SORT, REVIEW_SORT_FNS);
+  wrap.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' +
+    thSort('學號','code',REVIEW_SORT,'reviewSortBy') +
+    thSort('姓名','name',REVIEW_SORT,'reviewSortBy') +
+    thSort('繳交狀態','status',REVIEW_SORT,'reviewSortBy') +
+    (a.type==='quiz' ? thSort('得分','score',REVIEW_SORT,'reviewSortBy','text-align:center') : '') +
+    thSort('批閱結果','result',REVIEW_SORT,'reviewSortBy') +
+    '<th style="position:sticky;top:0;background:var(--navy);z-index:2">操作</th>' +
+    '</tr></thead><tbody>' +
+    roster.map(r => {
+      let statusHtml;
+      if (r.submission) {
+        statusHtml = r.submission.is_late
+          ? '<span class="result-badge status-draft" style="background:#FFEBEE;color:#C04030">🔴 遲交</span>'
+          : '<span class="result-badge status-published">✅ 已繳交</span>';
+      } else if (r.overdue) {
+        statusHtml = '<span class="result-badge status-draft" style="background:#FFEBEE;color:#C04030">⛔ 逾期未交</span>';
+      } else {
+        statusHtml = '<span class="result-badge status-draft">⏳ 未繳交</span>';
+      }
+      const scoreCell = a.type==='quiz'
+        ? '<td style="text-align:center">'+(() => { const sc = quizScoreFor(r.submission); return sc ? sc.correct+' / '+sc.total : '—'; })()+'</td>'
+        : '';
+      const resultHtml = r.review
+        ? '<span class="result-badge result-'+r.review.result+'">'+(REVIEW_RESULT_ICON[r.review.result]||'')+(r.review.result==='待改進'&&r.review.pepper_level ? '×'+r.review.pepper_level : '')+' '+r.review.result+'</span>'
+        : (r.submission ? '<span class="result-badge status-draft">尚未批閱</span>' : '—');
+      const btnLabel = r.review ? '✎ 修改批閱' : (r.submission ? '📝 批閱' : '查看');
+      return '<tr>' +
+        '<td style="font-size:12.5px">'+esc(r.student_code||'')+'</td>' +
+        '<td><strong>'+esc(r.name_zh||'')+'</strong></td>' +
+        '<td>'+statusHtml+'</td>' +
+        scoreCell +
+        '<td>'+resultHtml+'</td>' +
+        '<td><button class="btn-syl none" style="padding:4px 10px;font-size:11.5px" onclick="openReviewModal(\''+r.student_id+'\')">'+btnLabel+'</button></td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+function renderSubmissionContentForReview(r) {
+  const a = CUR_REVIEW_ASSIGN;
+  const sub = r.submission;
+  if (!sub) return '<div style="color:var(--ink3);font-size:13px">這位同學尚未繳交</div>';
+  const submittedStr = new Date(sub.submitted_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  let html = '<div style="font-size:12px;color:var(--ink3);margin-bottom:10px">繳交時間：'+submittedStr+(sub.is_late?' <span style="color:#C04030">（遲交）</span>':'')+'</div>';
+  if (a.type === 'checkin') {
+    html += '<div style="padding:12px;background:var(--cr3);border-radius:8px;font-size:13.5px">✅ 已完成打卡回報</div>';
+  } else if (a.type === 'essay') {
+    html += '<div style="padding:12px;background:var(--cr3);border-radius:8px;font-size:13.5px;white-space:pre-wrap;line-height:1.6">'+esc((sub.content||{}).text||'（無內容）')+'</div>';
+  } else if (a.type === 'submission') {
+    const files = (sub.content && sub.content.files) || [];
+    if (!files.length) {
+      html += '<div style="padding:12px;background:var(--cr3);border-radius:8px;font-size:13px;color:var(--ink3)">（沒有檔案資料）</div>';
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:6px">' + files.map(f => {
+        const ext = (f.name.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase() || '';
+        const canView = VIEWER_ALL_EXT.includes(ext);
+        const safeName = f.name.replace(/'/g,"\\'");
+        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--cr3);border-radius:8px;font-size:13px">' +
+          '<span>📎 '+esc(f.name)+'</span>' +
+          '<span style="color:var(--ink3);font-size:11.5px">'+formatFileSizeT(f.size)+'</span>' +
+          '<div style="margin-left:auto;display:flex;gap:6px">' +
+            (canView ? '<button class="btn-syl none" style="padding:3px 10px;font-size:11.5px" onclick="viewReviewFile(\''+f.path+'\',\''+ext+'\',\''+safeName+'\')">👁 線上看</button>' : '') +
+            '<button class="btn-syl none" style="padding:3px 10px;font-size:11.5px" onclick="downloadReviewFile(\''+f.path+'\')">⬇ 下載</button>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+    }
+  } else if (a.type === 'quiz') {
+    const answers = sub.content || {};
+    const sc = quizScoreFor(sub);
+    const qVersion = sub.question_version || 1;
+    const qs = CUR_REVIEW_QUESTIONS_BY_VERSION[qVersion] || [];
+    html += '<div style="font-size:13px;margin-bottom:8px"><strong>得分：'+(sc?sc.correct+' / '+sc.total:'—')+'</strong>'+
+      (qVersion > 1 ? ' <span style="color:var(--ink3);font-size:11.5px">（作答版本：v'+qVersion+'）</span>' : '')+'</div>';
+    qs.forEach((q, i) => {
+      const ans = answers[q.id];
+      const key = CUR_REVIEW_KEYS[q.id];
+      const isCorrect = ans !== undefined && ans === key;
+      const ansLabel = q.question_type === 'true_false' ? (ans === 'true' ? '是（○）' : ans === 'false' ? '否（✕）' : '（未作答）') : (ans || '（未作答）');
+      const keyLabel = q.question_type === 'true_false' ? (key === 'true' ? '是（○）' : '否（✕）') : key;
+      html += '<div class="qz-question-card">' +
+        '<div style="font-weight:500;font-size:13px;margin-bottom:6px">'+(i+1)+'. '+esc(q.content)+'</div>' +
+        '<div style="font-size:12.5px;color:'+(isCorrect?'#1A6A30':'#C04030')+'">'+(isCorrect?'✅':'❌')+' 作答：'+esc(ansLabel)+'</div>' +
+        (isCorrect ? '' : '<div style="font-size:12.5px;color:var(--ink3)">正確答案：'+esc(keyLabel)+'</div>') +
+      '</div>';
+    });
+  }
+  return html;
+}
+
+function openReviewModal(studentId) {
+  const r = CUR_REVIEW_ROSTER.find(x => x.student_id === studentId);
+  if (!r) return;
+  const rv = r.review || {};
+  const body = `
+    <div style="margin-bottom:16px">${renderSubmissionContentForReview(r)}</div>
+    ${r.submission ? `
+    <div class="frow">
+      <label class="flabel">批閱結果</label>
+      <div style="display:flex;gap:10px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="radio" name="rv-result" value="特優" onchange="onReviewResultChange()" ${rv.result==='特優'?'checked':''}> 👑 特優</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="radio" name="rv-result" value="達標" onchange="onReviewResultChange()" ${(rv.result==='達標'||!rv.result)?'checked':''}> ✅ 達標</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="radio" name="rv-result" value="待改進" onchange="onReviewResultChange()" ${rv.result==='待改進'?'checked':''}> 🌶 待改進</label>
+      </div>
+    </div>
+    <div class="frow" id="rv-pepper-row" style="display:${rv.result==='待改進'?'':'none'}">
+      <label class="flabel">辣度（待改進的嚴重程度）</label>
+      <select class="finput" id="rv-pepper">
+        <option value="1" ${rv.pepper_level===1?'selected':''}>🌶 微辣：小地方需要調整</option>
+        <option value="2" ${rv.pepper_level===2?'selected':''}>🌶🌶 中辣：需要再多加努力</option>
+        <option value="3" ${rv.pepper_level===3?'selected':''}>🌶🌶🌶 大辣：需要重新檢視</option>
+      </select>
+    </div>
+    <div class="frow">
+      <label class="flabel" id="rv-comment-label">評語${rv.result==='達標'?'（選填）':'（必填）'}</label>
+      <textarea class="finput" id="rv-comment" rows="3" placeholder="給這位同學的回饋">${esc(rv.comment||'')}</textarea>
+    </div>
+    ` : ''}
+  `;
+  openGenericModal(
+    (r.submission ? '批閱：' : '查看：') + (r.name_zh||''),
+    body,
+    r.submission ? () => saveReview(studentId) : null,
+    560
+  );
+}
+
+function onReviewResultChange() {
+  const result = document.querySelector('input[name="rv-result"]:checked')?.value;
+  document.getElementById('rv-pepper-row').style.display = result === '待改進' ? '' : 'none';
+  document.getElementById('rv-comment-label').textContent = '評語' + (result === '達標' ? '（選填）' : '（必填）');
+}
+
+async function saveReview(studentId) {
+  const r = CUR_REVIEW_ROSTER.find(x => x.student_id === studentId);
+  if (!r || !r.submission) return;
+  const result = document.querySelector('input[name="rv-result"]:checked')?.value;
+  const comment = document.getElementById('rv-comment').value.trim();
+  const pepperLevel = result === '待改進' ? parseInt(document.getElementById('rv-pepper').value, 10) : null;
+  if (result !== '達標' && !comment) { showToast('特優／待改進請填寫評語', 'error'); return; }
+
+  // 沿用專案慣例：先刪除該筆繳交舊的批閱紀錄，再新增一筆，等同upsert(單一批閱)
+  if (r.review) {
+    await sb.from('assignment_reviews').delete().eq('id', r.review.id);
+  }
+  const { error } = await sb.from('assignment_reviews').insert({
+    submission_id: r.submission.id,
+    result, pepper_level: pepperLevel, comment: comment || null,
+    reviewed_by: ME.id
+  });
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+  closeGenericModal();
+  showToast('✅ 已儲存批閱結果');
+  await loadReviewData();
+}
+
+/* ── 全班完成度總覽 ──
+   規則：只統計「已確認選課」的學生 × 該課「已發布」的作業/教材，
+   每組(學生,作業)只取最新一筆繳交(有補交就取補交那筆)，跟批閱面板的邏輯一致。
+   quiz類型額外顯示自動計分(供老師參考，不代表最終成績，最終結果仍以老師批閱的特優/達標/待改進為準)。 */
+let CUR_OVERVIEW_ASSIGNS = [];
+let CUR_OVERVIEW_STUDENTS = [];
+let CUR_OVERVIEW_SUBS = {};       // key: studentId+'_'+assignmentId
+let CUR_OVERVIEW_REVIEWS = {};    // key: submissionId
+let CUR_OVERVIEW_QUIZ_Q = {};     // key: assignmentId -> { version: [questions] }
+let CUR_OVERVIEW_QUIZ_KEYS = {};  // key: questionId -> correct_answer
+
+async function openCompletionOverview() {
+  if (!CUR_HUB) { showSection('my-courses'); return; }
+  document.getElementById('ov-crumb-hub').textContent = CUR_HUB.name;
+  showSection('completion-overview');
+  document.getElementById('ov-wrap').innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
+  if (!CUR_UNITS.length || CUR_UNITS._offeringId !== CUR_HUB.offeringId) await loadUnits();
+  await loadCompletionOverview();
+}
+
+async function loadCompletionOverview() {
+  const [enrollRes, assignRes] = await Promise.all([
+    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)').eq('offering_id', CUR_HUB.offeringId).eq('status','confirmed'),
+    sb.from('assignments').select('*').eq('offering_id', CUR_HUB.offeringId).eq('status','published').order('created_at')
+  ]);
+  CUR_OVERVIEW_STUDENTS = (enrollRes.data || []).map(e => e.students).filter(Boolean)
+    .sort((a,b) => (a.student_code||'').localeCompare(b.student_code||''));
+
+  const unitMap = {}; const unitSort = {};
+  CUR_UNITS.forEach((u,i) => { unitMap[u.id] = u.title; unitSort[u.id] = i; });
+  CUR_OVERVIEW_ASSIGNS = (assignRes.data || []).slice().sort((a,b) => {
+    const su = (unitSort[a.unit_id]??999) - (unitSort[b.unit_id]??999);
+    return su !== 0 ? su : (new Date(a.created_at) - new Date(b.created_at));
+  });
+  CUR_OVERVIEW_ASSIGNS.forEach(a => { a._unitTitle = unitMap[a.unit_id] || '未分類單元'; });
+
+  CUR_OVERVIEW_SUBS = {}; CUR_OVERVIEW_REVIEWS = {};
+  CUR_OVERVIEW_QUIZ_Q = {}; CUR_OVERVIEW_QUIZ_KEYS = {};
+
+  if (CUR_OVERVIEW_ASSIGNS.length && CUR_OVERVIEW_STUDENTS.length) {
+    const assignIds = CUR_OVERVIEW_ASSIGNS.map(a => a.id);
+    const { data: subs } = await sb.from('assignment_submissions').select('*')
+      .in('assignment_id', assignIds).order('submitted_at', { ascending: false });
+    (subs || []).forEach(s => {
+      const key = s.student_id + '_' + s.assignment_id;
+      if (!CUR_OVERVIEW_SUBS[key]) CUR_OVERVIEW_SUBS[key] = s; // 每組(學生,作業)只取最新一筆(補交優先)
+    });
+
+    const subIds = Object.values(CUR_OVERVIEW_SUBS).map(s => s.id);
+    if (subIds.length) {
+      const { data: reviews } = await sb.from('assignment_reviews').select('*').in('submission_id', subIds).order('reviewed_at', { ascending: false });
+      (reviews || []).forEach(r => { if (!CUR_OVERVIEW_REVIEWS[r.submission_id]) CUR_OVERVIEW_REVIEWS[r.submission_id] = r; });
+    }
+
+    const quizIds = CUR_OVERVIEW_ASSIGNS.filter(a => a.type === 'quiz').map(a => a.id);
+    if (quizIds.length) {
+      const { data: qs } = await sb.from('assignment_questions').select('*').in('assignment_id', quizIds);
+      (qs || []).forEach(q => {
+        const v = q.version || 1;
+        CUR_OVERVIEW_QUIZ_Q[q.assignment_id] = CUR_OVERVIEW_QUIZ_Q[q.assignment_id] || {};
+        (CUR_OVERVIEW_QUIZ_Q[q.assignment_id][v] ||= []).push(q);
+      });
+      const qIds = (qs || []).map(q => q.id);
+      if (qIds.length) {
+        const { data: keys } = await sb.from('assignment_answer_keys').select('*').in('question_id', qIds);
+        (keys || []).forEach(k => { CUR_OVERVIEW_QUIZ_KEYS[k.question_id] = k.correct_answer; });
+      }
+    }
+  }
+
+  renderCompletionOverview();
+}
+
+function overviewQuizScore(assignId, sub) {
+  const byVer = CUR_OVERVIEW_QUIZ_Q[assignId];
+  if (!byVer) return null;
+  const qs = byVer[sub.question_version || 1] || [];
+  if (!qs.length) return null;
+  const answers = sub.content || {};
+  let correct = 0;
+  qs.forEach(q => { if (answers[q.id] !== undefined && answers[q.id] === CUR_OVERVIEW_QUIZ_KEYS[q.id]) correct++; });
+  return { correct, total: qs.length };
+}
+
+// 回傳這格要顯示的文字＋色系，表格畫面跟Excel匯出共用同一份判色邏輯(overviewColorKey)，避免兩邊顏色對不起來
+const OV_CLASS_BY_KEY = { miss:'ov-miss', pending:'ov-pending', wait:'ov-wait', top:'ov-top', ok:'ov-done', bad:'ov-bad' };
+function overviewCellInfo(a, sub, review) {
+  const cls = OV_CLASS_BY_KEY[overviewColorKey(a, sub, review)] || 'ov-pending';
+  const overdue = a.due_at && new Date(a.due_at) < new Date();
+  if (!sub) return { text: overdue ? '未繳（逾期）' : '未繳', cls };
+  let text = sub.is_late ? '已繳（遲交）' : '已繳';
+  if (a.type === 'quiz') {
+    const sc = overviewQuizScore(a.id, sub);
+    if (sc) text += ' '+sc.correct+'/'+sc.total;
+  }
+  if (review) return { text: text+' '+(REVIEW_RESULT_ICON[review.result]||'')+review.result, cls };
+  return { text: text+'（待批閱）', cls };
+}
+
+let OV_SORT = { key: null, dir: 1 };
+function ovComputeStats(st) {
+  let doneCount = 0;
+  CUR_OVERVIEW_ASSIGNS.forEach(a => { if (CUR_OVERVIEW_SUBS[st.id+'_'+a.id]) doneCount++; });
+  const total = CUR_OVERVIEW_ASSIGNS.length || 1;
+  return { doneCount, pct: Math.round(doneCount / total * 100) };
+}
+const OV_SORT_FNS = {
+  code: st => st.student_code || '',
+  name: st => st.name_zh || '',
+  pct: st => ovComputeStats(st).pct,
+};
+function ovSortBy(key) { toggleSort(OV_SORT, key, renderCompletionOverview); }
+function ovPctClass(pct) { return pct>=80?'ov-pct-hi':pct>=50?'ov-pct-mid':'ov-pct-lo'; }
+
+// 各單元是否收合(記在key=unit_id，收合後該單元只顯示一欄小計，畫面才不會隨作業愈來愈多而爆版)
+let OV_COLLAPSED_UNITS = new Set();
+function ovToggleUnit(key) {
+  if (OV_COLLAPSED_UNITS.has(key)) OV_COLLAPSED_UNITS.delete(key); else OV_COLLAPSED_UNITS.add(key);
+  renderCompletionOverview();
+}
+function ovCollapseAll(collapse) {
+  OV_COLLAPSED_UNITS = collapse ? new Set(CUR_OVERVIEW_ASSIGNS.map(a => a.unit_id || a._unitTitle)) : new Set();
+  renderCompletionOverview();
+}
+function ovToggleAll() { ovCollapseAll(OV_COLLAPSED_UNITS.size === 0); }
+function ovGroupStats(st, group) {
+  let done = 0;
+  group.assigns.forEach(a => { if (CUR_OVERVIEW_SUBS[st.id+'_'+a.id]) done++; });
+  return { done, total: group.assigns.length, pct: Math.round(done / group.assigns.length * 100) };
+}
+
+const OV_CODE_W = 88, OV_NAME_W = 76;
+function renderCompletionOverview() {
+  const wrap = document.getElementById('ov-wrap');
+  if (!CUR_OVERVIEW_STUDENTS.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">這門課目前沒有已確認選課的學生</div>';
+    return;
+  }
+  if (!CUR_OVERVIEW_ASSIGNS.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">這門課目前沒有已發布的作業/教材</div>';
+    return;
+  }
+  const totalAssigns = CUR_OVERVIEW_ASSIGNS.length;
+  const students = sortRows(CUR_OVERVIEW_STUDENTS, OV_SORT, OV_SORT_FNS);
+
+  // 依單元分組(資料本身已依單元排序，同單元的作業會連續出現)
+  const unitGroups = [];
+  CUR_OVERVIEW_ASSIGNS.forEach(a => {
+    const key = a.unit_id || a._unitTitle;
+    let g = unitGroups[unitGroups.length - 1];
+    if (!g || g.key !== key) { g = { key, title: a._unitTitle, assigns: [] }; unitGroups.push(g); }
+    g.assigns.push(a);
+  });
+
+  let html = '<div style="margin-bottom:6px;display:flex;gap:8px">' +
+    '<button class="btn-syl none" style="padding:3px 10px;font-size:11px" onclick="ovToggleAll()">'+(OV_COLLAPSED_UNITS.size>0?'⊞ 全部展開':'⊟ 全部收合')+'</button>' +
+    '<span style="font-size:11px;color:var(--ink3);align-self:center">點單元標題可個別收合／展開</span>' +
+  '</div>';
+  html += '<div style="font-size:10.5px;color:var(--ink3);line-height:1.8;margin-bottom:6px;padding:6px 10px;background:var(--cr3);border-radius:6px">' +
+    '<strong>圖例：</strong>' +
+    '<span class="ov-miss" style="padding:1px 5px;border-radius:3px">未繳(逾期)</span> ' +
+    '<span class="ov-pending" style="padding:1px 5px;border-radius:3px">未繳(未到期)</span> ' +
+    '<span class="ov-wait" style="padding:1px 5px;border-radius:3px">已繳待批閱</span> ' +
+    '<span class="ov-top" style="padding:1px 5px;border-radius:3px">特優</span> ' +
+    '<span class="ov-done" style="padding:1px 5px;border-radius:3px">達標</span> ' +
+    '<span class="ov-bad" style="padding:1px 5px;border-radius:3px">待改進</span>' +
+    '　｜　測驗題格內「x/y」＝自動計分(答對題數/總題數)，僅供參考；收合單元後小計欄「x/y」＝該單元完成項數/該單元作業總數；最右側完成率＝全課程完成項數/全課程作業總數' +
+  '</div>';
+  html += '<div class="tbl-wrap" style="max-height:70vh"><table style="font-size:11px"><thead>';
+  html += '<tr>' +
+    '<th rowspan="2" onclick="ovSortBy(\'code\')" style="position:sticky;left:0;top:0;background:var(--navy);z-index:3;min-width:'+OV_CODE_W+'px;width:'+OV_CODE_W+'px;cursor:pointer;user-select:none;padding:5px 4px">學號 <span style="opacity:.65;font-size:9px">'+sortArrow(OV_SORT,'code')+'</span></th>' +
+    '<th rowspan="2" onclick="ovSortBy(\'name\')" style="position:sticky;left:'+OV_CODE_W+'px;top:0;background:var(--navy);z-index:3;min-width:'+OV_NAME_W+'px;width:'+OV_NAME_W+'px;cursor:pointer;user-select:none;padding:5px 4px">姓名 <span style="opacity:.65;font-size:9px">'+sortArrow(OV_SORT,'name')+'</span></th>' +
+    unitGroups.map(g => {
+      const collapsed = OV_COLLAPSED_UNITS.has(g.key);
+      const span = collapsed ? 1 : g.assigns.length;
+      const safeKey = String(g.key).replace(/'/g,"\\'");
+      return '<th colspan="'+span+'" onclick="ovToggleUnit(\''+safeKey+'\')" style="position:sticky;top:0;background:var(--navy);z-index:2;text-align:center;padding:5px 6px;cursor:pointer;user-select:none;font-size:11px" title="點擊'+(collapsed?'展開':'收合')+'此單元">'+(collapsed?'▶':'▼')+' '+esc(g.title)+(collapsed?'（'+g.assigns.length+'項）':'')+'</th>';
+    }).join('') +
+    '<th rowspan="2" onclick="ovSortBy(\'pct\')" style="position:sticky;top:0;background:var(--navy);z-index:2;min-width:74px;width:74px;cursor:pointer;user-select:none;padding:5px 4px">完成率 <span style="opacity:.65;font-size:9px">'+sortArrow(OV_SORT,'pct')+'</span></th>' +
+  '</tr><tr>' +
+    unitGroups.map(g => {
+      if (OV_COLLAPSED_UNITS.has(g.key)) return '<th style="position:sticky;top:29px;background:#28477A;z-index:2;font-size:10px;min-width:64px;padding:4px 4px;color:#B8C6DC">已收合</th>';
+      return g.assigns.map(a => '<th style="position:sticky;top:29px;background:#28477A;z-index:2;font-size:10.5px;min-width:92px;max-width:120px;padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(a.title)+'">'+esc(a.title)+'</th>').join('');
+    }).join('') +
+  '</tr></thead><tbody>';
+
+  students.forEach(st => {
+    let doneCount = 0;
+    const rowCells = unitGroups.map(g => {
+      if (OV_COLLAPSED_UNITS.has(g.key)) {
+        const gs = ovGroupStats(st, g);
+        doneCount += gs.done;
+        return '<td class="'+ovPctClass(gs.pct)+'" style="font-size:11px;text-align:center;white-space:nowrap;padding:4px 4px" title="'+esc(g.title)+'：'+gs.done+'/'+gs.total+'">'+gs.done+'/'+gs.total+'</td>';
+      }
+      return g.assigns.map(a => {
+        const sub = CUR_OVERVIEW_SUBS[st.id+'_'+a.id] || null;
+        const review = sub ? CUR_OVERVIEW_REVIEWS[sub.id] : null;
+        if (sub) doneCount++;
+        const info = overviewCellInfo(a, sub, review);
+        return '<td class="'+info.cls+'" style="font-size:11px;text-align:center;white-space:nowrap;padding:4px 6px">'+esc(info.text)+'</td>';
+      }).join('');
+    }).join('');
+    const pct = Math.round(doneCount / totalAssigns * 100);
+    html += '<tr>' +
+      '<td style="position:sticky;left:0;background:#fff;font-size:11px;padding:4px 4px">'+esc(st.student_code||'')+'</td>' +
+      '<td style="position:sticky;left:'+OV_CODE_W+'px;background:#fff;font-size:11px;padding:4px 4px">'+esc(st.name_zh)+'</td>' +
+      rowCells +
+      '<td class="'+ovPctClass(pct)+'" style="text-align:center;font-size:11px;font-weight:600;padding:4px 4px">'+doneCount+'/'+totalAssigns+'　'+pct+'%</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+// 判斷這一格要上什麼顏色，跟畫面上的ov-miss/ov-pending/ov-wait/ov-done分類同一套邏輯，
+// 但匯出Excel再依批閱結果(特優/達標/待改進)細分成更多顏色，方便老師一眼掃過去
+const OVERVIEW_XLSX_COLORS = {
+  miss:    { fill:'FFFFC7CE', font:'FF9C0006' }, // 紅：未繳(逾期)
+  pending: { fill:'FFF2F2F2', font:'FF808080' }, // 灰：未繳(未到期)
+  wait:    { fill:'FFFFEB9C', font:'FF9C6500' }, // 黃：已繳待批閱
+  top:     { fill:'FFFFD966', font:'FF7F6000' }, // 金：特優
+  ok:      { fill:'FFC6EFCE', font:'FF006100' }, // 綠：達標
+  bad:     { fill:'FFFCE4D6', font:'FFC65911' }, // 橘：待改進
+};
+function overviewColorKey(a, sub, review) {
+  if (!sub) return (a.due_at && new Date(a.due_at) < new Date()) ? 'miss' : 'pending';
+  if (!review) return 'wait';
+  return review.result === '特優' ? 'top' : review.result === '待改進' ? 'bad' : 'ok';
+}
+
+async function ensureExcelJSLib() {
+  if (window.ExcelJS) return;
+  await new Promise((res,rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+async function exportCompletionOverviewXlsx() {
+  if (!CUR_OVERVIEW_STUDENTS.length || !CUR_OVERVIEW_ASSIGNS.length) { showToast('目前沒有資料可匯出', 'error'); return; }
+  await ensureExcelJSLib();
+  const totalAssigns = CUR_OVERVIEW_ASSIGNS.length;
+  const totalCols = totalAssigns + 3; // 學號+姓名+各作業+完成率
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('完成度總覽'.slice(0,31));
+
+  // 第0列：圖例說明
+  const legendRow = ws.addRow(['圖例：🔴未繳(逾期)　⚪未繳(未到期)　🟡已繳待批閱　🟨特優　🟩達標　🟧待改進']);
+  ws.mergeCells(1, 1, 1, totalCols);
+  legendRow.getCell(1).font = { italic:true, size:10, color:{argb:'FF888888'} };
+
+  // 第1、2列：表頭(單元合併儲存格 + 作業標題)
+  const row1 = ws.addRow(['學號','姓名', ...CUR_OVERVIEW_ASSIGNS.map(a => a._unitTitle), '完成率']);
+  const row2 = ws.addRow(['', '', ...CUR_OVERVIEW_ASSIGNS.map(a => a.title), '']);
+  [row1, row2].forEach((r,ri) => r.eachCell(c => {
+    c.fill = { type:'pattern', pattern:'solid', fgColor:{argb: ri===0?'FF1B3A6B':'FF28477A'} };
+    c.font = { color:{argb:'FFFFFFFF'}, bold:true, size:11 };
+    c.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+  }));
+  ws.mergeCells(2, 1, 3, 1);
+  ws.mergeCells(2, 2, 3, 2);
+  ws.mergeCells(2, totalCols, 3, totalCols);
+  let colIdx = 3, curUnit = null, startCol = 3;
+  CUR_OVERVIEW_ASSIGNS.forEach(a => {
+    if (a._unitTitle !== curUnit) {
+      if (curUnit !== null && colIdx - startCol > 1) ws.mergeCells(2, startCol, 2, colIdx-1);
+      curUnit = a._unitTitle; startCol = colIdx;
+    }
+    colIdx++;
+  });
+  if (curUnit !== null && colIdx - startCol > 1) ws.mergeCells(2, startCol, 2, colIdx-1);
+
+  // 資料列
+  CUR_OVERVIEW_STUDENTS.forEach(st => {
+    let doneCount = 0;
+    const rowData = [st.student_code||'', st.name_zh];
+    const colorKeys = [];
+    CUR_OVERVIEW_ASSIGNS.forEach(a => {
+      const sub = CUR_OVERVIEW_SUBS[st.id+'_'+a.id] || null;
+      const review = sub ? CUR_OVERVIEW_REVIEWS[sub.id] : null;
+      if (sub) doneCount++;
+      rowData.push(overviewCellInfo(a, sub, review).text);
+      colorKeys.push(overviewColorKey(a, sub, review));
+    });
+    const pct = Math.round(doneCount / totalAssigns * 100);
+    rowData.push(doneCount+'/'+totalAssigns+'  '+pct+'%');
+    const row = ws.addRow(rowData);
+    row.getCell(1).alignment = { horizontal:'center' };
+    row.getCell(2).alignment = { horizontal:'center' };
+    CUR_OVERVIEW_ASSIGNS.forEach((a, i) => {
+      const cell = row.getCell(3+i);
+      cell.alignment = { horizontal:'center' };
+      const c = OVERVIEW_XLSX_COLORS[colorKeys[i]];
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:c.fill} };
+      cell.font = { color:{argb:c.font} };
+    });
+    const pctCell = row.getCell(totalCols);
+    pctCell.alignment = { horizontal:'center' };
+    pctCell.font = { bold:true };
+    pctCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb: pct>=80?'FFC6EFCE':pct>=50?'FFFFEB9C':'FFFFC7CE'} };
+  });
+
+  ws.getColumn(1).width = 12;
+  ws.getColumn(2).width = 10;
+  for (let i=0;i<totalAssigns;i++) ws.getColumn(3+i).width = 18;
+  ws.getColumn(totalCols).width = 14;
+  ws.views = [{ state:'frozen', xSplit:2, ySplit:3 }];
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type:'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const fileTag = (CUR_HUB.name||'課程').replace(/[\\/?*\[\]:]/g,'_');
+  link.href = url; link.download = `教材與作業完成度_${fileTag}.xlsx`;
+  document.body.appendChild(link); link.click(); link.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ── 是非/選擇題 出題（含題目版本鎖定） ──
+   規則：每份quiz作業的題目都有一個「目前版本」(assignment_questions.version)。
+   只要「目前版本」已經有學生用它作答過，之後任何新增/編輯/刪除/調整順序的操作，
+   都會先自動把目前版本整組複製成新版本(version+1)，異動套用在新版本上，
+   已作答學生的assignment_submissions.question_version繼續指向舊版本，不受影響。
+   還沒有人作答的版本可以直接編輯，不會一直產生新版本。 */
+let CUR_QUIZ_ASSIGN = null;
+let CUR_QUESTIONS = [];
+let CUR_QUIZ_VERSION = 1;
+let CUR_QUIZ_VERSION_LOCKED = false;
+let QM_OPTIONS_DRAFT = []; // 編輯中的選擇題選項草稿 [{text, isCorrect}]
+
+async function openQuizBuilder(assignId) {
+  CUR_QUIZ_ASSIGN = CUR_ASSIGNMENTS.find(x => x.id === assignId);
+  if (!CUR_QUIZ_ASSIGN) return;
+  document.getElementById('qz-crumb-hub').textContent = CUR_HUB.name;
+  document.getElementById('qz-title').textContent = '🎯 出題：' + CUR_QUIZ_ASSIGN.title;
+  showSection('quiz-builder');
+  await loadQuestions();
+}
+
+async function loadQuestions() {
+  const wrap = document.getElementById('qz-list-wrap');
+  wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
+  const { data } = await sb.from('assignment_questions').select('*')
+    .eq('assignment_id', CUR_QUIZ_ASSIGN.id).order('sort_order');
+  const all = data || [];
+  CUR_QUIZ_VERSION = all.length ? Math.max(...all.map(q => q.version || 1)) : 1;
+  CUR_QUESTIONS = all.filter(q => (q.version || 1) === CUR_QUIZ_VERSION);
+  // 正確答案存在獨立表assignment_answer_keys（只有老師/TA/admin讀得到，學生完全沒有權限），這裡合併回來給編輯畫面用
+  if (CUR_QUESTIONS.length) {
+    const { data: keys } = await sb.from('assignment_answer_keys').select('question_id, correct_answer')
+      .in('question_id', CUR_QUESTIONS.map(q => q.id));
+    const keyMap = {};
+    (keys||[]).forEach(k => { keyMap[k.question_id] = k.correct_answer; });
+    CUR_QUESTIONS.forEach(q => { q.correct_answer = keyMap[q.id]; });
+  }
+  // 判斷目前版本是不是已經有人用它作答過（version=1時舊資料question_version可能是null，一併算進去）
+  let countQuery = sb.from('assignment_submissions').select('id', { count: 'exact', head: true })
+    .eq('assignment_id', CUR_QUIZ_ASSIGN.id);
+  countQuery = CUR_QUIZ_VERSION === 1
+    ? countQuery.or('question_version.eq.1,question_version.is.null')
+    : countQuery.eq('question_version', CUR_QUIZ_VERSION);
+  const { count } = await countQuery;
+  CUR_QUIZ_VERSION_LOCKED = (count || 0) > 0;
+  renderQuizVersionWarning();
+  renderQuestions();
+}
+
+function renderQuizVersionWarning() {
+  const warn = document.getElementById('qz-submit-warn');
+  if (CUR_QUIZ_VERSION_LOCKED) {
+    warn.style.display = '';
+    warn.textContent = `📌 目前版本（v${CUR_QUIZ_VERSION}）已經有同學用它作答，接下來只要新增／編輯／刪除／調整題目順序，系統會自動建立新版本（v${CUR_QUIZ_VERSION+1}），不會影響這些同學既有的作答紀錄與成績；還沒作答的同學之後看到的會是新版本的題目。`;
+  } else if (CUR_QUIZ_VERSION > 1) {
+    warn.style.display = '';
+    warn.textContent = `目前是第 v${CUR_QUIZ_VERSION} 版題目，尚無人以此版本作答，可以自由編輯，不會再產生更多版本。`;
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+// 目前版本已被鎖定時，把整組題目(含正確答案)複製成新版本，之後的編輯都轉往新版本進行
+async function ensureEditableQuizVersion() {
+  if (!CUR_QUIZ_VERSION_LOCKED) return false;
+  const newVersion = CUR_QUIZ_VERSION + 1;
+  for (const q of CUR_QUESTIONS) {
+    const { data, error } = await sb.from('assignment_questions').insert({
+      assignment_id: q.assignment_id, version: newVersion, question_type: q.question_type,
+      content: q.content, options: q.options, sort_order: q.sort_order
+    }).select('id').single();
+    if (error) { showToast('建立新版本失敗：'+error.message, 'error'); return false; }
+    if (q.correct_answer) {
+      await sb.from('assignment_answer_keys').insert({ question_id: data.id, correct_answer: q.correct_answer, updated_at: new Date().toISOString() });
+    }
+  }
+  showToast('📌 已自動建立新版本 v'+newVersion+'，這次異動不會影響已作答同學的既有紀錄');
+  return true;
+}
+
+const QTYPE_LABEL = { true_false:'是非題', single_choice:'單選題' };
+
+function renderQuestions() {
+  const wrap = document.getElementById('qz-list-wrap');
+  if (!CUR_QUESTIONS.length) {
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">尚未建立任何題目，請點上方「＋ 新增是非題／選擇題」開始出題</div>';
+    return;
+  }
+  wrap.innerHTML = CUR_QUESTIONS.map((q, i) => {
+    const optionsHtml = q.question_type === 'single_choice'
+      ? '<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">' +
+        (q.options||[]).map(opt =>
+          '<div style="font-size:12.5px;color:'+(opt===q.correct_answer?'var(--green,#1A6A30);font-weight:600':'var(--ink2)')+'">'+
+          (opt===q.correct_answer?'✓ ':'　')+esc(opt)+'</div>'
+        ).join('')
+      + '</div>'
+      : '<div style="font-size:12.5px;color:var(--green,#1A6A30);font-weight:600;margin-top:4px">✓ 正確答案：'+(q.correct_answer==='true'?'是（○）':'否（✕）')+'</div>';
+    return '<div class="unit-row" style="align-items:flex-start">' +
+      '<div class="unit-order-btns">' +
+        '<button onclick="moveQuestion('+i+',-1)" '+(i===0?'disabled style="opacity:.3"':'')+'>▲</button>' +
+        '<button onclick="moveQuestion('+i+',1)" '+(i===CUR_QUESTIONS.length-1?'disabled style="opacity:.3"':'')+'>▼</button>' +
+      '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<span class="unit-src-badge unit-src-syllabus">第'+(i+1)+'題・'+QTYPE_LABEL[q.question_type]+'</span> ' +
+        '<span class="unit-title" style="font-weight:500">'+esc(q.content)+'</span>' +
+        optionsHtml +
+      '</div>' +
+      '<button class="btn-syl none" style="padding:5px 12px;font-size:12px" onclick="openQuestionModal(\''+q.id+'\')">✎ 編輯</button>' +
+      '<button class="btn-syl none" style="padding:5px 12px;font-size:12px;color:#C04030" onclick="deleteQuestion(\''+q.id+'\')">🗑</button>' +
+      '</div>';
+  }).join('');
+}
+
+async function moveQuestion(index, dir) {
+  const other = index + dir;
+  if (other < 0 || other >= CUR_QUESTIONS.length) return;
+  if (CUR_QUIZ_VERSION_LOCKED) {
+    const forked = await ensureEditableQuizVersion();
+    if (!forked) return;
+    await loadQuestions(); // 重新載入成新版本的題目清單，順序跟原本一樣，index可以直接沿用
+  }
+  const a = CUR_QUESTIONS[index], b = CUR_QUESTIONS[other];
+  const aOrder = a.sort_order, bOrder = b.sort_order;
+  [CUR_QUESTIONS[index], CUR_QUESTIONS[other]] = [CUR_QUESTIONS[other], CUR_QUESTIONS[index]];
+  renderQuestions();
+  await Promise.all([
+    sb.from('assignment_questions').update({ sort_order: bOrder }).eq('id', a.id),
+    sb.from('assignment_questions').update({ sort_order: aOrder }).eq('id', b.id)
+  ]);
+}
+
+function openQuestionModal(qId, forcedType) {
+  const q = qId ? CUR_QUESTIONS.find(x => x.id === qId) : null;
+  const qType = q ? q.question_type : (forcedType || 'true_false');
+  QM_OPTIONS_DRAFT = q?.question_type === 'single_choice'
+    ? (q.options||[]).map(opt => ({ text: opt, isCorrect: opt === q.correct_answer }))
+    : [{ text:'', isCorrect:true }, { text:'', isCorrect:false }];
+
+  const body = `
+    <div class="frow">
+      <label class="flabel">題型</label>
+      <select class="finput" id="qm-type" ${q ? 'disabled' : ''} onchange="renderOptionRows()">
+        <option value="true_false" ${qType==='true_false'?'selected':''}>是非題</option>
+        <option value="single_choice" ${qType==='single_choice'?'selected':''}>單選題</option>
+      </select>
+      ${q ? '<div style="font-size:11px;color:var(--ink3);margin-top:3px">題型建立後不可更改，如需改題型請刪除後重新新增</div>' : ''}
+    </div>
+    <div class="frow">
+      <label class="flabel">題目內容</label>
+      <textarea class="finput" id="qm-content" rows="2" style="resize:vertical">${q ? esc(q.content) : ''}</textarea>
+    </div>
+    <div class="frow" id="qm-tf-row" style="display:none">
+      <label class="flabel">正確答案</label>
+      <div style="display:flex;gap:16px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="radio" name="qm-tf" value="true" ${(!q||q.correct_answer==='true')?'checked':''}> 是（○）</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="radio" name="qm-tf" value="false" ${q?.correct_answer==='false'?'checked':''}> 否（✕）</label>
+      </div>
+    </div>
+    <div class="frow" id="qm-choice-row" style="display:none">
+      <label class="flabel">選項（點選左邊圓圈設為正確答案）</label>
+      <div id="qm-options-wrap"></div>
+      <button type="button" class="sy-add" onclick="addOptionRow()">＋ 新增選項</button>
+    </div>`;
+  openGenericModal(q ? '編輯題目' : '新增題目', body, () => saveQuestion(qId), 620);
+  renderOptionRows();
+}
+
+function renderOptionRows() {
+  const type = document.getElementById('qm-type').value;
+  document.getElementById('qm-tf-row').style.display = type === 'true_false' ? '' : 'none';
+  document.getElementById('qm-choice-row').style.display = type === 'single_choice' ? '' : 'none';
+  if (type !== 'single_choice') return;
+  const wrap = document.getElementById('qm-options-wrap');
+  wrap.innerHTML = QM_OPTIONS_DRAFT.map((opt, i) =>
+    '<div class="sy-row-obj">' +
+      '<input type="radio" name="qm-correct" '+(opt.isCorrect?'checked':'')+' onchange="setCorrectOption('+i+')">' +
+      '<input class="finput" value="'+esc(opt.text)+'" placeholder="選項'+(i+1)+'" oninput="QM_OPTIONS_DRAFT['+i+'].text=this.value" style="font-size:12.5px">' +
+      '<button type="button" class="del-btn" onclick="removeOptionRow('+i+')" '+(QM_OPTIONS_DRAFT.length<=2?'disabled style="opacity:.3"':'')+'>✕</button>' +
+    '</div>'
+  ).join('');
+}
+function setCorrectOption(i) {
+  QM_OPTIONS_DRAFT.forEach((o, idx) => o.isCorrect = idx === i);
+}
+function addOptionRow() {
+  QM_OPTIONS_DRAFT.push({ text:'', isCorrect:false });
+  renderOptionRows();
+}
+function removeOptionRow(i) {
+  if (QM_OPTIONS_DRAFT.length <= 2) return;
+  const wasCorrect = QM_OPTIONS_DRAFT[i].isCorrect;
+  QM_OPTIONS_DRAFT.splice(i, 1);
+  if (wasCorrect) QM_OPTIONS_DRAFT[0].isCorrect = true;
+  renderOptionRows();
+}
+
+async function saveQuestion(qId) {
+  const type = document.getElementById('qm-type').value;
+  const content = document.getElementById('qm-content').value.trim();
+  if (!content) { showToast('請輸入題目內容', 'error'); return; }
+  let optionsPayload = null;
+  let correctAnswer;
+  if (type === 'true_false') {
+    const sel = document.querySelector('input[name="qm-tf"]:checked');
+    correctAnswer = sel ? sel.value : 'true';
+  } else {
+    const cleaned = QM_OPTIONS_DRAFT.map(o => ({...o, text: o.text.trim()})).filter(o => o.text);
+    if (cleaned.length < 2) { showToast('選擇題至少要有2個選項', 'error'); return; }
+    if (!cleaned.some(o => o.isCorrect)) { showToast('請選擇一個正確答案', 'error'); return; }
+    optionsPayload = cleaned.map(o => o.text);
+    correctAnswer = cleaned.find(o => o.isCorrect).text;
+  }
+
+  // 目前版本如果已鎖定，先fork出新版本；如果是在編輯既有題目，要把id換成新版本裡對應的那一筆(順序不變，用原本的index對應)
+  let targetId = qId;
+  if (CUR_QUIZ_VERSION_LOCKED) {
+    const oldIndex = qId ? CUR_QUESTIONS.findIndex(q => q.id === qId) : -1;
+    const forked = await ensureEditableQuizVersion();
+    if (!forked) return;
+    await loadQuestions();
+    targetId = oldIndex >= 0 ? (CUR_QUESTIONS[oldIndex]?.id || null) : null;
+  }
+
+  const payload = { assignment_id: CUR_QUIZ_ASSIGN.id, question_type: type, content, options: optionsPayload };
+  let error, savedId = targetId;
+  if (targetId) {
+    ({ error } = await sb.from('assignment_questions').update(payload).eq('id', targetId));
+  } else {
+    payload.version = CUR_QUIZ_VERSION;
+    payload.sort_order = CUR_QUESTIONS.length ? Math.max(...CUR_QUESTIONS.map(x=>x.sort_order||0)) + 1 : 0;
+    const insRes = await sb.from('assignment_questions').insert(payload).select('id').single();
+    error = insRes.error;
+    savedId = insRes.data?.id;
+  }
+  if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+
+  // 正確答案獨立寫到 assignment_answer_keys（學生完全沒有讀取權限的表）
+  const { error: keyErr } = await sb.from('assignment_answer_keys')
+    .upsert({ question_id: savedId, correct_answer: correctAnswer, updated_at: new Date().toISOString() });
+  if (keyErr) { showToast('題目已存，但正確答案儲存失敗：'+keyErr.message, 'error'); return; }
+
+  closeGenericModal();
+  showToast('✅ 已儲存題目');
+  await loadQuestions();
+}
+
+async function deleteQuestion(qId) {
+  if (!confirm('確定要刪除這一題嗎？')) return;
+  if (CUR_QUIZ_VERSION_LOCKED) {
+    const oldIndex = CUR_QUESTIONS.findIndex(q => q.id === qId);
+    const forked = await ensureEditableQuizVersion();
+    if (!forked) return;
+    await loadQuestions();
+    qId = CUR_QUESTIONS[oldIndex]?.id;
+    if (!qId) { showToast('刪除失敗：在新版本裡找不到對應的題目', 'error'); return; }
+  }
+  const { error } = await sb.from('assignment_questions').delete().eq('id', qId); // ON DELETE CASCADE會一併刪除assignment_answer_keys對應那筆
+  if (error) { showToast('刪除失敗：'+error.message, 'error'); return; }
+  showToast('已刪除題目');
+  await loadQuestions();
+}
+
+/* 通用簡易 modal（供單元管理等小型表單複用，避免每個功能各自刻一個 modal 結構） */
+function openGenericModal(title, bodyHtml, onSave, maxWidth) {
+  let m = document.getElementById('generic-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'generic-modal';
+    m.className = 'modal-bg';
+    m.innerHTML = `<div class="modal" id="gm-modal-inner" style="max-width:520px">
+      <div class="modal-hdr"><div class="modal-title" id="gm-title"></div>
+        <button class="modal-close" onclick="closeGenericModal()">✕</button></div>
+      <div class="modal-body" id="gm-body"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeGenericModal()">取消</button>
+        <button class="btn-save" id="gm-save-btn">儲存</button>
+      </div></div>`;
+    document.body.appendChild(m);
+  }
+  document.getElementById('gm-modal-inner').style.maxWidth = (maxWidth || 520) + 'px';
+  document.getElementById('gm-title').textContent = title;
+  document.getElementById('gm-body').innerHTML = bodyHtml;
+  document.getElementById('gm-save-btn').onclick = onSave;
+  document.getElementById('gm-save-btn').style.display = onSave ? '' : 'none';
+  m.querySelector('.btn-cancel').textContent = onSave ? '取消' : '關閉';
+  m.classList.add('open');
+}
+function closeGenericModal() {
+  const m = document.getElementById('generic-modal');
+  if (m) m.classList.remove('open');
 }
 
 let _mySort = { field:null, dir:1 };
@@ -3028,10 +4613,23 @@ async function submitConductBatch(adjField, submittedField) {
 
 /* ════ 🏆 獎學金推薦（只有主授教師能填，截止前可隨時修改） ════ */
 // 附件線上看（PDF瀏覽器原生顯示，Word/Excel用微軟線上檢視器嵌入）
+const VIEWER_IMG_EXT = ['jpg','jpeg','png','gif','heic','webp'];
+const VIEWER_VIDEO_EXT = ['mp4','mov','quicktime'];
 function openViewer(encodedUrl, ext, fileName) {
   const url = decodeURIComponent(encodedUrl);
-  const isPdf = ext === 'pdf';
-  const src = isPdf ? url : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+  const e = (ext||'').toLowerCase();
+  const isPdf = e === 'pdf';
+  const isImg = VIEWER_IMG_EXT.includes(e);
+  const isVideo = VIEWER_VIDEO_EXT.includes(e);
+  let bodyHtml;
+  if (isImg) {
+    bodyHtml = `<div class="viewer-frame" style="display:flex;align-items:center;justify-content:center;background:#1a1a1a"><img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain"></div>`;
+  } else if (isVideo) {
+    bodyHtml = `<div class="viewer-frame" style="display:flex;align-items:center;justify-content:center;background:#1a1a1a"><video src="${url}" controls autoplay style="max-width:100%;max-height:100%"></video></div>`;
+  } else {
+    const src = isPdf ? url : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    bodyHtml = `<iframe src="${src}" class="viewer-frame"></iframe>`;
+  }
   const overlay = document.createElement('div');
   overlay.className = 'viewer-overlay';
   overlay.innerHTML = `
@@ -3040,10 +4638,11 @@ function openViewer(encodedUrl, ext, fileName) {
         <span>${fileName.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
         <button onclick="this.closest('.viewer-overlay').remove()">✕ 關閉</button>
       </div>
-      <iframe src="${src}" class="viewer-frame"></iframe>
+      ${bodyHtml}
     </div>`;
   document.body.appendChild(overlay);
 }
+const VIEWER_ALL_EXT = ['pdf','doc','docx','ppt','pptx','xls','xlsx', ...VIEWER_IMG_EXT, ...VIEWER_VIDEO_EXT];
 
 const FORMS_CATEGORY_LABEL_T = { teacher:'👨‍🏫 教師專用', general:'📋 全體專用' };
 
@@ -3390,7 +4989,9 @@ function showSection(id) {
   document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
   document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
   const sec = document.getElementById('sec-' + id);
-  const nav = document.getElementById('nav-' + id);
+  // 教材/作業相關的子畫面沒有自己的側邊欄項目，掛在「我的課程」底下，維持該項反白
+  const navId = ['course-hub','course-units','course-assignments','quiz-builder','review-panel','completion-overview'].includes(id) ? 'my-courses' : id;
+  const nav = document.getElementById('nav-' + navId);
   if (sec) sec.classList.add('on');
   if (nav) nav.classList.add('active');
   // 切換到成績登錄時重置並重新載入
@@ -3980,10 +5581,120 @@ async function lpSaveSet() {
   lpLoadSets();
 }
 
+/* ── 版本與更新紀錄 ──
+   規則：每次有實質功能異動，在陣列最前面新增一筆，並同步更新：
+   1. 檔案最開頭的 <!-- BWBC Teacher vX.X YYYY-MM-DD --> 註解
+   2. 側邊欄 #app-version-label-t 顯示的文字
+   從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
+const APP_CHANGELOG_T = [
+  {
+    version: 'v3.22', date: '2026-09-28',
+    items: [
+      '「全班完成度總覽」的「全部收合／全部展開」合併成一顆按鈕，依目前狀態顯示對應文字並切換，節省版面空間',
+    ]
+  },
+  {
+    version: 'v3.21', date: '2026-09-28',
+    items: [
+      '「全班完成度總覽」表格上方加一行圖例說明：顏色代表的狀態(未繳逾期/未繳未到期/已繳待批閱/特優/達標/待改進)，以及「x/y」在不同欄位的不同意義(測驗自動計分 vs 收合單元小計 vs 完成率)，不用另外展開每格文字就能看懂',
+    ]
+  },
+  {
+    version: 'v3.20', date: '2026-09-28',
+    items: [
+      '「全班完成度總覽」版面優化：學號/姓名欄位固定在左側不隨橫向捲動消失，每個單元標題可點擊個別收合/展開(收合後只顯示該單元小計x/y)，並提供「全部收合／全部展開」按鈕，作業愈來愈多時畫面也不會爆版',
+      '「全班完成度總覽」字體與欄寬整體再縮小一級，單元/作業標題過長時自動截斷並可滑鼠停留看完整名稱',
+    ]
+  },
+  {
+    version: 'v3.19', date: '2026-09-28',
+    items: [
+      '「作業/教材列表」「批閱名單」「全班完成度總覽」這三個表格的欄位標題新增點擊排序功能(再點一次切換升冪/降冪)',
+      '「全班完成度總覽」畫面上的儲存格顏色比照Excel匯出版本，改成依繳交/批閱結果自動上色（不用等匯出Excel才看得到顏色管理），完成率欄位也依高低上色',
+    ]
+  },
+  {
+    version: 'v3.18', date: '2026-09-28',
+    items: [
+      '批閱面板的檔案繳交(📎)新增「👁 線上看」：圖片/影片直接內嵌預覽，PDF/Word/PowerPoint/Excel透過線上檢視器開啟，不用下載就能檢查內容（不支援的格式維持只有下載）',
+    ]
+  },
+  {
+    version: 'v3.17', date: '2026-09-28',
+    items: [
+      '「全班完成度總覽」匯出的Excel改用ExcelJS產生，每一格依狀態自動上色（紅=未繳逾期、灰=未繳未到期、黃=已繳待批閱、金=特優、綠=達標、橘=待改進），完成率欄位也依高低（≥80%綠／50-79%黃／<50%紅）上色，並凍結表頭跟前兩欄方便捲動閱讀',
+    ]
+  },
+  {
+    version: 'v3.16', date: '2026-09-28',
+    items: [
+      '「教材與作業」新增「📊 全班完成度總覽」：依單元分組列出每位已確認選課學生在每項已發布作業的繳交/遲交/批閱結果，是非選擇題會附上自動計分供參考，最後一欄顯示個人完成率；可一鍵「📥 匯出 Excel」',
+    ]
+  },
+  {
+    version: 'v3.15', date: '2026-09-28',
+    items: [
+      '新增本頁「更新紀錄」：側邊欄底部可查看版本歷程（比照學生端做法），之後每次異動都會記錄在這裡',
+    ]
+  },
+  {
+    version: 'v3.14', date: '2026-09-28',
+    items: [
+      '新增是非/選擇題「題目版本鎖定」：已有人作答的版本再編輯（新增/修改/刪除/調整順序題目）會自動整組複製成新版本，不影響舊作答同學的評分依據；學生一律以最新版本作答，批閱畫面會依每筆作答當下的版本自動比對正確題目',
+    ]
+  },
+  {
+    version: 'v3.13', date: '2026-09-28',
+    items: [
+      '批閱畫面支援檔案繳交型作業(submission)：可直接看到學生上傳的檔案清單並下載查看',
+    ]
+  },
+  {
+    version: 'v3.12', date: '2026-09-28',
+    items: [
+      '🔒修正「畫面莫名其妙自己跳回公佈欄」的問題：分頁切回前景或電腦睡眠喚醒時，Supabase Auth常會重複觸發登入事件，原本每次都會整個重置畫面；改成只有真正換帳號登入才重置，背景續期不再打斷正在操作的畫面（student.html同步修正）',
+    ]
+  },
+  {
+    version: 'v3.11', date: '2026-09-28',
+    items: [
+      '新增「👥 批閱」功能：可對每份作業的全班繳交狀況一覽，逐筆查看內容並評分（特優👑/達標/待改進🌶）加評語，是非/選擇題並自動計分',
+    ]
+  },
+];
+
+function openChangelogT() {
+  const body = document.getElementById('changelog-body-t');
+  body.innerHTML = APP_CHANGELOG_T.map(entry => `
+    <div>
+      <div style="font-size:14px;font-weight:700;color:#1B3A6B;margin-bottom:6px">${entry.version}　<span style="font-weight:400;color:#999;font-size:12px">${entry.date}</span></div>
+      <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
+        ${entry.items.map(it => `<li style="font-size:13px;color:#333;line-height:1.6">${it}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('<div style="border-top:1px dashed #E8E8E8"></div>');
+  document.getElementById('changelog-modal-t').style.display = 'flex';
+}
+function closeChangelogT() {
+  document.getElementById('changelog-modal-t').style.display = 'none';
+}
+
 // Auth state change
+// ⚠️ 2026-09-28修正「畫面莫名其妙自己跳回公佈欄」的問題：
+// Supabase Auth的client在分頁從背景切回前景、或電腦睡眠喚醒後，會重新驗證session，
+// 常常會「重複」觸發一次SIGNED_IN事件（不是真的重新登入），如果每次都整個重跑enterApp()，
+// 裡面最後的showSection('ann')就會把使用者正在看的畫面強制切回公佈欄，體感就是「畫面自己亂跳」。
+// 修正：同一個使用者已經進過app了，之後同一人的SIGNED_IN事件視為session背景續期，不重跑enterApp()。
+let _appEnteredForUserId = null;
 sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session) enterApp(session.user);
-  else if (event === 'SIGNED_OUT') showLogin();
+  if (event === 'SIGNED_IN' && session) {
+    if (_appEnteredForUserId === session.user.id) return; // 同一人重複觸發，忽略，不打斷正在操作的畫面
+    _appEnteredForUserId = session.user.id;
+    enterApp(session.user);
+  } else if (event === 'SIGNED_OUT') {
+    _appEnteredForUserId = null;
+    showLogin();
+  }
 });
 
 init();
@@ -4041,6 +5752,17 @@ init();
           ✅ 確認匯入
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- 更新紀錄 -->
+  <div id="changelog-modal-t" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+    <div style="background:#fff;border-radius:14px;width:100%;max-width:480px;margin:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <div style="background:#1B3A6B;color:#fff;padding:14px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;gap:10px">
+        <div style="font-size:15px;font-weight:600;flex:1">📋 更新紀錄</div>
+        <button onclick="closeChangelogT()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div id="changelog-body-t" style="padding:20px;display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto"></div>
     </div>
   </div>
 </body>
