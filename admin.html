@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.47 2026-09-28 -->
+<!-- BWBC Admin v10.49 2026-09-28 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -400,7 +400,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.46　2026-09-27</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.49　2026-09-28</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -1163,6 +1163,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <button class="btn" id="stu-batch-confirm-btn" onclick="batchConfirmRegistration()" style="color:#2E9E5B;border-color:#2E9E5B;display:none">✅ 批次確認報到 (<span id="stu-batch-confirm-count">0</span>)</button>
             <button class="btn" onclick="openStudentImport()">📥 批次匯入</button>
             <button class="btn" onclick="openStudentUpdateImport()" style="color:#1A6A30;border-color:#1A6A30">📥 更新匯入</button>
+            <button class="btn" onclick="openHousingOptionsModal()" style="color:#8E5A00;border-color:#8E5A00">⚙️ 住宿選項管理</button>
             <button class="btn btn-pri" onclick="openStudentModal()">➕ 新增學生</button>
           </div>
         </div>
@@ -1920,15 +1921,12 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="frow"><label class="flabel">廣論班級</label>
           <input class="finput" id="stu-guang-lun" placeholder="如:2024 春季 A 班"></div>
         <div class="frow"><label class="flabel">住宿需求</label>
-          <select class="finput" id="stu-housing">
-            <option value="">—</option>
-            <option value="self_home">自宅</option>
-            <option value="eco_village">生態村租屋</option>
-            <option value="off_campus">校外租屋</option>
-            <option value="commute">通勤</option>
-            <option value="other">其他</option>
-          </select>
+          <select class="finput" id="stu-housing" onchange="onStuHousingChange()"></select>
         </div>
+      </div>
+      <div class="frow" id="stu-housing-address-row" style="display:none">
+        <label class="flabel">住宿地址（實際居住地址）</label>
+        <input class="finput" id="stu-housing-address" placeholder="請填寫實際居住地址，例如：雲林縣古坑鄉...">
       </div>
 
       <!-- 備註 -->
@@ -2036,7 +2034,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow-y:auto">
       <div style="padding:10px 14px;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;font-size:12.5px;color:#6D4C00;line-height:1.7">
         <strong>📌 規則：</strong>依「學號」比對 — 學號存在則<strong style="color:#1A6A30">更新</strong>、學號不存在則<strong style="color:#1565C0">新增</strong><br>
-        <strong>📄 欄位（按下載範本為準）：</strong>學號(必填)、中文姓名、英文姓名、性別(M/F/O)、出生日期、入學年、狀態(pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格)、學校email、個人email、電話、通訊地址、緊急聯絡人、關係、緊急電話、入學日期、學歷、畢業學校、廣論班級、住宿、備註
+        <strong>📄 欄位（按下載範本為準）：</strong>學號(必填)、中文姓名、英文姓名、性別(M/F/O)、出生日期、入學年、狀態(pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格)、學校email、個人email、電話、通訊地址、緊急聯絡人、關係、緊急電話、入學日期、學歷、畢業學校、廣論班級、住宿(填目前有效選項名稱，見「⚙️ 住宿選項管理」)、住宿地址、備註
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="file" id="stu-update-file" accept=".xlsx,.xls,.csv" onchange="onStudentUpdateFile(event)" style="font-size:13px">
@@ -2686,6 +2684,27 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeEnrollPeriodModal()">取消</button>
       <button class="btn-save" onclick="saveEnrollPeriod()">💾 儲存並同步行事曆</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 住宿選項管理 Modal（2026-09-28新增：學生資料「住宿需求」改成完全由admin自訂清單，
+     不再寫死在程式碼裡，之後要增加/改名新社區直接在這裡操作即可） ══ -->
+<div class="modal-bg" id="housing-options-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-hdr">
+      <div class="modal-title">⚙️ 住宿選項管理</div>
+      <button class="modal-close" onclick="closeHousingOptionsModal()">✕</button>
+    </div>
+    <div style="padding:18px 20px;max-height:65vh;overflow-y:auto">
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">
+        這裡的清單就是「學生資料」編輯畫面「住宿需求」下拉選單的內容。勾選「需填地址」的選項，學生資料畫面會多顯示一個地址欄位（例如自宅、校外租屋這類需要知道實際地點的選項）；生態村租屋這種已經指名社區的選項通常不用再勾。停用的選項不會出現在下拉選單，但不影響已經選過該選項的既有學生資料。
+      </div>
+      <div id="housing-options-list" style="display:flex;flex-direction:column;gap:6px"></div>
+      <button class="btn btn-edit btn-sm" style="margin-top:12px" onclick="addHousingOptionRow()">＋ 新增選項</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeHousingOptionsModal()">關閉</button>
     </div>
   </div>
 </div>
@@ -3721,52 +3740,53 @@ async function logout() { await sb.auth.signOut(); location.reload(); }
 
 async function checkAuth() {
   const { data:{ session } } = await sb.auth.getSession();
-  if (session) {
-    window.ADMIN_EMAIL = session.user.email;
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').classList.add('show');
-    document.getElementById('tb-user').textContent = session.user.email;
-    loadAll();
-    // 背景載入姓名，不阻塞
-    loadAdminName(session.user.id).then(()=>{
-      document.getElementById('tb-user').textContent = window.ADMIN_NAME || session.user.email;
-    });
-  }
+  if (session) await tryEnterAdminApp(session.user);
 }
 
 sb.auth.onAuthStateChange((event, session) => {
-  if (session) {
-    window.ADMIN_EMAIL = session.user.email;
-    if (event==='SIGNED_IN') {
-      document.getElementById('login-screen').style.display='none';
-      document.getElementById('app').classList.add('show');
-      document.getElementById('tb-user').textContent = session.user.email;
-      loadAll();
-      // 背景載入姓名，不阻塞登入
-      loadAdminName(session.user.id).then(()=>{
-        document.getElementById('tb-user').textContent = window.ADMIN_NAME || session.user.email;
-      });
-    }
-  }
+  if (session && event==='SIGNED_IN') tryEnterAdminApp(session.user);
 });
 
-async function loadAdminName(userId) {
-  window.ADMIN_USER_ID = userId;
+// ⚠️ 2026-09-28重大安全性修正：權限檢查一定要在「顯示後台畫面」之前做完，不能先開app再檢查角色。
+// 修正前的做法：只要Supabase Auth驗證通過(不管是誰，包括學生自己的登入帳號，跟student.html/teacher.html
+// 共用同一套Auth使用者池)，就先把login-screen藏起來、app畫面整個顯示出來，才「背景」去查users表的角色，
+// 查到不是admin/staff也不會被擋下來，只是部分nav-item被隱藏(applyStaffPermissions裡甚至寫死非staff角色
+// 「其餘nav暫不限制」)，等於除了帳號管理，後台幾乎所有功能畫面(開課記錄、學生資料、成績登錄...)任何有效帳號都能看到。
+// 修正為：先查users表確認role是admin或staff，不是的話直接signOut、擋在登入畫面，完全不開啟app。
+// ⚠️ 這仍然只是前端UI層的防呆，真正的安全邊界必須補齊Supabase RLS policy(檔案裡沿用原本註解，待補)，
+// 否則就算前端擋住了，任何人拿到有效的Supabase帳號token還是可能直接呼叫API讀寫資料，務必另外檢查RLS。
+async function tryEnterAdminApp(user) {
+  window.ADMIN_EMAIL = user.email;
+  window.ADMIN_USER_ID = user.id;
+  let u = null;
   try {
-    // 從 users 表取得角色、權限、teacher_id
-    const { data:u } = await sb.from('users').select('role,permissions,teacher_id').eq('id', userId).maybeSingle();
-    window.ADMIN_ROLE = u?.role || null;
-    window.ADMIN_PERMISSIONS = u?.permissions || {};
-    if (u?.teacher_id) {
-      const { data:t } = await sb.from('teachers').select('name_zh').eq('id', u.teacher_id).maybeSingle();
-      if (t?.name_zh) { window.ADMIN_NAME = t.name_zh; }
-    }
-    if (!window.ADMIN_NAME) window.ADMIN_NAME = window.ADMIN_EMAIL || '';
-    applyStaffPermissions();
-  } catch(e) {
-    window.ADMIN_NAME = window.ADMIN_EMAIL || '';
-    console.warn('loadAdminName:', e);
+    const res = await sb.from('users').select('role,permissions,teacher_id').eq('id', user.id).maybeSingle();
+    u = res.data;
+  } catch(e) { console.warn('查詢使用者角色失敗:', e); }
+
+  const role = u?.role || null;
+  if (role !== 'admin' && role !== 'staff') {
+    await sb.auth.signOut();
+    const fb = document.getElementById('login-feedback');
+    if (fb) { fb.style.display='block'; fb.style.background='#FEE'; fb.style.color='#C04030'; fb.textContent='❌ 此帳號沒有後台管理權限，無法登入，如有疑問請聯絡系統管理員。'; }
+    return;
   }
+
+  window.ADMIN_ROLE = role;
+  window.ADMIN_PERMISSIONS = u?.permissions || {};
+
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').classList.add('show');
+  document.getElementById('tb-user').textContent = user.email;
+  loadAll();
+
+  if (u?.teacher_id) {
+    const { data:t } = await sb.from('teachers').select('name_zh').eq('id', u.teacher_id).maybeSingle();
+    if (t?.name_zh) window.ADMIN_NAME = t.name_zh;
+  }
+  if (!window.ADMIN_NAME) window.ADMIN_NAME = window.ADMIN_EMAIL || '';
+  document.getElementById('tb-user').textContent = window.ADMIN_NAME;
+  applyStaffPermissions();
 }
 
 /* ════ STAFF 權限前端檢查 ════
@@ -10769,6 +10789,18 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.49', date: '2026-09-28',
+    items: [
+      '學生資料「住宿需求」改成完全由admin自訂清單：新增「⚙️ 住宿選項管理」畫面(可新增/改名/排序/停用選項，並個別設定該選項是否需要填寫地址)，取代過去寫死在程式碼裡的5個固定值(self_home/eco_village/off_campus/commute/other)。新增housing_options表與students.housing_option_id/housing_address欄位，舊的housing欄位改名housing_legacy保留備份。「自宅」與「通勤」重新命名為「自宅（雲林縣內）」「自宅通勤（雲林縣外）」，兩者皆改為要求填寫實際地址(地址內容本身就能看出雲林縣內外，不用再靠人工判斷分類)；「生態村租屋」拆分成多個指名社區選項。批次匯入/更新匯入的範本與比對邏輯同步更新為比對選項名稱文字，不再是固定英文代碼',
+    ]
+  },
+  {
+    version: 'v10.48', date: '2026-09-28',
+    items: [
+      '🔒重大安全性修正：admin/teacher/student三個入口的登入流程，原本都是Supabase Auth驗證一通過就先顯示完整的應用程式畫面(側邊欄、所有功能頁)，之後才「背景」去查對應的admin/教師/學生資料，查不到也只在部分區塊顯示錯誤文字，其餘畫面完全沒有擋下來。因為三個入口共用同一套Supabase Auth使用者池，導致例如學生自己的帳號能登入teacher.html看到教師入口的完整畫面(包含側邊欄所有功能，除了帳號管理)，即使抓不到教師資料也一樣；admin.html更嚴重，前端程式碼裡的註解甚至寫明「這只是前端防呆，真正安全邊界在RLS(待補)」。修正為三個入口都改成先查角色/對應資料，確認不符合才signOut並擋在登入畫面，完全不給任何機會顯示應用程式內容。⚠️這次修正的是前端UI層的擋法，真正的資料庫層防護(Supabase RLS policy)是否對每一張表都正確依角色限制讀寫，需要另外全面盤查(見User_Manual技術維護手冊最新章節)',
+    ]
+  },
+  {
     version: 'v10.47', date: '2026-09-28',
     items: [
       '新增「加退選期程設定」畫面(學期管理頁每學期一顆🔓按鈕)：發現enrollment_settings這張表(真正控制學生選課頁能不能加選/退選/停修，以及選課頁上方逾期提示banner的文字)過去完全沒有admin畫面可以編輯，只能直接進Supabase改，導致這次使用者在「學期行事曆」改了加退選截止時間，學生端banner卻沒有跟著變(因為行事曆改的是另一張顯示用的表semester_calendar_events，跟真正管控權限的enrollment_settings是兩張独立的表，從來沒有互相同步過)。新增這個畫面直接編輯open_at/close_at/withdraw_deadline，存檔時額外自動同步寫回行事曆的🔒加退選截止／停修截止兩個系統事件，之後只要在一個地方改，行事曆顯示、學生實際選退課權限、選課完成度總覽倒數徽章三處就會保持一致',
@@ -13979,15 +14011,121 @@ let _stuPhotoFile = null;  // 暫存待上傳的大頭照
 let _stuImportData = null; // 暫存匯入解析結果
 
 const STU_STATUS_LABEL = { pending:'新生未報到', active:'在學', leave:'休學', graduated:'已畢業', withdrawn:'退學', deferred:'保留入學資格' };
-const STU_HOUSING_LABEL = {
-  self_home:'自宅', eco_village:'生態村租屋', off_campus:'校外租屋',
-  commute:'通勤', other:'其他'
-};
+
+/* ════════════════════════════════════════
+   住宿選項（2026-09-28：改成admin可自訂清單，取代寫死的5個固定值）
+   students.housing_option_id → 對應這裡的id；students.housing_address存實際地址文字
+   ════════════════════════════════════════ */
+let HOUSING_OPTIONS = [];        // 全部選項（含停用），管理視窗用
+let HOUSING_OPTIONS_MAP = {};    // id → 選項物件，方便查label/requires_address
+
+async function loadHousingOptions() {
+  const { data, error } = await sb.from('housing_options').select('*').order('sort_order');
+  if (error) { console.warn('loadHousingOptions:', error); return; }
+  HOUSING_OPTIONS = data || [];
+  HOUSING_OPTIONS_MAP = Object.fromEntries(HOUSING_OPTIONS.map(h => [h.id, h]));
+  populateHousingSelect();
+}
+
+function populateHousingSelect() {
+  const sel = document.getElementById('stu-housing');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">—</option>' +
+    HOUSING_OPTIONS.filter(h => h.active || h.id === cur).map(h =>
+      `<option value="${h.id}">${h.label}${h.active ? '' : '（已停用）'}</option>`
+    ).join('');
+  sel.value = cur;
+}
+
+// 學生編輯畫面：切換住宿選項時，依該選項的requires_address決定要不要顯示地址欄位
+function onStuHousingChange() {
+  const sel = document.getElementById('stu-housing');
+  const opt = HOUSING_OPTIONS_MAP[sel.value];
+  document.getElementById('stu-housing-address-row').style.display = (opt && opt.requires_address) ? 'block' : 'none';
+}
+
+// 學生列表/匯出等地方顯示住宿文字，統一走這個函式，不要各自寫一份對照表
+function getHousingLabel(s) {
+  const opt = HOUSING_OPTIONS_MAP[s.housing_option_id];
+  return opt ? opt.label : '';
+}
+
+/* ── 住宿選項管理 Modal ── */
+function openHousingOptionsModal() {
+  document.getElementById('housing-options-modal').classList.add('show');
+  renderHousingOptionsList();
+}
+function closeHousingOptionsModal() { document.getElementById('housing-options-modal').classList.remove('show'); }
+
+function renderHousingOptionsList() {
+  const el = document.getElementById('housing-options-list');
+  if (!HOUSING_OPTIONS.length) {
+    el.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:10px 0">尚無住宿選項，點下方「＋新增選項」開始建立。</div>';
+    return;
+  }
+  el.innerHTML = HOUSING_OPTIONS.map((h, i) => `
+    <div style="display:flex;gap:8px;align-items:center;background:${h.active?'#fff':'#F5F5F5'};border:1px solid var(--cr2);border-radius:8px;padding:8px 10px">
+      <input class="finput" style="flex:1;padding:6px 10px;font-size:13px" value="${(h.label||'').replace(/"/g,'&quot;')}"
+        onchange="updateHousingOption(${i},'label',this.value)" placeholder="選項名稱">
+      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink3);white-space:nowrap;cursor:pointer">
+        <input type="checkbox" ${h.requires_address?'checked':''} onchange="updateHousingOption(${i},'requires_address',this.checked)">
+        需填地址
+      </label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink3);white-space:nowrap;cursor:pointer">
+        <input type="checkbox" ${h.active?'checked':''} onchange="updateHousingOption(${i},'active',this.checked)">
+        啟用
+      </label>
+      <button onclick="deleteHousingOption(${i})" style="border:none;background:none;cursor:pointer;color:var(--red);font-size:16px" title="刪除">🗑</button>
+    </div>`).join('');
+}
+
+function addHousingOptionRow() {
+  HOUSING_OPTIONS.push({ id:null, label:'', requires_address:false,
+    sort_order:(HOUSING_OPTIONS.length?Math.max(...HOUSING_OPTIONS.map(h=>h.sort_order||0)):0)+1, active:true });
+  renderHousingOptionsList();
+}
+
+async function updateHousingOption(i, field, value) {
+  const h = HOUSING_OPTIONS[i];
+  h[field] = value;
+  if (field === 'label' && !value.trim()) return; // 名稱空白先不存檔
+  const payload = { label: h.label.trim(), requires_address: !!h.requires_address, active: !!h.active, sort_order: h.sort_order };
+  try {
+    if (h.id) {
+      const { error } = await sb.from('housing_options').update(payload).eq('id', h.id);
+      if (error) throw error;
+    } else {
+      const { data, error } = await sb.from('housing_options').insert(payload).select().single();
+      if (error) throw error;
+      h.id = data.id;
+    }
+    showToast('已自動儲存');
+    await loadHousingOptions();
+    renderHousingOptionsList();
+  } catch(e) {
+    showToast('儲存失敗：'+e.message, 'error');
+  }
+}
+
+async function deleteHousingOption(i) {
+  const h = HOUSING_OPTIONS[i];
+  if (!confirm(`確定要刪除「${h.label}」這個住宿選項嗎？\n\n如果已經有學生選過這個選項，刪除會失敗，請改成「停用」即可。`)) return;
+  if (h.id) {
+    const { error } = await sb.from('housing_options').delete().eq('id', h.id);
+    if (error) { showToast('刪除失敗（可能已有學生使用此選項，建議改為停用）：'+error.message, 'error'); return; }
+  }
+  HOUSING_OPTIONS.splice(i, 1);
+  await loadHousingOptions();
+  renderHousingOptionsList();
+  showToast('已刪除');
+}
 
 async function loadStudents() {
   const tbody = document.getElementById('stu-tbody');
   tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--ink3)">載入中…</td></tr>';
   try {
+    if (!HOUSING_OPTIONS.length) await loadHousingOptions();
     const [{ data:students }, { data:advisors }, { data:teachers }] = await Promise.all([
       sb.from('students').select('*').order('student_code'),
       sb.from('v_student_advisors').select('student_id, advisor_teacher_id, advisor_source'),
@@ -14202,10 +14340,6 @@ async function exportClassRoster() {
   }
 
   const GENDER_LABEL = { M:'男', F:'女', O:'其他' };
-  const HOUSING_LABEL = {
-    self_home:'自宅', eco_village:'生態村租屋', off_campus:'校外租屋',
-    commute:'通勤', other:'其他'
-  };
 
   // 標題列
   const cohortLabel = cohortFilter ? `${cohortFilter} 級` : '全部年級';
@@ -14216,7 +14350,7 @@ async function exportClassRoster() {
   const headers = ['序號','學號','姓名','英文名','性別','狀態',
     '學校email','個人email','電話','地址',
     '緊急聯絡人','關係','緊急電話',
-    '廣論班級','住宿','備註','學歷','畢業學校',
+    '廣論班級','住宿','住宿地址','備註','學歷','畢業學校',
     '入學日期(YYYY-MM-DD)','出生日期(YYYY-MM-DD)'];
 
   // 資料列
@@ -14235,7 +14369,8 @@ async function exportClassRoster() {
     s.emergency_relation || '',
     s.emergency_phone || '',
     s.guang_lun_class || '',
-    HOUSING_LABEL[s.housing] || s.housing || '',
+    getHousingLabel(s),
+    s.housing_address || '',
     s.notes || '',
     s.prev_education || '',
     s.prev_school || '',
@@ -14270,7 +14405,8 @@ async function exportClassRoster() {
     {wch:6},   // 關係
     {wch:14},  // 緊急電話
     {wch:14},  // 廣論班級
-    {wch:10},  // 住宿
+    {wch:18},  // 住宿
+    {wch:22},  // 住宿地址
     {wch:15},  // 備註
     {wch:10},  // 學歷
     {wch:14},  // 畢業學校
@@ -14911,14 +15047,16 @@ function openStudentModal(id) {
   ['stu-id','stu-code','stu-name-zh','stu-name-en','stu-school-email','stu-personal-email',
    'stu-phone','stu-address','stu-address-hr','stu-emerg-name','stu-emerg-phone',
    'stu-prev-edu','stu-prev-school','stu-id-num','stu-guang-lun','stu-notes',
-   'stu-birth','stu-enrolled','stu-expected-grad','stu-actual-grad'].forEach(k => {
+   'stu-birth','stu-enrolled','stu-expected-grad','stu-actual-grad','stu-housing-address'].forEach(k => {
     const el = document.getElementById(k); if (el) el.value = '';
   });
   document.getElementById('stu-nationality').value = 'TW';
   document.getElementById('stu-status').value = 'active';
   document.getElementById('stu-gender').value = '';
   document.getElementById('stu-emerg-rel').value = '';
+  populateHousingSelect();
   document.getElementById('stu-housing').value = '';
+  document.getElementById('stu-housing-address-row').style.display = 'none';
   document.getElementById('stu-photo-preview').innerHTML = '📷';
   document.getElementById('stu-photo-preview').style.background = 'var(--cr3)';
   document.getElementById('stu-photo-input').value = '';
@@ -14950,7 +15088,9 @@ function openStudentModal(id) {
     document.getElementById('stu-prev-edu').value = s.prev_education || '';
     document.getElementById('stu-prev-school').value = s.prev_school || '';
     document.getElementById('stu-guang-lun').value = s.guang_lun_class || '';
-    document.getElementById('stu-housing').value = s.housing || '';
+    document.getElementById('stu-housing').value = s.housing_option_id || '';
+    document.getElementById('stu-housing-address').value = s.housing_address || '';
+    onStuHousingChange();
     document.getElementById('stu-notes').value = s.notes || '';
     if (s.photo_url) {
       document.getElementById('stu-photo-preview').innerHTML = `<img src="${s.photo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
@@ -15062,7 +15202,8 @@ async function saveStudent() {
     prev_education: document.getElementById('stu-prev-edu').value.trim() || null,
     prev_school:    document.getElementById('stu-prev-school').value.trim() || null,
     guang_lun_class: document.getElementById('stu-guang-lun').value.trim() || null,
-    housing:        document.getElementById('stu-housing').value || null,
+    housing_option_id: document.getElementById('stu-housing').value || null,
+    housing_address: document.getElementById('stu-housing-address').value.trim() || null,
     notes:          document.getElementById('stu-notes').value.trim() || null,
   };
 
@@ -15184,18 +15325,21 @@ async function downloadStudentTemplate() {
     });
   }
 
+  const housingLabels = (HOUSING_OPTIONS||[]).filter(h=>h.active).map(h=>h.label).join('/') || '請先到「⚙️ 住宿選項管理」設定選項';
   const headers = [
     '學號','中文姓名','英文姓名','性別(M/F/O)','出生日期(YYYY-MM-DD)',
     '個人 email','電話','通訊地址','緊急聯絡人姓名','關係','緊急電話',
     '入學日期(YYYY-MM-DD)','學歷','畢業學校','廣論班級',
-    '住宿(self_home/eco_village/off_campus/commute/other)','備註'
+    '住宿','住宿地址','備註'
   ];
   const example = [
     '11521001','王小明','Wang Hsiao-Ming','M','1998-05-10',
     'ming@gmail.com','0912-345-678','台中市北屯區...','王大明','父親','0922-111-222',
-    '2026-09-01','大學畢業','東海大學','2024 春季 A 班','eco_village','—'
+    '2026-09-01','大學畢業','東海大學','2024 春季 A 班', (HOUSING_OPTIONS[0]?.label||''), '', '—'
   ];
-  const note = ['※ 學號 8 碼數字','※ 學校 email 自動產生 = 學號@bwbc.edu.tw','※ 性別、住宿選填,其他空白可填','','請從第 3 列開始填寫'];
+  const note = ['※ 學號 8 碼數字','※ 學校 email 自動產生 = 學號@bwbc.edu.tw',
+    '※ 住宿欄位請填目前有效的選項名稱（' + housingLabels + '），拼字要完全一致，對不上會留空，可事後在「⚙️ 住宿選項管理」查看/新增選項',
+    '※ 性別、住宿選填,其他空白可填','','請從第 3 列開始填寫'];
 
   const ws = XLSX.utils.aoa_to_sheet([headers, example, [], note]);
   ws['!cols'] = headers.map(() => ({ wch: 18 }));
@@ -15575,8 +15719,9 @@ function parseStudentImport(rows) {
       prev_education: String(r[12] || '').trim() || null,
       prev_school: String(r[13] || '').trim() || null,
       guang_lun_class: String(r[14] || '').trim() || null,
-      housing: ['self_home','eco_village','off_campus','commute','other'].includes(String(r[15]||'').trim()) ? String(r[15]).trim() : null,
-      notes: String(r[16] || '').trim() || null,
+      housing_option_id: (HOUSING_OPTIONS.find(h => h.label === String(r[15]||'').trim()) || {}).id || null,
+      housing_address: String(r[16] || '').trim() || null,
+      notes: String(r[17] || '').trim() || null,
       status: 'active',
       _errors: errors
     };
@@ -15660,6 +15805,7 @@ var COL_MAP = {
   '緊急電話':'emergency_phone', 'emergency_phone':'emergency_phone',
   '廣論班級':'guang_lun_class', 'guang_lun_class':'guang_lun_class',
   '住宿':'housing', 'housing':'housing',
+  '住宿地址':'housing_address', 'housing_address':'housing_address',
   '備註':'notes', 'notes':'notes',
   '學歷':'prev_education', 'prev_education':'prev_education',
   '畢業學校':'prev_school', 'prev_school':'prev_school',
@@ -15676,9 +15822,10 @@ async function downloadUpdateTemplate() {
       document.head.appendChild(s);
     });
   }
-  var headers = ['學號','姓名','英文名','性別','狀態','學校email','個人email','電話','地址','緊急聯絡人','關係','緊急電話','廣論班級','住宿','備註','學歷','畢業學校','入學日期(YYYY-MM-DD)','出生日期(YYYY-MM-DD)'];
-  var example = ['11421101','盧瑞萱','Lu Jui-Hsuan','F','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','北17秋01','commute','','學士','國立台灣大學','2025-09-01','1998-05-20'];
-  var note = ['# 必填8碼','# 必填','','# M男/F女/O其他','# pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格','','','','','','','','','# self_home自宅/eco_village生態村/off_campus校外/commute通勤/other','','','','# YYYY-MM-DD','# YYYY-MM-DD'];
+  var housingLabels = (HOUSING_OPTIONS||[]).filter(function(h){return h.active;}).map(function(h){return h.label;}).join('/') || '請先到「⚙️ 住宿選項管理」設定選項';
+  var headers = ['學號','姓名','英文名','性別','狀態','學校email','個人email','電話','地址','緊急聯絡人','關係','緊急電話','廣論班級','住宿','住宿地址','備註','學歷','畢業學校','入學日期(YYYY-MM-DD)','出生日期(YYYY-MM-DD)'];
+  var example = ['11421101','盧瑞萱','Lu Jui-Hsuan','F','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','北17秋01', (HOUSING_OPTIONS[0]&&HOUSING_OPTIONS[0].label||''), '', '','學士','國立台灣大學','2025-09-01','1998-05-20'];
+  var note = ['# 必填8碼','# 必填','','# M男/F女/O其他','# pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格','','','','','','','','','# 請填目前有效選項名稱：'+housingLabels+'（拼字需完全一致）','','','','# YYYY-MM-DD','# YYYY-MM-DD'];
   var ws = XLSX.utils.aoa_to_sheet([headers, example, note]);
   ws['!cols'] = headers.map(function(){ return {wch:14}; });
   var wb = XLSX.utils.book_new();
@@ -15796,10 +15943,12 @@ async function executeStudentUpdate() {
     phone:'phone', address:'address',
     emergency_name:'emergency_name', emergency_relation:'emergency_relation',
     emergency_phone:'emergency_phone',
-    guang_lun_class:'guang_lun_class', housing:'housing', notes:'notes',
+    guang_lun_class:'guang_lun_class', housing_address:'housing_address', notes:'notes',
     prev_education:'prev_education', prev_school:'prev_school',
     enrolled_date:'enrolled_date', birth_date:'birth_date'
   };
+  // 'housing'欄位比較特殊：Excel填的是選項名稱文字，要比對housing_options表找出對應id，
+  // 不能跟其他欄位一樣直接把原始文字存進資料庫(資料庫已經沒有housing這個舊欄位了)，所以獨立處理、不放進上面的FIELD_MAP。
 
   for (var i = 0; i < _updateRows.length; i++) {
     var r = _updateRows[i];
@@ -15814,6 +15963,10 @@ async function executeStudentUpdate() {
         payload[dbKey] = String(r[excelKey]).trim();
       }
     });
+    if (r.housing !== undefined && String(r.housing).trim()) {
+      var hOpt = (HOUSING_OPTIONS||[]).find(function(h){ return h.label === String(r.housing).trim(); });
+      if (hOpt) payload.housing_option_id = hOpt.id;
+    }
 
     try {
       var existing = existMap[code];
