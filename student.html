@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.13 2026-09-28 -->
+<!-- BWBC Student v3.14 2026-09-28 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -632,6 +632,12 @@ function resolveReqType(baseReqType, overrides, cohort) {
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
   {
+    version: 'v3.14', date: '2026-09-28',
+    items: [
+      '🔒重大安全性修正：登入流程原本是Supabase Auth驗證一通過就先顯示完整的選課入口畫面，之後才查對應的學生資料，查不到也只顯示一則錯誤訊息、其餘畫面沒有擋下來。因為跟admin.html/teacher.html共用同一套Auth使用者池，理論上任何有效帳號(例如老師自己的帳號)都能先進到學生端完整畫面。修正為先確認查得到對應學生資料，查不到就直接登出並擋在登入畫面，不會再顯示任何學生端內容',
+    ]
+  },
+  {
     version: 'v3.13', date: '2026-09-28',
     items: [
       '修正加退選截止banner只顯示日期、看不出時間、也沒有停修截止資訊的問題：改成同時顯示加退選截止與停修截止的完整日期時間，停修截止若尚未到期會提示可洽辦公室辦理，已過則標示「已過」；資料完全來自「加退選期程設定」，往後日期異動不用改程式',
@@ -790,9 +796,13 @@ async function getCurrentSemesterByDate() {
 
 async function enterApp(user) {
   CURRENT_USER_ID = user.id;
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app-screen').style.display='block';
-  document.getElementById('s-user-label').textContent = user.email;
+
+  // ⚠️ 2026-09-28重大安全性修正：權限檢查一定要在「顯示學生選課入口畫面」之前做完，不能先open app-screen再檢查。
+  // 修正前的做法是先把login-screen藏起來、app-screen顯示出來，才去查對應的學生資料，
+  // 查不到時只顯示一則錯誤banner、其餘畫面(側邊欄、各功能頁)完全沒有擋下來，
+  // 導致任何有效的Supabase帳號(例如老師/管理者自己的登入帳號，跟admin.html/teacher.html共用同一套Auth使用者池)
+  // 都能先進到學生入口的完整畫面操作，即使抓不到對應學生資料。
+  // 修正為：先查學生資料，查不到就直接signOut並擋在登入畫面，不讓任何學生端內容有機會顯示出來。
 
   // 透過 users 表的 student_id 找學生資料（最可靠的關聯方式）
   const { data:uRow } = await sb.from('users').select('student_id,role').eq('id', user.id).maybeSingle();
@@ -810,10 +820,15 @@ async function enterApp(user) {
     s = stuByEmail;
   }
   if (!s) {
-    showBanner('err','❌ 找不到對應的學生資料，請聯絡行政辦公室。');
+    await sb.auth.signOut();
+    showFeedback('❌ 此帳號沒有對應的學生資料，無法登入，請聯絡行政辦公室。', 'err');
     return;
   }
   ME = s;
+
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('s-user-label').textContent = user.email;
 
   // 更新頂部顯示：姓名 + email
   document.getElementById('s-user-label').textContent = `${ME.name_zh}　${user.email}`;

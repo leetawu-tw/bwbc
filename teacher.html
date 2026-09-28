@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.0 2026-09-28 -->
+<!-- BWBC Teacher v3.2 2026-09-28 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -232,8 +232,9 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
     <div class="side-nav" id="teacher-side-nav">
       <div style="font-size:11px;font-weight:600;color:#888;padding:0 16px 8px;letter-spacing:.05em">功能選單</div>
       <div class="side-item" id="nav-ann"         onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
-      <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')"><span class="nav-icon">📚</span><span class="nav-txt">我的課程</span></div>
       <div class="side-item" id="nav-profile"     onclick="showSection('profile')"><span class="nav-icon">👤</span><span class="nav-txt">個人資料</span></div>
+      <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')"><span class="nav-icon">📚</span><span class="nav-txt">我的課程</span></div>
+      <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
       <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')"><span class="nav-icon">🗂</span><span class="nav-txt">所有課程</span></div>
       <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')"><span class="nav-icon">🎯</span><span class="nav-txt">課堂調查即時秀</span></div>
       <div class="side-item" id="nav-survey"      onclick="showSection('survey')"><span class="nav-icon">📊</span><span class="nav-txt">教學意見</span></div>
@@ -242,7 +243,6 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
       <div class="side-item" id="nav-grades"      onclick="showSection('grades')"><span class="nav-icon">📊</span><span class="nav-txt">成績登錄</span></div>
       <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')"><span class="nav-icon">🧭</span><span class="nav-txt">操行評分</span></div>
-      <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
     </div>
     <!-- 右側主內容 -->
     <div class="main" style="flex:1;overflow-y:auto;height:100%">
@@ -888,17 +888,24 @@ function showFeedback(msg, type) {
 
 async function enterApp(user) {
   CURRENT_USER_ID = user.id;
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
-  document.getElementById('t-user-label').textContent = user.email;
 
-  // 找對應教師資料
+  // ⚠️ 2026-09-28重大安全性修正：權限檢查一定要在「顯示教師入口畫面」之前做完，不能先open app-screen再檢查。
+  // 修正前的做法是先把login-screen藏起來、app-screen顯示出來，才去查teachers表有沒有這個email，
+  // 查不到時只在「我的課程」那個格子裡顯示錯誤文字，其餘畫面(側邊欄、所有課程、成績登錄等)完全沒有擋，
+  // 導致任何有效的Supabase帳號(例如學生自己的登入帳號，跟student.html共用同一套Supabase Auth使用者池)
+  // 都能先通過signInWithPassword/OTP驗證、進到教師入口的完整畫面操作，即使抓不到對應教師資料。
+  // 修正為：先查teachers表，查不到就直接signOut並擋在登入畫面，不讓任何教師端內容有機會顯示出來。
   const { data: t } = await sb.from('teachers').select('*').eq('email', user.email).maybeSingle();
   if (!t) {
-    document.getElementById('my-courses-grid').innerHTML =
-      '<div style="color:#c00;padding:20px">找不到對應的教師資料，請聯絡行政人員。</div>';
+    await sb.auth.signOut();
+    const fb = document.getElementById('t-pw-feedback');
+    if (fb) { fb.textContent = '❌ 此帳號沒有教師權限，無法登入教師入口，如有疑問請聯絡行政人員。'; fb.className = 'feedback err'; fb.style.display = 'block'; }
+    showFeedback('❌ 此帳號沒有教師權限，無法登入教師入口，如有疑問請聯絡行政人員。', 'err');
     return;
   }
+
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
   ME = t;
   document.getElementById('t-user-label').textContent = `${t.name_zh}　${user.email}`;
   await Promise.all([loadMyCourses(), loadProfile(), loadAllCourses()]);
@@ -1383,9 +1390,14 @@ async function loadAllCourses() {
     if (!teacherMap[t.offering_id]) teacherMap[t.offering_id] = [];
     teacherMap[t.offering_id].push(t.name_zh);
   });
-  ALL_COURSES = (coursesRes.data || []).map(c => ({
-    ...c, teachers_str: (teacherMap[c.offering_id] || []).join('、') || '—'
-  }));
+  // 排除已安全停開的開課記錄(is_cancelled=true)：這是admin端「⏸停開」機制(v10.18)標記用的，
+  // 不是真的刪除，只是不該再出現在一般瀏覽列表裡。同一類遺漏之前已在admin端4處補過
+  // (TA配對、課程幹部安排、空白成績單、大綱代辦清單)，teacher.html「所有課程」是漏掉的第5處(2026-09-28發現並修正)
+  ALL_COURSES = (coursesRes.data || [])
+    .filter(c => !c.is_cancelled)
+    .map(c => ({
+      ...c, teachers_str: (teacherMap[c.offering_id] || []).join('、') || '—'
+    }));
 
   const sems = [];
   ALL_COURSES.forEach(c => { if (c.semester_label && !sems.includes(c.semester_label)) sems.push(c.semester_label); });
