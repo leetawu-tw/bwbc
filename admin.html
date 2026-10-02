@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.52 2026-10-02 兼課鐘點費及交通費核銷：本月清單只顯示本學期有開課(或已有核銷記錄)的教師；「依課表帶入」「從點名帶入」改用節數制(50分鐘1節=1小時，節間10分鐘休息不列入時數)重新計算時數；匯出Excel加上A4橫式/限制1頁寬/格線設定 -->
+<!-- BWBC Admin v10.53 2026-10-02 兼課鐘點費及交通費核銷：本月清單只顯示本學期有開課(或已有核銷記錄)的教師；「依課表帶入」「從點名帶入」改用節數制(50分鐘1節=1小時，節間10分鐘休息不列入時數)重新計算時數；匯出Excel加上A4橫式/限制1頁寬/格線設定；修正側邊欄版本號標籤沒有自動同步最新版本號的問題 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -400,7 +400,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       </div>
       <div class="sidebar-footer" onclick="openChangelog()">
-        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.49　2026-09-28</div>
+        <div id="app-version-label" style="font-weight:600;color:var(--ink2)">v10.53　2026-10-02</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </nav>
@@ -10785,9 +10785,16 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 /* ── 版本與更新紀錄 ──
    規則：每次有實質功能異動，在陣列最前面新增一筆（date/items），並同步更新：
    1. 檔案最開頭的 <!-- BWBC Admin vX.X YYYY-MM-DD --> 註解
-   2. 側邊欄 #app-version-label 顯示的文字
+   2.（已改自動）側邊欄 #app-version-label 不用再手動改，頁面載入時會自動抓 APP_CHANGELOG[0] 顯示，
+      這裡每次忘記手動同步的bug已發生多次(v10.52這次又重演一次)，從此不用再記得這條規則
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.53', date: '2026-10-02',
+    items: [
+      '修正側邊欄左下角版本號「對不上」的老問題：#app-version-label原本是寫死的文字，每次改版本號都要記得手動同步改這裡，這個步驟已經漏改好幾次(這次v10.52又重演，導致畫面顯示v10.49但「更新紀錄」裡最新一筆其實已經是v10.52)。改成頁面載入時自動抓APP_CHANGELOG陣列最前面一筆顯示，之後不會再有這個落差',
+    ]
+  },
   {
     version: 'v10.52', date: '2026-10-02',
     items: [
@@ -11394,6 +11401,13 @@ const APP_CHANGELOG = [
     ]
   },
 ];
+
+// 側邊欄版本號標籤改自動同步：直接抓APP_CHANGELOG陣列最前面(最新)一筆顯示，
+// 不用再每次改版本時手動同步改這個標籤的文字(這個手動同步步驟已經漏改好幾次，索性改成自動的)
+(function syncAppVersionLabel() {
+  const lbl = document.getElementById('app-version-label');
+  if (lbl && APP_CHANGELOG[0]) lbl.textContent = APP_CHANGELOG[0].version + '　' + APP_CHANGELOG[0].date;
+})();
 
 function openChangelog() {
   const body = document.getElementById('changelog-body');
