@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.49 2026-09-28 -->
+<!-- BWBC Admin v10.52 2026-10-02 兼課鐘點費及交通費核銷：本月清單只顯示本學期有開課(或已有核銷記錄)的教師；「依課表帶入」「從點名帶入」改用節數制(50分鐘1節=1小時，節間10分鐘休息不列入時數)重新計算時數；匯出Excel加上A4橫式/限制1頁寬/格線設定 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -10789,6 +10789,27 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.52', date: '2026-10-02',
+    items: [
+      '兼課鐘點費及交通費核銷：教師清單改成只顯示「本學期有開課」的兼課教師，本學期沒有開課的教師不再列出；若該教師本月已有核銷記錄(上課日/講師費/交通費)則仍會保留顯示，不會讓歷史資料無故消失',
+      '「📅 依課表帶入」「📋 從點名帶入」的時數計算改為節數制：上課時間已經是50分鐘1節、節間休息10分鐘，不能直接用下課時間減上課時間除60(例如14:00-16:50會變成2.8333小時)，改成反推實際節數(= (時間差+10分鐘)/60分鐘)，同樣的例子會正確算出3小時',
+      '📥 匯出本月報表 Excel 加上列印設定：A4橫式、限制在1頁寬以內(直向可分頁)、開啟格線方便閱讀列印(若瀏覽器載入的xlsx函式庫版本不支援框線樣式寫入，開啟後可在Excel「版面配置→工作表選項→列印」勾選「格線」一次性解決)',
+    ]
+  },
+  {
+    version: 'v10.51', date: '2026-10-01',
+    items: [
+      '修正「教室借用申請→教室使用總覽」點擊借用項目的詳情彈窗「✏️編輯」「🗑刪除預約」按鈕跳「找不到原始預約資料」的bug：根因是rbRenderOverview()查詢該週已核准預約時的select()漏了id欄位，每一筆預約物件的id都是undefined，編輯/刪除時拿undefined去全部預約記錄陣列裡找當然找不到。已補上id欄位',
+    ]
+  },
+  {
+    version: 'v10.50', date: '2026-10-01',
+    items: [
+      '課程點名單「🖨 列印」與「📥 匯出Excel」原本是兩個各自獨立維護的函式，欄位順序容易改一邊忘了改另一邊，這次合併成共用函式buildAttendanceSheetInfo()(抓課程資訊+選課學生名單)與attendanceStudentStatus()(單一學生的停修/退選/休學/退學狀態判斷)，兩邊各自只保留輸出格式(HTML表格 vs Excel儲存格)不同的部分，之後只要改一個地方就會同步',
+      '點名單學期標題格式從「XX學年度上/下學期」統一改成「XX學年度第X學期」，並依輸出方式各自加註：列印版顯示「(列印)」，匯出Excel版顯示「(匯出)」，方便區分同一份資料是用哪種方式產生的',
+    ]
+  },
+  {
     version: 'v10.49', date: '2026-09-28',
     items: [
       '學生資料「住宿需求」改成完全由admin自訂清單：新增「⚙️ 住宿選項管理」畫面(可新增/改名/排序/停用選項，並個別設定該選項是否需要填寫地址)，取代過去寫死在程式碼裡的5個固定值(self_home/eco_village/off_campus/commute/other)。新增housing_options表與students.housing_option_id/housing_address欄位，舊的housing欄位改名housing_legacy保留備份。「自宅」與「通勤」重新命名為「自宅（雲林縣內）」「自宅通勤（雲林縣外）」，兩者皆改為要求填寫實際地址(地址內容本身就能看出雲林縣內外，不用再靠人工判斷分類)；「生態村租屋」拆分成多個指名社區選項。批次匯入/更新匯入的範本與比對邏輯同步更新為比對選項名稱文字，不再是固定英文代碼',
@@ -12796,6 +12817,7 @@ async function deleteAdvisor(id) {
 let _payRates = [];
 let _adjunctTeachers = [];
 let _payrollMap = {}; // teacher_id -> { row: adjunct_payroll, days: [...] }
+let _payrollTeachersForMonth = []; // 本月實際要顯示的老師清單(=本學期有開課 或 這個月已有核銷記錄的老師)，_adjunctTeachers是全部兼課教師(不隨月份篩選)
 
 // 數字轉中文大寫金額(用於收據"應領金額"欄位)，逐位處理+跨組零判斷，支援到億(鐘點費/交通費金額不會超過這個範圍)
 function numberToChineseCapital(num) {
@@ -12883,6 +12905,27 @@ async function loadPayroll() {
     const { data: days } = await sb.from('adjunct_payroll_days').select('*').eq('payroll_id', row.id).order('class_date');
     _payrollMap[t.id] = { row, days: days || [] };
   }
+
+  // 找出此月份對應的學期，只留下「本學期確實有開課」的兼課教師；
+  // 已經有核銷記錄(上課日/講師費/交通費)的教師即使本學期查不到開課，也保留顯示，避免歷史資料無故消失
+  const { data: semRows } = await sb.from('semesters').select('id,start_date,end_date');
+  const sem = (semRows||[]).find(s => ym >= s.start_date.slice(0,7) && ym <= s.end_date.slice(0,7));
+  let teachingIds = new Set();
+  if (sem) {
+    const { data: offs } = await sb.from('course_offerings').select('id').eq('semester_id', sem.id);
+    const offIds = (offs||[]).map(o=>o.id);
+    if (offIds.length) {
+      const { data: ot } = await sb.from('offering_teachers').select('teacher_id').in('offering_id', offIds);
+      teachingIds = new Set((ot||[]).map(o=>o.teacher_id));
+    }
+  }
+  _payrollTeachersForMonth = _adjunctTeachers.filter(t => {
+    if (teachingIds.has(t.id)) return true;
+    const m = _payrollMap[t.id];
+    if (!m) return false;
+    return m.days.length > 0 || (m.row.lecture_fee||0) > 0 || (m.row.transport_fee||0) > 0;
+  });
+
   renderPayrollLists();
 }
 
@@ -13197,8 +13240,8 @@ function prevYearMonth(ym) {
 }
 
 function renderPayrollLists() {
-  const contracted = _adjunctTeachers.filter(t=>t.adjunct_type==='contracted');
-  const general = _adjunctTeachers.filter(t=>t.adjunct_type!=='contracted');
+  const contracted = _payrollTeachersForMonth.filter(t=>t.adjunct_type==='contracted');
+  const general = _payrollTeachersForMonth.filter(t=>t.adjunct_type!=='contracted');
   document.getElementById('payroll-list-contracted').innerHTML = contracted.map(renderTeacherPayrollCard).join('') || '<div style="color:var(--ink3);font-size:13px;padding:10px">尚無聘任兼課教師（請至教師管理設定）</div>';
   document.getElementById('payroll-list-general').innerHTML = general.map(renderTeacherPayrollCard).join('') || '<div style="color:var(--ink3);font-size:13px;padding:10px">尚無一般兼課教師</div>';
 
@@ -13377,7 +13420,7 @@ async function prefillFromAttendance(teacherId) {
       if (existing.mode !== expectedMode) toUpdate.push({ id: existing.id, mode: expectedMode });
       return;
     }
-    const hours = (toMinutes(o.end_time) - toMinutes(o.start_time)) / 60;
+    const hours = calcClassHours(o.start_time, o.end_time);
     toInsert.push({
       payroll_id: row.id, class_date: session.session_date,
       mode: expectedMode,
@@ -13428,7 +13471,7 @@ async function prefillFromSchedule(teacherId) {
   const toInsert = [];
   for (const o of (offerings||[])) {
     if (o.day == null || !o.start_time || !o.end_time) continue;
-    const hours = (toMinutes(o.end_time) - toMinutes(o.start_time)) / 60;
+    const hours = calcClassHours(o.start_time, o.end_time);
     for (let d=1; d<=daysInMonth; d++) {
       const dt = new Date(y, m-1, d);
       if (dt.getDay() === (o.day % 7)) {
@@ -13450,6 +13493,16 @@ async function prefillFromSchedule(teacherId) {
 function toMinutes(t) {
   const [h,m] = t.split(':').map(Number);
   return h*60+m;
+}
+
+// 鐘點時數計算：上課時間已改為「50分鐘為1節，節間休息10分鐘」，不能直接用下課-上課的鐘面時間差除60
+// (那樣150分鐘的課含2次10分鐘下課會變成2.8333小時)。正確算法是反推總共幾節：
+// n節課的起訖時間差 = 50*n(上課) + 10*(n-1)(節間休息，最後一節後面不算) = 60n-10 分鐘，故 n = (時間差+10)/60
+// 例：14:00-16:50=170分鐘→3節(3小時)；9:00-10:50=110分鐘→2節(2小時)；15:00-16:50=110分鐘→2節(2小時)
+function calcClassHours(startTime, endTime) {
+  const elapsed = toMinutes(endTime) - toMinutes(startTime);
+  if (elapsed <= 0) return 0;
+  return Math.round((elapsed + 10) / 60 * 2) / 2; // 四捨五入到0.5小時，容錯極少數半節或登打誤差的情況
 }
 
 /* ── 職級費率設定 Modal ── */
@@ -13509,8 +13562,9 @@ async function exportPayrollExcel() {
     return rows;
   }
 
-  const contracted = _adjunctTeachers.filter(t=>t.adjunct_type==='contracted');
-  const general = _adjunctTeachers.filter(t=>t.adjunct_type!=='contracted');
+  // 匯出範圍跟畫面顯示一致：只匯出本學期有開課(或本月已有核銷記錄)的兼課教師，排掉的老師不會出現在報表裡
+  const contracted = _payrollTeachersForMonth.filter(t=>t.adjunct_type==='contracted');
+  const general = _payrollTeachersForMonth.filter(t=>t.adjunct_type!=='contracted');
 
   // 計算每段在最終wsData裡的起始列索引，供合併標題列用
   let rowCursor = 4; // 第0-2列是三行標題（學校/系所/月份），第3列空白，第4列開始是第一段
@@ -13530,8 +13584,8 @@ async function exportPayrollExcel() {
     ['','承辦人簽章：','','','','','','主管核章：',''],
     [],
     ['鐘點費說明:'],
-    ...[...new Set(_adjunctTeachers.map(t=>t.adjunct_rank).filter(Boolean))].map(rank =>
-      [`${_adjunctTeachers.filter(t=>t.adjunct_rank===rank).map(t=>t.name_zh).join('、')}老師為${rank}級鐘點費：${rateForRank(rank)}元/時。`]),
+    ...[...new Set(_payrollTeachersForMonth.map(t=>t.adjunct_rank).filter(Boolean))].map(rank =>
+      [`${_payrollTeachersForMonth.filter(t=>t.adjunct_rank===rank).map(t=>t.name_zh).join('、')}老師為${rank}級鐘點費：${rateForRank(rank)}元/時。`]),
     [],
     ['交通費補助說明:'],
     ...contracted.concat(general).filter(t=>_payrollMap[t.id]?.row.transport_note).map(t=>[`${t.name_zh}老師：${_payrollMap[t.id].row.transport_note}`]),
@@ -13561,12 +13615,21 @@ async function exportPayrollExcel() {
     {wch:6},
   ];
 
-  // 取消自動換行，確保文字不會被儲存格邊界截斷看不見（改用寬欄位完整顯示）
+  // 取消自動換行，確保文字不會被儲存格邊界截斷看不見（改用寬欄位完整顯示）；同時補上細框線，開啟格線方便閱讀
+  const thinGrey = { style:'thin', color:{ rgb:'BFBFBF' } };
   Object.keys(ws).forEach(key => {
     if (key.startsWith('!')) return;
     if (!ws[key].s) ws[key].s = {};
     ws[key].s.alignment = { wrapText: false, vertical: 'center' };
+    ws[key].s.border = { top:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
   });
+
+  // 列印設定：A4橫式、限制在1頁寬內(直向可以分頁)、開啟螢幕與列印格線
+  // 註：框線/格線是否實際套用取決於瀏覽器載入的xlsx函式庫版本對寫入樣式的支援程度，
+  // 若匯出後發現框線沒出現，可在Excel開啟後自行到「版面配置→工作表選項→列印」勾選「格線」，一次性設定即可
+  ws['!pageSetup'] = { orientation: 'landscape', paperSize: 9, fitToWidth: 1, fitToHeight: 0, scale: 100, fitToPage: true, printGridLines: true };
+  ws['!margins'] = { left:0.4, right:0.4, top:0.5, bottom:0.5, header:0.2, footer:0.2 };
+  ws['!sheetViews'] = [{ showGridLines: true }];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, monthLabel);
@@ -14475,28 +14538,18 @@ async function openAttendanceSheet(offeringId) {
   openModal('att-modal');
 }
 
-async function printCourseAttendance() {
-  // 先開好視窗(必須在第一個await之前執行，不然瀏覽器會認為這不是使用者剛點擊觸發的動作，靜默封鎖彈出視窗)
-  var win = window.open('', '_blank');
-
-  const offeringId = document.getElementById('att-offering-id').value;
+// ── 點名單共用邏輯（列印版／匯出Excel版共用同一套，避免兩邊各自維護漸漸不同步）──
+// 共用：課程資訊＋選課學生名單（已排除dropped，confirmed+withdrawn都保留）
+async function buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital) {
   const o = OFFERINGS.find(x => x.offering_id === offeringId);
-  if (!o) { showToast('找不到該課程', 'error'); if (win) win.close(); return; }
-
-  const year  = document.getElementById('att-year').value;
-  const month = document.getElementById('att-month').value;
-  const angel = document.getElementById('att-angel').value.trim();
-  const ta    = document.getElementById('att-ta').value.trim();
-  const av    = document.getElementById('att-av').value.trim();
-  const isDigital = document.getElementById('att-digital').checked;
-
-  // 課程幹部已改為讀取 offering_staff（admin指派的課程幹部），不再寫入localStorage
+  if (!o) return null;
 
   const teacherArr = TEACHERS_MAP[offeringId] || [];
   const REQ_LABEL = { req:'必修', sel:'選修', go:'選修(2選1)' };
   const reqLabel = REQ_LABEL[o.req_type] || o.req_type || '';
   const ROLE_LABEL = { '主講':'主授教授', '共同授課':'協同教授', '週次講師':'週次講師', '來賓':'特邀來賓' };
-  const semText = o.academic_year + '學年度' + (o.semester_num === 1 ? '上' : '下') + '學期';
+  const semText = o.academic_year + '學年度第' + o.semester_num + '學期';
+  const attendBox = isDigital ? '□實體 連線(□同步 □非同步)' : '□實體 □連線';
 
   // 選課學生
   const { data: enrs, error: enrErr } = await sb.from('enrollments')
@@ -14514,8 +14567,40 @@ async function printCourseAttendance() {
   }
   const activeCount = students.filter(s => s.enr_status === 'confirmed' || s.enr_status === 'pending').length;
 
+  return { o, teacherArr, reqLabel, ROLE_LABEL, semText, attendBox, students, activeCount, enrErr, angel, ta, av, isDigital };
+}
+
+// 共用：單一學生的點名狀態顯示文字（enr_status是「這筆選課記錄」本身的狀態；status是「學生」整體學籍狀態，兩者不同表、不能混用同一個判斷結果）
+function attendanceStudentStatus(s, normalLabel) {
+  const isEnrWithdrawn = s.enr_status === 'withdrawn'; // admin正式辦理停修
+  const isEnrDropped = s.enr_status === 'dropped'; // 加退選期間內學生自己退選，還不到停修（理論上不會出現在這裡，buildAttendanceSheetInfo已先濾掉）
+  const isLeave = s.status === 'leave';
+  const isStudentWithdrawn = s.status === 'withdrawn';
+  const isDropped = isEnrWithdrawn || isEnrDropped || isLeave || isStudentWithdrawn;
+  const dropLabel = isEnrWithdrawn ? '停修' : isEnrDropped ? '退選' : '';
+  const sl = dropLabel || (isLeave ? '休學' : isStudentWithdrawn ? '退學' : (normalLabel || ''));
+  return { isDropped, dropLabel, sl };
+}
+
+async function printCourseAttendance() {
+  // 先開好視窗(必須在第一個await之前執行，不然瀏覽器會認為這不是使用者剛點擊觸發的動作，靜默封鎖彈出視窗)
+  var win = window.open('', '_blank');
+
+  const offeringId = document.getElementById('att-offering-id').value;
+  const year  = document.getElementById('att-year').value;
+  const month = document.getElementById('att-month').value;
+  const angel = document.getElementById('att-angel').value.trim();
+  const ta    = document.getElementById('att-ta').value.trim();
+  const av    = document.getElementById('att-av').value.trim();
+  const isDigital = document.getElementById('att-digital').checked;
+
+  // 課程幹部已改為讀取 offering_staff（admin指派的課程幹部），不再寫入localStorage
+
+  const info = await buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital);
+  if (!info) { showToast('找不到該課程', 'error'); if (win) win.close(); return; }
+  const { o, teacherArr, reqLabel, ROLE_LABEL, semText, attendBox, students, activeCount, enrErr } = info;
+
   var wk = 5;
-  var attendBox = isDigital ? '□實體 連線(□同步 □非同步)' : '□實體 □連線';
 
   // 教授出席列
   var teacherRows = teacherArr.map(function(t) {
@@ -14529,21 +14614,14 @@ async function printCourseAttendance() {
 
   // 學生列（與教師共用同一 table，colspan=2 對齊教師的姓名+角色兩欄）
   var stuRows = students.length ? students.map(function(s) {
-    // enr_status是「這筆選課記錄」本身的狀態(confirmed/dropped/withdrawn)；status是「學生」整體的學籍狀態(active/leave/withdrawn)，兩者不同表、不能混用同一個判斷結果
-    var isEnrWithdrawn = s.enr_status === 'withdrawn'; // admin正式辦理停修
-    var isEnrDropped = s.enr_status === 'dropped'; // 加退選期間內學生自己退選，還不到停修
-    var isLeave = s.status === 'leave';
-    var isStudentWithdrawn = s.status === 'withdrawn';
-    var isDropped = isEnrWithdrawn || isEnrDropped || isLeave || isStudentWithdrawn;
-    var dropLabel = isEnrWithdrawn ? '停修' : isEnrDropped ? '退選' : '';
-    var sl = dropLabel || (isLeave ? '休學' : isStudentWithdrawn ? '退學' : '');
-    var bg = isDropped ? 'background:#f5f5f5;color:#999' : '';
-    var cells = isDropped
-      ? Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999;text-align:center;font-size:11px;color:#999">' + (sl||'停修') + '</td>').join('')
+    var st = attendanceStudentStatus(s, '');
+    var bg = st.isDropped ? 'background:#f5f5f5;color:#999' : '';
+    var cells = st.isDropped
+      ? Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999;text-align:center;font-size:11px;color:#999">' + (st.sl||'停修') + '</td>').join('')
       : Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999">&nbsp;</td>').join('');
     return '<tr style="' + bg + '">' +
       '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + (s.student_code||'') + (s.name_zh||'') + '</td>' +
-      '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + sl + '</td>' +
+      '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + st.sl + '</td>' +
       cells + '</tr>';
   }).join('') : '<tr><td colspan="' + (2+wk) + '" style="padding:15px;text-align:center;border:1px solid #999;color:#999">尚無選課學生' + (enrErr ? '（RLS 可能未設定）' : '') + '</td></tr>';
 
@@ -14556,8 +14634,8 @@ async function printCourseAttendance() {
   h += '.hdr td{padding:4px 10px;font-size:13px;vertical-align:top}';
   h += '</sty' + 'le></he' + 'ad><bo' + 'dy>';
 
-  // 學期標題
-  h += '<div style="text-align:center;font-size:15px;font-weight:bold;margin-bottom:8px">' + semText + '</div>';
+  // 學期標題（列印版加註「（列印）」）
+  h += '<div style="text-align:center;font-size:15px;font-weight:bold;margin-bottom:8px">' + semText + '（列印）</div>';
 
   // 課程資訊表頭
   h += '<table class="hdr" style="margin-bottom:4px">';
@@ -14621,9 +14699,6 @@ async function exportAttendanceExcel() {
   }
 
   var offeringId = document.getElementById('att-offering-id').value;
-  var o = OFFERINGS.find(function(x){ return x.offering_id === offeringId; });
-  if (!o) { showToast('找不到該課程', 'error'); return; }
-
   var year  = document.getElementById('att-year').value;
   var month = document.getElementById('att-month').value;
   var angel = document.getElementById('att-angel').value.trim();
@@ -14633,31 +14708,16 @@ async function exportAttendanceExcel() {
 
   // 課程幹部已改為讀取 offering_staff（admin指派的課程幹部），不再寫入localStorage
 
-  var teacherArr = TEACHERS_MAP[offeringId] || [];
-  var REQ_LABEL = { req:'必修', sel:'選修', go:'選修(2選1)' };
-  var reqLabel = REQ_LABEL[o.req_type] || o.req_type || '';
-  var ROLE_LABEL = { '主講':'主授教授', '共同授課':'協同教授', '週次講師':'週次講師', '來賓':'特邀來賓' };
-  var semText = o.academic_year + '學年度' + (o.semester_num === 1 ? '上' : '下') + '學期';
-  var attendLabel = isDigital ? '□實體 連線(□同步 □非同步)' : '□實體 □連線';
-
-  // 選課學生
-  var enrRes = await sb.from('enrollments').select('student_id, status').eq('offering_id', offeringId);
-  var students = [];
-  if (enrRes.data?.length) {
-    var stuIds = [...new Set(enrRes.data.map(function(e){ return e.student_id; }))];
-    var stuRes = await sb.from('students').select('id, student_code, name_zh, status').in('id', stuIds).order('student_code');
-    var enrMap = {};
-    enrRes.data.forEach(function(e){ enrMap[e.student_id] = e.status; });
-    students = (stuRes.data || []).map(function(s){ return Object.assign({}, s, { enr_status: enrMap[s.id] || 'confirmed' }); })
-      .filter(function(s){ return s.enr_status !== 'dropped'; }); // 加退選期間自己退選的，不列入點名單；只有正式停修(withdrawn)才要保留顯示
-  }
-  var activeCount = students.filter(function(s){ return s.enr_status === 'confirmed' || s.enr_status === 'pending'; }).length;
+  var info = await buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital);
+  if (!info) { showToast('找不到該課程', 'error'); return; }
+  var o = info.o, teacherArr = info.teacherArr, reqLabel = info.reqLabel, ROLE_LABEL = info.ROLE_LABEL,
+      semText = info.semText, attendLabel = info.attendBox, students = info.students, activeCount = info.activeCount;
 
   var wk = 5;
   var wsData = [];
 
-  // 學期標題
-  wsData.push([semText]);
+  // 學期標題（匯出版加註「（匯出）」）
+  wsData.push([semText + '（匯出）']);
   wsData.push([]);
 
   // 課程資訊
@@ -14690,15 +14750,9 @@ async function exportAttendanceExcel() {
 
   // 學生列
   students.forEach(function(s) {
-    var isEnrWithdrawn = s.enr_status === 'withdrawn'; // admin正式辦理停修
-    var isEnrDropped = s.enr_status === 'dropped'; // 加退選期間內學生自己退選，還不到停修
-    var isLeave = s.status === 'leave';
-    var isStudentWithdrawn = s.status === 'withdrawn';
-    var isDropped = isEnrWithdrawn || isEnrDropped || isLeave || isStudentWithdrawn;
-    var dropLabel = isEnrWithdrawn ? '停修' : isEnrDropped ? '退選' : '';
-    var sl = dropLabel || (isLeave ? '休學' : isStudentWithdrawn ? '退學' : '選課');
-    var row = [(s.student_code || '') + (s.name_zh || ''), sl];
-    for (var i = 0; i < wk; i++) row.push(isDropped ? (dropLabel||'停修') : '');
+    var st = attendanceStudentStatus(s, '選課');
+    var row = [(s.student_code || '') + (s.name_zh || ''), st.sl];
+    for (var i = 0; i < wk; i++) row.push(st.isDropped ? (st.dropLabel||'停修') : '');
     wsData.push(row);
   });
 
@@ -23300,7 +23354,7 @@ async function rbRenderOverview() {
 
   // 已核准的教室借用：教學期間內用紫色，教學期間外（例如還沒開學、或超過18週之後）用綠色
   const { data: bookings } = await sb.from('classroom_bookings')
-    .select('booking_date,start_time,end_time,purpose,organizer_name,organizer_unit,organizer_contact,expected_headcount,note,reviewed_at')
+    .select('id,booking_date,start_time,end_time,purpose,organizer_name,organizer_unit,organizer_contact,expected_headcount,note,reviewed_at')
     .eq('classroom_id', classroomId).eq('status','approved')
     .gte('booking_date', fmtD(weekStart)).lte('booking_date', fmtD(weekEnd));
   (bookings||[]).forEach(b => {
