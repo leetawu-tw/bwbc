@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.24 2026-10-05 真正修正側邊欄版本號看不到的根本原因：topbar改回正常排版流(不再用position:fixed)，#app-screen改成flex column，側邊欄與主內容區改用自動對齊的height:100%/flex:1，不用再各自手動補topbar高度偏移 -->
+<!-- BWBC Teacher v3.28 2026-10-05 課程資訊卡版面調整：學分數移到授課教師姓名最前面同一行(例："3學分 如亨法師")，不再放底部跟已選人數並列。前次(v3.27)修正授課教師姓名字體過大，(v3.26)「我的課程」跟「教材/作業」三個子畫面統一成admin.html開課記錄卡片樣式 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -114,6 +114,21 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .hub-breadcrumb a:hover{text-decoration:underline}
 .hub-breadcrumb .sep{color:var(--ink3)}
 .hub-breadcrumb .cur{font-weight:600;color:var(--ink)}
+
+/* 2026-10-05新增：課程小卡入口/單元管理/教材與作業共用的課程資訊卡，直接比照admin.html「開課記錄」的.oc卡片樣式(class名稱完全一致)，
+   資訊更完整(代碼/主軸/必選/年級徽章、時間、教室、授課教師、學分、已選人數)，底部.oc-actions保留擴充空間，
+   未來教材/作業這排要加其他按鈕時直接往這裡加，不用重新設計版面 */
+.oc{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);box-shadow:var(--sh);overflow:hidden;display:flex;flex-direction:column;margin-bottom:16px}
+.oc-top{padding:12px 14px 10px;border-bottom:1px solid var(--cr2)}
+.oc-meta{display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap}
+.oc-code{font-family:monospace;font-size:11px;color:var(--ink3)}
+.oc-name{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;line-height:1.3}
+.oc-en{font-size:11px;color:var(--ink3);font-style:italic;margin-bottom:7px}
+.oc-info{font-size:12px;color:var(--ink3);display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.oc-teachers{display:flex;flex-wrap:wrap;gap:4px;min-height:20px;font-size:11px;color:var(--ink3)}
+.oc-bot{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;background:var(--cr3)}
+.oc-cred{font-size:12.5px;font-weight:500;color:var(--ink);white-space:nowrap}
+.oc-actions{display:flex;gap:4px;flex-wrap:wrap}
 
 /* ── 單元管理 ── */
 .unit-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:10px 14px;margin-bottom:8px}
@@ -373,6 +388,7 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
           <span class="sep">／</span>
           <span class="cur" id="hub-crumb-name"></span>
         </div>
+        <div id="hub-course-bar"></div>
         <div class="hub-grid">
           <div class="hub-card" onclick="openCourseUnits()">
             <div class="hub-card-icon">🗂</div>
@@ -396,6 +412,7 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
           <span class="sep">／</span>
           <span class="cur">單元管理</span>
         </div>
+        <div id="units-course-bar"></div>
         <div class="section-title" style="display:flex;align-items:center;gap:12px">
           🗂 單元管理
           <button class="btn-save" style="margin-left:auto;padding:7px 16px;font-size:12.5px" onclick="openUnitModal()">＋ 新增單元</button>
@@ -414,6 +431,7 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
           <span class="sep">／</span>
           <span class="cur">教材與作業</span>
         </div>
+        <div id="assign-course-bar"></div>
         <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           📝 教材與作業
           <select id="assign-unit-filter" onchange="renderAssignments()"
@@ -1433,30 +1451,15 @@ function closeRosterModal() { document.getElementById('roster-modal').classList.
 function renderMyCourseCards(courses, sylMap) {
   const grid = document.getElementById('my-courses-grid');
   if (!courses.length) { grid.innerHTML = '<div style="color:var(--ink3);padding:20px">此學期無開課記錄</div>'; return; }
-  const teacherList = {};
   grid.innerHTML = courses.map(c => {
     const score = sylMap[c.offering_id]; const hasS = score !== undefined;
     const btnClass = (hasS && score >= 5) ? 'has' : 'none';
     const btnText = hasS && score > 0 ? '📋 編輯大綱（'+score+'/6）' : '📋 填寫大綱';
-    const axColor = AX_COLOR[c.axis_code] || '#1B3A6B';
-    const axBg = AX_BG[c.axis_code] || '#EEF2FA';
-    const allT = (c.teachers_str || '').replace(/<[^>]+>/g,'').split('、').filter(t=>t && t!=='—');
-    const coTeachers = allT.length > 1 ? '<div style="font-size:11px;color:var(--ink3);margin-top:3px">👥 '+c.teachers_str+'</div>' : '';
-    return '<div class="course-card"><div class="cc-top" style="border-top:3px solid '+axColor+'">' +
-      '<div class="cc-code">'+c.code+' · '+c.semester_label+'</div>' +
-      '<div class="cc-name">'+c.name_zh+'</div>' +
-      (c.name_en ? '<div class="cc-en">'+c.name_en+'</div>' : '') +
-      '<span class="ax-badge" style="background:'+axBg+';color:'+axColor+'">'+( c.axis_name||'')+'</span>' +
-      coTeachers +
-      '<div class="cc-info"><span>⏰ '+(c.time_raw||'待確認')+'</span><span>🏛 '+(c.classroom_name||'待確認')+'</span></div>' +
-      '</div><div class="cc-bot">' +
-      '<span class="cc-cred">'+c.credits+' 學分 <span style="font-size:11px;color:var(--ink3)">'+(REQ_ZH[c.req_type]||'')+'</span></span>' +
-      '<div>' +
-      '<button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="margin-right:6px">👥 學生名單（'+(c.enrolled_count||0)+'人）</button>' +
-      '<button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')" style="margin-right:6px">'+btnText+'</button>' +
-      '<button class="btn-syl none" onclick="openCourseHub(\''+c.offering_id+'\',\''+c.name_zh.replace(/'/g,"\\'")+'\',\''+c.semester_label+'\')">📝 教材/作業</button>' +
-      '</div>' +
-      '</div></div>';
+    const actionsHtml =
+      '<button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')">👥 學生名單</button>' +
+      '<button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')">'+btnText+'</button>' +
+      '<button class="btn-syl none" onclick="openCourseHub(\''+c.offering_id+'\',\''+c.name_zh.replace(/'/g,"\\'")+'\',\''+c.semester_label+'\')">📝 教材/作業</button>';
+    return renderHubCourseCard(c, actionsHtml);
   }).join('');
 }
 
@@ -1498,15 +1501,54 @@ let CUR_UNITS = [];      // 目前課程的單元清單
 let CUR_SYL_WEEKS = [];  // 目前課程的課綱週次（供單元來源選擇）
 const RESULT_LABEL = { '特優':'👑 特優', '達標':'✅ 達標', '待改進':'🌶 待改進' };
 
+// 2026-10-05新增：課程小卡入口/單元管理/教材與作業三個子畫面共用的課程資訊卡，
+// 完全比照admin.html「開課記錄」的.oc卡片樣式(代碼/主軸/必選/年級徽章、時間、教室、授課教師、學分、已選人數)，
+// 不是單純一條資訊列，是為了跟「我的課程」同一套視覺語言，底部.oc-actions之後要加其他按鈕(教材/作業相關)直接往這裡加
+function renderHubCourseCard(c, actionsHtml) {
+  if (!c) return '';
+  const axColor = AX_COLOR[c.axis_code] || '#1B3A6B';
+  const axBg = AX_BG[c.axis_code] || '#EEF2FA';
+  const cohortBadge = c.target_cohort ? '<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:#FFF8E1;color:#7A5C00;border:1px solid #F0C040">'+c.target_cohort+'級</span>' : '';
+  const reqBadge = c.req_type ? '<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:'+(c.req_type==='req'?'#FFF3E0':'#E8F5E9')+';color:'+(c.req_type==='req'?'#B05010':'#1A6A30')+';border:1px solid '+(c.req_type==='req'?'#F0C080':'#90D090')+'">'+(REQ_ZH[c.req_type]||'')+'</span>' : '';
+  const digitalBadge = c.is_digital ? '<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#EEF2FA;color:#1B3A6B;border:0.5px solid #B5D4F4">📱</span>' : '';
+  const auditBadge = c.is_audit ? '<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#EAF4EE;color:#1F5C3A;border:0.5px solid #C0DD97">🎓</span>' : '';
+  const teachersHtml = c.teachers_str || '<span style="font-size:11px;color:#CCC">授課教師待確認</span>';
+  return '<div class="oc" style="border-top:3px solid '+axColor+'">' +
+    '<div class="oc-top">' +
+      '<div class="oc-meta">' +
+        '<span class="oc-code">'+(c.code||'')+'</span>' +
+        digitalBadge + auditBadge +
+        '<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:'+axBg+';color:'+axColor+'">'+(c.axis_code||'')+'</span>' +
+        cohortBadge + reqBadge +
+      '</div>' +
+      '<div class="oc-name">'+(c.name_zh||'')+'</div>' +
+      (c.name_en ? '<div class="oc-en">'+c.name_en+'</div>' : '') +
+      '<div class="oc-info"><span>⏰ '+(c.time_raw||'待確認')+'</span><span>🏛 '+(c.classroom_name||'待確認')+'</span></div>' +
+      '<div class="oc-teachers">'+(c.credits||0)+'學分　'+teachersHtml+'</div>' +
+    '</div>' +
+    '<div class="oc-bot">' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<span class="oc-cred" style="color:'+((c.enrolled_count||0)>0?'var(--navy)':'var(--ink3)')+'">👥 已選 '+(c.enrolled_count||0)+' 人</span>' +
+      '</div>' +
+      '<div class="oc-actions">' +
+        (actionsHtml || '<button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+(c.name_zh||'').replace(/'/g,"\\'")+'\')">👥 學生名單</button>') +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 function openCourseHub(offeringId, name, semLabel) {
-  CUR_HUB = { offeringId, name, semLabel };
+  const c = (MY_COURSES||[]).find(x => x.offering_id === offeringId);
+  CUR_HUB = { offeringId, name, semLabel, course: c };
   document.getElementById('hub-crumb-name').textContent = name + '（' + semLabel + '）';
+  document.getElementById('hub-course-bar').innerHTML = renderHubCourseCard(c);
   showSection('course-hub');
 }
 
 async function openCourseUnits() {
   if (!CUR_HUB) { showSection('my-courses'); return; }
   document.getElementById('units-crumb-hub').textContent = CUR_HUB.name;
+  document.getElementById('units-course-bar').innerHTML = renderHubCourseCard(CUR_HUB.course);
   showSection('course-units');
   await loadUnits();
 }
@@ -1746,6 +1788,7 @@ const LATE_POLICY_LABEL = { block:'逾期不可繳交', allow_flag:'逾期仍可
 async function openCourseAssignments() {
   if (!CUR_HUB) { showSection('my-courses'); return; }
   document.getElementById('assign-crumb-hub').textContent = CUR_HUB.name;
+  document.getElementById('assign-course-bar').innerHTML = renderHubCourseCard(CUR_HUB.course);
   showSection('course-assignments');
   // 若還沒進過單元管理載入過單元清單，這裡也要有，因為新增作業要選單元
   if (!CUR_UNITS.length || CUR_UNITS._offeringId !== CUR_HUB.offeringId) await loadUnits();
@@ -5601,6 +5644,30 @@ async function lpSaveSet() {
       (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.28', date: '2026-10-05',
+    items: [
+      '課程資訊卡版面調整：學分數移到授課教師姓名最前面同一行顯示(例："3學分 如亨法師")，不再放在底部跟已選人數並列——學分是課程固定屬性，跟授課教師放一起更直覺',
+    ]
+  },
+  {
+    version: 'v3.27', date: '2026-10-05',
+    items: [
+      '修正v3.26課程資訊卡裡授課教師姓名字體過大的問題：.oc-teachers沒有設定font-size，純文字繼承瀏覽器預設大小(約16px)，比卡片其他文字(11-14px)明顯大一截，改成明確設定11px跟admin一致',
+    ]
+  },
+  {
+    version: 'v3.26', date: '2026-10-05',
+    items: [
+      'UI一致性改善(修正版)：「我的課程」列表卡片跟「教材/作業」三個子畫面(課程小卡入口/單元管理/教材與作業)的課程資訊卡，改成共用同一個renderHubCourseCard，徹底統一成admin.html「開課記錄」的卡片樣式，不是只改子畫面——「我的課程」原本那套卡片本來就沒有📱數位／🎓隨班附讀這些徽章，這次一併補上',
+    ]
+  },
+  {
+    version: 'v3.25', date: '2026-10-05',
+    items: [
+      'UI一致性改善：「教材/作業」入口（課程小卡入口/單元管理/教材與作業三個子畫面）麵包屑下方新增課程資訊卡，比照admin.html「開課記錄」的卡片樣式(代碼/主軸/必選/年級徽章、時間、教室、授課教師、學分、已選人數)，跟「我的課程」卡片風格統一，之前這三個畫面只有一行極簡麵包屑、看不到課程本身資訊',
+    ]
+  },
   {
     version: 'v3.24', date: '2026-10-05',
     items: [
