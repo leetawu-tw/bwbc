@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.53 2026-10-02 兼課鐘點費及交通費核銷：本月清單只顯示本學期有開課(或已有核銷記錄)的教師；「依課表帶入」「從點名帶入」改用節數制(50分鐘1節=1小時，節間10分鐘休息不列入時數)重新計算時數；匯出Excel加上A4橫式/限制1頁寬/格線設定；修正側邊欄版本號標籤沒有自動同步最新版本號的問題 -->
+<!-- BWBC Admin v10.55 2026-10-05 修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -10789,6 +10789,20 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
       這裡每次忘記手動同步的bug已發生多次(v10.52這次又重演一次)，從此不用再記得這條規則
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.55', date: '2026-10-05',
+    items: [
+      '修正v10.54的bug：教室使用總覽週表會把單純有點名記錄、但沒有真正調課(classroom_id為null)的場次誤判成「🔄調課」顯示。原因是判斷「調進來這間教室」時誤用了rbCheckRoomConflict專用的fallback(沒設定classroom_id就退回去用開課原本的教室)，改成只有classroom_id真的被設定時才算調課，null一律視為沒有調課覆寫',
+    ]
+  },
+  {
+    version: 'v10.54', date: '2026-10-05',
+    items: [
+      '新增：調課/停課跟教室借用系統串接。class_sessions新增is_cancelled(停課標記，保留點名歷史)、classroom_id(調課換教室覆寫)、booking_id(連動的教室借用記錄)三個欄位',
+      '新增共用函式rbGetSessionOverridesInRange+rbCheckRoomConflict：所有判斷「某教室某時段是否可用」的地方(查詢空教室、送出借用申請、複製借用、編輯借用)統一改用這套邏輯，自動把停課的場次釋放教室、調課換教室/換時段的場次算進佔用判斷，不用每處各寫一份',
+      '「教室使用總覽」週表畫面：停課的場次改顯示為灰色「🚫已停課」；調課換到別的教室的場次會從原教室畫面移除，並在調去的新教室畫面上以橘色「🔄調課」顯示',
+    ]
+  },
   {
     version: 'v10.53', date: '2026-10-02',
     items: [
@@ -22669,6 +22683,59 @@ async function rbGetSemesterWithRegDay(dateStr) {
   return sem;
 }
 
+// 2026-10-05新增：調課/停課跟教室借用系統串接。
+// 查詢某段日期範圍內所有「有明確場次記錄」的課(class_sessions)，包含停課標記(is_cancelled)跟調課換教室(classroom_id覆寫)。
+// 同時joincourse_offerings抓出該開課記錄本身的時段/教室/學期，這樣即使某堂課調課調到跟原本不同的星期幾，
+// 也能判斷出它在新日期佔用了哪個教室的哪個時段——不用額外查詢。
+// 教室借用系統所有判斷「某教室某時段是否空著」的地方都共用這個函式查詢結果，
+// 這樣停課會釋放教室、調課換教室會佔用新教室，不用每處各寫一份查詢邏輯。
+async function rbGetSessionOverridesInRange(startDate, endDate) {
+  const { data } = await sb.from('class_sessions')
+    .select('offering_id,session_date,is_cancelled,classroom_id,course_offerings(start_time,end_time,classroom_id,semester_id)')
+    .gte('session_date', startDate).lte('session_date', endDate);
+  return data || [];
+}
+
+// 檢查「某教室」在「某天某時段」是否可用：同時比對固定排課、已核准借用、以及停課/調課換教室的場次記錄覆寫。
+// 回傳null=可用，否則回傳衝突原因文字。bookingIdToExclude用於編輯既有預約時排除自己這一筆，不跟自己原本的時段誤判衝突。
+// rbSubmitApplication/rbSubmitDuplicate/rbSubmitEdit/rbQueryAvailability全部共用這個函式，不要各自重寫一份衝突判斷邏輯。
+async function rbCheckRoomConflict(classroomId, dateStr, start, end, bookingIdToExclude) {
+  const dow = new Date(dateStr+'T00:00:00').getDay();
+  const sem = await rbGetSemesterWithRegDay(dateStr);
+  if (sem) {
+    const sessionOverrides = await rbGetSessionOverridesInRange(dateStr, dateStr);
+    const { data: offs } = await sb.from('course_offerings')
+      .select('id,classroom_id,day,start_time,end_time,week_pattern')
+      .eq('semester_id', sem.id).eq('is_active',true).eq('is_cancelled',false)
+      .eq('day', dow).not('classroom_id','is',null);
+    const handledOfferingIds = new Set();
+    for (const o of (offs||[])) {
+      if (!rbOfferingActiveOnDate(o, sem, dateStr)) continue;
+      const ov = sessionOverrides.find(s => s.offering_id === o.id && s.session_date === dateStr);
+      if (ov) {
+        handledOfferingIds.add(o.id);
+        if (ov.is_cancelled) continue; // 這天這門課標記停課，教室釋出，不算衝突
+        const roomId = ov.classroom_id || o.classroom_id; // 調課換教室時，這天改用新教室
+        if (roomId === classroomId && o.start_time < end && o.end_time > start) return '已排課（調課異動）';
+        continue;
+      }
+      if (o.classroom_id === classroomId && o.start_time < end && o.end_time > start) return '已排課';
+    }
+    // 其他課調課調到這一天、換到這間教室(本來不是這天上課，或本來不是這間教室)，也要算佔用
+    for (const ov of sessionOverrides) {
+      if (handledOfferingIds.has(ov.offering_id) || ov.is_cancelled || !ov.classroom_id) continue;
+      if (ov.classroom_id !== classroomId) continue;
+      const co = ov.course_offerings;
+      if (!co || co.semester_id !== sem.id) continue;
+      if (co.start_time < end && co.end_time > start) return '已排課（調課異動）';
+    }
+  }
+  const { data: bks } = await sb.from('classroom_bookings').select('id,start_time,end_time')
+    .eq('classroom_id', classroomId).eq('booking_date', dateStr).eq('status','approved');
+  if ((bks||[]).some(bk => bk.id !== bookingIdToExclude && bk.start_time < end && bk.end_time > start)) return '已被預約';
+  return null;
+}
+
 // ── 查詢空教室 ──
 async function rbQueryAvailability() {
   const date = document.getElementById('rb-query-date').value;
@@ -22691,13 +22758,30 @@ async function rbQueryAvailability() {
   const dow = new Date(date+'T00:00:00').getDay(); // 0=Sun...6=Sat
   let scheduleConflictRoomIds = new Set();
   if (sem) {
+    const sessionOverrides = await rbGetSessionOverridesInRange(date, date); // 2026-10-05：當天有沒有停課/調課換教室的場次記錄
     const { data: offs } = await sb.from('course_offerings')
-      .select('classroom_id,day,start_time,end_time,week_pattern')
+      .select('id,classroom_id,day,start_time,end_time,week_pattern')
       .eq('semester_id', sem.id).eq('is_active',true).eq('is_cancelled',false)
       .eq('day', dow).not('classroom_id','is',null);
+    const handledOfferingIds = new Set();
     (offs||[]).forEach(o => {
       if (!rbOfferingActiveOnDate(o, sem, date)) return;
+      const ov = sessionOverrides.find(s => s.offering_id === o.id && s.session_date === date);
+      if (ov) {
+        handledOfferingIds.add(o.id);
+        if (ov.is_cancelled) return; // 停課，教室釋出
+        const roomId = ov.classroom_id || o.classroom_id; // 調課換教室時，這天改用新教室
+        if (o.start_time < end && o.end_time > start) scheduleConflictRoomIds.add(roomId);
+        return;
+      }
       if (o.start_time < end && o.end_time > start) scheduleConflictRoomIds.add(o.classroom_id);
+    });
+    // 其他課調課調到這一天、換到別的教室(本來不是這天上課，或本來不是這間教室)，也要算佔用
+    sessionOverrides.forEach(ov => {
+      if (handledOfferingIds.has(ov.offering_id) || ov.is_cancelled || !ov.classroom_id) return;
+      const co = ov.course_offerings;
+      if (!co || co.semester_id !== sem.id) return;
+      if (co.start_time < end && co.end_time > start) scheduleConflictRoomIds.add(ov.classroom_id);
     });
   }
 
@@ -22791,21 +22875,11 @@ async function rbSubmitApplication() {
     dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
   }
 
-  // 逐週檢查衝突（跟排課、跟其他已核准預約）
+  // 逐週檢查衝突（跟排課、跟其他已核准預約、跟調課/停課的場次記錄覆寫，統一透過rbCheckRoomConflict判斷）
   const conflicts = [];
   for (const d of dates) {
-    const dow = new Date(d+'T00:00:00').getDay();
-    const sem = await rbGetSemesterWithRegDay(d);
-    if (sem) {
-      const { data: offs } = await sb.from('course_offerings').select('day,start_time,end_time,week_pattern')
-        .eq('semester_id', sem.id).eq('classroom_id', classroomId).eq('is_active',true).eq('is_cancelled',false).eq('day', dow);
-      const hasScheduleConflict = (offs||[]).some(o => rbOfferingActiveOnDate(o, sem, d) && o.start_time < end && o.end_time > start);
-      if (hasScheduleConflict) { conflicts.push(`${d}（已排課）`); continue; }
-    }
-    const { data: bks } = await sb.from('classroom_bookings').select('start_time,end_time')
-      .eq('classroom_id', classroomId).eq('booking_date', d).eq('status','approved');
-    const hasBookingConflict = (bks||[]).some(b => b.start_time < end && b.end_time > start);
-    if (hasBookingConflict) conflicts.push(`${d}（已被預約）`);
+    const reason = await rbCheckRoomConflict(classroomId, d, start, end, null);
+    if (reason) conflicts.push(`${d}（${reason}）`);
   }
   if (conflicts.length) {
     showToast(`⚠️ 以下日期有衝突，已取消整批送出，請調整時段後再試：${conflicts.join('、')}`, 'error');
@@ -23085,18 +23159,10 @@ async function rbSubmitDuplicate() {
   if (!organizer) { showToast('請填寫借用人姓名','error'); return false; }
   if (!contact) { showToast('請填寫聯絡方式','error'); return false; }
 
-  // 衝突檢查（跟正常送出申請同一套邏輯）
-  const dow = new Date(date+'T00:00:00').getDay();
-  const sem = await rbGetSemesterWithRegDay(date);
-  if (sem) {
-    const { data: offs } = await sb.from('course_offerings').select('day,start_time,end_time,week_pattern')
-      .eq('semester_id', sem.id).eq('classroom_id', classroomId).eq('is_active',true).eq('is_cancelled',false).eq('day', dow);
-    const hasScheduleConflict = (offs||[]).some(o => rbOfferingActiveOnDate(o, sem, date) && o.start_time < end && o.end_time > start);
-    if (hasScheduleConflict) { showToast('這個時段該教室已排課，無法借用','error'); return false; }
-  }
-  const { data: bks } = await sb.from('classroom_bookings').select('start_time,end_time')
-    .eq('classroom_id', classroomId).eq('booking_date', date).eq('status','approved');
-  const hasBookingConflict = (bks||[]).some(bk => bk.start_time < end && bk.end_time > start);
+  // 衝突檢查（跟正常送出申請同一套邏輯，統一透過rbCheckRoomConflict判斷，含調課/停課的場次記錄覆寫）
+  const conflictReason = await rbCheckRoomConflict(classroomId, date, start, end, null);
+  if (conflictReason) { showToast(`這個時段該教室${conflictReason}，無法借用`,'error'); return false; }
+  const hasBookingConflict = false;
   if (hasBookingConflict) { showToast('這個時段該教室已被預約，無法借用','error'); return false; }
 
   const canAutoApprove = typeof window.hasPerm === 'function' ? window.hasPerm('classrooms','write') : false;
@@ -23180,18 +23246,9 @@ async function rbSubmitEdit() {
   if (doExtend && (!extendWeeks || extendWeeks < 1)) { showToast('加開週數至少要1週','error'); return false; }
 
   // 這筆本身的衝突檢查（排除自己這一筆，不然會跟自己原本的時段誤判成衝突）
+  // 2026-10-05：改為委派給共用的rbCheckRoomConflict，含調課/停課的場次記錄覆寫判斷，不再自己重寫一份邏輯
   async function checkConflict(clsId, d, s, e, excludeId) {
-    const dow = new Date(d+'T00:00:00').getDay();
-    const sem = await rbGetSemesterWithRegDay(d);
-    if (sem) {
-      const { data: offs } = await sb.from('course_offerings').select('day,start_time,end_time,week_pattern')
-        .eq('semester_id', sem.id).eq('classroom_id', clsId).eq('is_active',true).eq('is_cancelled',false).eq('day', dow);
-      if ((offs||[]).some(o => rbOfferingActiveOnDate(o, sem, d) && o.start_time < e && o.end_time > s)) return '已排課';
-    }
-    let q = sb.from('classroom_bookings').select('id,start_time,end_time').eq('classroom_id', clsId).eq('booking_date', d).eq('status','approved');
-    const { data: bks } = await q;
-    if ((bks||[]).some(bk => bk.id !== excludeId && bk.start_time < e && bk.end_time > s)) return '已被預約';
-    return null;
+    return rbCheckRoomConflict(clsId, d, s, e, excludeId);
   }
 
   const conflict = await checkConflict(classroomId, date, start, end, id);
@@ -23346,13 +23403,20 @@ async function rbRenderOverview() {
   }
   // 補撈這些開課記錄的授課老師（可能不只一位）
   const offIds = [...new Set(offs.map(o=>o.id))];
+  const offIdSet = new Set(offIds);
   let teacherByOffering = {};
   if (offIds.length) {
     const { data: ots } = await sb.from('offering_teachers').select('offering_id,sort_order,teachers(name_zh)').in('offering_id', offIds).order('sort_order');
     (ots||[]).forEach(ot => { (teacherByOffering[ot.offering_id] ||= []).push(ot.teachers?.name_zh||''); });
   }
 
+  // 2026-10-05新增：這週的調課/停課場次記錄覆寫，跟rbCheckRoomConflict共用同一個查詢函式
+  const sessionOverrides = await rbGetSessionOverridesInRange(fmtD(weekStart), fmtD(weekEnd));
+  const overrideByKey = {};
+  sessionOverrides.forEach(ov => { overrideByKey[ov.offering_id+'|'+ov.session_date] = ov; });
+
   _rboItemsFlat = []; // 每次重新渲染都重建，index當作點擊詳情的查詢key
+  const handledOverrideKeys = new Set(); // 記錄哪些(offering_id|date)已經處理過，避免跟「調進來」的掃描重複顯示
   for (const d of days) {
     const ds = fmtD(d);
     const dow = d.getDay();
@@ -23360,11 +23424,53 @@ async function rbRenderOverview() {
     if (!sem) continue;
     (offs||[]).filter(o=>o.day===dow).forEach(o => {
       if (!rbOfferingActiveOnDate(o, sem, ds)) return;
+      const key = o.id+'|'+ds;
+      const ov = overrideByKey[key];
+      if (ov) {
+        handledOverrideKeys.add(key);
+        if (ov.is_cancelled) { // 這天這門課標記停課：灰色顯示，教室視為釋出
+          const idx = _rboItemsFlat.length;
+          _rboItemsFlat.push({ kind:'course', name:o.courses?.name_zh||'', code:o.courses?.code||'', credits:o.courses?.credits, reqType:o.courses?.req_type, teachers:teacherByOffering[o.id]||[], weekPattern:o.week_pattern||'every', targetCohort:o.target_cohort, start:o.start_time, end:o.end_time, date:ds, cancelled:true });
+          dayInfo[ds].push({ idx, label: `🚫已停課：${o.courses?.name_zh||''}`, start:o.start_time, end:o.end_time, color:'#9ca3af' });
+          return;
+        }
+        if (ov.classroom_id && ov.classroom_id !== classroomId) return; // 調課換到別的教室，這間教室這天不顯示
+      }
       const idx = _rboItemsFlat.length;
       _rboItemsFlat.push({ kind:'course', name:o.courses?.name_zh||'', code:o.courses?.code||'', credits:o.courses?.credits, reqType:o.courses?.req_type, teachers:teacherByOffering[o.id]||[], weekPattern:o.week_pattern||'every', targetCohort:o.target_cohort, start:o.start_time, end:o.end_time, date:ds });
       dayInfo[ds].push({ idx, label: `${o.courses?.name_zh||''}`, start:o.start_time, end:o.end_time, color:'#3b82f6' });
     });
   }
+
+  // 「調進來」這間教室的場次：原本不是這間教室，調課後換到這裡——要另外補撈開課/授課老師資料來顯示
+  // 注意：一定要classroom_id「真的有設定」才算調課；classroom_id是null只代表這筆class_sessions記錄沒有調課覆寫（可能只是單純的點名記錄），
+  // 不能退回去用該開課原本的教室判斷「調進來」，那個fallback是給rbCheckRoomConflict判斷教室佔用用的，不適用在這裡決定要不要顯示🔄調課徽章
+  const extraOfferingIds = [...new Set(sessionOverrides.filter(ov => {
+    if (ov.is_cancelled || !ov.classroom_id) return false;
+    if (handledOverrideKeys.has(ov.offering_id+'|'+ov.session_date)) return false;
+    return ov.classroom_id === classroomId && !offIdSet.has(ov.offering_id);
+  }).map(ov => ov.offering_id))];
+  let extraOfferingsById = {};
+  if (extraOfferingIds.length) {
+    const { data: extraOffs } = await sb.from('course_offerings')
+      .select('id,start_time,end_time,week_pattern,target_cohort,courses(name_zh,code,credits,req_type)')
+      .in('id', extraOfferingIds);
+    (extraOffs||[]).forEach(o => extraOfferingsById[o.id] = o);
+    const { data: extraOts } = await sb.from('offering_teachers').select('offering_id,sort_order,teachers(name_zh)').in('offering_id', extraOfferingIds).order('sort_order');
+    (extraOts||[]).forEach(ot => { (teacherByOffering[ot.offering_id] ||= []).push(ot.teachers?.name_zh||''); });
+  }
+  sessionOverrides.forEach(ov => {
+    if (ov.is_cancelled || !ov.classroom_id) return; // 沒有設定classroom_id=沒有調課覆寫，不是調進來的場次
+    const key = ov.offering_id+'|'+ov.session_date;
+    if (handledOverrideKeys.has(key)) return;
+    if (ov.classroom_id !== classroomId) return;
+    const o = offIdSet.has(ov.offering_id) ? offs.find(x=>x.id===ov.offering_id) : extraOfferingsById[ov.offering_id];
+    if (!o) return;
+    handledOverrideKeys.add(key);
+    const idx = _rboItemsFlat.length;
+    _rboItemsFlat.push({ kind:'course', name:o.courses?.name_zh||'', code:o.courses?.code||'', credits:o.courses?.credits, reqType:o.courses?.req_type, teachers:teacherByOffering[ov.offering_id]||[], weekPattern:o.week_pattern||'every', targetCohort:o.target_cohort, start:o.start_time, end:o.end_time, date:ov.session_date, rescheduled:true });
+    (dayInfo[ov.session_date] ||= []).push({ idx, label: `🔄調課：${o.courses?.name_zh||''}`, start:o.start_time, end:o.end_time, color:'#f59e0b' });
+  });
 
   // 已核准的教室借用：教學期間內用紫色，教學期間外（例如還沒開學、或超過18週之後）用綠色
   const { data: bookings } = await sb.from('classroom_bookings')
