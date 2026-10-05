@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.28 2026-10-05 課程資訊卡版面調整：學分數移到授課教師姓名最前面同一行(例："3學分 如亨法師")，不再放底部跟已選人數並列。前次(v3.27)修正授課教師姓名字體過大，(v3.26)「我的課程」跟「教材/作業」三個子畫面統一成admin.html開課記錄卡片樣式 -->
+<!-- BWBC Teacher v3.31 2026-10-06 修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。前次(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -1782,7 +1782,10 @@ function thSort(label, key, state, fnName, extraStyle) {
 /* ── 教材與作業 ── */
 let CUR_ASSIGNMENTS = [];
 let CUR_ASSIGN_SUBCOUNT = {}; // { assignment_id: 已繳交人數 }
-const ASSIGN_TYPE_LABEL = { checkin:'✅ 打卡回報', submission:'📎 檔案繳交', quiz:'📋 是非/選擇題', essay:'✍️ 問答/報告' };
+const ASSIGN_TYPE_LABEL = { checkin:'✅ 打卡回報', submission:'📎 檔案繳交', quiz:'📋 是非/選擇題', essay:'✍️ 問答/報告', material:'📄 教材', video:'📹 影片教材' };
+const MATERIAL_BUCKET = 'course-materials';
+const VIDEO_BUCKET = 'course-videos';
+const VIDEO_COMPLETE_PCT = 0.9; // 看到影片時長90%以上才算完成，跟student.html的門檻必須一致
 const LATE_POLICY_LABEL = { block:'逾期不可繳交', allow_flag:'逾期仍可繳交（標記遲交）' };
 
 async function openCourseAssignments() {
@@ -1867,7 +1870,9 @@ function renderAssignments() {
         '<td style="text-align:center">'+(CUR_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' +
         '<td style="white-space:nowrap">' +
           (a.type==='quiz' ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openQuizBuilder(\''+a.id+'\')">🎯 出題</button>' : '') +
-          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openReviewPanel(\''+a.id+'\')">👥 批閱</button>' +
+          (a.type==='material'
+            ? (a.material_file_path ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="previewMaterialFile(\''+a.id+'\')">👁 線上看</button>' : '')
+            : '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openReviewPanel(\''+a.id+'\')">👥 批閱</button>') +
           '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="toggleAssignPublish(\''+a.id+'\')">'+(a.status==='published'?'↩️ 改回草稿':'🚀 發布')+'</button>' +
           '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openAssignmentModal(\''+a.id+'\')">✎ 編輯</button>' +
           '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;color:#C04030" onclick="deleteAssignment(\''+a.id+'\')">🗑</button>' +
@@ -1893,21 +1898,30 @@ async function toggleAssignPublish(id) {
 
 let AM_IS_NEW = true;
 
-// 用單元涵蓋的課次裡最晚一堂課的日期 +6天 晚上8:00 當截止時間預設值，方便TA抓batch節奏；只在新增時自動帶，編輯既有作業不動它
-function computeDefaultDueForUnit(unitId) {
+// 用單元涵蓋的課次裡最晚一堂課的日期 +N天 晚上8:00 當截止時間預設值，方便TA抓batch節奏；只在新增時自動帶，編輯既有作業不動它
+// 預設 +7天；老師也可以從下拉選單選別的天數，沒有特別選就是7天
+const DUE_OFFSET_DEFAULT_DAYS = 7;
+function computeDefaultDueForUnit(unitId, offsetDays) {
   const sessionIds = CUR_UNIT_SESSIONS[unitId] || [];
   const dates = sessionIds.map(sid => CUR_SESSIONS.find(s => s.id === sid)?.session_date).filter(Boolean);
   if (!dates.length) return '';
   const maxDate = dates.slice().sort().slice(-1)[0]; // YYYY-MM-DD 字串排序即可取得最晚日期
   const d = new Date(maxDate + 'T00:00:00');
-  d.setDate(d.getDate() + 6);
+  d.setDate(d.getDate() + (Number(offsetDays) || DUE_OFFSET_DEFAULT_DAYS));
   d.setHours(20, 0, 0, 0);
   const pad = n => String(n).padStart(2,'0');
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
 }
 function onAssignUnitChange() {
   if (!AM_IS_NEW) return;
-  const due = computeDefaultDueForUnit(document.getElementById('am-unit').value);
+  const offsetEl = document.getElementById('am-due-offset');
+  const due = computeDefaultDueForUnit(document.getElementById('am-unit').value, offsetEl ? offsetEl.value : DUE_OFFSET_DEFAULT_DAYS);
+  if (due) document.getElementById('am-due').value = due;
+}
+function onDueOffsetChange() {
+  if (!AM_IS_NEW) return;
+  const offsetEl = document.getElementById('am-due-offset');
+  const due = computeDefaultDueForUnit(document.getElementById('am-unit').value, offsetEl ? offsetEl.value : DUE_OFFSET_DEFAULT_DAYS);
   if (due) document.getElementById('am-due').value = due;
 }
 
@@ -1919,7 +1933,7 @@ function openAssignmentModal(assignId) {
     '<option value="'+u.id+'" '+(a?.unit_id===u.id?'selected':'')+'>'+esc(u.title)+'</option>'
   ).join('');
   const initialUnitId = a ? a.unit_id : CUR_UNITS[0].id;
-  const dueVal = a?.due_at ? toDatetimeLocal(a.due_at) : (AM_IS_NEW ? computeDefaultDueForUnit(initialUnitId) : '');
+  const dueVal = a?.due_at ? toDatetimeLocal(a.due_at) : (AM_IS_NEW ? computeDefaultDueForUnit(initialUnitId, DUE_OFFSET_DEFAULT_DAYS) : '');
   const resubDueVal = a?.resubmit_deadline ? toDatetimeLocal(a.resubmit_deadline) : '';
   const body = `
     <div class="frow">
@@ -1933,7 +1947,7 @@ function openAssignmentModal(assignId) {
           ${Object.entries(ASSIGN_TYPE_LABEL).map(([k,v]) => '<option value="'+k+'" '+(a?.type===k?'selected':(!a&&k==='checkin'?'selected':''))+'>'+v+'</option>').join('')}
         </select>
       </div>
-      <div>
+      <div id="am-due-wrap">
         <label class="flabel">截止時間（選填）</label>
         <input class="finput" type="datetime-local" id="am-due" value="${dueVal}">
         ${AM_IS_NEW ? '<div style="font-size:11px;color:var(--ink3);margin-top:3px">已依單元最晚課次日期 +6天 晚上8:00 預帶，可自行修改</div>' : ''}
@@ -1944,7 +1958,7 @@ function openAssignmentModal(assignId) {
       <input class="finput" id="am-title" value="${a ? esc(a.title) : ''}" placeholder="例如：第一單元心得回報">
     </div>
     <div class="frow">
-      <label class="flabel">說明/題目說明（選填）</label>
+      <label class="flabel" id="am-instructions-label">說明/題目說明（選填）</label>
       <textarea class="finput" id="am-instructions" rows="3" style="resize:vertical">${a ? esc(a.instructions||'') : ''}</textarea>
     </div>
     <div class="frow" id="am-shuffle-row" style="display:none">
@@ -1953,7 +1967,33 @@ function openAssignmentModal(assignId) {
         每位學生看到的題目順序不同（防止互抄答案）
       </label>
     </div>
-    <div class="frow frow-2">
+    <div class="frow" id="am-material-row" style="display:none">
+      <label class="flabel">教材連結（選填）</label>
+      <input class="finput" type="url" id="am-material-link" value="${a?.material_link_url ? esc(a.material_link_url) : ''}" placeholder="https://...">
+      <label class="flabel" style="margin-top:10px">教材檔案（選填）</label>
+      ${a?.material_file_name ? (
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12.5px">' +
+          '<span style="padding:5px 10px;background:var(--cr3);border-radius:6px">📎 '+esc(a.material_file_name)+'</span>' +
+          '<button type="button" class="btn-syl none" style="padding:3px 8px;font-size:11px" onclick="previewMaterialFile(\''+a.id+'\')">👁 線上看</button>' +
+          '<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:#C04030;cursor:pointer"><input type="checkbox" id="am-material-remove" style="width:13px;height:13px;cursor:pointer">移除此檔案</label>' +
+        '</div>'
+      ) : ''}
+      <input class="finput" type="file" id="am-material-file">
+      <div style="font-size:11px;color:var(--ink3);margin-top:3px">文字說明／連結／檔案三者請盡量都填寫，方便學生取用教材</div>
+    </div>
+    <div class="frow" id="am-video-row" style="display:none">
+      <label class="flabel">影片檔案</label>
+      ${a?.video_file_name ? (
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12.5px">' +
+          '<span style="padding:5px 10px;background:var(--cr3);border-radius:6px">🎬 '+esc(a.video_file_name)+'</span>' +
+          '<button type="button" class="btn-syl none" style="padding:3px 8px;font-size:11px" onclick="previewVideoFile(\''+a.id+'\')">👁 線上看</button>' +
+          '<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:#C04030;cursor:pointer"><input type="checkbox" id="am-video-remove" style="width:13px;height:13px;cursor:pointer">移除此影片</label>' +
+        '</div>'
+      ) : ''}
+      <input class="finput" type="file" id="am-video-file" accept="video/*">
+      <div style="font-size:11px;color:var(--ink3);margin-top:3px">學生需看到影片時長 ${Math.round(VIDEO_COMPLETE_PCT*100)}% 以上才會自動記錄為完成；中途快轉跳過的部分不計入觀看進度</div>
+    </div>
+    <div class="frow frow-2" id="am-late-row">
       <div>
         <label class="flabel">逾期政策</label>
         <select class="finput" id="am-late">
@@ -1967,7 +2007,7 @@ function openAssignmentModal(assignId) {
         </label>
       </div>
     </div>
-    <div class="frow">
+    <div class="frow" id="am-resubmit-toggle-row">
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
         <input type="checkbox" id="am-resubmit" ${a?.allow_resubmit?'checked':''} onchange="toggleResubmitFields()" style="width:15px;height:15px;cursor:pointer">
         允許補交/重新提交
@@ -1989,8 +2029,18 @@ function openAssignmentModal(assignId) {
 }
 
 function toggleAssignTypeFields() {
-  const isQuiz = document.getElementById('am-type').value === 'quiz';
+  const type = document.getElementById('am-type').value;
+  const isQuiz = type === 'quiz';
+  const isMaterial = type === 'material';
+  const isVideo = type === 'video';
   document.getElementById('am-shuffle-row').style.display = isQuiz ? '' : 'none';
+  document.getElementById('am-material-row').style.display = isMaterial ? '' : 'none';
+  document.getElementById('am-video-row').style.display = isVideo ? '' : 'none';
+  document.getElementById('am-due-wrap').style.display = isMaterial ? 'none' : '';
+  document.getElementById('am-late-row').style.display = isMaterial ? 'none' : '';
+  document.getElementById('am-resubmit-toggle-row').style.display = isMaterial ? 'none' : '';
+  if (isMaterial) document.getElementById('am-resubmit-row').style.display = 'none';
+  document.getElementById('am-instructions-label').textContent = isMaterial ? '文字說明（教材內容/重點說明）' : (isVideo ? '說明（選填，例如影片重點提示）' : '說明/題目說明（選填）');
 }
 function toggleResubmitFields() {
   const on = document.getElementById('am-resubmit').checked;
@@ -2003,37 +2053,122 @@ function toDatetimeLocal(iso) {
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
 }
 
+function withTimeout(promise, ms, timeoutMsg) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(timeoutMsg || '逾時')), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function saveAssignment(assignId) {
   const title = document.getElementById('am-title').value.trim();
   if (!title) { showToast('請輸入標題', 'error'); return; }
+  const type = document.getElementById('am-type').value;
+  const isMaterial = type === 'material';
+  const isVideo = type === 'video';
   const dueRaw = document.getElementById('am-due').value;
   const resubOn = document.getElementById('am-resubmit').checked;
   const resubDueRaw = document.getElementById('am-resub-due').value;
+  const instructions = document.getElementById('am-instructions').value.trim() || null;
+  if (isMaterial && !instructions) { showToast('教材請填寫文字說明', 'error'); return; }
+  const materialLink = isMaterial ? (document.getElementById('am-material-link').value.trim() || null) : null;
+  const materialFileInput = document.getElementById('am-material-file');
+  const materialNewFile = isMaterial ? materialFileInput.files[0] : null;
+  const materialRemoveEl = document.getElementById('am-material-remove');
+  const materialRemove = isMaterial && materialRemoveEl && materialRemoveEl.checked;
+  const videoFileInput = document.getElementById('am-video-file');
+  const videoNewFile = isVideo ? videoFileInput.files[0] : null;
+  const videoRemoveEl = document.getElementById('am-video-remove');
+  const videoRemove = isVideo && videoRemoveEl && videoRemoveEl.checked;
+  if (isVideo && !videoNewFile && !(assignId && CUR_ASSIGNMENTS.find(x=>x.id===assignId)?.video_file_path) ) {
+    showToast('影片教材請上傳影片檔案', 'error'); return;
+  }
   const payload = {
     offering_id: CUR_HUB.offeringId,
     unit_id: document.getElementById('am-unit').value,
-    type: document.getElementById('am-type').value,
+    type,
     title,
-    instructions: document.getElementById('am-instructions').value.trim() || null,
-    due_at: dueRaw ? new Date(dueRaw).toISOString() : null,
+    instructions,
+    due_at: isMaterial ? null : (dueRaw ? new Date(dueRaw).toISOString() : null),
     late_policy: document.getElementById('am-late').value,
-    counts_as_grade: document.getElementById('am-grade').checked,
+    counts_as_grade: isMaterial ? false : document.getElementById('am-grade').checked,
     shuffle_questions: document.getElementById('am-shuffle').checked,
-    allow_resubmit: resubOn,
-    resubmit_deadline: resubOn && resubDueRaw ? new Date(resubDueRaw).toISOString() : null,
-    resubmit_score_factor: resubOn ? (Number(document.getElementById('am-resub-factor').value) || 1) : null
+    allow_resubmit: isMaterial ? false : resubOn,
+    resubmit_deadline: (!isMaterial && resubOn && resubDueRaw) ? new Date(resubDueRaw).toISOString() : null,
+    resubmit_score_factor: (!isMaterial && resubOn) ? (Number(document.getElementById('am-resub-factor').value) || 1) : null
   };
-  let error;
+  if (isMaterial) {
+    payload.material_link_url = materialLink;
+    if (materialRemove && !materialNewFile) { payload.material_file_path = null; payload.material_file_name = null; }
+  }
+  if (isVideo && videoRemove && !videoNewFile) { payload.video_file_path = null; payload.video_file_name = null; }
+  let error, savedId = assignId;
   if (assignId) {
     ({ error } = await sb.from('assignments').update(payload).eq('id', assignId));
   } else {
     payload.status = 'draft'; // 新建一律先進草稿，老師確認內容沒問題再手動發布
-    ({ error } = await sb.from('assignments').insert(payload));
+    const { data, error: insErr } = await sb.from('assignments').insert(payload).select('id').single();
+    error = insErr;
+    if (data) savedId = data.id;
   }
   if (error) { showToast('儲存失敗：'+error.message, 'error'); return; }
+  if (isMaterial && materialNewFile && savedId) {
+    const ext = (materialNewFile.name.match(/\.([a-zA-Z0-9]+)$/)||[])[1] || '';
+    const path = savedId + '/' + Date.now() + (ext ? '.'+ext : '');
+    const { error: upErr } = await sb.storage.from(MATERIAL_BUCKET).upload(path, materialNewFile, { upsert: true });
+    if (upErr) {
+      showToast('已儲存基本內容，但檔案上傳失敗：'+upErr.message, 'error');
+    } else {
+      await sb.from('assignments').update({ material_file_path: path, material_file_name: materialNewFile.name }).eq('id', savedId);
+    }
+  }
+  if (isVideo && videoNewFile && savedId) {
+    const ext = (videoNewFile.name.match(/\.([a-zA-Z0-9]+)$/)||[])[1] || '';
+    const path = savedId + '/' + Date.now() + (ext ? '.'+ext : '');
+    const saveBtn = document.getElementById('gm-save-btn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '上傳中…'; }
+    const sizeMB = (videoNewFile.size / 1024 / 1024).toFixed(1);
+    showToast('影片上傳中，請稍候…（'+sizeMB+'MB，檔案較大可能需要一些時間，請不要關閉視窗）', false, true);
+    try {
+      const { error: upErr } = await withTimeout(
+        sb.storage.from(VIDEO_BUCKET).upload(path, videoNewFile, { upsert: true }),
+        120000,
+        '影片上傳逾時（超過2分鐘沒有回應）'
+      );
+      if (upErr) {
+        showToast('已儲存基本內容，但影片上傳失敗：'+upErr.message+'（常見原因：檔案超過伺服器上傳大小上限，請嘗試壓縮影片或換較短/較小的檔案）', true);
+      } else {
+        await sb.from('assignments').update({ video_file_path: path, video_file_name: videoNewFile.name }).eq('id', savedId);
+      }
+    } catch (timeoutErr) {
+      showToast('已儲存基本內容，但'+timeoutErr.message+'。這通常代表檔案太大或網路太慢上傳不完，請嘗試壓縮影片或換較小的檔案後，重新編輯這份教材再上傳一次。', true);
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '儲存'; }
+      return;
+    }
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '儲存'; }
+  }
   closeGenericModal();
   showToast('✅ 已儲存（草稿狀態，記得確認內容後按「🚀 發布」）');
   await loadAssignments();
+}
+
+async function previewMaterialFile(assignId) {
+  const a = CUR_ASSIGNMENTS.find(x => x.id === assignId);
+  if (!a || !a.material_file_path) return;
+  const { data, error } = await sb.storage.from(MATERIAL_BUCKET).createSignedUrl(a.material_file_path, 600);
+  if (error) { showToast('無法取得預覽連結：'+error.message, 'error'); return; }
+  const ext = (a.material_file_name||'').match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase() || '';
+  openViewer(encodeURIComponent(data.signedUrl), ext, a.material_file_name || '教材檔案');
+}
+
+async function previewVideoFile(assignId) {
+  const a = CUR_ASSIGNMENTS.find(x => x.id === assignId);
+  if (!a || !a.video_file_path) return;
+  const { data, error } = await sb.storage.from(VIDEO_BUCKET).createSignedUrl(a.video_file_path, 600);
+  if (error) { showToast('無法取得預覽連結：'+error.message, 'error'); return; }
+  const ext = (a.video_file_name||'').match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase() || 'mp4';
+  openViewer(encodeURIComponent(data.signedUrl), ext, a.video_file_name || '影片教材');
 }
 
 async function deleteAssignment(assignId) {
@@ -2218,6 +2353,10 @@ function renderSubmissionContentForReview(r) {
   let html = '<div style="font-size:12px;color:var(--ink3);margin-bottom:10px">繳交時間：'+submittedStr+(sub.is_late?' <span style="color:#C04030">（遲交）</span>':'')+'</div>';
   if (a.type === 'checkin') {
     html += '<div style="padding:12px;background:var(--cr3);border-radius:8px;font-size:13.5px">✅ 已完成打卡回報</div>';
+  } else if (a.type === 'video') {
+    const c = sub.content || {};
+    const pct = c.duration_sec ? Math.min(100, Math.round((c.watched_sec||0) / c.duration_sec * 100)) : null;
+    html += '<div style="padding:12px;background:var(--cr3);border-radius:8px;font-size:13.5px">📹 已完成觀看'+(pct!=null?'（最高觀看進度 '+pct+'%）':'')+'</div>';
   } else if (a.type === 'essay') {
     html += '<div style="padding:12px;background:var(--cr3);border-radius:8px;font-size:13.5px;white-space:pre-wrap;line-height:1.6">'+esc((sub.content||{}).text||'（無內容）')+'</div>';
   } else if (a.type === 'submission') {
@@ -2358,7 +2497,7 @@ async function loadCompletionOverview() {
 
   const unitMap = {}; const unitSort = {};
   CUR_UNITS.forEach((u,i) => { unitMap[u.id] = u.title; unitSort[u.id] = i; });
-  CUR_OVERVIEW_ASSIGNS = (assignRes.data || []).slice().sort((a,b) => {
+  CUR_OVERVIEW_ASSIGNS = (assignRes.data || []).filter(a => a.type !== 'material').slice().sort((a,b) => {
     const su = (unitSort[a.unit_id]??999) - (unitSort[b.unit_id]??999);
     return su !== 0 ? su : (new Date(a.created_at) - new Date(b.created_at));
   });
@@ -5072,12 +5211,16 @@ function switchTab(id, btn) {
   showSection(map[id] || id);
 }
 
-function showToast(msg, isErr) {
+let TOAST_HIDE_TIMER = null;
+function showToast(msg, isErr, stay) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.background = isErr ? '#B71C1C' : '#1B3A6B';
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  if (TOAST_HIDE_TIMER) clearTimeout(TOAST_HIDE_TIMER);
+  if (!stay) {
+    TOAST_HIDE_TIMER = setTimeout(() => t.classList.remove('show'), isErr ? 6000 : 3000);
+  }
 }
 
 function esc(str) { return (str||'').replace(/"/g,'&quot;'); }
@@ -5644,6 +5787,24 @@ async function lpSaveSet() {
       (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.31', date: '2026-10-06',
+    items: [
+      '修正「影片教材」上傳大檔案時可能卡死不動的問題：上傳加上2分鐘逾時保護（逾時會顯示明確錯誤而不是無限等待）；上傳失敗時提示常見原因（檔案超過上傳大小上限）；上傳中「儲存」按鈕會鎖住顯示「上傳中…」，結束後自動恢復',
+    ]
+  },
+  {
+    version: 'v3.30', date: '2026-10-05',
+    items: [
+      '新增「📹 影片教材」類型：跟一般作業一樣可設截止時間/逾期政策/列入正式成績/允許補交，差別是「繳交」改成學生實際看完影片時長90%以上後系統自動記錄完成，不需手動提交；影片檔案上傳至course-videos bucket；批閱面板會顯示每位學生的最高觀看進度百分比',
+    ]
+  },
+  {
+    version: 'v3.29', date: '2026-10-05',
+    items: [
+      '「教材/作業」新增「📄 教材」類型：純發布不需繳交，內容為文字說明＋連結＋檔案(可三者並存)，新增/編輯作業視窗選此類型後會隱藏截止時間/逾期政策/列入成績/允許補交等與繳交相關的欄位，改顯示連結輸入與檔案上傳；教材清單操作欄顯示「👁 線上看」取代「👥 批閱」；完成度總覽/Excel匯出自動排除教材類型（教材本身不計入完成率）',
+    ]
+  },
   {
     version: 'v3.28', date: '2026-10-05',
     items: [

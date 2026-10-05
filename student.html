@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.31 2026-09-28 TA本人若同時是選課學生，該課程批閱功能整個停用(利益衝突防呆) -->
+<!-- BWBC Student v3.36 2026-10-06 已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -291,7 +291,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.31　2026-09-28</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.36　2026-10-06</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -728,6 +728,36 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.36', date: '2026-10-06',
+    items: [
+      '已完成的影片教材重新打開時，會接續到上次記錄的位置（也就是當時完成的那個進度點，例如90%處），不會每次都從0:00重新開始',
+    ]
+  },
+  {
+    version: 'v3.35', date: '2026-10-06',
+    items: [
+      '修正影片教材達到90%完成門檻後無法重複觀看的問題：完成瞬間不再整個重繪作業清單(避免正在播放的影片畫面被拔掉、看到一半突然斷掉)，改成只更新右上角的狀態徽章；完成後也解除快轉/倒轉限制，可以自由重複觀看整部影片，不受播放順序限制',
+    ]
+  },
+  {
+    version: 'v3.34', date: '2026-10-06',
+    items: [
+      '影片教材新增「觀看進度持久化」：每看過一段新進度就自動回存，中途關閉分頁或切換畫面重新打開會從上次位置接續播放，不用從頭重看；同時修正影片檔案上傳失敗時「載入影片中…」卡住不動沒有錯誤訊息的問題，以及觀看中（尚未達90%完成門檻）的記錄被誤判成「已繳交」的問題（改為顯示「觀看中 X%」）',
+    ]
+  },
+  {
+    version: 'v3.33', date: '2026-10-05',
+    items: [
+      '「教材與作業」支援老師發布的「📹 影片教材」類型：展開後直接播放影片，系統自動追蹤觀看進度（手動拖曳進度條往前跳過還沒看過的範圍會被拉回去，避免直接拖到結尾騙過判定），看到時長90%以上自動記錄完成；跟一般作業一樣可列入成績、受截止時間/逾期政策影響',
+    ]
+  },
+  {
+    version: 'v3.32', date: '2026-10-05',
+    items: [
+      '「教材與作業」支援老師發布的「📄 教材」類型：純發布不需繳交，展開後直接顯示文字說明＋教材連結(🔗)＋教材檔案(👁 線上看)，沒有繳交表單；教材不計入頂部「待繳/已逾期」提醒橫幅，也不影響課程卡片的預設展開/收合判斷',
+    ]
+  },
   {
     version: 'v3.31', date: '2026-09-28',
     items: [
@@ -3565,7 +3595,153 @@ let ASSIGN_S_SUBMISSIONS = {}; // { assignment_id: 最新一筆繳交記錄 }
 let ASSIGN_S_REVIEWS = {};     // { submission_id: 批閱記錄 }
 let ASSIGN_S_OPEN_ID = null;   // 目前展開的作業id
 let ASSIGN_S_COLLAPSED = {};   // {offering_id: true=已收合} 第一次算出預設值後就記住，同一次瀏覽session手動點開/收合都會保留
-const ASSIGN_TYPE_ICON = { checkin:'✅', submission:'📎', quiz:'📋', essay:'✍️' };
+const ASSIGN_TYPE_ICON = { checkin:'✅', submission:'📎', quiz:'📋', essay:'✍️', material:'📄', video:'📹' };
+const MATERIAL_BUCKET = 'course-materials';
+const VIDEO_BUCKET = 'course-videos';
+const VIDEO_COMPLETE_PCT = 0.9; // 看到影片時長90%以上才算完成，跟teacher.html的門檻必須一致
+async function previewMaterialFileS(assignId) {
+  const a = ASSIGN_S_LIST.find(x => x.id === assignId);
+  if (!a || !a.material_file_path) return;
+  const { data, error } = await sb.storage.from(MATERIAL_BUCKET).createSignedUrl(a.material_file_path, 600);
+  if (error) { showToast('無法取得預覽連結：'+error.message, 'error'); return; }
+  const ext = (a.material_file_name||'').match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase() || '';
+  openViewer(encodeURIComponent(data.signedUrl), ext, a.material_file_name || '教材檔案');
+}
+
+/* ── 影片教材(video類型)：觀看進度追蹤＋防快轉＋進度持久化 ──
+   只追蹤「連續播放」真正看過的最遠時間點(maxWatchedSec)，手動拖曳進度條往前跳超過
+   已看過的範圍+小緩衝(VIDEO_SEEK_BUFFER秒)就會被拉回去，避免直接拖到結尾騙過完成判定。
+   往回拖(重看)不受限。達到VIDEO_COMPLETE_PCT門檻才會自動標記完成(跟checkin類似，
+   送出後不會每次watch都重複送，只送一次)。
+   進度持久化：每累積約VIDEO_PROGRESS_SAVE_INTERVAL秒新進度，或暫停播放時，就回存一次目前進度到
+   assignment_submissions(content_type='video_progress')；同一位學生同一份作業只會有「一筆」進度記錄，
+   第一次用INSERT建立，之後都用UPDATE更新同一筆(搭配video_progress_persistence_migration.sql開的
+   UPDATE RLS政策)，不會像其他類型一樣每次都INSERT新記錄。重新打開會從這筆記錄裡的watched_sec接續播放。 */
+let VIDEO_PROGRESS = {}; // { assignment_id: { maxWatchedSec, duration, submitted, subId, lastSavedSec } }
+const VIDEO_SEEK_BUFFER = 3; // 秒，容許一點點小幅跳動(例如buffer造成的誤差)，不算快轉作弊
+const VIDEO_PROGRESS_SAVE_INTERVAL = 10; // 秒，累積這麼多新進度才回存一次，避免頻繁打資料庫
+
+async function initVideoPlayer(assignId) {
+  const a = ASSIGN_S_LIST.find(x => x.id === assignId);
+  const wrap = document.getElementById('video-wrap-'+assignId);
+  if (!wrap) return;
+  if (!a || !a.video_file_path) {
+    wrap.innerHTML = '<div style="color:#C04030;font-size:13px">這份影片教材還沒有上傳影片檔案，請聯絡老師確認</div>';
+    return;
+  }
+  const { data, error } = await sb.storage.from(VIDEO_BUCKET).createSignedUrl(a.video_file_path, 3600);
+  if (error) { wrap.innerHTML = '<div style="color:#C04030;font-size:13px">無法載入影片：'+esc(error.message)+'</div>'; return; }
+  // 如果之前已經存過觀看進度，從那個位置接續；如果早就達到完成門檻(completed===true)，
+  // 這份影片就解除所有播放限制，可以自由重複觀看/快轉/倒轉，不會再被拉回去
+  const existingSub = ASSIGN_S_SUBMISSIONS[assignId];
+  const existingContent = (existingSub && existingSub.content_type === 'video_progress') ? (existingSub.content || {}) : null;
+  const alreadyDone = !!(existingContent && existingContent.completed === true);
+  const resumeSec = existingContent ? (Number(existingContent.watched_sec) || 0) : 0;
+  const existingDur = existingContent ? (Number(existingContent.duration_sec) || 0) : 0;
+  VIDEO_PROGRESS[assignId] = {
+    maxWatchedSec: resumeSec,
+    duration: existingDur,
+    submitted: alreadyDone,
+    subId: existingSub ? existingSub.id : null,
+    lastSavedSec: resumeSec
+  };
+  const resumePct = existingDur ? Math.min(100, Math.round(resumeSec / existingDur * 100)) : 0;
+  const initialLabel = alreadyDone ? '✅ 已完成觀看，可自由重複觀看' : ('觀看進度：'+resumePct+'%');
+  wrap.innerHTML =
+    '<video id="video-el-'+assignId+'" controls preload="metadata" style="width:100%;max-height:360px;background:#000;border-radius:8px" src="'+data.signedUrl+'"></video>' +
+    '<div style="font-size:12px;color:var(--ink3);margin-top:6px" id="video-progress-'+assignId+'">'+initialLabel+'</div>';
+  const video = document.getElementById('video-el-'+assignId);
+  video.addEventListener('loadedmetadata', () => {
+    VIDEO_PROGRESS[assignId].duration = video.duration || 0;
+    if (resumeSec > 0 && video.duration && resumeSec < video.duration - 1) {
+      video.currentTime = resumeSec; // 接續上次進度播放；已完成的話一樣接到當時完成那個位置(例如90%處)，不是從頭開始
+    }
+  });
+  video.addEventListener('seeking', () => {
+    const p = VIDEO_PROGRESS[assignId];
+    if (p.submitted) return; // 已達成完成門檻：不再限制快轉/倒轉，可以自由重複觀看
+    if (video.currentTime > p.maxWatchedSec + VIDEO_SEEK_BUFFER) video.currentTime = p.maxWatchedSec;
+  });
+  video.addEventListener('timeupdate', () => onVideoTimeUpdate(assignId, video));
+  video.addEventListener('pause', () => flushVideoProgress(assignId));
+}
+
+function onVideoTimeUpdate(assignId, video) {
+  const p = VIDEO_PROGRESS[assignId];
+  if (!p) return;
+  const label = document.getElementById('video-progress-'+assignId);
+  if (p.submitted) {
+    // 已經完成過，純粹顯示目前重看的播放位置，不再追蹤/限制/回存
+    if (label) {
+      const dur = p.duration || video.duration || 0;
+      const curPct = dur ? Math.min(100, Math.round(video.currentTime / dur * 100)) : 0;
+      label.textContent = '✅ 已完成觀看，可自由重複觀看（目前播放位置 '+curPct+'%）';
+    }
+    return;
+  }
+  if (video.currentTime > p.maxWatchedSec && video.currentTime <= p.maxWatchedSec + VIDEO_SEEK_BUFFER + 1) {
+    p.maxWatchedSec = video.currentTime;
+  }
+  const dur = p.duration || video.duration || 0;
+  const pct = dur ? Math.min(100, Math.round(p.maxWatchedSec / dur * 100)) : 0;
+  if (label) label.textContent = '觀看進度：'+pct+'%' + (dur ? '' : '（讀取影片長度中…）');
+  if (dur && p.maxWatchedSec >= dur * VIDEO_COMPLETE_PCT && !p.submitted) {
+    p.submitted = true; // 先標記避免timeupdate連續觸發重複送出；標記後seeking也會立刻解除限制
+    saveVideoProgress(assignId, Math.round(p.maxWatchedSec), Math.round(dur), true);
+    return;
+  }
+  if (dur && p.maxWatchedSec - (p.lastSavedSec || 0) >= VIDEO_PROGRESS_SAVE_INTERVAL) {
+    p.lastSavedSec = p.maxWatchedSec;
+    saveVideoProgress(assignId, Math.round(p.maxWatchedSec), Math.round(dur), false);
+  }
+}
+
+// 暫停播放時也回存一次目前進度(涵蓋「看一看就關分頁/切換畫面」但還沒滿10秒整的情況)
+function flushVideoProgress(assignId) {
+  const p = VIDEO_PROGRESS[assignId];
+  if (!p || p.submitted || !p.duration) return;
+  if (p.maxWatchedSec > (p.lastSavedSec || 0)) {
+    p.lastSavedSec = p.maxWatchedSec;
+    saveVideoProgress(assignId, Math.round(p.maxWatchedSec), Math.round(p.duration), false);
+  }
+}
+
+// 直接更新卡片標頭上的狀態徽章，不要用renderAssignmentList()整個重繪列表——
+// 那樣會把目前展開/播放中的影片player整個清空重建，導致播放到一半畫面突然「斷掉」
+function updateAssignBadge(assignId, html) {
+  const el = document.getElementById('assign-badge-'+assignId);
+  if (el) el.innerHTML = html;
+}
+
+// 影片進度持久化專用：第一次INSERT一筆，之後同一份作業都UPDATE同一筆記錄(不像其他類型每次都新增一筆)
+async function saveVideoProgress(assignId, watchedSec, durationSec, completed) {
+  const p = VIDEO_PROGRESS[assignId];
+  if (!p) return;
+  const a = ASSIGN_S_LIST.find(x => x.id === assignId);
+  const isLate = !!(a && a.due_at && new Date(a.due_at) < new Date());
+  const content = { watched_sec: watchedSec, duration_sec: durationSec, completed: !!completed };
+  if (p.subId) {
+    const { error } = await sb.from('assignment_submissions')
+      .update({ content, is_late: isLate })
+      .eq('id', p.subId);
+    if (error) { console.error('影片進度回存失敗', error); return; }
+  } else {
+    const { data, error } = await sb.from('assignment_submissions')
+      .insert({ assignment_id: assignId, student_id: ME.id, content_type: 'video_progress', content, is_late: isLate, resubmit_of: null })
+      .select('id').single();
+    if (error) { console.error('影片進度回存失敗', error); return; }
+    if (data) p.subId = data.id;
+  }
+  ASSIGN_S_SUBMISSIONS[assignId] = { id: p.subId, content_type: 'video_progress', content, is_late: isLate };
+  if (completed) {
+    updateAssignBadge(assignId, isLate ? '<span class="badge badge-late">⏰ 已繳交（遲交）</span>' : '<span class="badge badge-done">✅ 已繳交</span>');
+    showToast(isLate ? '✅ 已完成觀看（遲交）' : '✅ 已完成觀看');
+    loadAssignmentReminder(); // 完成後重新計算頂部提醒橫幅的未完成數量；這個函式只動banner，不會動到正在播放的影片
+  } else {
+    const pct = durationSec ? Math.min(100, Math.round(watchedSec / durationSec * 100)) : 0;
+    updateAssignBadge(assignId, '<span class="badge badge-todo">▶️ 觀看中 '+pct+'%</span>');
+  }
+}
 
 /* ── 檔案繳交(submission類型) ── */
 const SUBMISSION_BUCKET = 'assignment-submissions';
@@ -3658,18 +3834,24 @@ async function loadAssignmentReminder() {
   const offIds = [...new Set((enrolls||[]).map(e => e.offering_id))];
   if (!offIds.length) { bannerEl.style.display = 'none'; return; }
 
-  const { data: assigns } = await sb.from('assignments').select('id, due_at').eq('status','published').in('offering_id', offIds);
-  const list = assigns || [];
+  const { data: assigns } = await sb.from('assignments').select('id, due_at, type').eq('status','published').in('offering_id', offIds);
+  const list = (assigns || []).filter(a => a.type !== 'material'); // 教材純發布不需繳交，不列入未完成提醒
   if (!list.length) { bannerEl.style.display = 'none'; return; }
 
   const assignIds = list.map(a => a.id);
-  const { data: subs } = await sb.from('assignment_submissions').select('assignment_id').eq('student_id', ME.id).in('assignment_id', assignIds);
-  const submittedSet = new Set((subs||[]).map(s => s.assignment_id));
+  const { data: subs } = await sb.from('assignment_submissions').select('assignment_id, content_type, content').eq('student_id', ME.id).in('assignment_id', assignIds);
+  // 影片教材的進度持久化記錄(content_type='video_progress')只有content.completed===true才算真的完成，
+  // 還在觀看中的那筆不能當成已繳交，否則會太早從未完成提醒裡消失
+  const completedSet = new Set();
+  (subs||[]).forEach(s => {
+    const isVideoInProgress = s.content_type === 'video_progress' && (!s.content || s.content.completed !== true);
+    if (!isVideoInProgress) completedSet.add(s.assignment_id);
+  });
 
   const now = new Date();
   let overdue = 0, pending = 0;
   list.forEach(a => {
-    if (submittedSet.has(a.id)) return; // 已繳交（含遲交）就不算未完成，即使曾經逾期
+    if (completedSet.has(a.id)) return; // 已繳交（含遲交）就不算未完成，即使曾經逾期
     if (a.due_at && new Date(a.due_at) < now) overdue++; else pending++;
   });
 
@@ -3765,7 +3947,14 @@ function renderAssignmentList() {
   ASSIGN_S_OFFERINGS.forEach(c => {
     const list = byCourse[c.offering_id];
     if (!list || !list.length) return;
-    const hasPending = list.some(a => !ASSIGN_S_SUBMISSIONS[a.id]);
+    // 影片教材觀看中但未達完成門檻的持久化記錄，不算「已完成」，一樣要當作pending(避免課程被誤判成全部繳完而自動收合)
+    const hasPending = list.some(a => {
+      if (a.type === 'material') return false;
+      const s = ASSIGN_S_SUBMISSIONS[a.id];
+      if (!s) return true;
+      if (a.type === 'video' && (!s.content || s.content.completed !== true)) return true;
+      return false;
+    });
     if (ASSIGN_S_COLLAPSED[c.offering_id] === undefined) ASSIGN_S_COLLAPSED[c.offering_id] = !hasPending;
     const collapsed = ASSIGN_S_COLLAPSED[c.offering_id];
     const color = ASSIGN_COURSE_COLORS[colorIdx % ASSIGN_COURSE_COLORS.length];
@@ -3809,13 +3998,34 @@ function resultIcon(review) {
 }
 
 function renderAssignmentCard(a) {
+  if (a.type === 'material') {
+    const isOpenM = ASSIGN_S_OPEN_ID === a.id;
+    return '<div class="assign-card">' +
+      '<div class="assign-card-hdr'+(isOpenM?' open':'')+'" onclick="toggleAssignmentCard(\''+a.id+'\')">' +
+        '<span>📄</span>' +
+        '<div style="flex:1;min-width:160px">' +
+          '<div class="assign-title">'+esc(a.title)+'</div>' +
+          '<div class="assign-meta">教材（純發布，不需繳交）</div>' +
+        '</div>' +
+        '<span class="badge" style="background:var(--cr3);color:var(--ink3)">📄 教材</span>' +
+      '</div>' +
+      '<div class="assign-body'+(isOpenM?' open':'')+'" id="assign-body-'+a.id+'"></div>' +
+    '</div>';
+  }
   const sub = ASSIGN_S_SUBMISSIONS[a.id];
   const review = sub ? ASSIGN_S_REVIEWS[sub.id] : null;
   const overdue = a.due_at && new Date(a.due_at) < new Date();
   const dueStr = a.due_at ? new Date(a.due_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '無截止時間';
 
+  // 影片教材有「觀看中但還沒達90%完成門檻」的中間狀態(進度持久化存的記錄)，不能當成已繳交
+  const videoInProgress = a.type === 'video' && sub && sub.content && sub.content.completed !== true;
+
   let statusBadge;
-  if (review) {
+  if (videoInProgress) {
+    const vc = sub.content || {};
+    const vpct = vc.duration_sec ? Math.min(100, Math.round((vc.watched_sec||0)/vc.duration_sec*100)) : 0;
+    statusBadge = '<span class="badge badge-todo">▶️ 觀看中 '+vpct+'%</span>';
+  } else if (review) {
     statusBadge = '<span class="result-badge result-'+review.result+'">'+resultIcon(review)+' '+review.result+'</span>';
   } else if (sub) {
     statusBadge = sub.is_late ? '<span class="badge badge-late">⏰ 已繳交（遲交）</span>' : '<span class="badge badge-done">✅ 已繳交</span>';
@@ -3833,7 +4043,7 @@ function renderAssignmentCard(a) {
         '<div class="assign-title">'+esc(a.title)+'</div>' +
         '<div class="assign-meta">截止：'+dueStr+(a.counts_as_grade ? '　・　列入成績' : '')+'</div>' +
       '</div>' +
-      statusBadge +
+      '<span id="assign-badge-'+a.id+'">'+statusBadge+'</span>' +
     '</div>' +
     '<div class="assign-body'+(isOpen?' open':'')+'" id="assign-body-'+a.id+'"></div>' +
   '</div>';
@@ -3856,6 +4066,49 @@ async function renderAssignmentBody(assignId) {
 
   let html = '';
   if (a.instructions) html += '<div style="font-size:13px;color:var(--ink2);white-space:pre-wrap;margin:12px 0">'+esc(a.instructions)+'</div>';
+
+  if (a.type === 'material') {
+    if (a.material_link_url) {
+      html += '<div style="margin-bottom:10px"><a href="'+esc(a.material_link_url)+'" target="_blank" rel="noopener" class="btn btn-sec" style="display:inline-block;text-decoration:none">🔗 開啟教材連結</a></div>';
+    }
+    if (a.material_file_path) {
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--cr3);border-radius:8px;font-size:13px;margin-bottom:10px">' +
+        '<span>📎 '+esc(a.material_file_name||'教材檔案')+'</span>' +
+        '<span style="margin-left:auto;color:var(--navy);text-decoration:underline;cursor:pointer" onclick="previewMaterialFileS(\''+a.id+'\')">👁 線上看</span>' +
+      '</div>';
+    }
+    if (!a.material_link_url && !a.material_file_path && !a.instructions) {
+      html += '<div style="color:var(--ink3);font-size:12.5px;padding:10px 0">（這份教材目前沒有內容）</div>';
+    }
+    body.innerHTML = html;
+    return;
+  }
+
+  if (a.type === 'video') {
+    const overdueV = a.due_at && new Date(a.due_at) < new Date();
+    const vc = sub ? (sub.content || {}) : null;
+    const isDone = vc && vc.completed === true; // 只有真的達到完成門檻才算完成；持久化存的「進度中」記錄不算
+    if (!isDone && overdueV && a.late_policy === 'block') {
+      html += '<div style="color:#C04030;font-size:13px;padding:10px 0">⏰ 已逾期，此影片教材不開放觀看計入</div>';
+      body.innerHTML = html;
+      return;
+    }
+    // 無論是否已完成，都要能繼續觀看／重複觀看，不能把影片player藏起來只留一行文字
+    if (isDone) {
+      const pct = vc.duration_sec ? Math.min(100, Math.round((vc.watched_sec||0)/vc.duration_sec*100)) : 100;
+      html += '<div style="padding:10px 14px;background:var(--cr3);border-radius:8px;font-size:13.5px;color:#1A6A30;margin-bottom:8px">📹 已完成觀看'+(sub.is_late?'（遲交）':'')+'，當時觀看進度 '+pct+'%　・　已經列入成績，可以在下方自由重複觀看，不受播放限制</div>';
+    } else {
+      if (overdueV) html += '<div style="color:#C04030;font-size:12px;padding:4px 0 8px">⏰ 已逾期，觀看完成會標記為遲交</div>';
+      if (vc && vc.watched_sec) {
+        const resumePct = vc.duration_sec ? Math.min(100, Math.round((vc.watched_sec||0)/vc.duration_sec*100)) : 0;
+        html += '<div style="font-size:12px;color:var(--ink3);padding:2px 0 8px">▶️ 已記錄上次觀看進度（'+resumePct+'%），將從上次位置繼續播放</div>';
+      }
+    }
+    html += '<div id="video-wrap-'+a.id+'" style="margin-top:6px">載入影片中…</div>';
+    body.innerHTML = html;
+    await initVideoPlayer(a.id);
+    return;
+  }
 
   if (review) {
     html += '<div style="background:var(--cr3);border-radius:8px;padding:10px 14px;margin-bottom:12px">' +
