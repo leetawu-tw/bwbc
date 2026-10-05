@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.22 2026-09-28 全班完成度總覽的全部收合/全部展開合併為一顆按鈕，省版面 -->
+<!-- BWBC Teacher v3.24 2026-10-05 真正修正側邊欄版本號看不到的根本原因：topbar改回正常排版流(不再用position:fixed)，#app-screen改成flex column，側邊欄與主內容區改用自動對齊的height:100%/flex:1，不用再各自手動補topbar高度偏移 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -39,20 +39,29 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .feedback.err{background:#FEE;color:#C04030}
 
 /* ── APP ── */
-.topbar{background:var(--navy);color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;position:fixed;top:0;left:0;right:0;z-index:50}
+/* 2026-10-03修正：topbar原本用position:fixed，但下面的側邊欄.side-nav沒有對應補上52px位移，
+   造成.side-nav實際位置比預期往上偏移52px、看起來像是版面高度算錯，版面號footer因此被擠出可視範圍。
+   改成topbar回到正常排版流（跟admin.html的.topbar做法一致），不用fixed，就不會有這個位移誤差 */
+.topbar{background:var(--navy);color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:50}
+#app-screen{flex-direction:column;height:100vh;overflow:hidden}
 .topbar-logo{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600}
 .topbar-user{margin-left:auto;font-size:12.5px;opacity:.8}
 .topbar-btn{padding:5px 12px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:transparent;color:#fff;font-size:12px;cursor:pointer;font-family:inherit}
 .sidebar-toggle-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
 .sidebar-toggle-btn:hover{background:rgba(255,255,255,.15)}
-.side-nav{width:140px;flex-shrink:0;background:#fff;border-right:1px solid #E8E8E8;padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;transition:width .18s ease}
+.side-nav{width:140px;flex-shrink:0;background:#fff;border-right:1px solid #E8E8E8;padding:16px 0;height:100%;transition:width .18s ease;display:flex;flex-direction:column;overflow:hidden}
+/* 版本號footer原本跟選單項目混在同一個overflow-y:auto的容器裡，選單項目一多或視窗較矮就會被擠到捲動區下面看不到。
+   改成.side-nav本身是flex column，選單項目包進.side-nav-scroll自己捲動，footer永遠釘在側邊欄最底部可見範圍內(比照admin.html的做法)。
+   2026-10-03：原本這裡用position:sticky;top:52px;height:calc(100vh-52px)去補topbar(position:fixed)佔掉的高度，
+   但topbar改回正常排版流之後，.side-nav只要跟admin.html的.sidebar一樣用height:100%(抓父層flex容器實際高度)就會自動對齊，不用自己算 */
+.side-nav-scroll{flex:1;overflow-y:auto}
 /* 側邊欄收合：文字用font-size:0藏起來，圖示用.nav-icon另外指定字級蓋回來(比照admin.html的做法) */
 .side-nav.collapsed{width:56px}
 .side-nav.collapsed .side-nav-label{display:none}
 .side-nav.collapsed .side-item{justify-content:center;padding:10px 0;font-size:0;gap:0}
 .side-nav.collapsed .side-item .nav-icon{font-size:16px}
 .nav-icon{width:20px;text-align:center;flex-shrink:0;display:inline-block}
-.side-nav-footer{margin-top:10px;padding:10px 12px 4px;border-top:1px solid #E8E8E8;font-size:10.5px;color:#999;cursor:pointer;text-align:center;line-height:1.7}
+.side-nav-footer{flex-shrink:0;margin-top:10px;padding:10px 12px 4px;border-top:1px solid #E8E8E8;font-size:10.5px;color:#999;cursor:pointer;text-align:center;line-height:1.7}
 .side-nav-footer:hover{background:#F5F5F5}
 .side-nav.collapsed .side-nav-footer{display:none}
 /* 全班完成度總覽表格用色 */
@@ -66,7 +75,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 .ov-pct-mid{color:#9C6500;background:#FFEB9C}
 .ov-pct-lo{color:#9C0006;background:#FFC7CE}
 
-.main{max-width:1100px;margin:52px auto 0;padding:24px 20px 60px}
+.main{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+/* 2026-10-03：margin-top原本補52px是用來抵銷topbar position:fixed蓋住的高度，
+   topbar改回正常排版流之後，這層.main已經在topbar下方的正常流裡，不用再補 */
 .tabs{display:flex;gap:2px;background:var(--cr2);border-radius:var(--r);padding:3px;margin-bottom:20px;width:fit-content}
 .tab{padding:7px 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--ink3);font-family:inherit;transition:all .15s}
 .tab.on{background:#fff;color:var(--navy);box-shadow:var(--sh)}
@@ -274,24 +285,26 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
     <div class="topbar-user" id="t-user-label"></div>
     <button class="topbar-btn" onclick="signOut()">登出</button>
   </div>
-  <div style="display:flex;height:calc(100vh - 52px);overflow:hidden">
+  <div style="display:flex;flex:1;overflow:hidden">
     <!-- 左側導覽 -->
     <div class="side-nav" id="teacher-side-nav">
-      <div style="font-size:11px;font-weight:600;color:#888;padding:0 16px 8px;letter-spacing:.05em">功能選單</div>
-      <div class="side-item" id="nav-ann"         onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
-      <div class="side-item" id="nav-profile"     onclick="showSection('profile')"><span class="nav-icon">👤</span><span class="nav-txt">個人資料</span></div>
-      <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')"><span class="nav-icon">📚</span><span class="nav-txt">我的課程</span></div>
-      <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
-      <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')"><span class="nav-icon">🗂</span><span class="nav-txt">所有課程</span></div>
-      <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')"><span class="nav-icon">🎯</span><span class="nav-txt">課堂調查即時秀</span></div>
-      <div class="side-item" id="nav-survey"      onclick="showSection('survey')"><span class="nav-icon">📊</span><span class="nav-txt">教學意見</span></div>
-      <div class="side-item" id="nav-scholarship" onclick="showSection('scholarship')"><span class="nav-icon">🏆</span><span class="nav-txt">獎學金推薦</span></div>
-      <div class="side-item" id="nav-forms"       onclick="showSection('forms')"><span class="nav-icon">📄</span><span class="nav-txt">常用表單</span></div>
-      <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
-      <div class="side-item" id="nav-grades"      onclick="showSection('grades')"><span class="nav-icon">📊</span><span class="nav-txt">成績登錄</span></div>
-      <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')"><span class="nav-icon">🧭</span><span class="nav-txt">操行評分</span></div>
+      <div class="side-nav-scroll">
+        <div style="font-size:11px;font-weight:600;color:#888;padding:0 16px 8px;letter-spacing:.05em">功能選單</div>
+        <div class="side-item" id="nav-ann"         onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
+        <div class="side-item" id="nav-profile"     onclick="showSection('profile')"><span class="nav-icon">👤</span><span class="nav-txt">個人資料</span></div>
+        <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')"><span class="nav-icon">📚</span><span class="nav-txt">我的課程</span></div>
+        <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
+        <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')"><span class="nav-icon">🗂</span><span class="nav-txt">所有課程</span></div>
+        <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')"><span class="nav-icon">🎯</span><span class="nav-txt">課堂調查即時秀</span></div>
+        <div class="side-item" id="nav-survey"      onclick="showSection('survey')"><span class="nav-icon">📊</span><span class="nav-txt">教學意見</span></div>
+        <div class="side-item" id="nav-scholarship" onclick="showSection('scholarship')"><span class="nav-icon">🏆</span><span class="nav-txt">獎學金推薦</span></div>
+        <div class="side-item" id="nav-forms"       onclick="showSection('forms')"><span class="nav-icon">📄</span><span class="nav-txt">常用表單</span></div>
+        <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
+        <div class="side-item" id="nav-grades"      onclick="showSection('grades')"><span class="nav-icon">📊</span><span class="nav-txt">成績登錄</span></div>
+        <div class="side-item" id="nav-conduct"     onclick="showSection('conduct')"><span class="nav-icon">🧭</span><span class="nav-txt">操行評分</span></div>
+      </div>
       <div class="side-nav-footer" onclick="openChangelogT()">
-        <div id="app-version-label-t" style="font-weight:600;color:#555">v3.22　2026-09-28</div>
+        <div id="app-version-label-t" style="font-weight:600;color:#555">v3.24　2026-10-05</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -1079,7 +1092,7 @@ async function enterApp(user) {
   }
 
   document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('app-screen').style.display = 'flex'; // 2026-10-03：#app-screen改成flex column容器(topbar+下方flex-row疊起來)，這裡要用flex不是block
   ME = t;
   document.getElementById('t-user-label').textContent = `${t.name_zh}　${user.email}`;
   await Promise.all([loadMyCourses(), loadProfile(), loadAllCourses()]);
@@ -5584,9 +5597,23 @@ async function lpSaveSet() {
 /* ── 版本與更新紀錄 ──
    規則：每次有實質功能異動，在陣列最前面新增一筆，並同步更新：
    1. 檔案最開頭的 <!-- BWBC Teacher vX.X YYYY-MM-DD --> 註解
-   2. 側邊欄 #app-version-label-t 顯示的文字
+   2.（已改自動）側邊欄 #app-version-label-t 不用再手動改，頁面載入時會自動抓 APP_CHANGELOG_T[0] 顯示
+      (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.24', date: '2026-10-05',
+    items: [
+      '真正修正v3.23版面號footer看不到的根本原因：topbar原本用position:fixed脫離排版流，但下面包著側邊欄的flex容器卻用height:calc(100vh-52px)自己算高度(從畫面最頂端y=0算起，不是從topbar下方y=52px算起)，造成側邊欄整欄往上偏移、footer被擠出可視範圍外。右側.main當年另外用margin:52px auto 0補了這個偏移，但側邊欄沒有對應補到，兩邊沒對齊。改成topbar回到正常排版流(跟admin.html的.topbar做法一致)，#app-screen變成flex column容器，側邊欄跟.main都改用自動對齊的height:100%/flex:1，不用再各自手動算偏移量',
+    ]
+  },
+  {
+    version: 'v3.23', date: '2026-10-03',
+    items: [
+      '修正側邊欄版本號標示容易被選單項目擠到看不到的問題：原本版本號footer跟選單項目混在同一個可捲動容器裡，選單項目一多、視窗較矮時版本號會被推到捲動區下方看不到。改成選單項目自己包一層獨立捲動區，版本號footer固定釘在側邊欄最底部，一定看得到（比照admin.html的版面結構）',
+      '版本號標示改自動同步：頁面載入時直接抓這份更新紀錄陣列最前面一筆顯示，不用再每次改版本時手動同步修改，避免跟admin.html同樣「忘記手動同步」的問題',
+    ]
+  },
   {
     version: 'v3.22', date: '2026-09-28',
     items: [
@@ -5662,6 +5689,12 @@ const APP_CHANGELOG_T = [
     ]
   },
 ];
+
+// 側邊欄版本號標籤改自動同步：直接抓APP_CHANGELOG_T陣列最前面(最新)一筆顯示，不用再每次改版本時手動同步改這個標籤的文字
+(function syncAppVersionLabelT() {
+  const lbl = document.getElementById('app-version-label-t');
+  if (lbl && APP_CHANGELOG_T[0]) lbl.textContent = APP_CHANGELOG_T[0].version + '　' + APP_CHANGELOG_T[0].date;
+})();
 
 function openChangelogT() {
   const body = document.getElementById('changelog-body-t');
