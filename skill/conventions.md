@@ -187,7 +187,7 @@ const buf = await res.arrayBuffer();
 
 ## 15. 新增「資料表的人員角色」時，務必同步檢查RLS有沒有認識這種新關係
 
-**規則**：每次新增一種「誰能看到誰的資料」的新關係（如「導師可以看自己帶的學生」「所長可以看全部學生」「TA可以看自己帶的課程的選課學生」），都要去檢查相關表（如`students`、`enrollments`）現有的RLS policy清單，**不要假設舊policy會自動涵蓋新關係**。
+**規則**：每次新增一種「誰能看到誰的資料」的新關係（如「導師可以看自己帶的學生」「所長可以看全部學生」），都要去檢查相關表（如`students`）現有的RLS policy清單，**不要假設舊policy會自動涵蓋新關係**。
 
 **根本原因**：RLS policy是針對「已知的關係」寫的（如本系統最早只有「老師能看自己開課班的修課學生」這條），新增的角色關係（導師、所長、TA）完全是陌生身份，會被舊policy擋下來，但因為**其他不受RLS管控的欄位（如直接讀取的成績數字）依然正常顯示**，會造成「部分欄位有值、部分欄位空白」這種詭異的半成功現象，比起整頁全部失敗更難第一時間聯想到是權限問題。
 
@@ -219,6 +219,95 @@ FROM 來源表 來源
 WHERE t.關聯鍵 = 來源.關聯鍵 AND t.快照欄位 IS NULL;
 ```
 **設計時可以考慮**：如果這類「先建立、後補上游資料」的操作順序很常見，可以額外提供一個「重新整理快照值（不影響使用者已填的其他欄位）」的按鈕，不要只靠admin自己想到要寫SQL補。
+
+## 18. schema.sql 只是初始snapshot，會漂移過時——重大改動前先跟資料庫核對
+
+**規則**：`schema.sql` 是專案建立初期（v1.0，2026-05-18）的一次性snapshot，之後新增的表（例如 `semester_calendar_events`、`grade_periods`、`presentation_*`全套、`scholarship_*`全套等）**不會自動同步回這個檔案**。任何要動到資料庫結構判斷、或牽涉多張表關聯分析的重大改動之前，不要只看 `schema.sql` 就下結論，要先請使用者在 Supabase SQL Editor 跑以下兩段查詢，取得目前真正的欄位與constraint，再核對：
+
+```sql
+-- 欄位
+SELECT t.table_name, c.column_name, c.data_type, c.is_nullable, c.column_default
+FROM information_schema.tables t
+JOIN information_schema.columns c ON c.table_name = t.table_name AND c.table_schema = t.table_schema
+WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+ORDER BY t.table_name, c.ordinal_position;
+
+-- constraint（PK/FK/UNIQUE/CHECK）
+SELECT tc.table_name, tc.constraint_name, tc.constraint_type, kcu.column_name,
+       ccu.table_name AS foreign_table_name, ccu.column_name AS foreign_column_name, cc.check_clause
+FROM information_schema.table_constraints tc
+LEFT JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+LEFT JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name AND tc.constraint_type = 'FOREIGN KEY'
+LEFT JOIN information_schema.check_constraints cc ON tc.constraint_name = cc.constraint_name AND tc.constraint_type = 'CHECK'
+WHERE tc.table_schema = 'public'
+ORDER BY tc.table_name, tc.constraint_type, kcu.column_name;
+```
+
+**根本原因**：程式碼裡實際的query語句（`sb.from('表名').select(...)`）比`schema.sql`更能反映當下真實用到的欄位，但query語句看不到constraint、預設值、FK關聯，兩者要交叉比對才完整。單靠其中一邊都可能做出錯誤判斷（例如漏掉某張表已經多了一個新欄位，或誤以為某個FK不存在）。
+
+**發現於**：2026-07盤點「加退選截止時間」多套判斷邏輯不一致問題時，發現`schema.sql`缺少至少20張後續新增的表，包含當時正在討論的`semester_calendar_events`本身。
+
+## 19. 讀VIEW的欄位前，先確認VIEW真的SELECT了那個欄位——不要假設join的表有什麼欄位就會自動出現
+
+**規則**：前端程式碼裡如果用到 `xxx.find(c => c.某欄位)` 這種寫法，先去確認資料來源（尤其是VIEW）的SELECT語句裡有沒有真的列出`某欄位`。JOIN了某張表不代表那張表的所有欄位都會出現在VIEW的輸出裡——VIEW只回傳明確寫在SELECT裡的欄位。
+
+**根本原因**：這種bug最陰險的地方是**不會報錯，也不會讓畫面明顯壞掉**。`c.is_current`讀到`undefined`，`.find()`回傳`undefined`，程式碼裡常常有fallback（例如「找不到current就用陣列第一個」），所以功能表面上「還是動的」，只是背後那段篩選/預設值邏輯完全沒有真正執行——例如`teacher.html`的「課堂點名」學期篩選（只顯示本學期+勾選才顯示過去），因為`v_course_schedule`沒有把`semesters.is_current`帶出來，`curLabel`永遠是`null`，導致篩選條件`if (!curLabel) return true`讓所有學期（包含未來）全部顯示，功能形同沒有在篩選，但介面上完全看不出異狀。
+
+**檢查方式**：
+```sql
+-- 直接看某個VIEW的定義，確認SELECT清單
+SELECT pg_get_viewdef('view名稱', true);
+```
+或直接翻 `views.sql` 對照程式碼裡實際用到的欄位名稱逐一核對，尤其是`is_current`、`is_active`這類「感覺應該存在但其實是另一張表的欄位」的旗標欄位最容易漏。
+
+## 20. 「已經做好、確認測試通過的功能」反覆消失——這是專案知識庫版本管理的結構性問題，不是單次意外
+
+**現象**：2026-07-04 發現 `admin.html` 的「課程幹部指派」功能（TA/視聽/小天使/點名者，`offering_staff`表）完全消失，但資料庫本身的表、欄位、view都還在——查證後發現這個功能是 2026-07-03 那次對話裡開發完成的，`User_Manual`也記載了（第34.2節），但**這次對話一開始拿到的專案 `admin.html` 檔案，內容是更早的版本，沒有包含這段**。這不是單一次意外，是同一類問題（症狀1「功能消失」）第二次發生在同一個專案，前一次是 `schema.sql` 缺了20張表。
+
+**根本原因**：Claude 每次新對話開始時，是從**這個Claude Project裡存的檔案**（`/mnt/project/`底下，唯讀）當作起點去複製、修改。這份專案檔案**不會自動跟使用者本機/GitHub上實際部署的版本同步**——如果某次對話做完修改、確認測試通過、push到GitHub/Netlify之後，**沒有把同一份修改後的檔案也重新上傳更新進這個Claude Project**，下一次開新對話時，Claude拿到的還是舊版本，那次做的東西等於在「Claude的認知裡」消失了，後續的修改都是疊加在舊版本上，越晚發現、要救回來的東西越多。
+
+**新規則（Claude端可以主動執行，不用依賴使用者記得）**：
+
+**這個repo是public（`leetawu-tw/bwbc`），Claude可以直接用`bash_tool`的`curl`連`raw.githubusercontent.com`抓取，不需要使用者授權或提供token。**
+
+1. **任何一次對話，只要任務涉及要對 `admin.html`/`teacher.html`/`student.html` 動修改（不只是讀取），開始動手改之前，先執行這個檢查：**
+   ```bash
+   curl -s "https://raw.githubusercontent.com/leetawu-tw/bwbc/main/admin.html" -o /tmp/admin_gh.html
+   diff /mnt/project/admin.html /tmp/admin_gh.html | head -50
+   wc -l /mnt/project/admin.html /tmp/admin_gh.html
+   ```
+   （檔名代入`teacher.html`/`student.html`同樣做）
+2. **如果diff結果是空白、行數也一致** → Project裡的檔案跟GitHub一致，可以放心從Project檔案開始工作。
+3. **如果diff結果不是空白** → **不要用Project裡的版本當基底**，改用剛抓下來的GitHub版本（`/tmp/admin_gh.html`）當工作基底，把這次要做的修改套用上去。做完後同時提醒使用者：這次工作是在GitHub版本上進行的，Project裡的舊檔案已經跟實際狀況不一致，事後需要更新Project。
+4. **如果連線失敗**（網路設定不允許連`raw.githubusercontent.com`，或repo變成private）→ 退回症狀1的手動排查方式（翻對話記錄、看commit history網頁），不要因為連不上就跳過這個檢查步驟直接假設Project檔案是對的。
+
+**已發生過的真實案例（2026-07-04）**：同一次對話裡發現Project版`admin.html`缺了兩批功能——先是「課程幹部指派」（`offering_staff`），後來擴大盤點才發現還缺「班級導師管理」「操行成績管理」「成績登錄後台」「兼課鐘點費核銷」「獎學金推薦」五大模組，整整少了6000多行。用上述GitHub diff方法一次性抓出GitHub版本（13955行）跟Project版本（7825行）的落差，直接用GitHub版當新基底重新套用當天的修改，比逐個功能翻對話記錄快非常多。**這已經是同一個專案第二次發生「Project檔案落後、需要救回」的狀況（上一次是`schema.sql`缺20張表），只是這次是前端程式碼、影響更直接。**
+
+**驗證有效（2026-07-05）**：隔天開新對話，任務是修一個儀表板顯示bug，一開始就照這條規則先做GitHub diff檢查，馬上發現Project版還是舊的v4.0（7693行），而GitHub已經是前一天修完的14056行版本——代表使用者那次push完之後又忘記同步更新Project。因為有先做這個檢查，直接改用GitHub版本當基底往下查bug，完全沒有走冤枉路。**這條規則證實真的有攔下問題，繼續維持。**
+
+## 21. 改變一個變數的「意義」時，要往下追蹤所有用到這個變數的地方，不能只改定義那一行
+
+**真實案例**：2026-07-05，儀表板課程數統計卡片顯示「本學期/新學期」的開課數對調了。原因：`curSem`這個變數原本的意義是「`is_current`手動標記的那個學期」（管理員排課時會提前把`is_current`設到下學期，所以`curSem`實際上長期代表「準備中的新學期」，`prevSem`才代表「真正在跑的本學期」）。前一輪把`curSem`的算法改成「依日期判斷的真正現在學期」後，**只改了`curSem`怎麼算出來，沒有檢查下游`s1Label`（本學期）／`s2Label`（新學期）這兩個標籤原本是根據舊的變數意義去對應的**（`s1Label=prevSem`、`s2Label=curSem`），導致變數的新意義（`curSem`=真正本學期）跟標籤位置（`s2`=新學期）對不起來，兩個學期的開課數顯示對調。
+
+**根本原因**：變數名稱從頭到尾都叫`curSem`，人在改動當下容易只盯著「怎麼算出這個變數的值」，忽略了這個變數在檔案裡其他地方被引用時，**當初取這個名字的人是根據舊的語意去設計後續邏輯的**，換了語意不代表用到它的地方會自動跟著換。
+
+**預防方式**：任何時候要修改一個既有變數的計算邏輯（尤其是像`is_current`→日期判斷這種語意轉換），**先`grep`這個變數名稱在同一個函式（或同一個檔案）裡出現的所有地方**，逐一確認每個用法當初的設計假設是什麼，跟新語意還合不合——不要只改賦值那一行就收工。這次的教訓具體來說：`curSem`原意「is_current標記」隱含「可能是未來學期」，改成「日期判斷」後隱含「一定是正在進行的學期」，這兩種意義下「這個變數的下一個/上一個學期該叫什麼」完全相反，必須連著改。
+
+## 22. 測試RLS權限矩陣，不用真的切換帳號登入——用SQL模擬身份即可
+
+**做法**：`current_user_can_write(perm_key)`這類權限函式底層都是靠`auth.uid()`查`users`表，而`auth.uid()`實際上是讀`request.jwt.claims`這個session設定值裡的`sub`欄位。在SQL Editor裡可以直接用`set_config`模擬成任何一個帳號，不用真的登入：
+
+```sql
+SELECT set_config('request.jwt.claims', '{"sub":"<某個使用者的uid>"}', true);
+SELECT current_user_can_write('courses'), current_user_can_write('open_courses');
+```
+
+**注意事項**：
+- 每組`set_config`+查詢要**分開執行**（SQL Editor一次貼整段執行通常只顯示最後一段結果，前面的會被蓋掉），或者每跑完一組就手動記錄結果再往下貼下一組
+- 這個方法只測**權限判斷函式本身**的邏輯，不是真的去讀寫表（不會弄髒任何資料），如果要測「policy在真實查詢情境下有沒有生效」，還是要搭配至少一次真實帳號登入操作驗證（尤其是第一次上線一批新policy時）
+- 找測試帳號時，直接查`users`表挑幾個有代表性的權限組合（例如`permissions->>'courses'`分別是`'admin'`/`'write'`/`'read'`/`null`各挑一個），比自己臨時建測試帳號快很多
+
+**真實案例**：2026-07-06 補測「RLS補強8張表 + B3 staff權限測試」這個懸置超過一週的待辦項目，用這個方法一次測完6種身份×多個permission key的組合，全部在SQL Editor裡幾分鐘內完成，不用真的申請/切換6個不同帳號登入。
 
 ## 27. admin.html/teacher.html/student.html三個portal如果做同一件事（例如「依日期判斷現在學期」），要用同名函式，不要各自重複寫一份邏輯
 
