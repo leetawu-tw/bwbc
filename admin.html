@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.56 2026-10-06 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.58 2026-10-07 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -441,6 +441,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="courses" onclick="showPage('grad-req',this)"><span class="nav-icon">🎓</span>畢業學分規定</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('teachers',this)"><span class="nav-icon">👤</span>教師管理</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('payroll',this)"><span class="nav-icon">💰</span>兼課鐘點費核銷</div>
+        <div class="nav-item" data-perm="teachers" onclick="showPage('receipt',this)"><span class="nav-icon">🧾</span>收據列印（單次）</div>
         <div class="nav-item" data-perm="courses" onclick="showPage('distance-apps',this)"><span class="nav-icon">💻</span>遠距教學課程申請</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('advisors',this)"><span class="nav-icon">🎓</span>班級導師管理</div>
         <div class="nav-item" data-perm="classrooms" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
@@ -837,6 +838,43 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             </tr></thead>
             <tbody id="teachers-body"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ▌單次收據列印 ▌-->
+      <div id="page-receipt" style="display:none">
+        <div class="page-hdr"><div class="page-title">🧾 單次收據列印</div></div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">收據只有兩款：講師費（鐘點費）與交通費。不用綁定月份核銷資料，欄位沒填就留下足夠的空白讓對方手寫。「具領人」一律留空，由領款人親筆簽名。</div>
+        <div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:16px;max-width:760px;font-size:13px">
+          <label class="flabel">要列印哪些收據（只選一種→A5橫式，兩種都選→A4直式各半頁）</label>
+          <div style="display:flex;gap:16px;margin-bottom:12px">
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="rp-inc-lecture" checked onchange="rpToggle()">講師費／鐘點費</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="rp-inc-transport" onchange="rpToggle()">交通費</label>
+          </div>
+          <div class="frow-2" style="margin-bottom:10px">
+            <div><label class="flabel">姓名</label><input class="finput" id="rp-name" autocomplete="off" placeholder="不填則留空白"></div>
+            <div><label class="flabel">身分證字號</label><input class="finput" id="rp-idno" autocomplete="off" placeholder="不填則留空白"></div>
+          </div>
+          <label class="flabel">戶籍地址</label>
+          <input class="finput" id="rp-reg" autocomplete="off" placeholder="不填則留空白" style="margin-bottom:10px">
+          <label class="flabel">聯絡地址（講師費收據用；交通費收據的「住址」若沒另外填，會帶戶籍地址）</label>
+          <input class="finput" id="rp-contact" autocomplete="off" placeholder="不填則留空白" style="margin-bottom:6px">
+          <label style="display:flex;align-items:center;gap:5px;margin-bottom:12px"><input type="checkbox" id="rp-same">聯絡地址與戶籍地址同（勾選後印成 ☑）</label>
+          <div class="frow-2" style="margin-bottom:10px">
+            <div><label class="flabel">學期</label><input class="finput" id="rp-semester" autocomplete="off" placeholder="例：115學年度第1學期（不填則留空白）"></div>
+            <div><label class="flabel">項目（課程名稱）</label><input class="finput" id="rp-course" autocomplete="off" placeholder="例：閱讀與敘事（不填則留空白）"></div>
+          </div>
+          <div class="frow-2" style="margin-bottom:10px">
+            <div id="rp-lecture-wrap"><label class="flabel">講師費金額</label><input type="number" class="finput" id="rp-lecture-amount" autocomplete="off" placeholder="不填則留空白"></div>
+            <div id="rp-transport-wrap"><label class="flabel">交通費金額</label><input type="number" class="finput" id="rp-transport-amount" autocomplete="off" placeholder="不填則留空白"></div>
+          </div>
+          <label class="flabel">日期（清除則留空白手寫）</label>
+          <input type="date" class="finput" id="rp-date" autocomplete="off" style="width:200px;margin-bottom:14px">
+          <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--cr2)">
+            <button class="btn btn-sec btn-sm" onclick="rpClear()">清空</button>
+            <button class="btn btn-sec btn-sm" onclick="rpDownload()">⬇ 下載Word</button>
+            <button class="btn btn-pri btn-sm" onclick="rpPrint()">🖨 產生列印預覽</button>
+          </div>
         </div>
       </div>
 
@@ -10879,6 +10917,20 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.58', date: '2026-10-07',
+    items: [
+      '新增側邊欄「🧾 收據列印（單次）」：不用綁定月份核銷資料，直接輸入姓名、身分證字號、戶籍地址/聯絡地址、學期、項目（課程名稱）、金額、日期，即可列印或下載Word；收據只有講師費（鐘點費）與交通費兩款，沿用既有收據範本（receipt_template.docx）；沒填的欄位會留下足夠的空白讓對方手寫，「具領人」一律留空由領款人簽名',
+      '修正下載Word收據時，程式新插入的文字（空白底線、姓名、身分證字號、地址）變成新細明體的問題：下載時把範本的預設段落樣式字型統一成標楷體',
+      '收據列印版面重做（單次、整月、單日共用）：只選一種→A5橫式一頁；兩種都選→A4直式一頁、上下各半；每份收據放在固定高度的格子裡，邊界縮為8mm、字級行距重新調整，內容若超出格子會自動等比例縮小，保證不會再跑到第二頁（已用Chromium實際輸出PDF驗證各種組合都是1頁）',
+    ]
+  },
+  {
+    version: 'v10.57', date: '2026-10-07',
+    items: [
+      '修正兼課鐘點費核銷「📅 依課表帶入」重複按會一直累加的問題：帶入前先比對清單中已有的「日期＋課程」（含手動新增、未記錄課程的同日期），已存在的自動略過，並在提示中顯示略過筆數',
+    ]
+  },
+  {
     version: 'v10.56', date: '2026-10-06',
     items: [
       '新增「💬 課程討論區（檢視）」（僅管理員）：可選學期與課程，檢視討論串、回覆（含匿名發文者的真名）與統計；只能看，沒有發言、回覆或管理按鈕',
@@ -12982,6 +13034,7 @@ function showPage(page, btn) {
   if (page==='students') loadStudents();
   if (page==='advisors') loadAdvisors();
   if (page==='payroll') loadPayrollPage();
+  if (page==='receipt') rpInit();
   if (page==='users') loadUsers();
   if (page==='lending') lendLoadAll();
   if (page==='room-booking') rbInit();
@@ -13398,7 +13451,7 @@ function buildReceiptBlockHtml(opts) {
   const semesterDisplay = semester ? esc(semester) : '<span class="rc-blank rc-blank-sm">&nbsp;</span>';
   const courseDisplay = courseName ? esc(courseName) : '<span class="rc-blank">&nbsp;</span>';
   const contentLine = showContent
-    ? `<div class="rc-content">${semesterDisplay}「${courseDisplay}」${feeTypeLabel}-${esc(teacherName)}</div>`
+    ? `<div class="rc-content">${semesterDisplay}「${courseDisplay}」${feeTypeLabel}-${teacherName ? esc(teacherName) : '<span class="rc-blank rc-blank-sm">&nbsp;</span>'}</div>`
     : `<div class="rc-content">&nbsp;</div>`;
   const hasRealAmount = showAmount && Number(amount) > 0; // 金額是0或沒填的話,視同沒有金額可印,留空白讓人手寫,不要印"0"這種容易誤會成"確實收0元"的數字
   const amountLine = hasRealAmount
@@ -13431,10 +13484,11 @@ function buildReceiptBlockHtml(opts) {
     + '</div>'
     + '<div class="rc-line rc-center rc-fs14">此　　　據</div>'
     + `<div class="rc-line rc-indent rc-fs14">具　領　人：</div>`
-    + '<div class="rc-line rc-indent rc-fs14">身分證字號：</div>'
+    + `<div class="rc-line rc-indent rc-fs14">身分證字號：${opts.idNo ? adEsc(opts.idNo) : ''}</div>`
     + (isTransport
-        ? '<div class="rc-line rc-indent rc-fs14">住　　　址：</div>'
-        : '<div class="rc-line rc-indent rc-fs14">戶籍地址：</div><div class="rc-line rc-indent rc-fs11">聯絡地址：□與戶籍地址同</div>')
+        ? `<div class="rc-line rc-indent rc-fs14">住　　　址：${adEsc(opts.contactAddr || opts.regAddr || '')}</div>`
+        : `<div class="rc-line rc-indent rc-fs14">戶籍地址：${adEsc(opts.regAddr || '')}</div>`
+          + `<div class="rc-line rc-indent rc-fs11">聯絡地址：${opts.contactAddr ? adEsc(opts.contactAddr) : (opts.sameAddr ? '☑' : '□') + '與戶籍地址同'}</div>`)
     + `<div class="rc-line rc-date rc-fs14">中　　華　　民　　國　${y}　年　${m}　月　${d}　日</div>`
     + '</div>';
 }
@@ -13449,6 +13503,17 @@ async function buildReceiptDocxBlob(opts) {
   const arrayBuffer = await resp.arrayBuffer();
   const zip = await JSZip.loadAsync(arrayBuffer);
   let xml = await zip.file('word/document.xml').async('string');
+
+  // 字型防呆：範本的「Normal」預設樣式若是新細明體/Times New Roman，程式新插入的文字(底線空白run、重開的run、身分證/地址)
+  // 沒有自己的字型設定時就會變成新細明體，跟範本其他標楷體文字不一致。這裡把預設段落樣式的字型統一改成標楷體
+  // (跟範本docDefaults一致)；範本本身已經是標楷體的話這段不會有任何影響
+  const stylesFile = zip.file('word/styles.xml');
+  if (stylesFile) {
+    let stylesXml = await stylesFile.async('string');
+    stylesXml = stylesXml.replace(/<w:style [^>]*w:type="paragraph"[^>]*w:default="1"[^>]*>[\s\S]*?<\/w:style>/, block =>
+      block.replace(/<w:rFonts [^>]*\/>/, '<w:rFonts w:ascii="標楷體" w:eastAsia="標楷體" w:hAnsi="標楷體" w:cs="標楷體"/>'));
+    zip.file('word/styles.xml', stylesXml);
+  }
 
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xml, 'application/xml');
@@ -13465,6 +13530,37 @@ async function buildReceiptDocxBlob(opts) {
     if (!opts.incTransport) {
       for (let i = children.length - 1; i >= traStart; i--) body.removeChild(children[i]);
     }
+  }
+  // 單次收據：把身分證字號/地址補進範本對應的段落尾端(範本本身沒有這幾個欄位的標記，用段落開頭文字當錨點)；沒填就維持範本原樣留白
+  if (opts.idNo || opts.regAddr || opts.contactAddr || opts.sameAddr) {
+    const addText = (p, text) => {
+      const runs = p.getElementsByTagName('w:r');
+      const last = runs[runs.length-1];
+      if (!last) return;
+      const r = xmlDoc.createElementNS(last.namespaceURI, 'w:r');
+      const rPr = last.getElementsByTagName('w:rPr')[0];
+      if (rPr) r.appendChild(rPr.cloneNode(true));
+      const t = xmlDoc.createElementNS(last.namespaceURI, 'w:t');
+      t.setAttribute('xml:space', 'preserve');
+      t.textContent = text;
+      r.appendChild(t);
+      p.appendChild(r);
+    };
+    Array.from(body.children).filter(el => el.tagName === 'w:p').forEach(p => {
+      const txt = p.textContent.replace(/\s/g, '');
+      if (txt.startsWith('身分證字號') && opts.idNo) addText(p, opts.idNo);
+      else if (txt.startsWith('戶籍地址') && opts.regAddr) addText(p, opts.regAddr);
+      else if (/^住.{0,4}址/.test(txt) && (opts.contactAddr || opts.regAddr)) addText(p, opts.contactAddr || opts.regAddr);
+      else if (txt.startsWith('聯絡地址')) {
+        if (opts.contactAddr) {
+          // 有填聯絡地址：把「□與戶籍地址同」整段換成實際地址
+          Array.from(p.getElementsByTagName('w:t')).forEach(t => { if (t.textContent.includes('□') || t.textContent.includes('與戶籍')) t.textContent = t.textContent.replace(/□?與戶籍地址同\s*/, ''); });
+          addText(p, opts.contactAddr);
+        } else if (opts.sameAddr) {
+          Array.from(p.getElementsByTagName('w:t')).forEach(t => { t.textContent = t.textContent.replace('□', '☑'); });
+        }
+      }
+    });
   }
   xml = new XMLSerializer().serializeToString(xmlDoc);
 
@@ -13484,7 +13580,7 @@ async function buildReceiptDocxBlob(opts) {
   const rawReplacements = {
     '{{SEMESTER}}': blankOrUnderline(opts.semester, '　　　　　　　　'),
     '{{COURSE_NAME}}': blankOrUnderline(opts.courseName, '　　　　　　　　　　　　　　　　'),
-    '{{TEACHER_NAME}}': escapeXml(opts.teacherName||''),
+    '{{TEACHER_NAME}}': opts.teacherName ? escapeXml(opts.teacherName) : blankOrUnderline('', '　　　　　　'),
     '{{LECTURE_AMOUNT_CN}}': opts.hasLectureAmount ? numberToChineseCapital(opts.lectureAmount) : blankOrUnderline('', '　　　　　　　　　　　　　　　　'),
     '{{TRANSPORT_AMOUNT_CN}}': opts.hasTransportAmount ? numberToChineseCapital(opts.transportAmount) : blankOrUnderline('', '　　　　　　　　　　　　　　　　'),
     // 萬/仟/佰/拾/NT$這幾個標籤在範本裡本身就已經是帶底線格式的run了(不管填數字或留白都有底線)，不用再用blankOrUnderline處理
@@ -13552,44 +13648,125 @@ async function generateReceiptPrint(teacherId) {
   if (incLecture) blocks.push(buildReceiptBlockHtml({ isTransport:false, semester, courseName, teacherName, amount:lectureAmount, showAmount, showContent, showDate, dateStr }));
   if (incTransport) blocks.push(buildReceiptBlockHtml({ isTransport:true, semester, courseName, teacherName, amount:transportAmount, showAmount, showContent, showDate, dateStr }));
 
-  const bothSelected = blocks.length === 2;
+  openReceiptPrintWindow(blocks);
+  closeModal('pres-simple-modal');
+}
+
+// 收據列印版面：只選一種→A5橫式(210×148mm)一頁；兩種都選→A4直式(210×297mm)一頁，上下各半。
+// 每份收據放在固定高度的格子(.rc-sheet)裡，載入後若內容比格子高或寬，就自動等比例縮小到剛好放進去(保證不會跑到第二頁)。
+function buildReceiptPrintHtml(blocks) {
+  const both = blocks.length === 2;
+  const MARGIN = 8;                                   // 頁面邊界mm
+  const sheetH = both ? Math.floor((297 - MARGIN*2) / 2) - 1 : 148 - MARGIN*2 - 1; // 每份收據可用高度mm(扣1mm保險)
   const css = [
-    '@page{size:'+(bothSelected?'A4 portrait':'A5 landscape')+';margin:1.2cm}',
-    // 字級全部固定用pt(對應docx常見字級單位)，不因為A4雙份/A5單份而縮放：
-    // A4直式面積剛好等於2張A5橫式疊起來(148mm×2≈297mm)，兩份收據合印時每一份本來就有跟單獨列印A5時同樣大的空間，不需要縮小字體
+    '@page{size:'+(both?'A4 portrait':'A5 landscape')+';margin:'+MARGIN+'mm}',
+    '*{box-sizing:border-box}',
+    'html,body{margin:0;padding:0}',
     'body{font-family:"標楷體",serif;font-size:14pt;color:#111}',
-    '.rc-block{'+(bothSelected?'padding-bottom:8pt;margin-bottom:10pt;border-bottom:1px dashed #999;page-break-inside:avoid':'')+'}',
-    '.rc-block:last-child{border-bottom:none}',
-    '.rc-title{text-align:center;font-size:24pt;font-weight:700;letter-spacing:6px;border-bottom:2px solid #111;display:inline-block;padding:0 20px 2pt;margin:1pt auto 6pt;display:table}',
-    '.rc-line{line-height:1.4;margin:2pt 0}',
-    '.rc-content{line-height:1.4;margin:2pt 0;font-size:16pt}',
+    '.rc-sheet{width:100%;height:'+sheetH+'mm;overflow:hidden;page-break-inside:avoid;break-inside:avoid}',
+    (both ? '.rc-sheet:first-child{border-bottom:1px dashed #999;margin-bottom:2mm}' : ''),
+    '.rc-fit{width:100%;transform-origin:top left}',
+    '.rc-title{text-align:center;font-size:24pt;font-weight:700;letter-spacing:6px;border-bottom:2px solid #111;padding:0 20px 2pt;margin:2pt auto 8pt;display:table}',
+    '.rc-line{line-height:1.45;margin:3pt 0}',
+    '.rc-content{line-height:1.45;margin:3pt 0;font-size:16pt;white-space:nowrap}',
     '.rc-fs16{font-size:16pt}', '.rc-fs15{font-size:15pt}', '.rc-fs14{font-size:14pt}',
     '.rc-fs12{font-size:12pt}', '.rc-fs11{font-size:11pt}',
-    '.rc-underline{}', // 學校名稱不再加底線，保留這個class名稱不動是避免要改HTML結構，只是拿掉底線效果
-    '.rc-blank{display:inline-block;width:7cm;border-bottom:1px solid #111}', // 課程名稱、應領金額(整行單獨一個空白,有充裕空間)用這個大尺寸
-    '.rc-blank-sm{width:4cm}', // 稅額方框內的金額空白(代扣稅款/代扣健保補充費/NT$)，同一行裡有好幾個空白+文字，不能全部都用7cm否則會超出A4版面寬度
-    '.rc-blank-xs{width:2.2cm}', // 百分比(例如稅率、健保補充費率，只需要填1~2位數字)
-    '.rc-blank-digit{width:1.2cm;text-align:center}', // 萬/仟/佰/拾各自只填一個數字，不用跟其他空白一樣寬
-    '.rc-digit{display:inline-block;width:1.2cm;text-align:center;font-weight:700;border-bottom:1px solid #111}', // 萬/仟/佰/拾實際填入的數字下方也要有底線(視覺上維持"這是填空格"的樣子)，但"萬""仟""佰""拾"這幾個固定文字本身不加底線
-    '.rc-digit-plain{border-bottom:1px solid #111;padding:0 4px;font-weight:700}', // NT$後面已經有實際數字時用這個,只留剛好夠的寬度,不像空白時那樣佔一大段7cm/4cm
-    '.rc-note{font-size:12pt;color:#444;margin:2pt 0 2pt 2em}',
-    '.rc-taxbox{border:1px solid #111;padding:5pt 10pt;margin:6pt 0;line-height:1.5;font-size:12pt}',
-    '.rc-taxbox-net{font-weight:700;margin-top:3pt}',
+    '.rc-blank{display:inline-block;width:7cm;border-bottom:1px solid #111}',        // 課程名稱、應領金額的手寫空白
+    '.rc-blank-sm{width:4cm}',                                                       // 姓名、稅額方框內的金額空白
+    '.rc-blank-xs{width:2.2cm}',                                                     // 百分比空白
+    '.rc-blank-digit{width:1.2cm;text-align:center}',                                // 萬/仟/佰/拾單格
+    '.rc-digit{display:inline-block;width:1.2cm;text-align:center;font-weight:700;border-bottom:1px solid #111}',
+    '.rc-digit-plain{border-bottom:1px solid #111;padding:0 4px;font-weight:700}',
+    '.rc-note{font-size:11pt;color:#444;margin:2pt 0 2pt 2em;line-height:1.3}',
+    '.rc-taxbox{border:1px solid #111;padding:5pt 10pt;margin:6pt 0;line-height:1.45;font-size:12pt}',
+    '.rc-taxbox-net{font-weight:700;margin-top:2pt}',
     '.rc-center{text-align:center;margin:6pt 0}',
     '.rc-indent{margin-left:3em}',
     '.rc-date{text-align:center;margin-top:8pt}'
   ].join('');
-
+  const fitScript = 'window.onload=function(){'
+    + 'document.querySelectorAll(".rc-sheet").forEach(function(sh){'
+    + 'var f=sh.querySelector(".rc-fit");var r=Math.min(1,sh.clientHeight/f.scrollHeight,sh.clientWidth/f.scrollWidth);'
+    + 'if(r<1){r=r*0.98;f.style.transform="scale("+r+")";f.style.width=(100/r)+"%";}'
+    + '});window.print();};';
+  return '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>收據列印</title>'
+    + '<sty'+'le>' + css + '</sty'+'le></he'+'ad><bo'+'dy>'
+    + blocks.map(b => '<div class="rc-sheet"><div class="rc-fit">' + b + '</div></div>').join('')
+    + '<scr'+'ipt>' + fitScript + '</scr'+'ipt></bo'+'dy></ht'+'ml>';
+}
+function openReceiptPrintWindow(blocks) {
   const w = window.open('','_blank');
-  w.document.write('<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">'
-    + '<title>收據列印</title>'
-    + '<sty'+'le>' + css + '</sty'+'le>'
-    + '</he'+'ad><bo'+'dy>'
-    + blocks.join('')
-    + '<scr'+'ipt>window.onload=()=>{window.print();};</scr'+'ipt>'
-    + '</bo'+'dy></ht'+'ml>');
+  w.document.write(buildReceiptPrintHtml(blocks));
   w.document.close();
-  closeModal('pres-simple-modal');
+}
+
+/* ── 單次收據列印（獨立頁面，不綁定月份核銷資料；沒填的欄位留空白手寫）── */
+function rpInit() {
+  const d = document.getElementById('rp-date');
+  if (d && !d.value) d.value = new Date().toISOString().slice(0,10);
+  rpToggle();
+}
+function rpToggle() {
+  const lec = document.getElementById('rp-inc-lecture')?.checked;
+  const tra = document.getElementById('rp-inc-transport')?.checked;
+  const lw = document.getElementById('rp-lecture-wrap'), tw = document.getElementById('rp-transport-wrap');
+  if (lw) lw.style.display = lec ? '' : 'none';
+  if (tw) tw.style.display = tra ? '' : 'none';
+}
+function rpClear() {
+  ['rp-name','rp-idno','rp-reg','rp-contact','rp-semester','rp-course','rp-lecture-amount','rp-transport-amount'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('rp-same').checked = false;
+  document.getElementById('rp-date').value = new Date().toISOString().slice(0,10);
+}
+function rpRead() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const incLecture = document.getElementById('rp-inc-lecture').checked;
+  const incTransport = document.getElementById('rp-inc-transport').checked;
+  if (!incLecture && !incTransport) { showToast('請至少勾選一種收據','error'); return null; }
+  const lectureAmount = Number(g('rp-lecture-amount')) || 0;
+  const transportAmount = Number(g('rp-transport-amount')) || 0;
+  if (lectureAmount < 0 || transportAmount < 0) { showToast('金額不可為負數','error'); return null; }
+  return {
+    incLecture, incTransport,
+    teacherName: g('rp-name'), idNo: g('rp-idno'), regAddr: g('rp-reg'), contactAddr: g('rp-contact'),
+    sameAddr: document.getElementById('rp-same').checked && !g('rp-contact'),
+    semester: g('rp-semester'), courseName: g('rp-course'),
+    lectureAmount, transportAmount, dateStr: g('rp-date')
+  };
+}
+function rpYMD(dateStr) {
+  if (!dateStr) return { y:'', m:'', d:'' };
+  const dt = new Date(dateStr+'T00:00:00');
+  return { y: dt.getFullYear()-1911, m: dt.getMonth()+1, d: dt.getDate() };
+}
+function rpPrint() {
+  const v = rpRead(); if (!v) return;
+  const common = { semester:v.semester, courseName:v.courseName, teacherName:v.teacherName,
+    showAmount:true, showContent:true, showDate:!!v.dateStr, dateStr:v.dateStr,
+    idNo:v.idNo, regAddr:v.regAddr, contactAddr:v.contactAddr, sameAddr:v.sameAddr };
+  const blocks = [];
+  if (v.incLecture) blocks.push(buildReceiptBlockHtml({ ...common, isTransport:false, amount:v.lectureAmount }));
+  if (v.incTransport) blocks.push(buildReceiptBlockHtml({ ...common, isTransport:true, amount:v.transportAmount }));
+  openReceiptPrintWindow(blocks);
+}
+async function rpDownload() {
+  const v = rpRead(); if (!v) return;
+  const { y, m, d } = rpYMD(v.dateStr);
+  const result = await buildReceiptDocxBlob({
+    incLecture:v.incLecture, incTransport:v.incTransport,
+    semester:v.semester, courseName:v.courseName, teacherName:v.teacherName,
+    hasLectureAmount: v.lectureAmount > 0, lectureAmount: v.lectureAmount,
+    hasTransportAmount: v.transportAmount > 0, transportAmount: v.transportAmount,
+    idNo:v.idNo, regAddr:v.regAddr, contactAddr:v.contactAddr, sameAddr:v.sameAddr,
+    y, m, d, dateStr: v.dateStr
+  });
+  if (result?.error) { showToast(result.error, 'error'); return; }
+  const url = URL.createObjectURL(result.blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = result.fileName.replace('收據_','收據_'+(v.teacherName?'':'空白_'));
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('✅ 已下載：'+a.download);
 }
 
 function prevYearMonth(ym) {
