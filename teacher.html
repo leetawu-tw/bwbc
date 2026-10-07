@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.31 2026-10-06 修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。前次(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
+<!-- BWBC Teacher v3.34 2026-10-06 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -258,6 +258,88 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 details summary::-webkit-details-marker{display:none}
 details[open] > summary .survey-toggle-arrow{transform:rotate(0deg)}
 details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
+/* ── 課程討論區 ── */
+.dsc-coursename{font-weight:600;color:var(--navy);margin-bottom:10px;font-size:14px}
+#dsc-courses{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.dsc-course{padding:6px 12px;border:1.5px solid var(--cr2);background:#fff;border-radius:16px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2)}
+.dsc-course.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dsc-chip-ta{font-size:11px;background:#E3F1E9;color:#1F5C3A;border-radius:8px;padding:1px 6px}
+#dsc-tabs{display:flex;gap:4px;border-bottom:1px solid var(--cr2);margin-bottom:12px}
+.dsc-tab{padding:8px 16px;border:none;background:none;font-size:14px;cursor:pointer;font-family:inherit;color:var(--ink3);border-bottom:2px solid transparent}
+.dsc-tab.on{color:var(--navy);border-bottom-color:var(--navy);font-weight:600}
+.dsc-composer{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;margin-bottom:12px;box-shadow:var(--sh)}
+.dsc-composer-title{font-size:13px;color:var(--ink3);margin-bottom:6px}
+.dsc-more{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+.dsc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dsc-row select{flex:1;min-width:140px;padding:8px;border:1.5px solid var(--cr2);border-radius:8px;font-size:13px;background:#fff;font-family:inherit}
+.dsc-hint{font-size:12px;color:var(--ink3)}
+.dsc-seg{display:flex;flex-wrap:wrap;gap:4px}
+.dsc-seg button{padding:6px 12px;border:1.5px solid var(--cr2);background:#fff;border-radius:16px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2)}
+.dsc-seg button.on{background:var(--navy3);border-color:var(--navy2);color:var(--navy);font-weight:600}
+.dsc-chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer}
+.dsc-chk input{margin-top:3px}
+.dsc-similar{background:#FFF8E5;border:1px solid #F0DFA8;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+.dsc-similar a{color:var(--navy2);cursor:pointer;text-decoration:underline}
+.dsc-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
+.dsc-fchip{flex:none;padding:6px 12px;border:1.5px solid var(--cr2);background:#fff;border-radius:16px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2)}
+.dsc-fchip em{font-style:normal;font-size:11px;color:var(--ink3);margin-left:5px}
+.dsc-fchip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dsc-fchip.on em{color:#cfd8ea}
+.dsc-list{display:flex;flex-direction:column;gap:8px}
+.dsc-card{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;cursor:pointer;font-family:inherit;transition:box-shadow .15s,transform .15s}
+.dsc-card:hover{box-shadow:var(--sh);transform:translateY(-1px)}
+.dsc-card.pinned{border-left:4px solid #C4960A}
+.dsc-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.dsc-badge{font-size:11px;padding:2px 8px;border-radius:10px;color:var(--c);background:#fff;border:1px solid var(--c)}
+.dsc-card-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.dsc-stateline{display:flex;gap:12px;align-items:center;font-size:12.5px;margin-bottom:4px}
+.dsc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.dsc-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink3)}
+.dsc-empty{color:var(--ink3);font-size:13px;padding:24px 8px;text-align:center}
+.dsc-back{border:none;background:none;color:var(--navy2);font-size:13px;cursor:pointer;padding:4px 0;margin-bottom:8px;font-family:inherit}
+.dsc-post{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px}
+.dsc-post-title{font-size:18px;font-weight:700;color:var(--navy)}
+.dsc-rtext{font-size:14px;line-height:1.7;color:var(--ink);word-break:break-word}
+.dsc-replies{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.dsc-reply{display:flex;gap:10px;background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:10px}
+.dsc-reply.child{margin-left:28px;background:var(--cr3)}
+.dsc-reply.endorsed{border:2px solid #C4960A;background:#FFFBEA}
+.dsc-avatar{flex:none;width:30px;height:30px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.dsc-rbody{flex:1;min-width:0}
+.dsc-rhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;margin-bottom:3px}
+.dsc-ractions{display:flex;gap:12px;margin-top:6px}
+.dsc-ractions button{border:none;background:none;color:var(--ink3);font-size:12.5px;cursor:pointer;padding:2px 0;font-family:inherit}
+.dsc-ractions button:hover,.dsc-ractions button.on{color:var(--navy2);font-weight:600}
+.dsc-replybox{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.dsc-gate{background:var(--navy3);border:1px dashed var(--navy2);border-radius:var(--r);padding:14px;margin-top:12px;font-size:13.5px;line-height:1.6}
+.dsc-hello{background:linear-gradient(135deg,var(--navy3),#fff);border:1px solid var(--cr2);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.dsc-hello-t{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.dsc-hello p{font-size:13.5px;color:var(--ink2);line-height:1.6;margin:0}
+.dsc-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.dsc-tile{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;text-align:center}
+.dsc-tile .n{font-size:26px;font-weight:700;color:var(--navy)}
+.dsc-tile .l{font-size:12px;color:var(--ink3)}
+.dsc-up{font-size:11.5px;color:#1F5C3A;margin-top:3px}
+.dsc-section{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.dsc-sec-t{font-weight:600;color:var(--navy);margin-bottom:8px;font-size:14px}
+.dsc-cmp{display:grid;grid-template-columns:64px 1fr 28px;gap:8px;align-items:center;font-size:12.5px;margin-bottom:6px}
+.dsc-bar{background:var(--cr3);border-radius:6px;height:10px;overflow:hidden}
+.dsc-bar i{display:block;height:100%;background:var(--navy2);border-radius:6px;transition:width .6s}
+.dsc-bar i.last{background:#B8C4DA}
+.dsc-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:8px}
+.dsc-medal{text-align:center;padding:10px 6px;border-radius:var(--r);background:var(--cr3);opacity:.55}
+.dsc-medal.got{opacity:1;background:#FFFBEA;border:1px solid #E8D48A}
+.dsc-medal .ring{width:42px;height:42px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;background:#ddd;color:#fff}
+.dsc-medal.got .ring{background:#C4960A}
+.dsc-medal b{display:block;font-size:12.5px}
+.dsc-medal small{font-size:11px;color:var(--ink3)}
+@media(max-width:600px){.dsc-reply.child{margin-left:14px}}
+#td-tabs{display:flex;gap:4px;border-bottom:1px solid var(--cr2);margin-bottom:12px}
+#td-course-sel{margin-bottom:12px;max-width:420px}
+.btn{padding:8px 14px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid transparent;font-family:inherit}
+.btn-pri{background:var(--navy);color:#fff}
+.btn-pri:hover{background:var(--navy2)}
+.btn-pri:disabled{opacity:.6;cursor:default}
 </style>
 </head>
 <body>
@@ -308,6 +390,7 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
         <div class="side-item" id="nav-ann"         onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
         <div class="side-item" id="nav-profile"     onclick="showSection('profile')"><span class="nav-icon">👤</span><span class="nav-txt">個人資料</span></div>
         <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')"><span class="nav-icon">📚</span><span class="nav-txt">我的課程</span></div>
+        <div class="side-item" id="nav-discussion"  onclick="showSection('discussion')"><span class="nav-icon">💬</span><span class="nav-txt">課程討論區</span></div>
         <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
         <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')"><span class="nav-icon">🗂</span><span class="nav-txt">所有課程</span></div>
         <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')"><span class="nav-icon">🎯</span><span class="nav-txt">課堂調查即時秀</span></div>
@@ -744,6 +827,16 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
         <div id="conduct-wrap">
           <div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>
         </div>
+      </div>
+
+      <!-- ── 課程討論區 ── -->
+      <div id="sec-discussion" class="t-section">
+        <div class="section-title">💬 課程討論區</div>
+        <div id="td-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">目前沒有開課記錄</div>
+        <select id="td-course-sel" class="finput" onchange="tdSwitchCourse(this.value)"></select>
+        <div id="td-tabs"></div>
+        <div id="td-composer" style="margin-bottom:12px"></div>
+        <div id="td-main"></div>
       </div>
 
       <!-- ── 課堂點名（查看/下載） ── -->
@@ -2185,7 +2278,15 @@ async function deleteAssignment(assignId) {
 
 /* ── 批閱 ── */
 let CUR_REVIEW_ASSIGN = null;   // 目前批閱中的作業本身
-let CUR_REVIEW_ROSTER = [];     // [{student_id, student_code, name_zh, submission, review, isLate, overdue}]
+// 影片教材有「觀看中但還沒達90%完成門檻」的中間狀態(進度持久化存的記錄)：這種記錄雖然sub存在，
+// 但不能當作「已繳交/已完成」。所有要判斷「這位學生這份作業完成了嗎」的地方都要走這個函式，不能只看sub是否存在。
+function isSubmissionDone(a, sub) {
+  if (!sub) return false;
+  if (a && a.type === 'video') return !!(sub.content && sub.content.completed === true);
+  return true;
+}
+
+let CUR_REVIEW_ROSTER = [];     // [{student_id, student_code, name_zh, submission, done, review, isLate, overdue}]
 let CUR_REVIEW_KEYS = {};       // quiz用：{question_id: correct_answer}
 let CUR_REVIEW_QUESTIONS_BY_VERSION = {};  // quiz用：{version: [題目...]}，因為題目版本鎖定後不同學生可能是用不同版本作答的
 const REVIEW_RESULT_ICON = { '特優':'👑', '達標':'✅', '待改進':'🌶' };
@@ -2261,9 +2362,10 @@ async function loadReviewData() {
   const now = new Date();
   CUR_REVIEW_ROSTER = students.map(st => {
     const sub = latestSubByStudent[st.id] || null;
-    const review = sub ? (reviewMap[sub.id] || null) : null;
-    const overdue = !sub && a.due_at && new Date(a.due_at) < now;
-    return { student_id: st.id, student_code: st.student_code, name_zh: st.name_zh, submission: sub, review, overdue };
+    const done = isSubmissionDone(a, sub);
+    const review = done ? (reviewMap[sub.id] || null) : null;
+    const overdue = !done && a.due_at && new Date(a.due_at) < now;
+    return { student_id: st.id, student_code: st.student_code, name_zh: st.name_zh, submission: sub, done, review, overdue };
   });
 
   renderReviewStats();
@@ -2271,12 +2373,14 @@ async function loadReviewData() {
 }
 
 function renderReviewStats() {
+  const a = CUR_REVIEW_ASSIGN;
   const total = CUR_REVIEW_ROSTER.length;
-  const submitted = CUR_REVIEW_ROSTER.filter(r => r.submission).length;
-  const late = CUR_REVIEW_ROSTER.filter(r => r.submission && r.submission.is_late).length;
+  const submitted = CUR_REVIEW_ROSTER.filter(r => r.done).length;
+  const late = CUR_REVIEW_ROSTER.filter(r => r.done && r.submission.is_late).length;
   const reviewed = CUR_REVIEW_ROSTER.filter(r => r.review).length;
+  const watching = a.type === 'video' ? CUR_REVIEW_ROSTER.filter(r => r.submission && !r.done).length : 0;
   document.getElementById('rv-stats').textContent =
-    `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）・已批閱 ${reviewed} 人`;
+    `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）` + (watching ? `・觀看中 ${watching} 人` : '') + `・已批閱 ${reviewed} 人`;
 }
 
 function quizScoreFor(sub) {
@@ -2293,9 +2397,9 @@ let REVIEW_SORT = { key: null, dir: 1 };
 const REVIEW_SORT_FNS = {
   code: r => r.student_code || '',
   name: r => r.name_zh || '',
-  status: r => r.submission ? (r.submission.is_late ? 1 : 2) : (r.overdue ? -1 : 0),
+  status: r => r.done ? (r.submission.is_late ? 1 : 2) : (r.submission ? 0.5 : (r.overdue ? -1 : 0)),
   score: r => { const sc = quizScoreFor(r.submission); return sc ? sc.correct : null; },
-  result: r => r.review ? r.review.result : (r.submission ? '尚未批閱' : ''),
+  result: r => r.review ? r.review.result : (r.done ? '尚未批閱' : ''),
 };
 function reviewSortBy(key) { toggleSort(REVIEW_SORT, key, renderReviewTable); }
 
@@ -2317,10 +2421,14 @@ function renderReviewTable() {
     '</tr></thead><tbody>' +
     roster.map(r => {
       let statusHtml;
-      if (r.submission) {
+      if (r.done) {
         statusHtml = r.submission.is_late
           ? '<span class="result-badge status-draft" style="background:#FFEBEE;color:#C04030">🔴 遲交</span>'
           : '<span class="result-badge status-published">✅ 已繳交</span>';
+      } else if (r.submission) {
+        const vc = r.submission.content || {};
+        const vpct = vc.duration_sec ? Math.min(100, Math.round((vc.watched_sec||0)/vc.duration_sec*100)) : 0;
+        statusHtml = '<span class="result-badge status-draft" style="background:#FFF3CD;color:#8A6D00">▶️ 觀看中 '+vpct+'%</span>';
       } else if (r.overdue) {
         statusHtml = '<span class="result-badge status-draft" style="background:#FFEBEE;color:#C04030">⛔ 逾期未交</span>';
       } else {
@@ -2331,8 +2439,8 @@ function renderReviewTable() {
         : '';
       const resultHtml = r.review
         ? '<span class="result-badge result-'+r.review.result+'">'+(REVIEW_RESULT_ICON[r.review.result]||'')+(r.review.result==='待改進'&&r.review.pepper_level ? '×'+r.review.pepper_level : '')+' '+r.review.result+'</span>'
-        : (r.submission ? '<span class="result-badge status-draft">尚未批閱</span>' : '—');
-      const btnLabel = r.review ? '✎ 修改批閱' : (r.submission ? '📝 批閱' : '查看');
+        : (r.done ? '<span class="result-badge status-draft">尚未批閱</span>' : '—');
+      const btnLabel = r.review ? '✎ 修改批閱' : (r.done ? '📝 批閱' : (r.submission ? '👁 查看進度' : '查看'));
       return '<tr>' +
         '<td style="font-size:12.5px">'+esc(r.student_code||'')+'</td>' +
         '<td><strong>'+esc(r.name_zh||'')+'</strong></td>' +
@@ -2349,6 +2457,11 @@ function renderSubmissionContentForReview(r) {
   const a = CUR_REVIEW_ASSIGN;
   const sub = r.submission;
   if (!sub) return '<div style="color:var(--ink3);font-size:13px">這位同學尚未繳交</div>';
+  if (a.type === 'video' && !r.done) {
+    const c = sub.content || {};
+    const pct = c.duration_sec ? Math.min(100, Math.round((c.watched_sec||0)/c.duration_sec*100)) : 0;
+    return '<div style="padding:12px;background:var(--cr3);border-radius:8px;font-size:13.5px">▶️ 觀看中，目前最高觀看進度 '+pct+'%（尚未達到90%完成門檻，進度會持續更新，完成後才會列入批閱）</div>';
+  }
   const submittedStr = new Date(sub.submitted_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
   let html = '<div style="font-size:12px;color:var(--ink3);margin-bottom:10px">繳交時間：'+submittedStr+(sub.is_late?' <span style="color:#C04030">（遲交）</span>':'')+'</div>';
   if (a.type === 'checkin') {
@@ -2407,7 +2520,7 @@ function openReviewModal(studentId) {
   const rv = r.review || {};
   const body = `
     <div style="margin-bottom:16px">${renderSubmissionContentForReview(r)}</div>
-    ${r.submission ? `
+    ${r.done ? `
     <div class="frow">
       <label class="flabel">批閱結果</label>
       <div style="display:flex;gap:10px">
@@ -2557,6 +2670,11 @@ function overviewCellInfo(a, sub, review) {
   const cls = OV_CLASS_BY_KEY[overviewColorKey(a, sub, review)] || 'ov-pending';
   const overdue = a.due_at && new Date(a.due_at) < new Date();
   if (!sub) return { text: overdue ? '未繳（逾期）' : '未繳', cls };
+  if (!isSubmissionDone(a, sub)) {
+    const c = sub.content || {};
+    const pct = c.duration_sec ? Math.min(100, Math.round((c.watched_sec||0)/c.duration_sec*100)) : 0;
+    return { text: '觀看中 '+pct+'%', cls };
+  }
   let text = sub.is_late ? '已繳（遲交）' : '已繳';
   if (a.type === 'quiz') {
     const sc = overviewQuizScore(a.id, sub);
@@ -2569,7 +2687,7 @@ function overviewCellInfo(a, sub, review) {
 let OV_SORT = { key: null, dir: 1 };
 function ovComputeStats(st) {
   let doneCount = 0;
-  CUR_OVERVIEW_ASSIGNS.forEach(a => { if (CUR_OVERVIEW_SUBS[st.id+'_'+a.id]) doneCount++; });
+  CUR_OVERVIEW_ASSIGNS.forEach(a => { if (isSubmissionDone(a, CUR_OVERVIEW_SUBS[st.id+'_'+a.id])) doneCount++; });
   const total = CUR_OVERVIEW_ASSIGNS.length || 1;
   return { doneCount, pct: Math.round(doneCount / total * 100) };
 }
@@ -2692,7 +2810,7 @@ const OVERVIEW_XLSX_COLORS = {
   bad:     { fill:'FFFCE4D6', font:'FFC65911' }, // 橘：待改進
 };
 function overviewColorKey(a, sub, review) {
-  if (!sub) return (a.due_at && new Date(a.due_at) < new Date()) ? 'miss' : 'pending';
+  if (!sub || !isSubmissionDone(a, sub)) return (a.due_at && new Date(a.due_at) < new Date()) ? 'miss' : 'pending';
   if (!review) return 'wait';
   return review.result === '特優' ? 'top' : review.result === '待改進' ? 'bad' : 'ok';
 }
@@ -2750,7 +2868,7 @@ async function exportCompletionOverviewXlsx() {
     CUR_OVERVIEW_ASSIGNS.forEach(a => {
       const sub = CUR_OVERVIEW_SUBS[st.id+'_'+a.id] || null;
       const review = sub ? CUR_OVERVIEW_REVIEWS[sub.id] : null;
-      if (sub) doneCount++;
+      if (isSubmissionDone(a, sub)) doneCount++;
       rowData.push(overviewCellInfo(a, sub, review).text);
       colorKeys.push(overviewColorKey(a, sub, review));
     });
@@ -5180,6 +5298,417 @@ async function openSchRecForm(periodId, offeringId, courseLabel, isOpen) {
   modal.classList.add('open');
 }
 
+/* ════════════════════════════════════════════════════════════
+   課程討論區（老師端）：工作台、全部討論、統計、出題
+   資料表與寫入函式見 discussion_board_migration.sql：前端只「讀」discussion_* 表，
+   所有寫入一律呼叫 sb.rpc('discussion_...')，權限與匿名規則由資料庫強制。
+   ⚠️ 同學寫的內容會顯示給別人看，一律用 tdEsc() 轉義，不能用舊的 esc()（它只處理雙引號）。
+   老師看得到匿名發文者的真名（discussion_identities），但畫面上會標註「匿名」。
+   ════════════════════════════════════════════════════════════ */
+const TD_ORIGIN = {
+  'prompt':{t:'老師出題',c:'#4A4FD0'}, 'ask-teacher':{t:'問老師',c:'#1F5C3A'},
+  'ask-peer':{t:'問同學',c:'#B05010'}, 'topic':{t:'開話題',c:'#6A1B9A'}
+};
+const TD_ROLE = { teacher:{t:'老師',c:'#1B3A6B'}, ta:{t:'助教',c:'#1F5C3A'}, student:{t:'同學',c:'#888888'} };
+const TD = {
+  offId:null, tab:'bench', curId:null, filter:'all', staleDays:3,
+  units:[], assigns:[], threads:[], replies:[], reactions:[], reads:[], students:[],
+  idThread:{}, idReply:{}, nameById:{},
+  open:false, sending:false, loadSeq:0,
+  draft:{ who:'prompt', title:'', body:'', unit:'', assign:'', gate:false, one:false, staffOnly:false, due:'', lockDue:false }
+};
+function tdEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function tdBody(s){ return tdEsc(s).replace(/\n/g,'<br>'); }
+function tdAgo(iso){
+  if(!iso) return '';
+  const m=(Date.now()-new Date(iso).getTime())/60000;
+  if(m<1) return '剛剛'; if(m<60) return Math.round(m)+' 分鐘前';
+  if(m<1440) return Math.round(m/60)+' 小時前'; if(m<43200) return Math.round(m/1440)+' 天前';
+  return new Date(iso).toLocaleDateString('zh-TW');
+}
+function tdRpcError(error){ showToast((error&&error.message)?error.message:'操作失敗', true); }
+function tdThread(id){ return TD.threads.find(t=>t.id===id)||null; }
+function tdStudentOfThread(t){ return t.author_student_id || TD.idThread[t.id] || null; }
+function tdStudentOfReply(r){ return r.author_student_id || TD.idReply[r.id] || null; }
+function tdNameOf(sid){ return sid ? (TD.nameById[sid] || '（已退選）') : ''; }
+function tdAuthorLabel(t){
+  if(t.author_role!=='student') return t.author_name || (TD_ROLE[t.author_role]||{}).t || '';
+  const n=tdNameOf(tdStudentOfThread(t));
+  return t.is_anonymous ? n+'（匿名發文）' : (n || t.author_name || '');
+}
+function tdReplyLabel(r){
+  if(r.author_role!=='student') return r.author_name || (TD_ROLE[r.author_role]||{}).t || '';
+  const n=tdNameOf(tdStudentOfReply(r));
+  return r.is_anonymous ? n+'（匿名）' : (n || r.author_name || '');
+}
+
+/* ── 載入 ── */
+async function loadTdSection(){
+  if(!MY_COURSES.length) await loadMyCourses();
+  const sel=document.getElementById('td-course-sel');
+  const list=MY_COURSES.slice().sort((a,b)=> a.semester_label!==b.semester_label ? b.semester_label.localeCompare(a.semester_label) : (a.day||0)-(b.day||0));
+  if(!list.length){
+    document.getElementById('td-empty').style.display='';
+    sel.innerHTML=''; ['td-tabs','td-composer','td-main'].forEach(i=>{document.getElementById(i).innerHTML='';});
+    return;
+  }
+  document.getElementById('td-empty').style.display='none';
+  sel.innerHTML=list.map(c=>'<option value="'+c.offering_id+'"'+(c.offering_id===TD.offId?' selected':'')+'>'+tdEsc(c.semester_label+'　'+c.name_zh)+'</option>').join('');
+  if(!list.some(c=>c.offering_id===TD.offId)) TD.offId=list[0].offering_id;
+  sel.value=TD.offId;
+  await tdLoadCourse();
+}
+function tdSwitchCourse(id){
+  TD.offId=id; TD.tab='bench'; TD.curId=null; TD.filter='all'; TD.open=false;
+  TD.draft={ who:'prompt', title:'', body:'', unit:'', assign:'', gate:false, one:false, staffOnly:false, due:'', lockDue:false };
+  tdLoadCourse();
+}
+async function tdLoadCourse(){
+  const off=TD.offId, main=document.getElementById('td-main');
+  const seq=++TD.loadSeq;
+  main.innerHTML='<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  const [u,a,th,rp,rc,rd,idn,en]=await Promise.all([
+    sb.from('teaching_units').select('id, title, sort_order').eq('offering_id',off).order('sort_order'),
+    sb.from('assignments').select('id, title, type').eq('offering_id',off).eq('status','published').order('created_at'),
+    sb.from('discussion_threads').select('*').eq('offering_id',off).order('last_activity_at',{ascending:false}),
+    sb.from('discussion_replies').select('*').eq('offering_id',off).order('created_at'),
+    sb.from('discussion_reactions').select('*').eq('offering_id',off),
+    sb.from('discussion_reads').select('thread_id, student_id, first_read_at, last_read_at').eq('offering_id',off),
+    sb.from('discussion_identities').select('thread_id, reply_id, student_id').eq('offering_id',off),
+    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)').eq('offering_id',off).eq('status','confirmed')
+  ]);
+  if(seq!==TD.loadSeq) return;
+  if(th.error){
+    main.innerHTML='<div style="color:#C04030;padding:20px;font-size:13px">載入失敗：'+tdEsc(th.error.message)+'</div>'; return;
+  }
+  TD.units=u.data||[]; TD.assigns=a.data||[];
+  TD.threads=(th.data||[]).filter(t=>!t.deleted_at);
+  TD.replies=rp.data||[]; TD.reactions=rc.data||[]; TD.reads=rd.data||[];
+  TD.idThread={}; TD.idReply={};
+  (idn.data||[]).forEach(r=>{ if(r.thread_id) TD.idThread[r.thread_id]=r.student_id; if(r.reply_id) TD.idReply[r.reply_id]=r.student_id; });
+  TD.students=(en.data||[]).map(e=>e.students).filter(Boolean).sort((x,y)=>(x.student_code||'').localeCompare(y.student_code||''));
+  TD.nameById={}; TD.students.forEach(s=>{ TD.nameById[s.id]=s.name_zh; });
+  tdRender();
+}
+function tdRender(){
+  const tabs=document.getElementById('td-tabs');
+  tabs.style.display = TD.tab==='detail' ? 'none' : '';
+  tabs.innerHTML=[['bench','工作台'],['all','全部討論'],['stats','統計']].map(x=>
+    '<button class="dsc-tab'+(TD.tab===x[0]?' on':'')+'" onclick="tdGoTab(\''+x[0]+'\')">'+x[1]+'</button>').join('');
+  const main=document.getElementById('td-main');
+  if(TD.tab==='bench') main.innerHTML=tdRenderBench();
+  else if(TD.tab==='all') main.innerHTML=tdRenderAll();
+  else if(TD.tab==='stats') main.innerHTML=tdRenderStats();
+  else if(TD.tab==='detail') main.innerHTML=tdRenderDetail();
+  tdRenderComposer();
+}
+function tdGoTab(t){ TD.tab=t; TD.curId=null; tdRender(); }
+
+/* ── 出題／開話題 ── */
+function tdDraft(k,v){ TD.draft[k]=v; }
+function tdDraftSet(k,v){ TD.draft[k]=v; tdRenderComposer(); }
+function tdRenderComposer(){
+  const el=document.getElementById('td-composer');
+  const show=(TD.tab==='bench'||TD.tab==='all') && TD.offId;
+  el.style.display=show?'':'none';
+  if(!show){ el.innerHTML=''; return; }
+  const d=TD.draft;
+  if(!TD.open){
+    el.innerHTML='<button class="btn btn-pri" onclick="tdOpenComposer()">＋ 出討論題／開話題</button>';
+    return;
+  }
+  let h='<div class="dsc-composer"><div class="dsc-composer-title">發布給全班（同學會在討論區看到）</div>';
+  h+='<div class="dsc-seg" style="margin-bottom:8px">'+[['prompt','老師出題'],['topic','開話題']].map(x=>
+    '<button type="button" class="'+(d.who===x[0]?'on':'')+'" onclick="tdDraftSet(\'who\',\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div>';
+  h+='<input class="finput" id="td-c-title" maxlength="200" placeholder="標題（例如：讀完第三章，你最想追問的一個地方是什麼？）" value="'+tdEsc(d.title)+'" oninput="tdDraft(\'title\',this.value)">';
+  h+='<div class="dsc-more"><textarea class="finput" rows="4" maxlength="5000" placeholder="說明或題目內容（可以不寫）" oninput="tdDraft(\'body\',this.value)">'+tdEsc(d.body)+'</textarea>';
+  h+='<div class="dsc-row"><select onchange="tdDraft(\'unit\',this.value)"><option value="">單元：不指定</option>'+
+    TD.units.map(u=>'<option value="'+u.id+'"'+(d.unit===u.id?' selected':'')+'>'+tdEsc(u.title)+'</option>').join('')+'</select>'+
+    '<select onchange="tdDraft(\'assign\',this.value)"><option value="">關聯教材、影片或作業：不指定</option>'+
+    TD.assigns.map(a=>'<option value="'+a.id+'"'+(d.assign===a.id?' selected':'')+'>'+tdEsc(a.title)+'</option>').join('')+'</select></div>';
+  if(d.who==='prompt'){
+    h+='<label class="dsc-chk"><input type="checkbox" '+(d.gate?'checked':'')+' onchange="tdDraft(\'gate\',this.checked)"><span>先發表，才能看同學的回覆<br><span class="dsc-hint">避免大家看了別人的答案才跟著寫。老師和助教不受限制。</span></span></label>';
+    h+='<label class="dsc-chk"><input type="checkbox" '+(d.one?'checked':'')+' onchange="tdDraft(\'one\',this.checked)"><span>每人限發一則</span></label>';
+    h+='<div class="dsc-row"><span class="dsc-hint">期限（可不填）</span><input type="datetime-local" class="finput" style="max-width:240px" value="'+tdEsc(d.due)+'" onchange="tdDraftSet(\'due\',this.value)"></div>';
+    if(d.due) h+='<label class="dsc-chk"><input type="checkbox" '+(d.lockDue?'checked':'')+' onchange="tdDraft(\'lockDue\',this.checked)"><span>期限後鎖定，不再接受同學回覆<br><span class="dsc-hint">不勾的話，過了期限仍可繼續討論，只會顯示「已截止」。</span></span></label>';
+  }
+  h+='<label class="dsc-chk"><input type="checkbox" '+(d.staffOnly?'checked':'')+' onchange="tdDraft(\'staffOnly\',this.checked)"><span>只有老師與助教看得到（內部討論）</span></label>';
+  h+='<div class="dsc-row"><button class="btn btn-pri" id="td-c-send" onclick="tdSend()"'+(TD.sending?' disabled':'')+'>'+(TD.sending?'送出中…':(d.who==='prompt'?'發布討論題':'發布'))+'</button><button class="btn-secondary" onclick="tdCloseComposer()">收起</button></div>';
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+function tdOpenComposer(){ TD.open=true; tdRenderComposer(); }
+function tdCloseComposer(){ TD.open=false; TD.draft={ who:'prompt', title:'', body:'', unit:'', assign:'', gate:false, one:false, staffOnly:false, due:'', lockDue:false }; tdRenderComposer(); }
+async function tdSend(){
+  if(TD.sending) return;
+  const d=TD.draft, title=(d.title||'').trim();
+  if(!title){ showToast('先寫下標題', true); return; }
+  const unit=d.unit?TD.units.find(u=>u.id===d.unit):null;
+  TD.sending=true; tdRenderComposer();
+  const { error }=await sb.rpc('discussion_create_thread',{
+    p_offering_id:TD.offId, p_origin:d.who, p_title:title, p_body:(d.body||'').trim()||null,
+    p_unit_label:unit?unit.title:null, p_assignment_id:d.assign||null,
+    p_visibility:d.staffOnly?'staff':'class', p_anonymous:false,
+    p_gate:d.who==='prompt'&&!!d.gate, p_one_per_person:d.who==='prompt'&&!!d.one,
+    p_due_at:(d.who==='prompt'&&d.due)?new Date(d.due).toISOString():null, p_lock_after_due:d.who==='prompt'&&!!d.due&&!!d.lockDue
+  });
+  TD.sending=false;
+  if(error){ tdRenderComposer(); tdRpcError(error); return; }
+  showToast(d.staffOnly?'已發布（只有老師與助教看得到）':'已發布給全班');
+  tdCloseComposer();
+  await tdLoadCourse();
+}
+
+/* ── 卡片與列表 ── */
+function tdDueChip(t){
+  if(!t.due_at) return '';
+  const ms=new Date(t.due_at).getTime()-Date.now(), d=new Date(t.due_at);
+  const when=(d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  if(ms<0) return '<span class="dsc-badge" style="--c:#888">已截止 '+when+(t.lock_after_due?'（已鎖定回覆）':'')+'</span>';
+  const left=ms<86400000?Math.max(1,Math.round(ms/3600000))+' 小時':Math.ceil(ms/86400000)+' 天';
+  return '<span class="dsc-badge" style="--c:#B05010">期限 '+when+'，還有 '+left+'</span>';
+}
+function tdKind(t){
+  if(!t.first_reply_at) return {t:'待回應',c:'#B7791F'};
+  if(t.staff_reply_count>0&&t.peer_reply_count>0) return {t:'師生＋生生討論',c:'#1B3A6B'};
+  if(t.staff_reply_count>0) return {t:'師生討論',c:'#4A4FD0'};
+  return {t:'生生討論',c:'#B05010'};
+}
+function tdCard(t){
+  const o=TD_ORIGIN[t.origin]||TD_ORIGIN.topic, k=tdKind(t);
+  let h='<button class="dsc-card'+(t.pinned?' pinned':'')+'" onclick="tdOpen(\''+t.id+'\')"><div class="dsc-badges"><span class="dsc-badge" style="--c:'+o.c+'">'+o.t+'</span>';
+  if(t.visibility==='private') h+='<span class="dsc-badge" style="--c:#C04030">私下提問</span>';
+  if(t.visibility==='staff') h+='<span class="dsc-badge" style="--c:#888">內部</span>';
+  if(t.pinned) h+='<span class="dsc-badge" style="--c:#C4960A">置頂</span>';
+  if(t.locked) h+='<span class="dsc-badge" style="--c:#C04030">已鎖定</span>';
+  if(t.resolved) h+='<span class="dsc-badge" style="--c:#1F5C3A">已解決</span>';
+  if(t.gate) h+='<span class="dsc-badge" style="--c:#4A4FD0">先發表</span>';
+  h+=tdDueChip(t);
+  h+='</div><div class="dsc-card-title">'+tdEsc(t.title)+'</div>';
+  h+='<div class="dsc-stateline"><span style="color:'+k.c+';font-weight:600"><span class="dsc-dot" style="background:'+k.c+'"></span>'+k.t+'</span><span class="dsc-hint">'+t.reply_count+' 則回覆（老師/助教 '+t.staff_reply_count+'，同學 '+t.peer_reply_count+'）</span></div>';
+  h+='<div class="dsc-meta"><span><b>'+tdEsc(tdAuthorLabel(t))+'</b></span><span>'+tdAgo(t.created_at)+'</span>'+(t.unit_label?'<span>'+tdEsc(t.unit_label)+'</span>':'')+'</div></button>';
+  return h;
+}
+function tdGroup(title, hint, list){
+  let h='<div class="dsc-section"><div class="dsc-sec-t">'+title+' <span class="dsc-hint">（'+list.length+'）</span></div>';
+  h+= list.length ? '<div class="dsc-list">'+list.map(tdCard).join('')+'</div>' : '<div class="dsc-hint">'+hint+'</div>';
+  return h+'</div>';
+}
+function tdRenderBench(){
+  const day=86400000, now=Date.now();
+  const live=TD.threads;
+  const priv=live.filter(t=>t.visibility==='private'&&!t.resolved&&t.staff_reply_count===0);
+  const waitT=live.filter(t=>t.visibility==='class'&&(t.origin==='ask-teacher')&&!t.resolved&&t.staff_reply_count===0);
+  const noReply=live.filter(t=>t.visibility==='class'&&t.origin!=='prompt'&&t.reply_count===0&&t.origin!=='ask-teacher');
+  const fresh=live.filter(t=>now-new Date(t.last_activity_at).getTime()<day&&!priv.includes(t)&&!waitT.includes(t)&&!noReply.includes(t));
+  const prompts=live.filter(t=>t.origin==='prompt'&&!t.locked);
+  const total=priv.length+waitT.length+noReply.length;
+  let h='<div class="dsc-hello"><div class="dsc-hello-t">'+(total?'有 '+total+' 件事等你看一下':'目前沒有等待處理的討論')+'</div><p>'+
+    (total?'私下提問和問老師的問題在最上面。讓同學先回答也很好，不用急著第一個回。':'討論區很安靜，或者同學們已經互相解決了問題。')+'</p></div>';
+  h+=tdGroup('私下提問','沒有待處理的私下提問。',priv);
+  h+=tdGroup('問老師，還沒有老師或助教回覆','沒有待處理的提問。',waitT);
+  h+=tdGroup('問同學／開話題，還沒有人回','沒有無人回覆的討論。',noReply);
+  h+=tdGroup('進行中的老師出題','還沒有出過討論題，可以用上面的按鈕發布第一題。',prompts);
+  h+=tdGroup('最近 24 小時有動靜','最近 24 小時沒有新動態。',fresh);
+  return h;
+}
+function tdRenderAll(){
+  const F=[['all','全部'],['prompt','老師出題'],['ask-teacher','問老師'],['ask-peer','問同學'],['topic','開話題'],['private','私下提問'],['staff','內部'],['resolved','已解決']];
+  const m=(t,f)=> f==='all'||(f==='private'&&t.visibility==='private')||(f==='staff'&&t.visibility==='staff')||(f==='resolved'&&t.resolved)||t.origin===f;
+  let h='<div class="dsc-chips">'+F.map(f=>'<button class="dsc-fchip'+(TD.filter===f[0]?' on':'')+'" onclick="tdSetFilter(\''+f[0]+'\')">'+f[1]+'<em>'+TD.threads.filter(t=>m(t,f[0])).length+'</em></button>').join('')+'</div>';
+  const list=TD.threads.filter(t=>m(t,TD.filter)).sort((a,b)=>(a.pinned!==b.pinned)?(a.pinned?-1:1):new Date(b.last_activity_at)-new Date(a.last_activity_at));
+  h+=list.length?'<div class="dsc-list">'+list.map(tdCard).join('')+'</div>':'<div class="dsc-empty">這個分類目前沒有討論。</div>';
+  return h;
+}
+function tdSetFilter(f){ TD.filter=f; tdRender(); }
+
+/* ── 討論串 ── */
+function tdOpen(id){ TD.curId=id; TD.tab='detail'; tdRender(); window.scrollTo(0,0); document.querySelector('.main') && (document.querySelector('.main').scrollTop=0); }
+function tdBack(){ TD.tab='bench'; TD.curId=null; tdRender(); }
+function tdReplyHtml(t,r,child){
+  const ro=TD_ROLE[r.author_role]||TD_ROLE.student, deleted=!!r.deleted_at;
+  const mine=r.author_teacher_id===ME.id;
+  const nm=tdReplyLabel(r)||ro.t;
+  const thanks=TD.reactions.filter(x=>x.kind==='thanks'&&x.target_id===r.id).length;
+  let h='<div class="dsc-reply'+(child?' child':'')+(r.endorsed?' endorsed':'')+'"><div class="dsc-avatar" style="background:'+ro.c+'">'+tdEsc(nm.charAt(0))+'</div><div class="dsc-rbody">';
+  h+='<div class="dsc-rhead"><b>'+tdEsc(nm)+'</b><span class="dsc-badge" style="--c:'+ro.c+'">'+ro.t+'</span>';
+  if(r.endorsed) h+='<span class="dsc-badge" style="--c:#C4960A">已認可為答案</span>';
+  h+='<span class="dsc-hint">'+tdAgo(r.created_at)+(r.edited_at&&!deleted?'（已編輯）':'')+'</span></div>';
+  h+=deleted?'<div class="dsc-rtext" style="color:var(--ink3);font-style:italic">（這則回覆已刪除）</div>':'<div class="dsc-rtext">'+tdBody(r.body)+'</div>';
+  if(!deleted){
+    h+='<div class="dsc-ractions">';
+    if(thanks) h+='<span class="dsc-hint">收到 '+thanks+' 聲謝謝</span>';
+    if(!child) h+='<button onclick="tdToggleReplyBox(\''+r.id+'\')">回覆</button>';
+    if(r.author_role==='student') h+='<button class="'+(r.endorsed?'on':'')+'" onclick="tdEndorse(\''+r.id+'\','+(!r.endorsed)+')">'+(r.endorsed?'取消認可':'認可為答案')+'</button>';
+    h+='<button onclick="tdDelete(\'reply\',\''+r.id+'\')">刪除</button></div><div id="td-rb-'+r.id+'"></div>';
+  }
+  return h+'</div></div>';
+}
+function tdRenderDetail(){
+  const t=tdThread(TD.curId);
+  if(!t) return '<div class="dsc-empty">找不到這則討論。</div>';
+  const o=TD_ORIGIN[t.origin]||TD_ORIGIN.topic, k=tdKind(t);
+  const goodQ=TD.reactions.filter(x=>x.kind==='good_question'&&x.target_id===t.id);
+  const goodQByMe=goodQ.some(x=>x.actor_id===ME.id);
+  const assign=t.assignment_id?TD.assigns.find(a=>a.id===t.assignment_id):null;
+  const isStudentPost=t.author_role==='student';
+  let h='<button class="dsc-back" onclick="tdBack()">← 回到列表</button><div class="dsc-post"><div class="dsc-badges"><span class="dsc-badge" style="--c:'+o.c+'">'+o.t+'</span><span class="dsc-badge" style="--c:'+k.c+'">'+k.t+'</span>';
+  if(t.visibility==='private') h+='<span class="dsc-badge" style="--c:#C04030">私下提問，同學看不到</span>';
+  if(t.visibility==='staff') h+='<span class="dsc-badge" style="--c:#888">內部討論，同學看不到</span>';
+  if(t.resolved) h+='<span class="dsc-badge" style="--c:#1F5C3A">已解決</span>';
+  if(t.pinned) h+='<span class="dsc-badge" style="--c:#C4960A">置頂</span>';
+  if(t.locked) h+='<span class="dsc-badge" style="--c:#C04030">已鎖定</span>';
+  if(goodQ.length) h+='<span class="dsc-badge" style="--c:#C4960A">問得好</span>';
+  h+=tdDueChip(t);
+  h+='</div><div class="dsc-post-title">'+tdEsc(t.title)+'</div>';
+  if(t.body) h+='<div class="dsc-rtext">'+tdBody(t.body)+'</div>';
+  h+='<div class="dsc-meta"><span><b>'+tdEsc(tdAuthorLabel(t))+'</b></span><span>'+tdAgo(t.created_at)+(t.edited_at?'（已編輯）':'')+'</span>'+(t.unit_label?'<span>'+tdEsc(t.unit_label)+'</span>':'')+(assign?'<span>關聯：'+tdEsc(assign.title)+'</span>':'')+'</div>';
+  if(t.is_anonymous) h+='<div class="dsc-hint">這位同學對同學匿名，只有老師和助教看得到真名。請不要在討論中公開。</div>';
+  if(t.gate) h+='<div class="dsc-hint">先發表才能看同學的回覆（老師和助教不受限制）。</div>';
+  if(t.one_per_person) h+='<div class="dsc-hint">每人限發一則。</div>';
+  let acts='<button class="btn-secondary" onclick="tdFlag(\'pinned\','+(!t.pinned)+')">'+(t.pinned?'取消置頂':'置頂')+'</button>'+
+    '<button class="btn-secondary" onclick="tdFlag(\'locked\','+(!t.locked)+')">'+(t.locked?'解除鎖定':'鎖定（不再接受同學回覆）')+'</button>'+
+    '<button class="btn-secondary" onclick="tdFlag(\'resolved\','+(!t.resolved)+')">'+(t.resolved?'改回未解決':'標為已解決')+'</button>';
+  if(isStudentPost) acts+='<button class="btn-secondary" onclick="tdGoodQ()">'+(goodQByMe?'取消「問得好」':'這個問題問得好')+'</button>';
+  acts+='<button class="btn-secondary" onclick="tdDelete(\'thread\',\''+t.id+'\')">刪除</button>';
+  h+='<div class="dsc-row">'+acts+'</div></div>';
+  const reps=TD.replies.filter(r=>r.thread_id===t.id);
+  const top=reps.filter(r=>!r.parent_reply_id).sort((a,b)=>(a.endorsed!==b.endorsed)?(a.endorsed?-1:1):new Date(a.created_at)-new Date(b.created_at));
+  h+='<div class="dsc-replies">';
+  if(!top.length) h+='<div class="dsc-empty">還沒有人回覆。'+(t.origin==='prompt'?'':'讓同學先回，也是一種好的開始。')+'</div>';
+  top.forEach(r=>{ h+=tdReplyHtml(t,r,false); reps.filter(c=>c.parent_reply_id===r.id).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).forEach(c=>{ h+=tdReplyHtml(t,c,true); }); });
+  if(t.origin==='prompt'){
+    const posted=new Set(reps.filter(r=>!r.deleted_at&&r.author_role==='student').map(r=>tdStudentOfReply(r)).filter(Boolean));
+    const miss=TD.students.filter(x=>!posted.has(x.id));
+    h+='</div><div class="dsc-section" style="margin-top:12px"><div class="dsc-sec-t">還沒發表的同學（'+miss.length+' / '+TD.students.length+'）</div><div class="dsc-hint">'+
+      (miss.length?miss.map(x=>tdEsc(x.name_zh)).join('、'):'全部同學都發表過了。')+'</div><div class="dsc-hint" style="margin-top:4px">匿名回覆的同學也算已發表。這份名單只有老師和助教看得到，用來提醒，不列入成績。</div>';
+  }
+  h+='</div><div class="dsc-replybox" style="margin-top:14px"><textarea class="finput" id="td-reply-text" rows="3" maxlength="5000" placeholder="以老師身分回覆"></textarea><div class="dsc-row"><button class="btn btn-pri" onclick="tdSendReply(null)">送出回覆</button></div></div>';
+  return h;
+}
+function tdToggleReplyBox(rid){
+  const box=document.getElementById('td-rb-'+rid);
+  if(!box) return;
+  if(box.innerHTML){ box.innerHTML=''; return; }
+  box.innerHTML='<div class="dsc-replybox"><textarea class="finput" id="td-rr-'+rid+'" rows="2" maxlength="5000" placeholder="回覆這則留言"></textarea><div class="dsc-row"><button class="btn btn-pri" onclick="tdSendReply(\''+rid+'\')">送出</button></div></div>';
+  document.getElementById('td-rr-'+rid).focus();
+}
+async function tdRefreshThread(){
+  const id=TD.curId; if(!id) return;
+  const y=window.scrollY, mainEl=document.querySelector('.main'), my=mainEl?mainEl.scrollTop:0;
+  const [th,rp,rc,idn]=await Promise.all([
+    sb.from('discussion_threads').select('*').eq('id',id).maybeSingle(),
+    sb.from('discussion_replies').select('*').eq('thread_id',id).order('created_at'),
+    sb.from('discussion_reactions').select('*').eq('thread_id',id),
+    sb.from('discussion_identities').select('thread_id, reply_id, student_id').eq('offering_id',TD.offId)
+  ]);
+  if(TD.curId!==id) return;
+  if(th.data){ const i=TD.threads.findIndex(x=>x.id===id); if(i>-1) TD.threads[i]=th.data; }
+  TD.replies=TD.replies.filter(r=>r.thread_id!==id).concat(rp.data||[]);
+  TD.reactions=TD.reactions.filter(x=>x.thread_id!==id).concat(rc.data||[]);
+  (idn.data||[]).forEach(r=>{ if(r.thread_id) TD.idThread[r.thread_id]=r.student_id; if(r.reply_id) TD.idReply[r.reply_id]=r.student_id; });
+  document.getElementById('td-main').innerHTML=tdRenderDetail();
+  window.scrollTo(0,y); if(mainEl) mainEl.scrollTop=my;
+}
+async function tdSendReply(parentId){
+  if(TD.sending) return;
+  const ta=document.getElementById(parentId?'td-rr-'+parentId:'td-reply-text');
+  const body=ta?ta.value.trim():'';
+  if(!body){ showToast('先寫一點內容', true); return; }
+  TD.sending=true;
+  const { error }=await sb.rpc('discussion_create_reply',{ p_thread_id:TD.curId, p_body:body, p_parent_reply_id:parentId||null, p_anonymous:false });
+  TD.sending=false;
+  if(error){ tdRpcError(error); return; }
+  showToast('已送出');
+  await tdRefreshThread();
+}
+async function tdFlag(flag,value){
+  const { error }=await sb.rpc('discussion_set_thread_flag',{ p_thread_id:TD.curId, p_flag:flag, p_value:value });
+  if(error){ tdRpcError(error); return; }
+  showToast({pinned:value?'已置頂':'已取消置頂',locked:value?'已鎖定':'已解除鎖定',resolved:value?'已標為已解決':'已改回未解決'}[flag]);
+  await tdRefreshThread();
+}
+async function tdEndorse(rid,value){
+  const { error }=await sb.rpc('discussion_set_reply_endorsed',{ p_reply_id:rid, p_value:value });
+  if(error){ tdRpcError(error); return; }
+  showToast(value?'已認可為答案，同學會看到':'已取消認可');
+  await tdRefreshThread();
+}
+async function tdGoodQ(){
+  const { error }=await sb.rpc('discussion_toggle_reaction',{ p_kind:'good_question', p_target_id:TD.curId });
+  if(error){ tdRpcError(error); return; }
+  await tdRefreshThread();
+}
+async function tdDelete(kind,id){
+  if(!confirm(kind==='thread'?'確定刪除整則討論嗎？內容會被清空，無法復原。':'確定刪除這則回覆嗎？內容會被清空，無法復原。')) return;
+  const { error }=await sb.rpc('discussion_delete_post',{ p_kind:kind, p_id:id });
+  if(error){ tdRpcError(error); return; }
+  showToast('已刪除');
+  if(kind==='thread'){ TD.tab='bench'; TD.curId=null; await tdLoadCourse(); } else await tdRefreshThread();
+}
+
+/* ── 統計（只算活動量；不計分、不影響完成度）── */
+function tdMedian(a){ if(!a.length) return null; const s=a.slice().sort((x,y)=>x-y), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function tdDur(min){ if(min==null) return '—'; if(min<60) return Math.round(min)+' 分鐘'; if(min<1440) return (min/60).toFixed(1)+' 小時'; return (min/1440).toFixed(1)+' 天'; }
+function tdSetStale(v){ TD.staleDays=Math.max(1,parseInt(v,10)||3); tdRender(); }
+function tdBars(items){
+  const mx=Math.max(1,...items.map(i=>i[1]));
+  return items.map(i=>'<div class="dsc-cmp" style="grid-template-columns:96px 1fr 32px"><span>'+tdEsc(i[0])+'</span><div class="dsc-bar"><i style="width:'+(i[1]/mx*100)+'%"></i></div><span>'+i[1]+'</span></div>').join('');
+}
+function tdRenderStats(){
+  const T=TD.threads.filter(t=>t.visibility!=='staff'||true);
+  const R=TD.replies.filter(r=>!r.deleted_at);
+  const n=TD.students.length;
+  // 來源
+  const byOrigin=['prompt','ask-teacher','ask-peer','topic'].map(k=>[TD_ORIGIN[k].t,T.filter(t=>t.origin===k).length]);
+  // 師生 vs 生生（回覆者身分；討論串發問者自己的追問不算同學互動）
+  const staffR=R.filter(r=>r.author_role!=='student').length;
+  const studR=R.filter(r=>r.author_role==='student').length;
+  const peerR=T.reduce((s,t)=>s+(t.peer_reply_count||0),0);
+  const staffReplyOnly=T.reduce((s,t)=>s+(t.staff_reply_count||0),0);
+  const sumSP=staffReplyOnly+peerR||1;
+  const withFirst=T.filter(t=>t.first_reply_at&&t.origin!=='prompt');
+  const med=tdMedian(withFirst.map(t=>(new Date(t.first_reply_at)-new Date(t.created_at))/60000));
+  const firstStaff=withFirst.filter(t=>t.first_reply_by==='staff').length, firstPeer=withFirst.filter(t=>t.first_reply_by==='peer').length;
+  const staleMs=TD.staleDays*86400000, now=Date.now();
+  const stale=T.filter(t=>t.visibility!=='staff'&&t.origin!=='prompt'&&t.reply_count===0&&!t.resolved&&now-new Date(t.created_at)>staleMs);
+  // 學生參與
+  const rows=TD.students.map(s=>{
+    const posts=T.filter(t=>tdStudentOfThread(t)===s.id).length;
+    const reps=R.filter(r=>tdStudentOfReply(r)===s.id).length;
+    const got=TD.reactions.filter(x=>x.kind==='thanks'&&R.some(r=>r.id===x.target_id&&tdStudentOfReply(r)===s.id)).length;
+    const reads=TD.reads.filter(r=>r.student_id===s.id).length;
+    return {s,posts,reps,got,reads,part:posts+reps};
+  });
+  const silent=rows.filter(r=>r.part===0&&r.reads>0), none=rows.filter(r=>r.part===0&&r.reads===0), active=rows.filter(r=>r.part>0);
+  // 每週趨勢（近 8 週）
+  const wk=d=>{ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x.getTime(); };
+  const w0=wk(new Date()), weeks=[]; for(let i=7;i>=0;i--) weeks.push(w0-i*7*86400000);
+  const trend=weeks.map(w=>{ const e=w+7*86400000; const c=T.filter(t=>{const x=new Date(t.created_at).getTime();return x>=w&&x<e;}).length+R.filter(r=>{const x=new Date(r.created_at).getTime();return x>=w&&x<e;}).length; const d=new Date(w); return [(d.getMonth()+1)+'/'+d.getDate()+' 起',c]; });
+  // 各單元
+  const um={}; T.forEach(t=>{ const k=t.unit_label||'（未指定單元）'; um[k]=(um[k]||0)+1; });
+  const unitBars=Object.keys(um).map(k=>[k,um[k]]).sort((a,b)=>b[1]-a[1]);
+  let h='<div class="dsc-hello"><div class="dsc-hello-t">討論區統計</div><p>只統計活動量，不列入成績，也不影響完成度。沒有發言不代表沒有參與，已讀記錄會一起列出。</p></div>';
+  h+='<div class="dsc-grid2"><div class="dsc-tile"><div class="n">'+T.length+'</div><div class="l">討論串</div></div><div class="dsc-tile"><div class="n">'+R.length+'</div><div class="l">回覆</div></div>'+
+     '<div class="dsc-tile"><div class="n" style="font-size:20px">'+tdDur(med)+'</div><div class="l">第一個回覆的中位時間</div></div>'+
+     '<div class="dsc-tile"><div class="n">'+(firstStaff+firstPeer?Math.round(firstPeer/(firstStaff+firstPeer)*100)+'%':'—')+'</div><div class="l">第一個回覆者是同學</div></div></div>';
+  h+='<div class="dsc-section"><div class="dsc-sec-t">討論串來源</div>'+tdBars(byOrigin)+'</div>';
+  h+='<div class="dsc-section"><div class="dsc-sec-t">師生互動與生生互動</div>'+tdBars([['老師／助教回覆',staffReplyOnly],['同學回覆',peerR]])+
+     '<div class="dsc-hint">占比：老師／助教 '+Math.round(staffReplyOnly/sumSP*100)+'%，同學 '+Math.round(peerR/sumSP*100)+'%。發問者自己的追問不計入。全部回覆中老師／助教 '+staffR+' 則、同學 '+studR+' 則。<br>第一個回覆者：老師／助教 '+firstStaff+' 則，同學 '+firstPeer+' 則。同學先回答不是壞事。</div></div>';
+  h+='<div class="dsc-section"><div class="dsc-sec-t">超過 <input type="number" min="1" value="'+TD.staleDays+'" style="width:52px;padding:2px 4px" onchange="tdSetStale(this.value)"> 天沒有人回覆（'+stale.length+'）</div>'+
+     (stale.length?'<div class="dsc-list">'+stale.map(tdCard).join('')+'</div>':'<div class="dsc-hint">沒有。</div>')+'</div>';
+  h+='<div class="dsc-section"><div class="dsc-sec-t">每週活動（近 8 週，發文加回覆）</div>'+tdBars(trend)+'</div>';
+  if(unitBars.length) h+='<div class="dsc-section"><div class="dsc-sec-t">各單元討論量</div>'+tdBars(unitBars)+'</div>';
+  const nameList=a=>a.length?a.map(r=>tdEsc(r.s.name_zh)).join('、'):'無';
+  h+='<div class="dsc-section"><div class="dsc-sec-t">參與情形（共 '+n+' 位）</div>'+
+     '<div class="dsc-hint" style="margin-bottom:6px">有發言 '+active.length+' 位；有閱讀沒發言 '+silent.length+' 位；完全沒參與 '+none.length+' 位。</div>'+
+     '<div class="dsc-hint"><b>有閱讀沒發言：</b>'+nameList(silent)+'</div><div class="dsc-hint" style="margin-top:4px"><b>完全沒參與：</b>'+nameList(none)+'</div></div>';
+  h+='<div class="tbl-wrap" style="max-height:420px"><table style="min-width:520px"><thead><tr><th>學號</th><th>姓名</th><th>發文</th><th>回覆</th><th>收到謝謝</th><th>讀過</th></tr></thead><tbody>'+
+     rows.map(r=>'<tr><td>'+tdEsc(r.s.student_code||'')+'</td><td>'+tdEsc(r.s.name_zh)+'</td><td>'+r.posts+'</td><td>'+r.reps+'</td><td>'+r.got+'</td><td>'+r.reads+'</td></tr>').join('')+'</tbody></table></div>';
+  h+='<div class="dsc-hint" style="margin-top:8px">「讀過」是學生打開的討論串數。同學匿名發的文，這裡會算在他本人名下，只有你和助教看得到。</div>';
+  return h;
+}
+
 function showSection(id) {
   document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
   document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
@@ -5204,6 +5733,7 @@ function showSection(id) {
   if (id === 'survey') { loadTeacherSurveys(); }
   if (id === 'forms') { loadFormsSection(); }
   if (id === 'regulations') { loadRegulationsSectionT(); }
+  if (id === 'discussion') { loadTdSection(); }
 }
 // 相容舊呼叫
 function switchTab(id, btn) {
@@ -5787,6 +6317,29 @@ async function lpSaveSet() {
       (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.34', date: '2026-10-06',
+    items: [
+      '課程討論區：老師出題可設定選填的「期限」，過期仍可閱讀與討論，只顯示「已截止」；也可勾選「期限後鎖定，不再接受同學回覆」（老師與助教不受限制）',
+      '出題的討論串內新增「還沒發表的同學」名單（匿名回覆也算已發表），方便提醒；只有老師與助教看得到，不列入成績',
+      '需先在資料庫重新執行 discussion_board_migration.sql（新增期限欄位）',
+    ]
+  },
+  {
+    version: 'v3.33', date: '2026-10-06',
+    items: [
+      '新增「💬 課程討論區」：老師可出討論題（可設定先發表才能看同學回覆、每人限發一則）、開話題、也可發只有老師與助教看得到的內部討論',
+      '工作台一眼看到待處理的私下提問、還沒回的「問老師」、無人回覆的討論，以及進行中的出題；可置頂、鎖定、標為已解決，一鍵把同學的回覆認可為答案，或對好問題按「問得好」',
+      '匿名發文的同學對同學保密，老師與助教看得到真名（畫面會標註「匿名」，請勿公開）',
+      '統計：討論串來源、師生與生生互動占比、第一個回覆者、回覆中位時間、超過N天無人回覆、每週與各單元討論量，以及每位同學的參與情形（分「有閱讀沒發言」與「完全沒參與」）。只統計活動量，不列入成績',
+    ]
+  },
+  {
+    version: 'v3.32', date: '2026-10-06',
+    items: [
+      '配合學生端影片觀看進度持久化：批閱面板統計/表格/查看視窗、完成度總覽表格/Excel匯出，都新增「觀看中 X%」中間狀態，不會因為進度持久化留下的記錄就誤判成已繳交；觀看中的記錄批閱視窗不會顯示評分欄位（尚未完成不能批閱）',
+    ]
+  },
   {
     version: 'v3.31', date: '2026-10-06',
     items: [

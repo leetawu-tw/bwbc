@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.36 2026-10-06 已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
+<!-- BWBC Student v3.39 2026-10-06 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -238,6 +238,82 @@ input{font-family:inherit}
 .viewer-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--navy);color:#fff;font-size:13px}
 .viewer-hdr button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
 .viewer-frame{flex:1;border:none;width:100%}
+/* ── 課程討論區 ── */
+.dsc-coursename{font-weight:600;color:var(--navy);margin-bottom:10px;font-size:14px}
+#dsc-courses{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.dsc-course{padding:6px 12px;border:1.5px solid var(--cr2);background:#fff;border-radius:16px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2)}
+.dsc-course.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dsc-chip-ta{font-size:11px;background:#E3F1E9;color:#1F5C3A;border-radius:8px;padding:1px 6px}
+#dsc-tabs{display:flex;gap:4px;border-bottom:1px solid var(--cr2);margin-bottom:12px}
+.dsc-tab{padding:8px 16px;border:none;background:none;font-size:14px;cursor:pointer;font-family:inherit;color:var(--ink3);border-bottom:2px solid transparent}
+.dsc-tab.on{color:var(--navy);border-bottom-color:var(--navy);font-weight:600}
+.dsc-composer{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;margin-bottom:12px;box-shadow:var(--sh)}
+.dsc-composer-title{font-size:13px;color:var(--ink3);margin-bottom:6px}
+.dsc-more{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+.dsc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dsc-row select{flex:1;min-width:140px;padding:8px;border:1.5px solid var(--cr2);border-radius:8px;font-size:13px;background:#fff;font-family:inherit}
+.dsc-hint{font-size:12px;color:var(--ink3)}
+.dsc-seg{display:flex;flex-wrap:wrap;gap:4px}
+.dsc-seg button{padding:6px 12px;border:1.5px solid var(--cr2);background:#fff;border-radius:16px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2)}
+.dsc-seg button.on{background:var(--navy3);border-color:var(--navy2);color:var(--navy);font-weight:600}
+.dsc-chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer}
+.dsc-chk input{margin-top:3px}
+.dsc-similar{background:#FFF8E5;border:1px solid #F0DFA8;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+.dsc-similar a{color:var(--navy2);cursor:pointer;text-decoration:underline}
+.dsc-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
+.dsc-fchip{flex:none;padding:6px 12px;border:1.5px solid var(--cr2);background:#fff;border-radius:16px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2)}
+.dsc-fchip em{font-style:normal;font-size:11px;color:var(--ink3);margin-left:5px}
+.dsc-fchip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dsc-fchip.on em{color:#cfd8ea}
+.dsc-list{display:flex;flex-direction:column;gap:8px}
+.dsc-card{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;cursor:pointer;font-family:inherit;transition:box-shadow .15s,transform .15s}
+.dsc-card:hover{box-shadow:var(--sh);transform:translateY(-1px)}
+.dsc-card.pinned{border-left:4px solid #C4960A}
+.dsc-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.dsc-badge{font-size:11px;padding:2px 8px;border-radius:10px;color:var(--c);background:#fff;border:1px solid var(--c)}
+.dsc-card-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.dsc-stateline{display:flex;gap:12px;align-items:center;font-size:12.5px;margin-bottom:4px}
+.dsc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.dsc-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink3)}
+.dsc-empty{color:var(--ink3);font-size:13px;padding:24px 8px;text-align:center}
+.dsc-back{border:none;background:none;color:var(--navy2);font-size:13px;cursor:pointer;padding:4px 0;margin-bottom:8px;font-family:inherit}
+.dsc-post{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px}
+.dsc-post-title{font-size:18px;font-weight:700;color:var(--navy)}
+.dsc-rtext{font-size:14px;line-height:1.7;color:var(--ink);word-break:break-word}
+.dsc-replies{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.dsc-reply{display:flex;gap:10px;background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:10px}
+.dsc-reply.child{margin-left:28px;background:var(--cr3)}
+.dsc-reply.endorsed{border:2px solid #C4960A;background:#FFFBEA}
+.dsc-avatar{flex:none;width:30px;height:30px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.dsc-rbody{flex:1;min-width:0}
+.dsc-rhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;margin-bottom:3px}
+.dsc-ractions{display:flex;gap:12px;margin-top:6px}
+.dsc-ractions button{border:none;background:none;color:var(--ink3);font-size:12.5px;cursor:pointer;padding:2px 0;font-family:inherit}
+.dsc-ractions button:hover,.dsc-ractions button.on{color:var(--navy2);font-weight:600}
+.dsc-replybox{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.dsc-gate{background:var(--navy3);border:1px dashed var(--navy2);border-radius:var(--r);padding:14px;margin-top:12px;font-size:13.5px;line-height:1.6}
+.dsc-hello{background:linear-gradient(135deg,var(--navy3),#fff);border:1px solid var(--cr2);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.dsc-hello-t{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.dsc-hello p{font-size:13.5px;color:var(--ink2);line-height:1.6;margin:0}
+.dsc-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.dsc-tile{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;text-align:center}
+.dsc-tile .n{font-size:26px;font-weight:700;color:var(--navy)}
+.dsc-tile .l{font-size:12px;color:var(--ink3)}
+.dsc-up{font-size:11.5px;color:#1F5C3A;margin-top:3px}
+.dsc-section{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.dsc-sec-t{font-weight:600;color:var(--navy);margin-bottom:8px;font-size:14px}
+.dsc-cmp{display:grid;grid-template-columns:64px 1fr 28px;gap:8px;align-items:center;font-size:12.5px;margin-bottom:6px}
+.dsc-bar{background:var(--cr3);border-radius:6px;height:10px;overflow:hidden}
+.dsc-bar i{display:block;height:100%;background:var(--navy2);border-radius:6px;transition:width .6s}
+.dsc-bar i.last{background:#B8C4DA}
+.dsc-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:8px}
+.dsc-medal{text-align:center;padding:10px 6px;border-radius:var(--r);background:var(--cr3);opacity:.55}
+.dsc-medal.got{opacity:1;background:#FFFBEA;border:1px solid #E8D48A}
+.dsc-medal .ring{width:42px;height:42px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;background:#ddd;color:#fff}
+.dsc-medal.got .ring{background:#C4960A}
+.dsc-medal b{display:block;font-size:12.5px}
+.dsc-medal small{font-size:11px;color:var(--ink3)}
+@media(max-width:600px){.dsc-reply.child{margin-left:14px}}
 </style>
 </head>
 <body>
@@ -282,6 +358,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-ann"    onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
       <div class="side-item" id="nav-select" onclick="showSection('select')"><span class="nav-icon">📚</span><span class="nav-txt">選課</span></div>
       <div class="side-item" id="nav-assignments" onclick="showSection('assignments')"><span class="nav-icon">📝</span><span class="nav-txt">教材與作業</span></div>
+      <div class="side-item" id="nav-discussion" onclick="showSection('discussion')"><span class="nav-icon">💬</span><span class="nav-txt">課程討論區</span></div>
       <div class="side-item" id="nav-ta-apply" onclick="showSection('ta-apply')"><span class="nav-icon">🙋</span><span class="nav-txt">TA申請</span></div>
       <div class="side-item" id="nav-ta-mode" onclick="showSection('ta-mode')" style="display:none"><span class="nav-icon">🎓</span><span class="nav-txt">TA課程管理</span></div>
       <div class="side-item" id="nav-attendance" onclick="showSection('attendance')" style="display:none"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
@@ -291,7 +368,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.36　2026-10-06</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.39　2026-10-06</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -495,6 +572,16 @@ input{font-family:inherit}
       <div id="sec-regulations" class="t-section">
         <div class="section-title">⚖️ 相關法規查詢</div>
         <div id="regulations-list-wrap"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── 課程討論區 ── -->
+      <div id="sec-discussion" class="t-section">
+        <div class="section-title">💬 課程討論區</div>
+        <div id="dsc-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">目前沒有已選課的課程</div>
+        <div id="dsc-courses"></div>
+        <div id="dsc-tabs"></div>
+        <div id="dsc-composer"></div>
+        <div id="dsc-main"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
 
       <!-- ── 教材與作業 ── -->
@@ -728,6 +815,28 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.39', date: '2026-10-06',
+    items: [
+      '課程討論區目前不開放匿名：發問與回覆都不再顯示匿名選項，資料庫也同步禁止；之後要開放時由資料庫的匿名總開關一處打開，畫面會自動跟著出現選項',
+    ]
+  },
+  {
+    version: 'v3.38', date: '2026-10-06',
+    items: [
+      '課程討論區：老師出題的討論題可以有期限，列表與討論串會顯示「期限 / 還有N天 / 已截止」；若老師勾選「期限後鎖定」，過期後不能再回覆，但仍可閱讀',
+      '助教在出題的討論串可看到「還沒發表的同學」名單（匿名回覆也算已發表），方便提醒，不列入成績',
+      '需先在資料庫重新執行 discussion_board_migration.sql（新增期限欄位）',
+    ]
+  },
+  {
+    version: 'v3.37', date: '2026-10-06',
+    items: [
+      '新增「課程討論區」：每門課一個討論區，可以問老師、問同學、開話題，或回答老師出的討論題；可選擇對同學匿名（老師與助教看得到），也可以私下問老師',
+      '新增「我的足跡」：只有自己看得到，記錄讀過、問過、回覆過的次數與收到的謝謝，只跟自己的上週比，不列入成績',
+      '助教可在討論區置頂討論串、對好問題按「問得好」，也可發起討論題',
+    ]
+  },
   {
     version: 'v3.36', date: '2026-10-06',
     items: [
@@ -4293,6 +4402,617 @@ function shuffleSeeded(arr, seedStr) {
   return copy;
 }
 
+/* ════════════════════════════════════════════════════════════
+   課程討論區（第一階段：學生與助教端）
+   資料表與寫入函式見 discussion_board_migration.sql：
+   前端只「讀」discussion_* 表，所有寫入一律呼叫 sb.rpc('discussion_...')，
+   由資料庫檢查身分與規則（匿名、先發表才能看、私人提問都由資料庫強制，不是只靠畫面隱藏）。
+   ⚠️ 同學寫的內容會顯示給別人看，一律用 dscEsc() 轉義，不能用這個檔案裡舊的 esc()（它只處理雙引號）。
+   ════════════════════════════════════════════════════════════ */
+const DSC_ORIGIN = {
+  'prompt':      { t:'老師出題', c:'#4A4FD0' },
+  'ask-teacher': { t:'問老師',   c:'#1F5C3A' },
+  'ask-peer':    { t:'問同學',   c:'#B05010' },
+  'topic':       { t:'開話題',   c:'#6A1B9A' }
+};
+const DSC_ROLE = {
+  teacher: { t:'老師', c:'#1B3A6B' },
+  ta:      { t:'助教', c:'#1F5C3A' },
+  student: { t:'同學', c:'#888888' }
+};
+const DSC_FILTERS = [
+  ['all','全部'], ['wait','待回應'], ['prompt','老師出題'], ['ask-teacher','問老師'],
+  ['ask-peer','問同學'], ['resolved','已解決'], ['new','有新回覆'], ['mine','我的']
+];
+const DSC = {
+  offerings: [], offId: null, tab: 'list', filter: 'all', curId: null,
+  units: [], assigns: [], threads: [], reads: {},
+  myThreadIds: {}, myReplyIds: {},
+  replies: [], reactions: [],
+  open: false, sending: false, loadSeq: 0, anonOk: false,
+  draft: { who:'ask-teacher', title:'', body:'', unit:'', assign:'', anon:false, gate:false, one:false, staffOnly:false, due:'', lockDue:false }
+};
+
+function dscEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function dscBody(s) { return dscEsc(s).replace(/\n/g, '<br>'); }
+function dscAgo(iso) {
+  if (!iso) return '';
+  const m = (Date.now() - new Date(iso).getTime()) / 60000;
+  if (m < 1) return '剛剛';
+  if (m < 60) return Math.round(m) + ' 分鐘前';
+  if (m < 1440) return Math.round(m / 60) + ' 小時前';
+  if (m < 43200) return Math.round(m / 1440) + ' 天前';
+  return new Date(iso).toLocaleDateString('zh-TW');
+}
+function dscCurOffering() { return DSC.offerings.find(o => o.offering_id === DSC.offId) || null; }
+function dscIsTa() { const o = dscCurOffering(); return !!(o && o.isTa); }
+function dscMineThread(t) { return t.author_student_id === ME.id || !!DSC.myThreadIds[t.id]; }
+function dscMineReply(r) { return r.author_student_id === ME.id || !!DSC.myReplyIds[r.id]; }
+function dscThreadById(id) { return DSC.threads.find(t => t.id === id) || null; }
+function dscRpcError(error) {
+  // 資料庫函式用 RAISE EXCEPTION 丟出的中文訊息可以直接給使用者看
+  const msg = (error && error.message) ? error.message : '操作失敗';
+  showToast(msg, 'error');
+}
+
+/* ── 載入 ── */
+async function loadDiscussionSection() {
+  const empty = document.getElementById('dsc-empty');
+  // 匿名總開關在資料庫（discussion_anonymous_enabled），目前不開放；查不到就當作不開放
+  try { const r = await sb.rpc('discussion_anonymous_enabled'); DSC.anonOk = (!r.error && r.data === true); } catch (e) { DSC.anonOk = false; }
+  const [enr, ta] = await Promise.all([
+    sb.from('enrollments').select('offering_id').eq('student_id', ME.id).eq('status', 'confirmed'),
+    sb.from('offering_staff').select('offering_id').eq('student_id', ME.id).eq('role', 'ta')
+  ]);
+  const taIds = new Set((ta.data || []).map(r => r.offering_id));
+  const ids = [...new Set([...(enr.data || []).map(r => r.offering_id), ...taIds])];
+  if (!ids.length) {
+    empty.style.display = '';
+    DSC.offerings = [];
+    ['dsc-courses', 'dsc-tabs', 'dsc-composer', 'dsc-main'].forEach(i => { document.getElementById(i).innerHTML = ''; });
+    return;
+  }
+  empty.style.display = 'none';
+  const { data: courses } = await sb.from('v_course_schedule')
+    .select('offering_id, code, name_zh, semester_label').in('offering_id', ids).order('semester_label', { ascending: false });
+  DSC.offerings = (courses || []).map(c => ({ ...c, isTa: taIds.has(c.offering_id) }));
+  if (!DSC.offerings.some(c => c.offering_id === DSC.offId)) DSC.offId = DSC.offerings.length ? DSC.offerings[0].offering_id : null;
+  renderDscCourses();
+  await dscLoadCourse();
+}
+
+async function dscLoadCourse() {
+  const off = DSC.offId;
+  const main = document.getElementById('dsc-main');
+  if (!off) { main.innerHTML = ''; return; }
+  const seq = ++DSC.loadSeq;
+  main.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  const [unitsRes, assignRes, thrRes, readRes, idRes] = await Promise.all([
+    sb.from('teaching_units').select('id, title, sort_order').eq('offering_id', off).order('sort_order'),
+    sb.from('assignments').select('id, title, type, unit_id').eq('offering_id', off).eq('status', 'published').order('created_at'),
+    sb.from('discussion_threads').select('*').eq('offering_id', off).order('last_activity_at', { ascending: false }),
+    sb.from('discussion_reads').select('thread_id, first_read_at, last_read_at').eq('student_id', ME.id).eq('offering_id', off),
+    sb.from('discussion_identities').select('thread_id, reply_id').eq('student_id', ME.id).eq('offering_id', off)
+  ]);
+  if (seq !== DSC.loadSeq) return; // 載入途中切換了課程，丟掉這次結果
+  if (thrRes.error) {
+    main.innerHTML = '<div style="color:var(--red);padding:20px;font-size:13px">載入失敗：' + dscEsc(thrRes.error.message) + '<br>（如果訊息提到找不到資料表，代表討論區的資料庫設定還沒執行）</div>';
+    return;
+  }
+  DSC.units = unitsRes.data || [];
+  DSC.assigns = assignRes.data || [];
+  DSC.threads = (thrRes.data || []).filter(t => !t.deleted_at);
+  DSC.reads = {};
+  (readRes.data || []).forEach(r => { DSC.reads[r.thread_id] = r; });
+  DSC.myThreadIds = {}; DSC.myReplyIds = {};
+  (idRes.data || []).forEach(r => { if (r.thread_id) DSC.myThreadIds[r.thread_id] = true; if (r.reply_id) DSC.myReplyIds[r.reply_id] = true; });
+  renderDsc();
+}
+
+function dscSwitchCourse(offId) {
+  if (offId === DSC.offId) return;
+  DSC.offId = offId; DSC.tab = 'list'; DSC.curId = null; DSC.filter = 'all'; DSC.open = false;
+  DSC.draft = { who:'ask-teacher', title:'', body:'', unit:'', assign:'', anon:false, gate:false, one:false, staffOnly:false, due:'', lockDue:false };
+  renderDscCourses();
+  dscLoadCourse();
+}
+function renderDscCourses() {
+  const el = document.getElementById('dsc-courses');
+  if (DSC.offerings.length <= 1) {
+    const o = DSC.offerings[0];
+    el.innerHTML = o ? '<div class="dsc-coursename">' + dscEsc(o.name_zh) + (o.isTa ? ' <span class="dsc-chip-ta">助教</span>' : '') + '</div>' : '';
+    return;
+  }
+  el.innerHTML = DSC.offerings.map(o =>
+    '<button class="dsc-course' + (o.offering_id === DSC.offId ? ' on' : '') + '" onclick="dscSwitchCourse(\'' + o.offering_id + '\')">' +
+    dscEsc(o.name_zh) + (o.isTa ? ' <span class="dsc-chip-ta">助教</span>' : '') + '</button>').join('');
+}
+
+/* ── 畫面分派 ── */
+function renderDsc() {
+  const tabs = document.getElementById('dsc-tabs');
+  const inDetail = DSC.tab === 'detail';
+  tabs.style.display = inDetail ? 'none' : '';
+  tabs.innerHTML =
+    '<button class="dsc-tab' + (DSC.tab === 'list' ? ' on' : '') + '" onclick="dscGoTab(\'list\')">討論</button>' +
+    '<button class="dsc-tab' + (DSC.tab === 'foot' ? ' on' : '') + '" onclick="dscGoTab(\'foot\')">我的足跡</button>';
+  const main = document.getElementById('dsc-main');
+  if (DSC.tab === 'list') main.innerHTML = renderDscList();
+  else if (DSC.tab === 'detail') main.innerHTML = renderDscDetail();
+  else if (DSC.tab === 'foot') { main.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">整理中…</div>'; renderDscFoot(); }
+  renderDscComposer();
+}
+function dscGoTab(tab) { DSC.tab = tab; DSC.curId = null; renderDsc(); }
+
+/* ── 發問區 ── */
+function dscDraft(k, v) { DSC.draft[k] = v; }
+function dscDraftSet(k, v) { DSC.draft[k] = v; renderDscComposer(); }
+function renderDscComposer() {
+  const el = document.getElementById('dsc-composer');
+  const show = DSC.tab === 'list' && DSC.offId;
+  el.style.display = show ? '' : 'none';
+  if (!show) { el.innerHTML = ''; return; }
+  const d = DSC.draft, isTa = dscIsTa();
+  const more = DSC.open || d.title || d.body;
+  let h = '<div class="dsc-composer">';
+  h += '<div class="dsc-composer-title">' + (isTa ? '出一個討論題，或開一個話題' : '有想問的、想分享的嗎？') + '</div>';
+  h += '<input class="finput" id="dsc-c-title" maxlength="200" placeholder="' + (isTa ? '標題' : '一句話寫下你的問題或想法') + '" value="' + dscEsc(d.title) +
+       '" oninput="dscDraft(\'title\',this.value);dscShowSimilar()" onfocus="dscOpenComposer()">';
+  h += '<div id="dsc-sim"></div>';
+  if (more) {
+    h += '<div class="dsc-more">';
+    h += '<textarea class="finput" id="dsc-c-body" rows="3" maxlength="5000" placeholder="想多說一點？可以不寫" oninput="dscDraft(\'body\',this.value)">' + dscEsc(d.body) + '</textarea>';
+    if (!isTa) {
+      h += '<div class="dsc-row"><span class="dsc-hint">問誰</span><div class="dsc-seg">' +
+        [['ask-teacher','問老師'], ['ask-peer','問同學'], ['topic','開話題'], ['private','私下問老師']].map(x =>
+          '<button type="button" class="' + (d.who === x[0] ? 'on' : '') + '" onclick="dscDraftSet(\'who\',\'' + x[0] + '\')">' + x[1] + '</button>').join('') +
+        '</div></div>';
+    } else {
+      h += '<div class="dsc-row"><span class="dsc-hint">類型</span><div class="dsc-seg">' +
+        [['topic','開話題'], ['prompt','老師出題']].map(x =>
+          '<button type="button" class="' + ((d.who === x[0]) ? 'on' : '') + '" onclick="dscDraftSet(\'who\',\'' + x[0] + '\')">' + x[1] + '</button>').join('') +
+        '</div></div>';
+    }
+    h += '<div class="dsc-row"><select id="dsc-c-unit" onchange="dscDraft(\'unit\',this.value)"><option value="">單元：不指定</option>' +
+      DSC.units.map(u => '<option value="' + u.id + '"' + (d.unit === u.id ? ' selected' : '') + '>' + dscEsc(u.title) + '</option>').join('') + '</select>' +
+      '<select id="dsc-c-assign" onchange="dscDraft(\'assign\',this.value)"><option value="">關聯教材、影片或作業：不指定</option>' +
+      DSC.assigns.map(a => '<option value="' + a.id + '"' + (d.assign === a.id ? ' selected' : '') + '>' + dscEsc(a.title) + '</option>').join('') + '</select></div>';
+    if (!isTa && d.who !== 'private' && DSC.anonOk) {
+      h += '<label class="dsc-chk"><input type="checkbox" id="dsc-c-anon" ' + (d.anon ? 'checked' : '') + ' onchange="dscDraft(\'anon\',this.checked)"><span>對同學匿名<br><span class="dsc-hint">同學看不到名字，老師和助教看得到。</span></span></label>';
+    }
+    if (isTa) {
+      if (d.who === 'prompt') {
+        h += '<label class="dsc-chk"><input type="checkbox" ' + (d.gate ? 'checked' : '') + ' onchange="dscDraft(\'gate\',this.checked)"><span>先發表，才能看同學的回覆<br><span class="dsc-hint">避免大家看了別人的答案才跟著寫。</span></span></label>';
+        h += '<label class="dsc-chk"><input type="checkbox" ' + (d.one ? 'checked' : '') + ' onchange="dscDraft(\'one\',this.checked)"><span>每人限發一則</span></label>';
+        h += '<div class="dsc-row"><span class="dsc-hint">期限（可不填）</span><input type="datetime-local" class="finput" style="max-width:240px" value="' + dscEsc(d.due) + '" onchange="dscDraftSet(\'due\',this.value)"></div>';
+        if (d.due) h += '<label class="dsc-chk"><input type="checkbox" ' + (d.lockDue ? 'checked' : '') + ' onchange="dscDraft(\'lockDue\',this.checked)"><span>期限後鎖定，不再接受同學回覆</span></label>';
+      }
+      h += '<label class="dsc-chk"><input type="checkbox" ' + (d.staffOnly ? 'checked' : '') + ' onchange="dscDraft(\'staffOnly\',this.checked)"><span>只有老師與助教看得到（內部討論）</span></label>';
+    }
+    h += '<div class="dsc-row"><button class="btn btn-pri" id="dsc-c-send" onclick="dscSend()"' + (DSC.sending ? ' disabled' : '') + '>' + (DSC.sending ? '送出中…' : (isTa && d.who === 'prompt' ? '發布討論題' : '送出')) + '</button>' +
+      '<button class="btn btn-sec" onclick="dscCloseComposer()">收起</button></div>';
+    h += '</div>';
+  }
+  h += '</div>';
+  // 重新繪製前記住游標是否在標題欄，避免打字中被打斷
+  const hadFocus = document.activeElement && document.activeElement.id === 'dsc-c-title';
+  el.innerHTML = h;
+  if (hadFocus) { const t = document.getElementById('dsc-c-title'); if (t) { t.focus(); const v = t.value; t.value = ''; t.value = v; } }
+  dscShowSimilar();
+}
+function dscOpenComposer() {
+  if (DSC.open) return;
+  DSC.open = true;
+  if (dscIsTa() && DSC.draft.who === 'ask-teacher') DSC.draft.who = 'topic';
+  renderDscComposer();
+  const t = document.getElementById('dsc-c-title');
+  if (t) { t.focus(); const v = t.value; t.value = ''; t.value = v; }
+}
+function dscCloseComposer() {
+  DSC.open = false;
+  DSC.draft = { who: dscIsTa() ? 'topic' : 'ask-teacher', title:'', body:'', unit:'', assign:'', anon:false, gate:false, one:false, staffOnly:false, due:'', lockDue:false };
+  renderDscComposer();
+}
+// 送出前先列出相似的舊討論（用連續兩個字比對，至少吻合兩組才列出）
+function dscShowSimilar() {
+  const box = document.getElementById('dsc-sim');
+  if (!box) return;
+  const v = (DSC.draft.title || '').replace(/\s/g, '');
+  const grams = [];
+  for (let i = 0; i < v.length - 1; i++) grams.push(v.substr(i, 2));
+  let hits = [];
+  if (grams.length >= 2) {
+    DSC.threads.forEach(t => {
+      if (t.visibility !== 'class') return;
+      const n = grams.filter(g => t.title.indexOf(g) > -1).length;
+      if (n >= 2) hits.push([n, t]);
+    });
+  }
+  hits.sort((a, b) => b[0] - a[0]); hits = hits.slice(0, 3);
+  box.innerHTML = hits.length
+    ? '<div class="dsc-similar"><b>先看看這些相似的討論，也許已經有答案了：</b>' +
+      hits.map(h => '<a onclick="dscOpen(\'' + h[1].id + '\')">' + dscEsc(h[1].title) + '</a>').join('') + '</div>'
+    : '';
+}
+async function dscSend() {
+  if (DSC.sending) return;
+  const d = DSC.draft, isTa = dscIsTa();
+  const title = (d.title || '').trim();
+  if (!title) { showToast('先寫下一句標題', 'error'); return; }
+  let origin = d.who, visibility = 'class';
+  if (!isTa && d.who === 'private') { origin = 'ask-teacher'; visibility = 'private'; }
+  if (isTa) { if (origin !== 'prompt') origin = 'topic'; if (d.staffOnly) visibility = 'staff'; }
+  const unit = d.unit ? DSC.units.find(u => u.id === d.unit) : null;
+  DSC.sending = true; renderDscComposer();
+  const { error } = await sb.rpc('discussion_create_thread', {
+    p_offering_id: DSC.offId, p_origin: origin, p_title: title, p_body: (d.body || '').trim() || null,
+    p_unit_label: unit ? unit.title : null, p_assignment_id: d.assign || null, p_visibility: visibility,
+    p_anonymous: DSC.anonOk && !isTa && !!d.anon && visibility === 'class',
+    p_gate: isTa && origin === 'prompt' && !!d.gate, p_one_per_person: isTa && origin === 'prompt' && !!d.one,
+    p_due_at: (isTa && origin === 'prompt' && d.due) ? new Date(d.due).toISOString() : null,
+    p_lock_after_due: isTa && origin === 'prompt' && !!d.due && !!d.lockDue
+  });
+  DSC.sending = false;
+  if (error) { renderDscComposer(); dscRpcError(error); return; }
+  showToast(origin === 'ask-peer' ? '已送出，等同學回覆' : (visibility === 'private' ? '已送出，只有老師和助教看得到' : '已送出'));
+  DSC.filter = 'all';
+  dscCloseComposer();
+  await dscLoadCourse();
+}
+
+/* ── 列表 ── */
+function dscIsNew(t) {
+  const r = DSC.reads[t.id];
+  if (r) return false;
+  return !dscMineThread(t);
+}
+function dscHasNewReply(t) {
+  const r = DSC.reads[t.id];
+  const base = r ? r.last_read_at : (dscMineThread(t) ? t.created_at : null);
+  if (!base) return false;
+  return new Date(t.last_activity_at).getTime() - new Date(base).getTime() > 1000;
+}
+function dscDueChip(t) {
+  if (!t.due_at) return '';
+  const ms = new Date(t.due_at).getTime() - Date.now(), d = new Date(t.due_at);
+  const when = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  if (ms < 0) return '<span class="dsc-badge" style="--c:#888">已截止 ' + when + (t.lock_after_due ? '，不再接受回覆' : '') + '</span>';
+  const left = ms < 86400000 ? Math.max(1, Math.round(ms / 3600000)) + ' 小時' : Math.ceil(ms / 86400000) + ' 天';
+  return '<span class="dsc-badge" style="--c:#B05010">期限 ' + when + '，還有 ' + left + '</span>';
+}
+function dscClosed(t) { return !!(t.lock_after_due && t.due_at && new Date(t.due_at).getTime() < Date.now()); }
+function dscKind(t) {
+  if (!t.first_reply_at) return { t:'待回應', c:'#B7791F' };
+  if (t.staff_reply_count > 0 && t.peer_reply_count > 0) return { t:'師生＋生生討論', c:'#1B3A6B' };
+  if (t.staff_reply_count > 0) return { t:'師生討論', c:'#4A4FD0' };
+  return { t:'生生討論', c:'#B05010' };
+}
+function dscMatch(t, f) {
+  if (f === 'all') return true;
+  if (f === 'wait') return !t.first_reply_at && !t.resolved;
+  if (f === 'resolved') return t.resolved;
+  if (f === 'new') return dscIsNew(t) || dscHasNewReply(t);
+  if (f === 'mine') return dscMineThread(t);
+  return t.origin === f;
+}
+function dscSort(a, b) {
+  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+  const aw = !a.first_reply_at && !a.resolved, bw = !b.first_reply_at && !b.resolved;
+  if (aw !== bw) return aw ? -1 : 1;
+  return new Date(b.last_activity_at) - new Date(a.last_activity_at);
+}
+function dscAuthorLabel(t) {
+  if (dscMineThread(t)) return t.is_anonymous ? '我（匿名發文）' : '我';
+  if (t.is_anonymous) return '匿名同學';
+  return t.author_name || (DSC_ROLE[t.author_role] || {}).t || '';
+}
+function dscCard(t) {
+  const o = DSC_ORIGIN[t.origin] || DSC_ORIGIN.topic, k = dscKind(t);
+  let h = '<button class="dsc-card' + (t.pinned ? ' pinned' : '') + '" onclick="dscOpen(\'' + t.id + '\')">';
+  h += '<div class="dsc-badges"><span class="dsc-badge" style="--c:' + o.c + '">' + o.t + '</span>';
+  if (t.visibility === 'private') h += '<span class="dsc-badge" style="--c:#888">私人</span>';
+  if (t.visibility === 'staff') h += '<span class="dsc-badge" style="--c:#888">內部</span>';
+  if (t.pinned) h += '<span class="dsc-badge" style="--c:#C4960A">置頂</span>';
+  if (dscIsNew(t)) h += '<span class="dsc-badge" style="--c:#C04030">新</span>';
+  else if (dscHasNewReply(t)) h += '<span class="dsc-badge" style="--c:#C04030">有新回覆</span>';
+  if (t.resolved) h += '<span class="dsc-badge" style="--c:#1F5C3A">已解決</span>';
+  if (t.gate) h += '<span class="dsc-badge" style="--c:#4A4FD0">先發表</span>';
+  h += dscDueChip(t);
+  h += '</div><div class="dsc-card-title">' + dscEsc(t.title) + '</div>';
+  h += '<div class="dsc-stateline"><span style="color:' + k.c + ';font-weight:600"><span class="dsc-dot" style="background:' + k.c + '"></span>' + k.t + '</span><span class="dsc-hint">' + t.reply_count + ' 則回覆</span></div>';
+  h += '<div class="dsc-meta"><span><b>' + dscEsc(dscAuthorLabel(t)) + '</b></span><span>' + dscAgo(t.created_at) + '</span>' +
+       (t.unit_label ? '<span>' + dscEsc(t.unit_label) + '</span>' : '') + '</div></button>';
+  return h;
+}
+function renderDscList() {
+  let h = '<div class="dsc-chips">' + DSC_FILTERS.map(f => {
+    const n = DSC.threads.filter(t => dscMatch(t, f[0])).length;
+    return '<button class="dsc-fchip' + (DSC.filter === f[0] ? ' on' : '') + '" onclick="dscSetFilter(\'' + f[0] + '\')">' + f[1] + '<em>' + n + '</em></button>';
+  }).join('') + '</div>';
+  const list = DSC.threads.filter(t => dscMatch(t, DSC.filter)).sort(dscSort);
+  h += list.length
+    ? '<div class="dsc-list">' + list.map(dscCard).join('') + '</div>'
+    : '<div class="dsc-empty">' + (DSC.threads.length ? '這個分類目前沒有討論。' : '還沒有人發表討論。成為第一個開口的人吧。') + '</div>';
+  return h;
+}
+function dscSetFilter(f) { DSC.filter = f; renderDsc(); }
+
+/* ── 討論串 ── */
+async function dscOpen(id) {
+  const t = dscThreadById(id);
+  if (!t) return;
+  DSC.curId = id; DSC.tab = 'detail';
+  document.getElementById('dsc-main').innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  renderDsc();
+  await dscLoadThreadData(id);
+  // 記錄「我讀過」。先更新畫面，記錄失敗也不影響閱讀
+  const nowIso = new Date().toISOString();
+  DSC.reads[id] = { thread_id: id, first_read_at: (DSC.reads[id] || {}).first_read_at || nowIso, last_read_at: nowIso };
+  sb.rpc('discussion_mark_read', { p_thread_id: id }).then(r => { if (r.error) console.warn('discussion_mark_read', r.error.message); });
+  window.scrollTo(0, 0);
+}
+async function dscLoadThreadData(id, keepScroll) {
+  const y = window.scrollY;
+  const [rep, rea, ids] = await Promise.all([
+    sb.from('discussion_replies').select('*').eq('thread_id', id).order('created_at'),
+    sb.from('discussion_reactions').select('*').eq('thread_id', id),
+    sb.from('discussion_identities').select('thread_id, reply_id').eq('student_id', ME.id).eq('offering_id', DSC.offId)
+  ]);
+  if (DSC.curId !== id) return;
+  DSC.replies = rep.data || [];
+  DSC.reactions = rea.data || [];
+  DSC.myThreadIds = {}; DSC.myReplyIds = {};
+  (ids.data || []).forEach(r => { if (r.thread_id) DSC.myThreadIds[r.thread_id] = true; if (r.reply_id) DSC.myReplyIds[r.reply_id] = true; });
+  document.getElementById('dsc-main').innerHTML = renderDscDetail();
+  if (keepScroll) window.scrollTo(0, y);
+  dscFillMiss(id);
+}
+// 助教專用：列出這題「還沒發表的同學」（只有老師與助教看得到；匿名回覆的同學也算已發表）
+async function dscFillMiss(id) {
+  const box = document.getElementById('dsc-miss');
+  if (!box) return;
+  const [en, idn] = await Promise.all([
+    sb.from('enrollments').select('student_id, students(id, name_zh, student_code)').eq('offering_id', DSC.offId).eq('status', 'confirmed'),
+    sb.from('discussion_identities').select('reply_id, student_id').eq('offering_id', DSC.offId).not('reply_id', 'is', null)
+  ]);
+  if (DSC.curId !== id) return;
+  const box2 = document.getElementById('dsc-miss');
+  if (!box2) return;
+  if (en.error) { box2.innerHTML = ''; return; }
+  const anon = {}; (idn.data || []).forEach(r => { anon[r.reply_id] = r.student_id; });
+  const posted = new Set(DSC.replies.filter(r => !r.deleted_at && r.author_role === 'student').map(r => r.author_student_id || anon[r.id]).filter(Boolean));
+  const miss = (en.data || []).map(e => e.students).filter(Boolean).filter(x => !posted.has(x.id)).sort((x, y) => (x.student_code || '').localeCompare(y.student_code || ''));
+  const total = (en.data || []).length;
+  box2.innerHTML = '<div class="dsc-sec-t">還沒發表的同學（' + miss.length + ' / ' + total + '）</div><div class="dsc-hint">' +
+    (miss.length ? miss.map(x => dscEsc(x.name_zh)).join('、') : '全部同學都發表過了。') +
+    '</div><div class="dsc-hint" style="margin-top:4px">這份名單只有老師和助教看得到，用來提醒，不列入成績。</div>';
+}
+async function dscRefreshThread() {
+  const t = DSC.curId;
+  if (!t) return;
+  // 同步更新列表資料（回覆數、已解決、置頂等），再重畫討論串，保留捲動位置
+  const { data } = await sb.from('discussion_threads').select('*').eq('id', t).maybeSingle();
+  if (data) { const i = DSC.threads.findIndex(x => x.id === t); if (i > -1) DSC.threads[i] = data; }
+  await dscLoadThreadData(t, true);
+}
+function dscReplyHtml(t, r, child) {
+  const ro = DSC_ROLE[r.author_role] || DSC_ROLE.student;
+  const mine = dscMineReply(r);
+  const deleted = !!r.deleted_at;
+  let nm = r.is_anonymous ? (mine ? '我（匿名）' : '匿名同學') : (mine ? '我' : (r.author_name || ro.t));
+  const thanks = DSC.reactions.filter(x => x.kind === 'thanks' && x.target_id === r.id);
+  const thanked = thanks.some(x => x.actor_id === ME.id);
+  let h = '<div class="dsc-reply' + (child ? ' child' : '') + (r.endorsed ? ' endorsed' : '') + '"><div class="dsc-avatar" style="background:' + (r.is_anonymous ? '#888' : ro.c) + '">' + dscEsc(nm.charAt(0)) + '</div><div class="dsc-rbody">';
+  h += '<div class="dsc-rhead"><b>' + dscEsc(nm) + '</b><span class="dsc-badge" style="--c:' + ro.c + '">' + ro.t + '</span>';
+  if (r.endorsed) h += '<span class="dsc-badge" style="--c:#C4960A">老師認可的答案</span>';
+  h += '<span class="dsc-hint">' + dscAgo(r.created_at) + (r.edited_at && !deleted ? '（已編輯）' : '') + '</span></div>';
+  h += deleted ? '<div class="dsc-rtext" style="color:var(--ink3);font-style:italic">（這則回覆已刪除）</div>' : '<div class="dsc-rtext">' + dscBody(r.body) + '</div>';
+  if (!deleted) {
+    h += '<div class="dsc-ractions">';
+    if (!mine) h += '<button class="' + (thanked ? 'on' : '') + '" onclick="dscThank(\'' + r.id + '\')">' + (thanked ? '已說謝謝' : '謝謝') + (thanks.length ? ' · ' + thanks.length : '') + '</button>';
+    else if (thanks.length) h += '<span class="dsc-hint">收到 ' + thanks.length + ' 聲謝謝</span>';
+    if (!child && (!t.locked || dscIsTa())) h += '<button onclick="dscToggleReplyBox(\'' + r.id + '\')">回覆</button>';
+    if (mine) h += '<button onclick="dscDeletePost(\'reply\',\'' + r.id + '\')">刪除</button>';
+    h += '</div><div id="dsc-rb-' + r.id + '"></div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+function renderDscDetail() {
+  const t = dscThreadById(DSC.curId);
+  if (!t) return '<div class="dsc-empty">找不到這則討論。</div>';
+  const o = DSC_ORIGIN[t.origin] || DSC_ORIGIN.topic, k = dscKind(t), isTa = dscIsTa(), mine = dscMineThread(t);
+  const goodQ = DSC.reactions.filter(x => x.kind === 'good_question' && x.target_id === t.id);
+  const goodQByMe = goodQ.some(x => x.actor_id === ME.id);
+  const unitText = t.unit_label ? t.unit_label : '';
+  const assign = t.assignment_id ? DSC.assigns.find(a => a.id === t.assignment_id) : null;
+  let h = '<button class="dsc-back" onclick="dscBackToList()">← 回到討論列表</button>';
+  h += '<div class="dsc-post"><div class="dsc-badges"><span class="dsc-badge" style="--c:' + o.c + '">' + o.t + '</span><span class="dsc-badge" style="--c:' + k.c + '">' + k.t + '</span>';
+  if (t.visibility === 'private') h += '<span class="dsc-badge" style="--c:#888">私人，只有老師和助教看得到</span>';
+  if (t.visibility === 'staff') h += '<span class="dsc-badge" style="--c:#888">內部討論，同學看不到</span>';
+  if (t.resolved) h += '<span class="dsc-badge" style="--c:#1F5C3A">已解決</span>';
+  if (t.pinned) h += '<span class="dsc-badge" style="--c:#C4960A">置頂</span>';
+  if (t.locked) h += '<span class="dsc-badge" style="--c:#C04030">已鎖定</span>';
+  if (goodQ.length) h += '<span class="dsc-badge" style="--c:#C4960A">老師認為這是個好問題</span>';
+  h += dscDueChip(t);
+  h += '</div><div class="dsc-post-title">' + dscEsc(t.title) + '</div>';
+  if (t.body) h += '<div class="dsc-rtext">' + dscBody(t.body) + '</div>';
+  h += '<div class="dsc-meta"><span><b>' + dscEsc(dscAuthorLabel(t)) + '</b></span><span>' + dscAgo(t.created_at) + (t.edited_at ? '（已編輯）' : '') + '</span>' +
+       (unitText ? '<span>' + dscEsc(unitText) + '</span>' : '') + (assign ? '<span>關聯：' + dscEsc(assign.title) + '</span>' : '') + '</div>';
+  if (t.gate) h += '<div class="dsc-hint">這題設定：先發表自己的想法，才看得到同學的回覆。</div>';
+  if (t.one_per_person) h += '<div class="dsc-hint">這題每人限發一則。</div>';
+  let acts = '';
+  if (isTa) acts += '<button class="btn btn-sec btn-sm" onclick="dscSetFlag(\'pinned\',' + (!t.pinned) + ')">' + (t.pinned ? '取消置頂' : '置頂') + '</button>';
+  if (isTa && !mine) acts += '<button class="btn btn-sec btn-sm" onclick="dscToggleGoodQ()">' + (goodQByMe ? '取消「問得好」' : '問得好') + '</button>';
+  if (mine) acts += '<button class="btn btn-sec btn-sm" onclick="dscSetFlag(\'resolved\',' + (!t.resolved) + ')">' + (t.resolved ? '改回未解決' : '我的問題已解決') + '</button>';
+  if (mine) acts += '<button class="btn btn-sec btn-sm" onclick="dscDeletePost(\'thread\',\'' + t.id + '\')">刪除這則討論</button>';
+  if (acts) h += '<div class="dsc-row">' + acts + '</div>';
+  h += '</div>';
+
+  const iPosted = DSC.replies.some(r => !r.parent_reply_id && !r.deleted_at && dscMineReply(r));
+  if (t.gate && !isTa && !iPosted && dscClosed(t)) {
+    h += '<div class="dsc-gate"><b>這題已經截止</b><br>這題要先發表才能看同學的回覆，而且已超過期限，不再接受回覆。</div>';
+    return h;
+  }
+  if (t.gate && !isTa && !iPosted) {
+    h += '<div class="dsc-gate"><b>先寫下你的想法</b><br>這題要先發表，才會顯示同學的 ' + t.reply_count + ' 則回覆。寫一兩句就可以。' +
+      '<div class="dsc-replybox"><textarea class="finput" id="dsc-reply-text" rows="3" maxlength="5000" placeholder="你的觀察或想法"></textarea>' +
+      '<div class="dsc-row"><button class="btn btn-pri" onclick="dscSendReply(null)">送出並查看同學的回覆</button></div></div></div>';
+    return h;
+  }
+  const top = DSC.replies.filter(r => !r.parent_reply_id).sort((a, b) => (a.endorsed !== b.endorsed) ? (a.endorsed ? -1 : 1) : new Date(a.created_at) - new Date(b.created_at));
+  h += '<div class="dsc-replies">';
+  if (!top.length) h += '<div class="dsc-empty">還沒有人回覆。' + (t.origin === 'ask-teacher' ? '老師和助教會看到這個問題。' : '成為第一個回覆的人吧。') + '</div>';
+  top.forEach(r => {
+    h += dscReplyHtml(t, r, false);
+    DSC.replies.filter(c => c.parent_reply_id === r.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(c => { h += dscReplyHtml(t, c, true); });
+  });
+  h += '</div>';
+  if (isTa && t.origin === 'prompt') h += '<div id="dsc-miss" class="dsc-section" style="margin-top:12px"><div class="dsc-hint">整理「還沒發表的同學」…</div></div>';
+  if (dscClosed(t) && !isTa) {
+    h += '<div class="dsc-gate"><b>這題已經截止</b><br>不能再新增回覆，但仍然可以閱讀。</div>';
+  } else if (t.locked && !isTa) {
+    h += '<div class="dsc-gate"><b>這則討論已鎖定</b><br>不能再新增回覆，但仍然可以閱讀。</div>';
+  } else {
+    const blocked = t.one_per_person && iPosted && !isTa;
+    if (blocked) {
+      h += '<div class="dsc-gate"><b>你已經發表過了</b><br>這題設定每人限發一則。你仍然可以回覆同學的留言。</div>';
+    } else {
+      h += '<div class="dsc-replybox" style="margin-top:14px"><textarea class="finput" id="dsc-reply-text" rows="3" maxlength="5000" placeholder="寫下你的回覆"></textarea>';
+      if (!isTa && DSC.anonOk && t.visibility === 'class') h += '<label class="dsc-chk"><input type="checkbox" id="dsc-reply-anon"><span>對同學匿名回覆</span></label>';
+      h += '<div class="dsc-row"><button class="btn btn-pri" onclick="dscSendReply(null)">送出回覆</button></div></div>';
+    }
+  }
+  return h;
+}
+function dscBackToList() { DSC.tab = 'list'; DSC.curId = null; renderDsc(); }
+function dscToggleReplyBox(replyId) {
+  const box = document.getElementById('dsc-rb-' + replyId);
+  if (!box) return;
+  if (box.innerHTML) { box.innerHTML = ''; return; }
+  const t = dscThreadById(DSC.curId);
+  const anon = (!dscIsTa() && DSC.anonOk && t && t.visibility === 'class')
+    ? '<label class="dsc-chk"><input type="checkbox" id="dsc-rr-anon-' + replyId + '"><span>對同學匿名回覆</span></label>' : '';
+  box.innerHTML = '<div class="dsc-replybox"><textarea class="finput" id="dsc-rr-' + replyId + '" rows="2" maxlength="5000" placeholder="回覆這則留言"></textarea>' + anon +
+    '<div class="dsc-row"><button class="btn btn-pri btn-sm" onclick="dscSendReply(\'' + replyId + '\')">送出</button></div></div>';
+  document.getElementById('dsc-rr-' + replyId).focus();
+}
+async function dscSendReply(parentId) {
+  if (DSC.sending) return;
+  const ta = document.getElementById(parentId ? 'dsc-rr-' + parentId : 'dsc-reply-text');
+  const body = ta ? ta.value.trim() : '';
+  if (!body) { showToast('先寫一點內容', 'error'); return; }
+  const anonEl = document.getElementById(parentId ? 'dsc-rr-anon-' + parentId : 'dsc-reply-anon');
+  DSC.sending = true;
+  const { error } = await sb.rpc('discussion_create_reply', {
+    p_thread_id: DSC.curId, p_body: body, p_parent_reply_id: parentId || null, p_anonymous: !!(anonEl && anonEl.checked)
+  });
+  DSC.sending = false;
+  if (error) { dscRpcError(error); return; }
+  showToast('已送出');
+  await dscRefreshThread();
+}
+async function dscThank(replyId) {
+  const { error } = await sb.rpc('discussion_toggle_reaction', { p_kind: 'thanks', p_target_id: replyId });
+  if (error) { dscRpcError(error); return; }
+  await dscRefreshThread();
+}
+async function dscToggleGoodQ() {
+  const { error } = await sb.rpc('discussion_toggle_reaction', { p_kind: 'good_question', p_target_id: DSC.curId });
+  if (error) { dscRpcError(error); return; }
+  await dscRefreshThread();
+}
+async function dscSetFlag(flag, value) {
+  const { error } = await sb.rpc('discussion_set_thread_flag', { p_thread_id: DSC.curId, p_flag: flag, p_value: value });
+  if (error) { dscRpcError(error); return; }
+  showToast(flag === 'pinned' ? (value ? '已置頂' : '已取消置頂') : (value ? '已標為解決' : '已改回未解決'));
+  await dscRefreshThread();
+}
+async function dscDeletePost(kind, id) {
+  if (!confirm(kind === 'thread' ? '確定刪除這則討論嗎？內容會被清空，無法復原。' : '確定刪除這則回覆嗎？內容會被清空，無法復原。')) return;
+  const { error } = await sb.rpc('discussion_delete_post', { p_kind: kind, p_id: id });
+  if (error) { dscRpcError(error); return; }
+  showToast('已刪除');
+  if (kind === 'thread') { DSC.tab = 'list'; DSC.curId = null; await dscLoadCourse(); }
+  else await dscRefreshThread();
+}
+
+/* ── 我的足跡（只有本人看得到；只跟自己的上週比；不列入成績）── */
+function dscWeekStart(d) {
+  const x = new Date(d); x.setHours(0, 0, 0, 0);
+  const day = (x.getDay() + 6) % 7; // 週一為一週的開始
+  x.setDate(x.getDate() - day);
+  return x.getTime();
+}
+async function renderDscFoot() {
+  const off = DSC.offId;
+  const [repRes, reaRes] = await Promise.all([
+    sb.from('discussion_replies').select('id, thread_id, created_at, endorsed, author_student_id, deleted_at').eq('offering_id', off),
+    sb.from('discussion_reactions').select('kind, target_id, actor_id, created_at').eq('offering_id', off)
+  ]);
+  if (DSC.tab !== 'foot' || DSC.offId !== off) return;
+  const myReplies = (repRes.data || []).filter(r => !r.deleted_at && (r.author_student_id === ME.id || DSC.myReplyIds[r.id]));
+  const myReplyIdSet = new Set(myReplies.map(r => r.id));
+  const reactions = reaRes.data || [];
+  const myThreads = DSC.threads.filter(dscMineThread);
+  const thanksGiven = reactions.filter(x => x.kind === 'thanks' && x.actor_id === ME.id);
+  const thanksGot = reactions.filter(x => x.kind === 'thanks' && myReplyIdSet.has(x.target_id));
+  const reads = Object.values(DSC.reads);
+
+  const wThis = dscWeekStart(new Date());
+  const wLast = wThis - 7 * 86400000;
+  const inWeek = (iso, w) => { const t = new Date(iso).getTime(); return t >= w && t < w + 7 * 86400000; };
+  const readThis = reads.filter(r => inWeek(r.first_read_at, wThis)).length;
+  const readLast = reads.filter(r => inWeek(r.first_read_at, wLast)).length;
+  const postDates = myThreads.map(t => t.created_at).concat(myReplies.map(r => r.created_at));
+  const postThis = postDates.filter(d => inWeek(d, wThis)).length;
+  const postLast = postDates.filter(d => inWeek(d, wLast)).length;
+  const thxThis = thanksGot.filter(x => inWeek(x.created_at, wThis)).length;
+  const thxLast = thanksGot.filter(x => inWeek(x.created_at, wLast)).length;
+
+  const activeWeeks = new Set();
+  reads.forEach(r => activeWeeks.add(dscWeekStart(r.first_read_at)));
+  postDates.forEach(d => activeWeeks.add(dscWeekStart(d)));
+  let streak = 0, w = activeWeeks.has(wThis) ? wThis : wLast;
+  while (activeWeeks.has(w)) { streak++; w -= 7 * 86400000; }
+
+  const readAll = reads.length;
+  const helped = myReplies.some(r => { const t = dscThreadById(r.thread_id); return t && !dscMineThread(t); });
+  const asked = myThreads.some(t => t.origin === 'ask-teacher' || t.origin === 'ask-peer');
+  const endorsed = myReplies.some(r => r.endorsed);
+  const medals = [
+    ['問', '第一次提問', '寫下第一個問題，問題本身就是學習。', asked],
+    ['助', '幫了同學一次', '回覆一位同學的問題或分享。', helped],
+    ['認', '被老師認可', '你的回覆被老師標為認可的答案。', endorsed],
+    ['謝', '常說謝謝', '對同學的回覆說了 3 次謝謝。', thanksGiven.length >= 3],
+    ['讀', '讀過 6 則討論', '多讀別人的想法，也是參與。', readAll >= 6],
+    ['續', '連續四週', '連續四週都有讀或寫。', streak >= 4]
+  ];
+  const posts = myThreads.length + myReplies.length;
+  const up = (a, b) => a > b ? '<div class="dsc-up">比上週多 ' + (a - b) + '</div>' : '';
+  const bar = (label, v, mx, last) => '<div class="dsc-cmp"><span>' + label + '</span><div class="dsc-bar"><i class="' + (last ? 'last' : '') + '" style="width:' + (mx ? v / mx * 100 : 0) + '%"></i></div><span>' + v + '</span></div>';
+  const mxR = Math.max(readThis, readLast, 1), mxP = Math.max(postThis, postLast, 1);
+  let h = '<div class="dsc-hello"><div class="dsc-hello-t">我的足跡</div><p>' +
+    (readThis + postThis > 0 ? '這週你已經讀了 ' + readThis + ' 則討論，寫了 ' + postThis + ' 則。' : '今天想從哪裡開始？讀一則討論也算數。') +
+    ' 這裡只有你自己看得到，沒有排名，也不跟任何人比。</p></div>';
+  h += '<div class="dsc-grid2">' +
+    '<div class="dsc-tile"><div class="n">' + readAll + '</div><div class="l">讀過的討論</div>' + up(readThis, readLast) + '</div>' +
+    '<div class="dsc-tile"><div class="n">' + posts + '</div><div class="l">我的提問與回覆</div>' + up(postThis, postLast) + '</div>' +
+    '<div class="dsc-tile"><div class="n">' + thanksGot.length + '</div><div class="l">收到的謝謝</div>' + up(thxThis, thxLast) + '</div>' +
+    '<div class="dsc-tile"><div class="n">' + streak + '</div><div class="l">連續有參與的週數</div></div></div>';
+  h += '<div class="dsc-section"><div class="dsc-sec-t">這週和上週的我</div><div class="dsc-compare">' +
+    bar('這週讀過', readThis, mxR, false) + bar('上週讀過', readLast, mxR, true) +
+    bar('這週寫過', postThis, mxP, false) + bar('上週寫過', postLast, mxP, true) + '</div>' +
+    '<div class="dsc-hint">只拿這週和你自己的上週比較。沒有增加也沒關係，走就對了。</div></div>';
+  h += '<div class="dsc-section"><div class="dsc-sec-t">我的徽章</div><div class="dsc-wall">' + medals.map(m =>
+    '<div class="dsc-medal' + (m[3] ? ' got' : '') + '"><div class="ring">' + m[0] + '</div><b>' + m[1] + '</b><small>' + (m[3] ? '已獲得' : m[2]) + '</small></div>').join('') + '</div>' +
+    '<div class="dsc-hint">徽章看的是閱讀、提問、被認可和被感謝，不看發文次數，所以回「同意」不會讓你拿更多。</div></div>';
+  h += '<div class="dsc-hint" style="text-align:center;margin-top:18px">老師和助教不會看到這個頁面。足跡不列入成績，也不影響完成度。這裡只統計「' + dscEsc((dscCurOffering() || {}).name_zh || '這門課') + '」。</div>';
+  document.getElementById('dsc-main').innerHTML = h;
+}
+
 function showSection(id) {
   document.querySelectorAll('.t-section').forEach(s => s.classList.remove('on'));
   document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
@@ -4309,6 +5029,7 @@ function showSection(id) {
   if (id === 'ta-apply') loadTaApplySection();
   if (id === 'attendance') loadAttendanceOfferings();
   if (id === 'assignments') loadAssignmentOfferings();
+  if (id === 'discussion') loadDiscussionSection();
   if (id === 'ta-mode') loadTaOfferings();
 }
 
