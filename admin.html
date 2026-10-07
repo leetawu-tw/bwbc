@@ -13827,7 +13827,15 @@ async function prefillFromSchedule(teacherId) {
 
   const { row } = _payrollMap[teacherId];
   const daysInMonth = new Date(y, m, 0).getDate();
+  // 已存在的記錄（同日期＋同課程；手動新增、未記錄課程的同日期也視為已存在），避免重複按「依課表帶入」一直累加
+  const existKeys = new Set();
+  const existDatesNoOffering = new Set();
+  _payrollMap[teacherId].days.forEach(d => {
+    if (d.offering_id) existKeys.add(d.class_date+'_'+d.offering_id);
+    else existDatesNoOffering.add(d.class_date);
+  });
   const toInsert = [];
+  let skipped = 0;
   for (const o of (offerings||[])) {
     if (o.day == null || !o.start_time || !o.end_time) continue;
     const hours = calcClassHours(o.start_time, o.end_time);
@@ -13835,17 +13843,23 @@ async function prefillFromSchedule(teacherId) {
       const dt = new Date(y, m-1, d);
       if (dt.getDay() === (o.day % 7)) {
         const classDate = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const key = classDate+'_'+o.id;
+        if (existKeys.has(key) || existDatesNoOffering.has(classDate)) { skipped++; continue; }
+        existKeys.add(key);
         toInsert.push({ payroll_id: row.id, class_date: classDate, mode:'inperson', hours, offering_id: o.id });
       }
     }
   }
-  if (!toInsert.length) { showToast('依課表找不到符合的上課日','error'); return; }
+  if (!toInsert.length) {
+    showToast(skipped ? '依課表的上課日都已經在清單裡了，沒有要新增的' : '依課表找不到符合的上課日','error');
+    return;
+  }
   const { data: inserted, error } = await sb.from('adjunct_payroll_days').insert(toInsert).select();
   if (error) { showToast('帶入失敗：'+error.message,'error'); return; }
   _payrollMap[teacherId].days.push(...inserted);
   _payrollMap[teacherId].days.sort((a,b)=>a.class_date.localeCompare(b.class_date));
   document.getElementById('payroll-days-'+teacherId).innerHTML = renderPayrollDays(teacherId);
-  showToast(`已依課表帶入 ${toInsert.length} 筆上課日，請確認並調整`);
+  showToast(`已依課表帶入 ${toInsert.length} 筆上課日` + (skipped ? `（已存在 ${skipped} 筆，自動略過）` : '') + '，請確認並調整');
   await recalcTeacherTotal(teacherId);
 }
 
