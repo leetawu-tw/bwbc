@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.34 2026-10-06 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
+<!-- BWBC Teacher v3.35 2026-10-08 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -1896,13 +1896,23 @@ async function loadAssignments() {
   const wrap = document.getElementById('assign-list-wrap');
   wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
 
-  const [assignRes, subRes] = await Promise.all([
-    sb.from('assignments').select('*').eq('offering_id', CUR_HUB.offeringId).order('created_at'),
-    sb.from('assignment_submissions').select('id, assignment_id')
-  ]);
+  const assignRes = await sb.from('assignments').select('*').eq('offering_id', CUR_HUB.offeringId).order('created_at');
   CUR_ASSIGNMENTS = assignRes.data || [];
+  // 「已繳交」人數：同一位學生重新提交多筆只算1人；影片「觀看中」(未達90%)不算已繳交，跟批閱面板、完成度總覽的算法一致
   const subCountMap = {};
-  (subRes.data || []).forEach(s => { subCountMap[s.assignment_id] = (subCountMap[s.assignment_id]||0) + 1; });
+  const assignIdsForCount = CUR_ASSIGNMENTS.map(a => a.id);
+  if (assignIdsForCount.length) {
+    const subRes = await sb.from('assignment_submissions').select('assignment_id, student_id, content').in('assignment_id', assignIdsForCount);
+    const typeById = {}; CUR_ASSIGNMENTS.forEach(a => { typeById[a.id] = a; });
+    const seen = new Set();
+    (subRes.data || []).forEach(sub => {
+      if (!isSubmissionDone(typeById[sub.assignment_id], sub)) return;
+      const k = sub.assignment_id + '_' + sub.student_id;
+      if (seen.has(k)) return;
+      seen.add(k);
+      subCountMap[sub.assignment_id] = (subCountMap[sub.assignment_id]||0) + 1;
+    });
+  }
   CUR_ASSIGN_SUBCOUNT = subCountMap;
 
   const sel = document.getElementById('assign-unit-filter');
@@ -2043,7 +2053,7 @@ function openAssignmentModal(assignId) {
       <div id="am-due-wrap">
         <label class="flabel">截止時間（選填）</label>
         <input class="finput" type="datetime-local" id="am-due" value="${dueVal}">
-        ${AM_IS_NEW ? '<div style="font-size:11px;color:var(--ink3);margin-top:3px">已依單元最晚課次日期 +6天 晚上8:00 預帶，可自行修改</div>' : ''}
+        ${AM_IS_NEW ? '<div style="font-size:11px;color:var(--ink3);margin-top:3px">已依單元最晚課次日期 +7天 晚上8:00 預帶，可自行修改</div>' : ''}
       </div>
     </div>
     <div class="frow">
@@ -2544,9 +2554,9 @@ function openReviewModal(studentId) {
     ` : ''}
   `;
   openGenericModal(
-    (r.submission ? '批閱：' : '查看：') + (r.name_zh||''),
+    (r.done ? '批閱：' : '查看：') + (r.name_zh||''),
     body,
-    r.submission ? () => saveReview(studentId) : null,
+    r.done ? () => saveReview(studentId) : null,   // 影片「觀看中」(未達90%)沒有批閱表單，不給儲存按鈕，否則按下去會因找不到評語欄位而出錯
     560
   );
 }
@@ -2559,7 +2569,7 @@ function onReviewResultChange() {
 
 async function saveReview(studentId) {
   const r = CUR_REVIEW_ROSTER.find(x => x.student_id === studentId);
-  if (!r || !r.submission) return;
+  if (!r || !r.submission || !r.done) return;
   const result = document.querySelector('input[name="rv-result"]:checked')?.value;
   const comment = document.getElementById('rv-comment').value.trim();
   const pepperLevel = result === '待改進' ? parseInt(document.getElementById('rv-pepper').value, 10) : null;
@@ -2712,7 +2722,7 @@ function ovCollapseAll(collapse) {
 function ovToggleAll() { ovCollapseAll(OV_COLLAPSED_UNITS.size === 0); }
 function ovGroupStats(st, group) {
   let done = 0;
-  group.assigns.forEach(a => { if (CUR_OVERVIEW_SUBS[st.id+'_'+a.id]) done++; });
+  group.assigns.forEach(a => { if (isSubmissionDone(a, CUR_OVERVIEW_SUBS[st.id+'_'+a.id])) done++; });
   return { done, total: group.assigns.length, pct: Math.round(done / group.assigns.length * 100) };
 }
 
@@ -6317,6 +6327,14 @@ async function lpSaveSet() {
       (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.35', date: '2026-10-08',
+    items: [
+      '修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存',
+      '「已繳交」人數算法統一：教材與作業列表的「已繳交」改為「真正完成的人數」（同一位學生重新提交只算1人，影片觀看中不算），完成度總覽收合單元的小計也不再把觀看中的影片算成已完成，三處數字一致',
+      '修正新增作業時截止時間下方提示寫「+6天」、實際預帶是+7天的不一致，提示改為「+7天」',
+    ]
+  },
   {
     version: 'v3.34', date: '2026-10-06',
     items: [

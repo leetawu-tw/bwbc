@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.39 2026-10-06 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
+<!-- BWBC Student v3.40 2026-10-08 TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -368,7 +368,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.39　2026-10-06</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.40　2026-10-08</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -815,6 +815,13 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.40', date: '2026-10-08',
+    items: [
+      'TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕',
+      'TA端「已繳交」人數、批閱面板統計、全班完成度總覽與Excel匯出的算法改為與老師端一致：同一學生重新提交只算1人、影片觀看中（未達90%）不算已完成並顯示「觀看中 X%」；完成度總覽不再把教材列進去（教材沒有繳交，原本讓每位同學完成率偏低）；影片觀看中的學生不能被批閱',
+    ]
+  },
   {
     version: 'v3.39', date: '2026-10-06',
     items: [
@@ -1355,7 +1362,18 @@ async function checkAttendanceRecorderStatus() {
    導致TA對「教材與作業」完全沒有入口可用。這裡在學生端補上一塊「TA模式」，
    範圍依使用者確認：查看＋批閱＋完成度總覽(不含建立/編輯/發布作業、不含出題，這些仍由授課老師負責)。
    ════════════════════════════════════════ */
-const TA_TYPE_LABEL = { checkin:'✅ 打卡回報', submission:'📎 檔案繳交', quiz:'📋 是非/選擇題', essay:'✍️ 問答/報告' };
+// 影片教材有「觀看中但還沒達90%完成門檻」的中間狀態(content.completed !== true)：這種記錄不能算已繳交/已完成，
+// 所有TA端判斷「這位學生這份作業完成了嗎」的地方都走這個函式(跟老師端isSubmissionDone同一規則)
+function taIsDone(a, sub) {
+  if (!sub) return false;
+  if (a && a.type === 'video') return !!(sub.content && sub.content.completed === true);
+  return true;
+}
+function taVideoPct(sub) {
+  const c = (sub && sub.content) || {};
+  return c.duration_sec ? Math.min(100, Math.round((c.watched_sec||0)/c.duration_sec*100)) : 0;
+}
+const TA_TYPE_LABEL = { checkin:'✅ 打卡回報', submission:'📎 檔案繳交', quiz:'📋 是非/選擇題', essay:'✍️ 問答/報告', material:'📄 教材', video:'📹 影片教材' };
 let TA_OFFERINGS = [];        // 目前學生擔任TA的課程(本學期)
 let TA_CUR_OFFERING = null;   // { id, name_zh }
 let TA_UNITS = [];
@@ -1416,16 +1434,28 @@ async function openTaCourse(offeringId, courseName) {
   showSection('ta-course');
   document.getElementById('ta-assign-list-wrap').innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
 
-  const [unitsRes, assignRes, subRes, selfEnrollRes] = await Promise.all([
+  const [unitsRes, assignRes, _unusedSubRes, selfEnrollRes] = await Promise.all([
     sb.from('teaching_units').select('*').eq('offering_id', offeringId).order('sort_order'),
     sb.from('assignments').select('*').eq('offering_id', offeringId).order('created_at'),
-    sb.from('assignment_submissions').select('id, assignment_id'),
+    Promise.resolve(null),
     sb.from('enrollments').select('id').eq('offering_id', offeringId).eq('student_id', ME.id).eq('status','confirmed').maybeSingle()
   ]);
   TA_UNITS = unitsRes.data || [];
   TA_ASSIGNMENTS = assignRes.data || [];
+  // 「已繳交」人數：同一位學生重新提交多筆只算1人；影片「觀看中」(未達90%)不算，跟老師端一致
   const subCountMap = {};
-  (subRes.data || []).forEach(s => { subCountMap[s.assignment_id] = (subCountMap[s.assignment_id]||0) + 1; });
+  const taAssignIds = TA_ASSIGNMENTS.map(a => a.id);
+  if (taAssignIds.length) {
+    const { data: subRows } = await sb.from('assignment_submissions').select('assignment_id, student_id, content').in('assignment_id', taAssignIds);
+    const aById = {}; TA_ASSIGNMENTS.forEach(a => { aById[a.id] = a; });
+    const seen = new Set();
+    (subRows || []).forEach(sub => {
+      if (!taIsDone(aById[sub.assignment_id], sub)) return;
+      const k = sub.assignment_id + '_' + sub.student_id;
+      if (seen.has(k)) return; seen.add(k);
+      subCountMap[sub.assignment_id] = (subCountMap[sub.assignment_id]||0) + 1;
+    });
+  }
   TA_ASSIGN_SUBCOUNT = subCountMap;
   // 利益衝突防呆：TA本人如果同時也是這門課已確認選課的學生，批閱功能整個停用(避免自己/同班互相批閱)
   TA_CUR_OFFERING.selfEnrolled = !!(selfEnrollRes && selfEnrollRes.data);
@@ -1505,7 +1535,7 @@ function renderTaAssignments() {
         '<td><strong>'+esc(a.title)+'</strong></td>' +
         '<td style="font-size:12.5px'+(overdue?';color:var(--red)':'')+'">'+dueStr+(overdue?' 🔴已逾期':'')+'</td>' +
         '<td style="text-align:center">'+(TA_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' +
-        '<td>'+(selfEnrolled ? '<span style="font-size:11.5px;color:var(--ink3)">批閱已停用</span>' : '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👥 批閱</button>')+'</td>' +
+        '<td>'+(a.type==='material' ? '<span style="font-size:11.5px;color:var(--ink3)">教材不需批閱</span>' : selfEnrolled ? '<span style="font-size:11.5px;color:var(--ink3)">批閱已停用</span>' : '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👥 批閱</button>')+'</td>' +
       '</tr>';
     }).join('') +
     '</tbody></table>';
@@ -1570,7 +1600,7 @@ async function loadTaReviewData() {
     const sub = latestSubByStudent[st.id] || null;
     const review = sub ? (reviewMap[sub.id] || null) : null;
     const overdue = !sub && a.due_at && new Date(a.due_at) < now;
-    return { student_id: st.id, student_code: st.student_code, name_zh: st.name_zh, submission: sub, review, overdue };
+    return { student_id: st.id, student_code: st.student_code, name_zh: st.name_zh, submission: sub, review, overdue, done: taIsDone(a, sub) };
   });
 
   renderTaReviewStats();
@@ -1579,11 +1609,12 @@ async function loadTaReviewData() {
 
 function renderTaReviewStats() {
   const total = TA_REVIEW_ROSTER.length;
-  const submitted = TA_REVIEW_ROSTER.filter(r => r.submission).length;
-  const late = TA_REVIEW_ROSTER.filter(r => r.submission && r.submission.is_late).length;
+  const submitted = TA_REVIEW_ROSTER.filter(r => r.done).length;
+  const late = TA_REVIEW_ROSTER.filter(r => r.done && r.submission.is_late).length;
   const reviewed = TA_REVIEW_ROSTER.filter(r => r.review).length;
+  const watching = TA_REVIEW_ASSIGN && TA_REVIEW_ASSIGN.type === 'video' ? TA_REVIEW_ROSTER.filter(r => r.submission && !r.done).length : 0;
   document.getElementById('ta-rv-stats').textContent =
-    `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）・已批閱 ${reviewed} 人`;
+    `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）` + (watching ? `・觀看中 ${watching} 人` : '') + `・已批閱 ${reviewed} 人`;
 }
 
 function taQuizScoreFor(sub) {
@@ -1600,8 +1631,8 @@ let TA_REVIEW_SORT = { key: null, dir: 1 };
 const TA_REVIEW_SORT_FNS = {
   code: r => r.student_code || '',
   name: r => r.name_zh || '',
-  status: r => r.submission ? (r.submission.is_late ? 1 : 2) : (r.overdue ? -1 : 0),
-  result: r => r.review ? r.review.result : (r.submission ? '尚未批閱' : ''),
+  status: r => r.done ? (r.submission.is_late ? 1 : 2) : (r.submission ? 0.5 : (r.overdue ? -1 : 0)),
+  result: r => r.review ? r.review.result : (r.done ? '尚未批閱' : ''),
 };
 function taReviewSortBy(key) { toggleSort(TA_REVIEW_SORT, key, renderTaReviewTable); }
 
@@ -1621,10 +1652,12 @@ function renderTaReviewTable() {
     '</tr></thead><tbody>' +
     roster.map(r => {
       let statusHtml;
-      if (r.submission) {
+      if (r.done) {
         statusHtml = r.submission.is_late
           ? '<span class="result-badge" style="background:#FEE;color:var(--red)">🔴 遲交</span>'
           : '<span class="result-badge result-達標">✅ 已繳交</span>';
+      } else if (r.submission) {
+        statusHtml = '<span class="result-badge" style="background:#FFF3CD;color:#8A6D00">▶️ 觀看中 '+taVideoPct(r.submission)+'%</span>';
       } else if (r.overdue) {
         statusHtml = '<span class="result-badge" style="background:#FEE;color:var(--red)">⛔ 逾期未交</span>';
       } else {
@@ -1632,13 +1665,13 @@ function renderTaReviewTable() {
       }
       const resultHtml = r.review
         ? '<span class="result-badge result-'+r.review.result+'">'+resultIcon(r.review)+' '+r.review.result+'</span>'
-        : (r.submission ? '<span class="result-badge" style="background:var(--cr3);color:var(--ink3)">尚未批閱</span>' : '—');
+        : (r.done ? '<span class="result-badge" style="background:var(--cr3);color:var(--ink3)">尚未批閱</span>' : '—');
       return '<tr>' +
         '<td style="font-size:12.5px">'+esc(r.student_code||'')+'</td>' +
         '<td>'+esc(r.name_zh)+'</td>' +
         '<td>'+statusHtml+'</td>' +
         '<td>'+resultHtml+'</td>' +
-        '<td>'+(r.submission ? '<button class="btn btn-sec btn-sm" onclick="openTaReviewModal(\''+r.student_id+'\')">'+(r.review?'✎ 修改批閱':'📝 批閱')+'</button>' : '—')+'</td>' +
+        '<td>'+(r.done ? '<button class="btn btn-sec btn-sm" onclick="openTaReviewModal(\''+r.student_id+'\')">'+(r.review?'✎ 修改批閱':'📝 批閱')+'</button>' : '—')+'</td>' +
       '</tr>';
     }).join('') +
     '</tbody></table>';
@@ -1662,6 +1695,7 @@ function taFileListHtml(files) {
 
 function renderTaSubmissionContentForReview(a, sub) {
   if (a.type === 'checkin') return '<div style="font-size:13px;color:var(--ink2)">✅ 已回報完成（'+new Date(sub.content?.completed_at||sub.submitted_at).toLocaleString('zh-TW')+'）</div>';
+  if (a.type === 'video') return '<div style="font-size:13px;color:var(--ink2)">📹 已完成觀看（最高觀看進度 '+taVideoPct(sub)+'%）</div>';
   if (a.type === 'essay') return '<div style="background:var(--cr3);border-radius:8px;padding:10px 12px;font-size:13px;white-space:pre-wrap">'+esc(sub.content?.text||'')+'</div>';
   if (a.type === 'submission') return taFileListHtml(sub.content?.files);
   if (a.type === 'quiz') {
@@ -1687,7 +1721,7 @@ function renderTaSubmissionContentForReview(a, sub) {
 
 function openTaReviewModal(studentId) {
   const r = TA_REVIEW_ROSTER.find(x => x.student_id === studentId);
-  if (!r || !r.submission) return;
+  if (!r || !r.done) return;
   const a = TA_REVIEW_ASSIGN;
   const rv = r.review;
   const body = `
@@ -1730,7 +1764,7 @@ async function saveTaReview(studentId) {
     return;
   }
   const r = TA_REVIEW_ROSTER.find(x => x.student_id === studentId);
-  if (!r || !r.submission) return;
+  if (!r || !r.done) return;
   const result = document.querySelector('input[name="ta-rv-result"]:checked')?.value;
   const comment = document.getElementById('ta-rv-comment').value.trim();
   const pepperLevel = result === '待改進' ? parseInt(document.getElementById('ta-rv-pepper').value, 10) : null;
@@ -1777,7 +1811,7 @@ async function loadTaOverview() {
 
   const unitMap = {}; const unitSort = {};
   TA_UNITS.forEach((u,i) => { unitMap[u.id] = u.title; unitSort[u.id] = i; });
-  TA_OV_ASSIGNS = (assignRes.data || []).slice().sort((a,b) => {
+  TA_OV_ASSIGNS = (assignRes.data || []).filter(a => a.type !== 'material').slice().sort((a,b) => {
     const su = (unitSort[a.unit_id]??999) - (unitSort[b.unit_id]??999);
     return su !== 0 ? su : (new Date(a.created_at) - new Date(b.created_at));
   });
@@ -1835,6 +1869,7 @@ function taOverviewCellInfo(a, sub, review) {
   const cls = TA_OV_CLASS_BY_KEY[taOverviewColorKey(a, sub, review)] || 'ov-pending';
   const overdue = a.due_at && new Date(a.due_at) < new Date();
   if (!sub) return { text: overdue ? '未繳（逾期）' : '未繳', cls };
+  if (!taIsDone(a, sub)) return { text: '觀看中 '+taVideoPct(sub)+'%', cls };
   let text = sub.is_late ? '已繳（遲交）' : '已繳';
   if (a.type === 'quiz') {
     const sc = taOverviewQuizScore(a.id, sub);
@@ -1847,7 +1882,7 @@ function taOverviewCellInfo(a, sub, review) {
 let TA_OV_SORT = { key: null, dir: 1 };
 function taOvComputeStats(st) {
   let doneCount = 0;
-  TA_OV_ASSIGNS.forEach(a => { if (TA_OV_SUBS[st.id+'_'+a.id]) doneCount++; });
+  TA_OV_ASSIGNS.forEach(a => { if (taIsDone(a, TA_OV_SUBS[st.id+'_'+a.id])) doneCount++; });
   const total = TA_OV_ASSIGNS.length || 1;
   return { doneCount, pct: Math.round(doneCount / total * 100) };
 }
@@ -1872,7 +1907,7 @@ function taOvCollapseAll(collapse) {
 function taOvToggleAll() { taOvCollapseAll(TA_OV_COLLAPSED_UNITS.size === 0); }
 function taOvGroupStats(st, group) {
   let done = 0;
-  group.assigns.forEach(a => { if (TA_OV_SUBS[st.id+'_'+a.id]) done++; });
+  group.assigns.forEach(a => { if (taIsDone(a, TA_OV_SUBS[st.id+'_'+a.id])) done++; });
   return { done, total: group.assigns.length, pct: Math.round(done / group.assigns.length * 100) };
 }
 
@@ -1941,7 +1976,7 @@ function renderTaOverview() {
       return g.assigns.map(a => {
         const sub = TA_OV_SUBS[st.id+'_'+a.id] || null;
         const review = sub ? TA_OV_REVIEWS[sub.id] : null;
-        if (sub) doneCount++;
+        if (taIsDone(a, sub)) doneCount++;
         const info = taOverviewCellInfo(a, sub, review);
         return '<td class="'+info.cls+'" style="font-size:11px;text-align:center;white-space:nowrap;padding:4px 6px;border-bottom:1px solid var(--cr2)">'+esc(info.text)+'</td>';
       }).join('');
@@ -1969,7 +2004,7 @@ const TA_OV_XLSX_COLORS = {
   bad:     { fill:'FFFCE4D6', font:'FFC65911' }, // 橘：待改進
 };
 function taOverviewColorKey(a, sub, review) {
-  if (!sub) return (a.due_at && new Date(a.due_at) < new Date()) ? 'miss' : 'pending';
+  if (!sub || !taIsDone(a, sub)) return (a.due_at && new Date(a.due_at) < new Date()) ? 'miss' : 'pending';
   if (!review) return 'wait';
   return review.result === '特優' ? 'top' : review.result === '待改進' ? 'bad' : 'ok';
 }
@@ -2024,7 +2059,7 @@ async function exportTaOverviewXlsx() {
     TA_OV_ASSIGNS.forEach(a => {
       const sub = TA_OV_SUBS[st.id+'_'+a.id] || null;
       const review = sub ? TA_OV_REVIEWS[sub.id] : null;
-      if (sub) doneCount++;
+      if (taIsDone(a, sub)) doneCount++;
       rowData.push(taOverviewCellInfo(a, sub, review).text);
       colorKeys.push(taOverviewColorKey(a, sub, review));
     });
