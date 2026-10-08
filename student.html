@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.42 2026-10-08 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
+<!-- BWBC Student v3.43 2026-10-08 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -124,6 +124,28 @@ input{font-family:inherit}
 .badge-dropped{background:var(--cr2);color:var(--ink3)}
 .badge-withdrawn{background:#FFF3E0;color:#B05010}
 .badge-waitlist{background:#EDE7F6;color:#6A1B9A}
+
+/* ── 我的課程（單元視圖）── */
+.mc-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.mc-chip{border:1px solid var(--cr2);background:#fff;border-radius:999px;padding:7px 16px;font-size:13.5px;cursor:pointer;color:var(--ink2)}
+.mc-chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.mc-summary{background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.mc-bar{height:10px;border-radius:6px;background:var(--cr3);overflow:hidden;margin:8px 0}
+.mc-bar>i{display:block;height:100%;background:linear-gradient(90deg,#2B7A4B,#5BB07A);border-radius:6px}
+.mc-next{font-size:13px;color:var(--ink2)}
+.mc-unit{background:#fff;border:1px solid var(--cr2);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.mc-unit-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;cursor:pointer;background:var(--cr3)}
+.mc-unit-title{font-weight:600;font-size:15px}
+.mc-pill{font-size:11.5px;border-radius:999px;padding:2px 10px;background:#fff;color:var(--ink2);border:1px solid var(--cr2)}
+.mc-pill.ok{background:#E6F4EA;color:#1A6A30;border-color:#BFE3CB}
+.mc-unit-body{padding:6px 16px 12px}
+.mc-block{border-left:4px solid var(--cr2);padding:6px 0 4px 12px;margin-top:10px}
+.mc-block.mat{border-left-color:#2B7A4B}
+.mc-block.work{border-left-color:#B8651B}
+.mc-block.dis{border-left-color:#3F6FB5}
+.mc-block-hdr{font-weight:600;font-size:13.5px;margin-bottom:6px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.mc-block-note{font-size:11.5px;font-weight:400;color:var(--ink3)}
+.mc-none{font-size:12.5px;color:var(--ink3);padding:4px 0}
 
 /* ── 教材與作業 ── */
 .assign-unit-hdr{font-size:12.5px;font-weight:600;color:var(--navy);margin:18px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--navy3)}
@@ -357,6 +379,7 @@ input{font-family:inherit}
       <div class="side-nav-label">功能選單</div>
       <div class="side-item" id="nav-ann"    onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
       <div class="side-item" id="nav-select" onclick="showSection('select')"><span class="nav-icon">📚</span><span class="nav-txt">選課</span></div>
+      <div class="side-item" id="nav-mycourse" onclick="showSection('mycourse')"><span class="nav-icon">🎓</span><span class="nav-txt">我的課程</span></div>
       <div class="side-item" id="nav-assignments" onclick="showSection('assignments')"><span class="nav-icon">📝</span><span class="nav-txt">教材與作業</span></div>
       <div class="side-item" id="nav-discussion" onclick="showSection('discussion')"><span class="nav-icon">💬</span><span class="nav-txt">課程討論區</span></div>
       <div class="side-item" id="nav-ta-apply" onclick="showSection('ta-apply')"><span class="nav-icon">🙋</span><span class="nav-txt">TA申請</span></div>
@@ -582,6 +605,13 @@ input{font-family:inherit}
         <div id="dsc-tabs"></div>
         <div id="dsc-composer"></div>
         <div id="dsc-main"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
+      </div>
+
+      <!-- ── 我的課程（本學期，依單元整理教材／作業／討論）── -->
+      <div id="sec-mycourse" class="t-section">
+        <div class="section-title">🎓 我的課程</div>
+        <div id="mc-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">本學期還沒有已確認選課的課程</div>
+        <div id="mc-list"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
 
       <!-- ── 教材與作業 ── -->
@@ -815,6 +845,13 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.43', date: '2026-10-08',
+    items: [
+      '新增「🎓 我的課程」：本學期每門課一個頁面，依單元整理 📖教材（自己看就好）、✍️作業（要繳交、老師批閱）、💬討論，並顯示自己的進度條、「下一件該做的事」與全班整體完成率（只顯示百分比，不顯示個別同學）；舊的「教材與作業」「課程討論區」暫時並存',
+      '全班完成率需要資料庫先執行 schema/class_completion.sql；沒執行時，我的課程仍可使用，只是不顯示全班完成率'
+    ]
+  },
   {
     version: 'v3.42', date: '2026-10-08',
     items: [
@@ -3789,6 +3826,8 @@ let ASSIGN_S_LIST = [];
 let ASSIGN_S_SUBMISSIONS = {}; // { assignment_id: 最新一筆繳交記錄 }
 let ASSIGN_S_REVIEWS = {};     // { submission_id: 批閱記錄 }
 let ASSIGN_S_OPEN_ID = null;   // 目前展開的作業id
+let ASSIGN_HOST = 'old';       // 教材/作業卡片目前畫在哪一頁：'old'=舊的「教材與作業」頁、'mc'=新的「我的課程」頁（兩頁共用同一套資料與卡片，不會同時顯示）
+function assignHostEl() { return document.getElementById(ASSIGN_HOST === 'mc' ? 'mc-list' : 'assign-s-list'); }
 let ASSIGN_S_COLLAPSED = {};   // {offering_id: true=已收合} 第一次算出預設值後就記住，同一次瀏覽session手動點開/收合都會保留
 const ASSIGN_TYPE_ICON = { checkin:'✅', submission:'📎', quiz:'📋', essay:'✍️', material:'📄', video:'📹' };
 const MATERIAL_BUCKET = 'course-materials';
@@ -4065,6 +4104,7 @@ async function loadAssignmentReminder() {
 // 2026-09-28改版：不再讓同學自己拉課程下拉選單，改成一次把「所有已確認選課」的課程都撈出來，
 // 只列出真的有已發布作業/教材的課程（依課程分組、組內再依單元分組），一眼就能看到哪些課有作業要處理
 async function loadAssignmentOfferings() {
+  ASSIGN_HOST = 'old';
   const { data: enrolls } = await sb.from('enrollments').select('offering_id').eq('student_id', ME.id).eq('status','confirmed');
   const ids = [...new Set((enrolls||[]).map(e => e.offering_id))];
   if (!ids.length) {
@@ -4081,7 +4121,7 @@ async function loadAssignmentOfferings() {
 }
 
 async function loadAssignmentList() {
-  const wrap = document.getElementById('assign-s-list');
+  const wrap = assignHostEl();
   const offeringIds = ASSIGN_S_OFFERINGS.map(c => c.offering_id);
   if (!offeringIds.length) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
@@ -4094,12 +4134,13 @@ async function loadAssignmentList() {
   ASSIGN_S_UNITS = unitsRes.data || [];
   ASSIGN_S_LIST = assignRes.data || [];
 
-  if (!ASSIGN_S_LIST.length) {
+  if (!ASSIGN_S_LIST.length && ASSIGN_HOST !== 'mc') {
     wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">目前所有已選課程都還沒有發布的作業/教材</div>';
     return;
   }
 
   const assignIds = ASSIGN_S_LIST.map(a => a.id);
+  if (!assignIds.length) { ASSIGN_S_SUBMISSIONS = {}; ASSIGN_S_REVIEWS = {}; renderAssignmentList(); return; }
   const { data: subs } = await sb.from('assignment_submissions').select('*')
     .eq('student_id', ME.id).in('assignment_id', assignIds).order('submitted_at', { ascending:false });
   ASSIGN_S_SUBMISSIONS = {};
@@ -4127,6 +4168,7 @@ const ASSIGN_COURSE_COLORS = [
 ];
 
 function renderAssignmentList() {
+  if (ASSIGN_HOST === 'mc') { renderMyCourse(); return; }
   const wrap = document.getElementById('assign-s-list');
   const unitMap = {};
   ASSIGN_S_UNITS.forEach(u => unitMap[u.id] = u);
@@ -4181,6 +4223,137 @@ function renderAssignmentList() {
   wrap.innerHTML = html;
 }
 
+/* ════════════════════════════════════════════════════════
+ * 🎓 我的課程：以「一門課」為中心，依單元整理 📖教材（自己看）／✍️作業（要繳交）／💬討論
+ * 資料與卡片共用「教材與作業」那一套（ASSIGN_S_*、renderAssignmentCard…），只是換成單元視圖
+ * 全班完成率需要資料庫函式 class_completion（schema/class_completion.sql），沒有執行就不顯示這一項
+ * ════════════════════════════════════════════════════════ */
+const MC = { offId: null, collapsed: {}, rates: {}, threads: {} };
+
+async function loadMyCourse() {
+  ASSIGN_HOST = 'mc';
+  const wrap = document.getElementById('mc-list'), empty = document.getElementById('mc-empty');
+  wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
+  const { data: enrolls } = await sb.from('enrollments').select('offering_id').eq('student_id', ME.id).eq('status', 'confirmed');
+  const ids = [...new Set((enrolls || []).map(e => e.offering_id))];
+  let courses = [];
+  if (ids.length) {
+    const { data } = await sb.from('v_course_schedule').select('offering_id, code, name_zh, semester_label').in('offering_id', ids);
+    courses = (data || []).filter(c => !ACTIVE_SEM_LABEL || c.semester_label === ACTIVE_SEM_LABEL)
+      .sort((a, b) => String(a.name_zh).localeCompare(String(b.name_zh), 'zh-Hant'));
+  }
+  ASSIGN_S_OFFERINGS = courses;
+  if (!courses.length) { empty.style.display = ''; wrap.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  if (!courses.some(c => c.offering_id === MC.offId)) MC.offId = courses[0].offering_id;
+  await loadAssignmentList();          // 載入單元、作業、繳交、批閱，載完會呼叫 renderMyCourse
+  mcLoadExtras(MC.offId);
+}
+
+// 全班完成率、討論數：載完再補畫一次（卡片正展開時不重畫，避免打斷影片/作業輸入）
+async function mcLoadExtras(offId) {
+  const [rateRes, thrRes] = await Promise.all([
+    sb.rpc('class_completion', { p_offering: offId }),
+    sb.from('discussion_threads').select('id, unit_label, deleted_at').eq('offering_id', offId)
+  ]);
+  MC.rates[offId] = (!rateRes.error && rateRes.data) ? rateRes.data : null;
+  MC.threads[offId] = (!thrRes.error && thrRes.data) ? thrRes.data.filter(t => !t.deleted_at) : null;
+  if (ASSIGN_HOST === 'mc' && MC.offId === offId && !ASSIGN_S_OPEN_ID) renderMyCourse();
+}
+
+function mcSwitch(offId) {
+  if (offId === MC.offId) return;
+  MC.offId = offId; ASSIGN_S_OPEN_ID = null;
+  renderMyCourse();
+  if (MC.rates[offId] === undefined) mcLoadExtras(offId);
+}
+function mcToggleUnit(uid) { MC.collapsed[uid] = !MC.collapsed[uid]; ASSIGN_S_OPEN_ID = null; renderMyCourse(); }
+function mcGoDiscussion(offId) { DSC.offId = offId; showSection('discussion'); }
+
+// 這份算不算「要完成的項目」：教材不算；影片要看完；其他作業有繳交就算
+function mcTrackable(a) { return a.type !== 'material'; }
+function mcIsDone(a) {
+  const sub = ASSIGN_S_SUBMISSIONS[a.id];
+  if (!sub) return false;
+  if (a.type === 'video') return !!(sub.content && sub.content.completed === true);
+  return true;
+}
+
+function renderMyCourse() {
+  const wrap = document.getElementById('mc-list');
+  if (!wrap) return;
+  const course = ASSIGN_S_OFFERINGS.find(c => c.offering_id === MC.offId);
+  if (!course) { wrap.innerHTML = ''; return; }
+  const list = ASSIGN_S_LIST.filter(a => a.offering_id === MC.offId);
+  const units = ASSIGN_S_UNITS.filter(u => u.offering_id === MC.offId).sort((x, y) => (x.sort_order ?? 0) - (y.sort_order ?? 0));
+  const known = new Set(units.map(u => u.id));
+  const groups = units.map(u => ({ u, items: list.filter(a => a.unit_id === u.id) }));
+  const others = list.filter(a => !known.has(a.unit_id));
+  if (others.length) groups.push({ u: { id: '_other', title: '（其他）' }, items: others });
+  const rates = MC.rates[MC.offId] || null;           // [{assignment_id,total_students,done_students}]
+  const rateOf = {}; (rates || []).forEach(r => { rateOf[r.assignment_id] = r; });
+  const threads = MC.threads[MC.offId] || null;
+
+  const track = list.filter(mcTrackable);
+  const doneN = track.filter(mcIsDone).length;
+  const pct = track.length ? Math.round(doneN / track.length * 100) : 0;
+  const pending = track.filter(a => !mcIsDone(a)).sort((a, b) => (a.due_at ? new Date(a.due_at).getTime() : 9e15) - (b.due_at ? new Date(b.due_at).getTime() : 9e15));
+  let next = '';
+  if (!track.length) next = '這門課目前還沒有要完成的項目';
+  else if (!pending.length) next = '🎉 目前發布的項目都完成了';
+  else {
+    const n = pending[0];
+    const unitTitle = (units.find(u => u.id === n.unit_id) || {}).title;
+    next = '下一件：' + (unitTitle ? esc(unitTitle) + '・' : '') + esc(n.title) +
+      (n.due_at ? '　<span style="color:var(--ink3)">截止 ' + new Date(n.due_at).toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + '</span>' : '');
+  }
+  let classTxt = '';
+  if (rates && rates.length) {
+    const tot = rates.reduce((x, r) => x + (r.total_students || 0), 0), dn = rates.reduce((x, r) => x + (r.done_students || 0), 0);
+    if (tot) classTxt = '　・　全班整體完成率 <b>' + Math.round(dn / tot * 100) + '%</b>';
+  }
+
+  let html = '<div class="mc-chips">' + ASSIGN_S_OFFERINGS.map(c =>
+    '<button class="mc-chip' + (c.offering_id === MC.offId ? ' on' : '') + '" onclick="mcSwitch(\'' + c.offering_id + '\')">' + esc(c.name_zh) + '</button>').join('') + '</div>';
+  html += '<div class="mc-summary"><div style="font-weight:600;font-size:15px">' + esc(course.name_zh) + '（' + esc(course.semester_label) + '）</div>' +
+    '<div class="mc-bar"><i style="width:' + pct + '%"></i></div>' +
+    '<div style="font-size:13px;margin-bottom:4px">我的進度：<b>' + doneN + ' / ' + track.length + '</b> 件' + classTxt + '</div>' +
+    '<div class="mc-next">' + next + '</div></div>';
+
+  if (!groups.length) html += '<div class="mc-none" style="padding:14px">這門課老師還沒有建立單元</div>';
+  groups.forEach(g => {
+    const mats = g.items.filter(a => a.type === 'material' || a.type === 'video');
+    const works = g.items.filter(a => a.type !== 'material' && a.type !== 'video');
+    const t = g.items.filter(mcTrackable), d = t.filter(mcIsDone).length;
+    const allDone = t.length > 0 && d === t.length;
+    if (MC.collapsed[g.u.id] === undefined) MC.collapsed[g.u.id] = allDone;
+    const col = MC.collapsed[g.u.id];
+    let unitRate = '';
+    if (rates) {
+      let tt = 0, dd = 0; t.forEach(a => { const r = rateOf[a.id]; if (r) { tt += r.total_students || 0; dd += r.done_students || 0; } });
+      if (tt) unitRate = '<span class="mc-pill">全班完成 ' + Math.round(dd / tt * 100) + '%</span>';
+    }
+    const thrN = threads ? threads.filter(x => x.unit_label === g.u.title).length : null;
+    html += '<div class="mc-unit"><div class="mc-unit-hdr" onclick="mcToggleUnit(\'' + g.u.id + '\')">' +
+      '<span>' + (col ? '▶' : '▼') + '</span><span class="mc-unit-title">🗂 ' + esc(g.u.title) + '</span>' +
+      (t.length ? '<span class="mc-pill' + (allDone ? ' ok' : '') + '">我 ' + d + '/' + t.length + ' 完成</span>' : '') + unitRate + '</div>';
+    if (!col) {
+      html += '<div class="mc-unit-body">' +
+        '<div class="mc-block mat"><div class="mc-block-hdr">📖 教材 <span class="mc-block-note">自己看就好，不需要繳交</span></div>' +
+          (mats.length ? mats.map(renderAssignmentCard).join('') : '<div class="mc-none">這個單元還沒有教材</div>') + '</div>' +
+        '<div class="mc-block work"><div class="mc-block-hdr">✍️ 作業 <span class="mc-block-note">需要繳交，老師會批閱</span></div>' +
+          (works.length ? works.map(renderAssignmentCard).join('') : '<div class="mc-none">這個單元還沒有作業</div>') + '</div>' +
+        (g.u.id !== '_other' ? '<div class="mc-block dis"><div class="mc-block-hdr">💬 討論 ' +
+          (thrN != null ? '<span class="mc-block-note">這個單元有 ' + thrN + ' 則討論</span>' : '') +
+          '<button class="btn btn-sec btn-sm" style="margin-left:auto" onclick="mcGoDiscussion(\'' + MC.offId + '\')">前往討論區</button></div></div>' : '') +
+        '</div>';
+    }
+    html += '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+
 function toggleCourseCollapse(offeringId) {
   ASSIGN_S_COLLAPSED[offeringId] = !ASSIGN_S_COLLAPSED[offeringId];
   renderAssignmentList();
@@ -4223,11 +4396,12 @@ function renderAssignmentCard(a) {
   } else if (review) {
     statusBadge = '<span class="result-badge result-'+review.result+'">'+resultIcon(review)+' '+review.result+'</span>';
   } else if (sub) {
-    statusBadge = sub.is_late ? '<span class="badge badge-late">⏰ 已繳交（遲交）</span>' : '<span class="badge badge-done">✅ 已繳交</span>';
+    const isV = a.type === 'video'; // 影片教材只看有沒有看完，用語跟「繳交」區分
+    statusBadge = sub.is_late ? '<span class="badge badge-late">⏰ '+(isV?'已看完':'已繳交')+'（遲交）</span>' : '<span class="badge badge-done">✅ '+(isV?'已看完':'已繳交')+'</span>';
   } else if (overdue) {
-    statusBadge = '<span class="badge badge-overdue">🔴 已逾期未繳交</span>';
+    statusBadge = '<span class="badge badge-overdue">🔴 '+(a.type==='video'?'已逾期未看完':'已逾期未繳交')+'</span>';
   } else {
-    statusBadge = '<span class="badge badge-todo">📝 尚未繳交</span>';
+    statusBadge = '<span class="badge badge-todo">'+(a.type==='video'?'▶️ 尚未觀看':'📝 尚未繳交')+'</span>';
   }
 
   const isOpen = ASSIGN_S_OPEN_ID === a.id;
@@ -5123,6 +5297,7 @@ function showSection(id) {
   if (id === 'regulations') loadRegulationsSectionS();
   if (id === 'ta-apply') loadTaApplySection();
   if (id === 'attendance') loadAttendanceOfferings();
+  if (id === 'mycourse') loadMyCourse();
   if (id === 'assignments') loadAssignmentOfferings();
   if (id === 'discussion') loadDiscussionSection();
   if (id === 'ta-mode') loadTaOfferings();

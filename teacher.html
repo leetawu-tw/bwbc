@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.38 2026-10-08 老師端影片教材列表新增「▶ 線上看」，老師預覽不設限(可快轉/後退，不記錄進度)。前次(v3.37) 影片教材/教材不需批閱，只看觀看狀況。 前次(v3.36) 新增作業/教材預帶的截止時間改為「上傳日（單元課程還沒上完則為最後一堂課日期）+7天」晚上8:00，不再預帶到已經過去的日期。前次(v3.35) 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
+<!-- BWBC Teacher v3.39 2026-10-08 「教材與作業」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，各自有「＋教材」「＋作業」，可切換回表格。前次(v3.38) 老師端影片教材列表新增「▶ 線上看」，老師預覽不設限(可快轉/後退，不記錄進度)。前次(v3.37) 影片教材/教材不需批閱，只看觀看狀況。 前次(v3.36) 新增作業/教材預帶的截止時間改為「上傳日（單元課程還沒上完則為最後一堂課日期）+7天」晚上8:00，不再預帶到已經過去的日期。前次(v3.35) 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -521,6 +521,7 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
             style="font-size:12px;padding:3px 8px;border:1px solid var(--cr2);border-radius:6px;color:var(--ink);background:#fff">
             <option value="">全部單元</option>
           </select>
+          <span style="display:inline-flex;border:1px solid var(--cr2);border-radius:6px;overflow:hidden;font-size:12px"><button class="btn-syl none" style="border:0;border-radius:0;padding:4px 10px" onclick="setAssignView('unit')">🗂 依單元</button><button class="btn-syl none" style="border:0;border-radius:0;padding:4px 10px;border-left:1px solid var(--cr2)" onclick="setAssignView('table')">📋 表格</button></span>
           <button class="btn-syl none" style="margin-left:auto;padding:7px 16px;font-size:12.5px" onclick="openCompletionOverview()">📊 全班完成度總覽</button>
           <button class="btn-save" style="padding:7px 16px;font-size:12.5px" onclick="openAssignmentModal()">＋ 新增作業/教材</button>
         </div>
@@ -1934,6 +1935,68 @@ const ASSIGN_SORT_FNS = {
 };
 function assignSortBy(key) { toggleSort(ASSIGN_SORT, key, renderAssignments); }
 
+function assignActionsHtml(a) {
+  return (a.type==='quiz' ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openQuizBuilder(\''+a.id+'\')">🎯 出題</button>' : '') +
+          (a.type==='video' && a.video_file_path ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="previewVideoFile(\''+a.id+'\')">▶ 線上看</button>' : '') +
+          (a.type==='material'
+            ? (a.material_file_path ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="previewMaterialFile(\''+a.id+'\')">👁 線上看</button>' : '')
+            : '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openReviewPanel(\''+a.id+'\')">'+(a.type==='video'?'👁 觀看狀況':'👥 批閱')+'</button>') +
+          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="toggleAssignPublish(\''+a.id+'\')">'+(a.status==='published'?'↩️ 改回草稿':'🚀 發布')+'</button>' +
+          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openAssignmentModal(\''+a.id+'\')">✎ 編輯</button>' +
+          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;color:#C04030" onclick="deleteAssignment(\''+a.id+'\')">🗑</button>';
+}
+
+
+// 老師端「教材與作業」預設改成依單元分區：每個單元分成 📖教材(教材、影片教材：學生自己看，不批閱) 與 ✍️作業(要繳交、要批閱)，
+// 各自有「＋教材」「＋作業」按鈕；舊的表格視圖保留，可用右上角切換
+let ASSIGN_VIEW = 'unit';
+function setAssignView(v) { ASSIGN_VIEW = v; renderAssignments(); }
+function assignStatusBadge(a) {
+  return a.status === 'published'
+    ? '<span class="result-badge status-published">✅ 已發布</span>'
+    : '<span class="result-badge status-draft">📝 草稿</span>';
+}
+function renderAssignmentsByUnit(list, unitFilter) {
+  const wrap = document.getElementById('assign-list-wrap');
+  const units = (CUR_UNITS || []).filter(u => !unitFilter || u.id === unitFilter)
+    .slice().sort((x, y) => (x.sort_order ?? 0) - (y.sort_order ?? 0));
+  const known = new Set((CUR_UNITS || []).map(u => u.id));
+  const orphans = unitFilter ? [] : list.filter(a => !known.has(a.unit_id));
+  const isMat = a => a.type === 'material' || a.type === 'video';
+  const dueOf = a => a.due_at ? new Date(a.due_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+  const matTable = items => !items.length ? '<div class="au-empty">還沒有教材</div>' :
+    '<div class="tbl-wrap" style="max-height:none"><table><thead><tr><th>狀態</th><th>類型</th><th>標題</th><th style="text-align:center">已看完</th><th>操作</th></tr></thead><tbody>' +
+    items.map(a => '<tr><td>'+assignStatusBadge(a)+'</td><td style="font-size:12.5px">'+(ASSIGN_TYPE_LABEL[a.type]||a.type)+'</td>' +
+      '<td><strong>'+esc(a.title)+'</strong></td><td style="text-align:center">'+(a.type==='video' ? (CUR_ASSIGN_SUBCOUNT[a.id]||0) : '—')+'</td>' +
+      '<td style="white-space:nowrap">'+assignActionsHtml(a)+'</td></tr>').join('') + '</tbody></table></div>';
+  const workTable = items => !items.length ? '<div class="au-empty">還沒有作業</div>' :
+    '<div class="tbl-wrap" style="max-height:none"><table><thead><tr><th>狀態</th><th>類型</th><th>標題</th><th>截止時間</th><th style="text-align:center">列入成績</th><th style="text-align:center">已繳交</th><th>操作</th></tr></thead><tbody>' +
+    items.map(a => {
+      const overdue = a.due_at && new Date(a.due_at) < new Date() && a.status === 'published';
+      return '<tr><td>'+assignStatusBadge(a)+'</td><td style="font-size:12.5px">'+(ASSIGN_TYPE_LABEL[a.type]||a.type)+'</td>' +
+      '<td><strong>'+esc(a.title)+'</strong></td>' +
+      '<td style="font-size:12.5px'+(overdue?';color:#C04030':'')+'">'+dueOf(a)+(overdue?' 🔴已逾期':'')+'</td>' +
+      '<td style="text-align:center">'+(a.counts_as_grade ? '✅' : '—')+'</td><td style="text-align:center">'+(CUR_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' +
+      '<td style="white-space:nowrap">'+assignActionsHtml(a)+'</td></tr>'; }).join('') + '</tbody></table></div>';
+  const block = (title, color, addBtn, inner) =>
+    '<div class="au-block" style="border-left:4px solid '+color+'"><div class="au-block-hdr"><span>'+title+'</span>'+addBtn+'</div>'+inner+'</div>';
+  const unitCard = (u, items) => {
+    const mats = items.filter(isMat), works = items.filter(a => !isMat(a));
+    const dates = (CUR_UNIT_SESSIONS[u.id] || []).map(sid => CUR_SESSIONS.find(x => x.id === sid)?.session_date).filter(Boolean).sort();
+    const dateTxt = dates.length ? '上課：'+dates.map(d => String(d).slice(5).replace('-','/')).join('、') : '尚未排入課堂';
+    return '<div class="au-unit"><div class="au-unit-hdr"><span>🗂 '+esc(u.title)+'</span><span class="au-unit-sub">'+dateTxt+'</span></div>' +
+      block('📖 教材 <span class="au-note">學生自己看，不需批閱</span>', '#2B7A4B',
+        '<button class="btn-syl none au-add" onclick="openAssignmentModal(null,{unit_id:\''+u.id+'\',kind:\'material\'})">＋ 教材</button>', matTable(mats)) +
+      block('✍️ 作業 <span class="au-note">需要繳交、批閱</span>', '#B8651B',
+        '<button class="btn-syl none au-add" onclick="openAssignmentModal(null,{unit_id:\''+u.id+'\',kind:\'work\'})">＋ 作業</button>', workTable(works)) +
+      '</div>';
+  };
+  let html = '<style>.au-unit{background:#fff;border:1px solid var(--cr2);border-radius:10px;padding:12px 14px;margin-bottom:14px}.au-unit-hdr{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;font-weight:600;font-size:15px;margin-bottom:8px}.au-unit-sub{font-size:12px;font-weight:400;color:var(--ink3)}.au-block{padding:6px 0 6px 10px;margin-bottom:8px}.au-block-hdr{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;margin-bottom:6px}.au-note{font-size:11.5px;font-weight:400;color:var(--ink3)}.au-add{margin-left:auto;padding:4px 12px;font-size:12px}.au-empty{font-size:12.5px;color:var(--ink3);padding:6px 2px}</style>';
+  units.forEach(u => { html += unitCard(u, list.filter(a => a.unit_id === u.id)); });
+  if (orphans.length) html += unitCard({ id:'', title:'（未分類單元）' }, orphans).replace(/<button class="btn-syl none au-add"[^>]*>[^<]*<\/button>/g, '');
+  wrap.innerHTML = html;
+}
+
 function renderAssignments() {
   const wrap = document.getElementById('assign-list-wrap');
   const unitFilter = document.getElementById('assign-unit-filter').value;
@@ -1941,6 +2004,7 @@ function renderAssignments() {
   CUR_UNITS.forEach(u => { unitMap[u.id] = u.title; });
   let list = unitFilter ? CUR_ASSIGNMENTS.filter(a => a.unit_id === unitFilter) : CUR_ASSIGNMENTS;
   list = sortRows(list, ASSIGN_SORT, ASSIGN_SORT_FNS);
+  if (ASSIGN_VIEW === 'unit' && CUR_UNITS.length) { renderAssignmentsByUnit(list, unitFilter); return; }
 
   if (!list.length) {
     wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">'+
@@ -1972,14 +2036,7 @@ function renderAssignments() {
         '<td style="text-align:center">'+(a.counts_as_grade ? '✅' : '—')+'</td>' +
         '<td style="text-align:center">'+(CUR_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' +
         '<td style="white-space:nowrap">' +
-          (a.type==='quiz' ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openQuizBuilder(\''+a.id+'\')">🎯 出題</button>' : '') +
-          (a.type==='video' && a.video_file_path ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="previewVideoFile(\''+a.id+'\')">▶ 線上看</button>' : '') +
-          (a.type==='material'
-            ? (a.material_file_path ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="previewMaterialFile(\''+a.id+'\')">👁 線上看</button>' : '')
-            : '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openReviewPanel(\''+a.id+'\')">'+(a.type==='video'?'👁 觀看狀況':'👥 批閱')+'</button>') +
-          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="toggleAssignPublish(\''+a.id+'\')">'+(a.status==='published'?'↩️ 改回草稿':'🚀 發布')+'</button>' +
-          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openAssignmentModal(\''+a.id+'\')">✎ 編輯</button>' +
-          '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;color:#C04030" onclick="deleteAssignment(\''+a.id+'\')">🗑</button>' +
+          assignActionsHtml(a) +
         '</td>' +
       '</tr>';
     }).join('') +
@@ -2033,14 +2090,18 @@ function onDueOffsetChange() {
   if (due) document.getElementById('am-due').value = due;
 }
 
-function openAssignmentModal(assignId) {
+function openAssignmentModal(assignId, preset) {
   const a = assignId ? CUR_ASSIGNMENTS.find(x => x.id === assignId) : null;
   AM_IS_NEW = !a;
   if (!CUR_UNITS.length) { showToast('請先到「單元管理」建立至少一個單元', 'error'); return; }
   const unitOptions = CUR_UNITS.map(u =>
-    '<option value="'+u.id+'" '+(a?.unit_id===u.id?'selected':'')+'>'+esc(u.title)+'</option>'
+    '<option value="'+u.id+'" '+((a ? a.unit_id===u.id : preset?.unit_id===u.id)?'selected':'')+'>'+esc(u.title)+'</option>'
   ).join('');
-  const initialUnitId = a ? a.unit_id : CUR_UNITS[0].id;
+  const initialUnitId = a ? a.unit_id : (preset?.unit_id && CUR_UNITS.some(u => u.id === preset.unit_id) ? preset.unit_id : CUR_UNITS[0].id);
+  // 從單元分區的「＋教材」「＋作業」進來時，類型只列出該區的選項，預設選第一個
+  const presetKinds = !a && preset?.kind ? (preset.kind === 'material' ? ['material','video'] : ['checkin','submission','quiz','essay']) : null;
+  const typeEntries = Object.entries(ASSIGN_TYPE_LABEL).filter(([k]) => !presetKinds || presetKinds.includes(k));
+  const defaultType = presetKinds ? presetKinds[0] : 'checkin';
   const dueVal = a?.due_at ? toDatetimeLocal(a.due_at) : (AM_IS_NEW ? computeDefaultDueForUnit(initialUnitId, DUE_OFFSET_DEFAULT_DAYS) : '');
   const resubDueVal = a?.resubmit_deadline ? toDatetimeLocal(a.resubmit_deadline) : '';
   const body = `
@@ -2052,7 +2113,7 @@ function openAssignmentModal(assignId) {
       <div>
         <label class="flabel">類型</label>
         <select class="finput" id="am-type" onchange="toggleAssignTypeFields()">
-          ${Object.entries(ASSIGN_TYPE_LABEL).map(([k,v]) => '<option value="'+k+'" '+(a?.type===k?'selected':(!a&&k==='checkin'?'selected':''))+'>'+v+'</option>').join('')}
+          ${typeEntries.map(([k,v]) => '<option value="'+k+'" '+(a?.type===k?'selected':(!a&&k===defaultType?'selected':''))+'>'+v+'</option>').join('')}
         </select>
       </div>
       <div id="am-due-wrap">
@@ -6337,6 +6398,13 @@ async function lpSaveSet() {
       (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.39', date: '2026-10-08',
+    items: [
+      '「教材與作業」預設改成依單元分區：每個單元分成 📖教材（教材、影片教材：學生自己看，不批閱）與 ✍️作業（要繳交、批閱），各自有「＋ 教材」「＋ 作業」按鈕；右上角可切換回原本的表格',
+      '新增教材／作業時，從單元區塊按「＋」進來會自動選好所屬單元，類型只列出該區的選項'
+    ]
+  },
   {
     version: 'v3.38', date: '2026-10-08',
     items: [
