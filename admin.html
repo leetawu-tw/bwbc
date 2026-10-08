@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.58 2026-10-07 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.60 2026-10-08 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -442,6 +442,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="teachers" onclick="showPage('teachers',this)"><span class="nav-icon">👤</span>教師管理</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('payroll',this)"><span class="nav-icon">💰</span>兼課鐘點費核銷</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('receipt',this)"><span class="nav-icon">🧾</span>收據列印（單次）</div>
+        <div class="nav-item" data-perm="students" onclick="showPage('workers',this)"><span class="nav-icon">🕘</span>工讀生簽到表</div>
         <div class="nav-item" data-perm="courses" onclick="showPage('distance-apps',this)"><span class="nav-icon">💻</span>遠距教學課程申請</div>
         <div class="nav-item" data-perm="teachers" onclick="showPage('advisors',this)"><span class="nav-icon">🎓</span>班級導師管理</div>
         <div class="nav-item" data-perm="classrooms" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
@@ -842,6 +843,34 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
 
       <!-- ▌單次收據列印 ▌-->
+      <div id="page-workers" style="display:none">
+        <div class="page-hdr"><div class="page-title">🕘 工讀生簽到表</div></div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">每學期的工讀生名單固定存放，可隨時增刪。一位同學有幾個用人單位就印幾張（A4直式，每張一頁，表格內容手寫）。</div>
+        <div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:14px;margin-bottom:14px;font-size:13px">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+            <div><label class="flabel">學期</label><select class="finput" id="sw-semester" onchange="swLoad()"></select></div>
+            <div><label class="flabel">簽到退月份</label><input type="month" class="finput" id="sw-month"></div>
+            <div><label class="flabel">每個單位印幾頁</label><input type="number" class="finput" id="sw-pages" value="1" min="1" max="4" style="width:90px"></div>
+            <button class="btn btn-sec btn-sm" onclick="swImportTa()">🙋 從TA配對帶入</button>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:14px;margin-bottom:14px;font-size:13px">
+          <div style="font-weight:600;margin-bottom:8px">➕ 新增工讀生</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+            <div><label class="flabel">學號</label><input class="finput" id="sw-code" list="sw-code-list" autocomplete="off" placeholder="輸入學號或姓名" oninput="swLookup()" style="width:150px"><datalist id="sw-code-list"></datalist></div>
+            <div><label class="flabel">姓名</label><div id="sw-name" style="min-width:90px;padding:8px 0;font-weight:600;color:var(--ink3)">—</div></div>
+            <div style="flex:1;min-width:240px"><label class="flabel">用人單位</label><input class="finput" id="sw-unit" list="sw-unit-list" autocomplete="off" placeholder="例：系所-TA-止觀初探 / SEL-… / 工讀-…"><datalist id="sw-unit-list"></datalist></div>
+            <button class="btn btn-pri btn-sm" onclick="swAdd()">新增</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          <button class="btn btn-pri btn-sm" onclick="swPrint()">🖨 列印勾選的簽到表</button>
+          <label style="font-size:12.5px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="sw-all" checked onchange="swToggleAll(this.checked)">全選</label>
+          <span id="sw-count" style="font-size:12px;color:var(--ink3)"></span>
+        </div>
+        <div id="sw-wrap" class="tbl-wrap"></div>
+      </div>
+
       <div id="page-receipt" style="display:none">
         <div class="page-hdr"><div class="page-title">🧾 單次收據列印</div></div>
         <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">收據只有兩款：講師費（鐘點費）與交通費。不用綁定月份核銷資料，欄位沒填就留下足夠的空白讓對方手寫。「具領人」一律留空，由領款人親筆簽名。</div>
@@ -10917,6 +10946,18 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.60', date: '2026-10-08',
+    items: [
+      '工讀生簽到表列印：移除瀏覽器自動印在頁首、頁尾的小字（日期、標題、網址、頁碼），只保留表單內容'
+    ]
+  },
+  {
+    version: 'v10.59', date: '2026-10-08',
+    items: [
+      '新增「🕘 工讀生簽到表」：每學期工讀生名單固定存放（輸入學號自動顯示姓名＋選用人單位），可隨時增刪改，也可從TA配對帶入；勾選後一次列印，每位同學每個用人單位一頁A4直式，標題「用人單位／姓名／簽到退月份」同一列（需先執行 schema/student_workers.sql）'
+    ]
+  },
+  {
     version: 'v10.58', date: '2026-10-07',
     items: [
       '新增側邊欄「🧾 收據列印（單次）」：不用綁定月份核銷資料，直接輸入姓名、身分證字號、戶籍地址/聯絡地址、學期、項目（課程名稱）、金額、日期，即可列印或下載Word；收據只有講師費（鐘點費）與交通費兩款，沿用既有收據範本（receipt_template.docx）；沒填的欄位會留下足夠的空白讓對方手寫，「具領人」一律留空由領款人簽名',
@@ -13035,6 +13076,7 @@ function showPage(page, btn) {
   if (page==='advisors') loadAdvisors();
   if (page==='payroll') loadPayrollPage();
   if (page==='receipt') rpInit();
+  if (page==='workers') swInit();
   if (page==='users') loadUsers();
   if (page==='lending') lendLoadAll();
   if (page==='room-booking') rbInit();
@@ -13654,6 +13696,154 @@ async function generateReceiptPrint(teacherId) {
 
 // 收據列印版面：只選一種→A5橫式(210×148mm)一頁；兩種都選→A4直式(210×297mm)一頁，上下各半。
 // 每份收據放在固定高度的格子(.rc-sheet)裡，載入後若內容比格子高或寬，就自動等比例縮小到剛好放進去(保證不會跑到第二頁)。
+/* ════════════════════════════════════════════════════════
+ * 🕘 工讀生簽到表（名單存 student_workers；一位同學×一個用人單位＝一張簽到退紀錄表）
+ * 需要先執行 schema/student_workers.sql
+ * ════════════════════════════════════════════════════════ */
+let SW_STU = [], SW_ROWS = [], SW_PICK = null;
+async function swInit() {
+  const semSel = document.getElementById('sw-semester');
+  if (!semSel.options.length) {
+    const { data: sems } = await sb.from('semesters').select('id,label').order('label',{ascending:false});
+    semSel.innerHTML = (sems||[]).map(x=>`<option value="${x.id}">${adEsc(x.label)}</option>`).join('');
+    const cur = await getCurrentSemesterByDate();
+    if (cur && sems?.find(x=>x.id===cur.id)) semSel.value = cur.id;
+  }
+  const m = document.getElementById('sw-month');
+  if (!m.value) { const d = new Date(); m.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+  if (!SW_STU.length) {
+    const { data } = await sb.from('students').select('id,student_code,name_zh,status').order('student_code');
+    SW_STU = data || [];
+    document.getElementById('sw-code-list').innerHTML = SW_STU.map(x=>`<option value="${adEsc(x.student_code)}">${adEsc(x.name_zh)}</option>`).join('');
+  }
+  await swLoad();
+}
+function swLookup() {
+  const v = document.getElementById('sw-code').value.trim();
+  SW_PICK = SW_STU.find(x => x.student_code === v) || (v && SW_STU.filter(x => x.name_zh === v).length === 1 ? SW_STU.find(x => x.name_zh === v) : null);
+  const el = document.getElementById('sw-name');
+  el.textContent = SW_PICK ? SW_PICK.name_zh : '—';
+  el.style.color = SW_PICK ? 'var(--ink)' : 'var(--ink3)';
+}
+async function swLoad() {
+  const wrap = document.getElementById('sw-wrap');
+  const semId = document.getElementById('sw-semester').value;
+  if (!semId) { wrap.innerHTML = '<div style="padding:20px;color:var(--ink3)">請選擇學期</div>'; return; }
+  wrap.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink3)">載入中…</div>';
+  const { data, error } = await sb.from('student_workers')
+    .select('id, student_id, unit_name, active, students(student_code, name_zh)').eq('semester_id', semId);
+  if (error) { wrap.innerHTML = '<div style="padding:20px;color:var(--red)">載入失敗：'+adEsc(error.message)+'（若是找不到資料表，請先執行 schema/student_workers.sql）</div>'; return; }
+  SW_ROWS = (data||[]).sort((a,b) => (a.students?.student_code||'').localeCompare(b.students?.student_code||'') || a.unit_name.localeCompare(b.unit_name));
+  document.getElementById('sw-unit-list').innerHTML = [...new Set(SW_ROWS.map(r=>r.unit_name))].map(u=>`<option value="${adEsc(u)}">`).join('');
+  swRender();
+}
+function swRender() {
+  const wrap = document.getElementById('sw-wrap');
+  if (!SW_ROWS.length) { wrap.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink3)">此學期還沒有工讀生名單，請從上方新增，或按「從TA配對帶入」</div>'; document.getElementById('sw-count').textContent=''; return; }
+  wrap.innerHTML = '<table><thead><tr><th style="width:36px"></th><th>學號</th><th>姓名</th><th>用人單位</th><th style="width:130px">操作</th></tr></thead><tbody>' +
+    SW_ROWS.map(r => `<tr>
+      <td><input type="checkbox" class="sw-chk" value="${r.id}" ${r.active?'checked':''} onchange="swChkChange()"></td>
+      <td>${adEsc(r.students?.student_code||'')}</td><td>${adEsc(r.students?.name_zh||'')}</td>
+      <td>${adEsc(r.unit_name)}</td>
+      <td style="white-space:nowrap"><button class="btn btn-sec btn-sm" onclick="swEdit('${r.id}')">✎ 改單位</button> <button class="btn btn-sec btn-sm" style="color:var(--red)" onclick="swDel('${r.id}')">刪除</button></td></tr>`).join('') +
+    '</tbody></table>';
+  swChkChange();
+}
+function swChkChange() {
+  const all = [...document.querySelectorAll('.sw-chk')];
+  const n = all.filter(c=>c.checked).length;
+  document.getElementById('sw-count').textContent = `共 ${all.length} 筆，勾選 ${n} 筆（${new Set(SW_ROWS.filter(r=>all.find(c=>c.value===r.id&&c.checked)).map(r=>r.student_id)).size} 位同學）`;
+  document.getElementById('sw-all').checked = all.length > 0 && n === all.length;
+}
+function swToggleAll(v) { document.querySelectorAll('.sw-chk').forEach(c=>c.checked=v); swChkChange(); }
+async function swAdd() {
+  const semId = document.getElementById('sw-semester').value;
+  const unit = document.getElementById('sw-unit').value.trim();
+  swLookup();
+  if (!SW_PICK) { showToast('請輸入正確的學號（輸入後這裡會顯示姓名）','error'); return; }
+  if (!unit) { showToast('請填用人單位','error'); return; }
+  const { error } = await sb.from('student_workers').insert({ semester_id: semId, student_id: SW_PICK.id, unit_name: unit });
+  if (error) { showToast(error.code==='23505' ? '這位同學已經有這個用人單位了' : '新增失敗：'+error.message,'error'); return; }
+  showToast('✅ 已新增 '+SW_PICK.name_zh+'：'+unit);
+  document.getElementById('sw-unit').value = '';
+  await swLoad();
+}
+async function swEdit(id) {
+  const r = SW_ROWS.find(x=>x.id===id); if (!r) return;
+  const v = prompt('修改用人單位（'+(r.students?.name_zh||'')+'）：', r.unit_name);
+  if (v===null || !v.trim() || v.trim()===r.unit_name) return;
+  const { error } = await sb.from('student_workers').update({ unit_name: v.trim() }).eq('id', id);
+  if (error) { showToast(error.code==='23505' ? '這位同學已經有這個用人單位了' : '修改失敗：'+error.message,'error'); return; }
+  await swLoad();
+}
+async function swDel(id) {
+  const r = SW_ROWS.find(x=>x.id===id); if (!r) return;
+  if (!confirm('確定從名單移除 '+(r.students?.name_zh||'')+'：'+r.unit_name+'？')) return;
+  const { error } = await sb.from('student_workers').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  await swLoad();
+}
+// 從TA配對帶入：offering_staff(role='ta') → 「系所-TA-課程名稱」；已存在的略過
+async function swImportTa() {
+  const semId = document.getElementById('sw-semester').value; if (!semId) return;
+  const { data: offs } = await sb.from('course_offerings').select('id, courses(name_zh)').eq('semester_id', semId).eq('is_active', true).eq('is_cancelled', false);
+  const offIds = (offs||[]).map(o=>o.id);
+  if (!offIds.length) { showToast('此學期沒有開課記錄','error'); return; }
+  const nameOf = {}; offs.forEach(o=>nameOf[o.id]=o.courses?.name_zh||'');
+  const { data: staff } = await sb.from('offering_staff').select('offering_id, student_id').in('offering_id', offIds).eq('role','ta');
+  const exist = new Set(SW_ROWS.map(r=>r.student_id+'|'+r.unit_name));
+  const add = (staff||[]).map(x=>({ semester_id: semId, student_id: x.student_id, unit_name: '系所-TA-'+nameOf[x.offering_id] }))
+    .filter(x => x.unit_name !== '系所-TA-' && !exist.has(x.student_id+'|'+x.unit_name));
+  if (!add.length) { showToast('沒有可帶入的新TA（都已在名單裡）'); return; }
+  if (!confirm('將帶入 '+add.length+' 筆TA配對（用人單位＝「系所-TA-課程名稱」），確定嗎？')) return;
+  const { error } = await sb.from('student_workers').insert(add);
+  if (error) { showToast('帶入失敗：'+error.message,'error'); return; }
+  showToast('✅ 已帶入 '+add.length+' 筆'); await swLoad();
+}
+function buildWorkerSheetsHtml(items, rocYear, month, pages) {
+  const ROWS = 22;
+  const css = [
+    '@page{size:A4 portrait;margin:0}',   // 邊界設0，瀏覽器就不會在頁首/頁尾印日期、標題、網址、頁碼等小字；留白改由.pg的padding提供
+    '*{box-sizing:border-box}','html,body{margin:0;padding:0}',
+    'body{font-family:"標楷體","DFKai-SB",serif;color:#111}',
+    '.pg{width:210mm;height:296.5mm;padding:10mm;page-break-after:always;break-after:page;display:flex;flex-direction:column;overflow:hidden}',
+    '.pg:last-child{page-break-after:auto;break-after:auto}',
+    '.t{text-align:center;font-size:17pt;font-weight:700;letter-spacing:1px;margin:2mm 0 5mm}',
+    '.meta{display:flex;justify-content:space-between;white-space:nowrap;font-size:13pt;margin-bottom:3mm;gap:4mm}',
+    'table{width:100%;border-collapse:collapse;table-layout:fixed;flex:1}',
+    'th,td{border:1px solid #111;text-align:center;font-size:12pt;padding:0}',
+    'th{height:10mm;font-weight:700}',
+    'td{height:' + (Math.floor(((276-14-10-34)/ROWS)*10)/10) + 'mm}',
+    '.f{margin-top:4mm;font-size:13pt;display:flex;justify-content:space-between}',
+    '.ln{display:inline-block;border-bottom:1px solid #111;width:34mm}',
+    '.ln2{width:28mm}',
+    '.f2{margin-top:5mm;font-size:13pt}'
+  ].join('');
+  const rowsHtml = '<tr>'.repeat(0) + Array.from({length:ROWS}, () => '<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
+  const one = it => '<div class="pg"><div class="t">福智佛教學院臨時人員（專兼任助理、工讀生）簽到退紀錄表</div>'
+    + '<div class="meta"><span>用人單位：<b>'+adEsc(it.unit)+'</b></span><span>姓名：<b>'+adEsc(it.name)+'</b></span><span>簽到退月份：<b>'+rocYear+'</b>年<b>'+month+'</b>月</span></div>'
+    + '<table><colgroup><col style="width:11%"><col style="width:15%"><col style="width:15%"><col style="width:14%"><col style="width:12%"><col style="width:33%"></colgroup>'
+    + '<thead><tr><th>日期</th><th>簽到時間</th><th>簽退時間</th><th>姓名</th><th>時數</th><th>工作內容</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'
+    + '<div class="f"><span>本月工作時數：<span class="ln"></span></span><span>薪資總計：<span class="ln"></span></span></div>'
+    + '<div class="f2">承辦人員：<span class="ln ln2"></span>　單位主管(計畫召集人)：<span class="ln ln2"></span>　人事經辦：<span class="ln ln2"></span></div></div>';
+  const fit = 'window.onload=function(){document.querySelectorAll(".meta").forEach(function(m){var s=13;while(m.scrollWidth>m.clientWidth&&s>8){s-=0.5;m.style.fontSize=s+"pt";}});window.print();};';
+  let body = '';
+  items.forEach(it => { for (let i=0;i<pages;i++) body += one(it); });
+  return '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>工讀生簽到退紀錄表</title><sty'+'le>'+css+'</sty'+'le></he'+'ad><bo'+'dy>'+body+'<scr'+'ipt>'+fit+'</scr'+'ipt></bo'+'dy></ht'+'ml>';
+}
+function swPrint() {
+  const ids = new Set([...document.querySelectorAll('.sw-chk:checked')].map(c=>c.value));
+  const items = SW_ROWS.filter(r=>ids.has(r.id)).map(r=>({ name: r.students?.name_zh||'', unit: r.unit_name }));
+  if (!items.length) { showToast('請先勾選要列印的名單','error'); return; }
+  const mv = document.getElementById('sw-month').value;
+  if (!mv) { showToast('請選擇簽到退月份','error'); return; }
+  const [y, m] = mv.split('-');
+  const pages = Math.max(1, Math.min(4, parseInt(document.getElementById('sw-pages').value)||1));
+  const w = window.open('','_blank');
+  w.document.write(buildWorkerSheetsHtml(items, parseInt(y)-1911, parseInt(m), pages));
+  w.document.close();
+}
+
 function buildReceiptPrintHtml(blocks) {
   const both = blocks.length === 2;
   const MARGIN = 8;                                   // 頁面邊界mm

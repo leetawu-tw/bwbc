@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.40 2026-10-08 TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
+<!-- BWBC Student v3.42 2026-10-08 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -577,7 +577,7 @@ input{font-family:inherit}
       <!-- ── 課程討論區 ── -->
       <div id="sec-discussion" class="t-section">
         <div class="section-title">💬 課程討論區</div>
-        <div id="dsc-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">目前沒有已選課的課程</div>
+        <div id="dsc-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">本學期還沒有可使用討論區的課程（已選課或擔任助教的本學期課程才會出現）</div>
         <div id="dsc-courses"></div>
         <div id="dsc-tabs"></div>
         <div id="dsc-composer"></div>
@@ -587,7 +587,7 @@ input{font-family:inherit}
       <!-- ── 教材與作業 ── -->
       <div id="sec-assignments" class="t-section">
         <div class="section-title">📝 教材與作業</div>
-        <div id="assign-s-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">目前沒有已選課的課程</div>
+        <div id="assign-s-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">本學期還沒有可使用討論區的課程（已選課或擔任助教的本學期課程才會出現）</div>
         <div id="assign-s-list"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
 
@@ -815,6 +815,19 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.42', date: '2026-10-08',
+    items: [
+      '課程討論區只列出「本學期」的課程（例如115-1）：往年已結束的課程、往年擔任助教的課程不再出現在討論區'
+    ]
+  },
+  {
+    version: 'v3.41', date: '2026-10-08',
+    items: [
+      'TA課程管理：影片教材改為「👁 觀看狀況」，不再有批閱欄位與按鈕；全班總覽顯示「已看完」',
+      'TA課程管理：教材/影片教材新增「預覽」按鈕，助教沒選課也能看內容（需先執行 schema/ta_media_read_policy.sql）'
+    ]
+  },
   {
     version: 'v3.40', date: '2026-10-08',
     items: [
@@ -1369,6 +1382,8 @@ function taIsDone(a, sub) {
   if (a && a.type === 'video') return !!(sub.content && sub.content.completed === true);
   return true;
 }
+// 影片教材/教材不需要批閱(只統計影片有沒有看完)；跟老師端isReviewable同一規則
+function taIsReviewable(a) { return !!a && a.type !== 'video' && a.type !== 'material'; }
 function taVideoPct(sub) {
   const c = (sub && sub.content) || {};
   return c.duration_sec ? Math.min(100, Math.round((c.watched_sec||0)/c.duration_sec*100)) : 0;
@@ -1535,7 +1550,10 @@ function renderTaAssignments() {
         '<td><strong>'+esc(a.title)+'</strong></td>' +
         '<td style="font-size:12.5px'+(overdue?';color:var(--red)':'')+'">'+dueStr+(overdue?' 🔴已逾期':'')+'</td>' +
         '<td style="text-align:center">'+(TA_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' +
-        '<td>'+(a.type==='material' ? '<span style="font-size:11.5px;color:var(--ink3)">教材不需批閱</span>' : selfEnrolled ? '<span style="font-size:11.5px;color:var(--ink3)">批閱已停用</span>' : '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👥 批閱</button>')+'</td>' +
+        '<td style="white-space:nowrap">'+
+          ((a.type==='material' || a.type==='video') ? '<button class="btn btn-sec btn-sm" style="margin-right:4px" onclick="openTaPreview(\''+a.id+'\')">'+(a.type==='video'?'▶ 預覽影片':'👁 預覽教材')+'</button>' : '') +
+          (a.type==='material' ? '' : a.type==='video' ? '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👁 觀看狀況</button>' : selfEnrolled ? '<span style="font-size:11.5px;color:var(--ink3)">批閱已停用</span>' : '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👥 批閱</button>') +
+        '</td>' +
       '</tr>';
     }).join('') +
     '</tbody></table>';
@@ -1548,15 +1566,15 @@ let TA_REVIEW_KEYS = {};
 let TA_REVIEW_QUESTIONS_BY_VERSION = {};
 
 async function openTaReview(assignId) {
-  if (TA_CUR_OFFERING && TA_CUR_OFFERING.selfEnrolled) {
+  const a = TA_ASSIGNMENTS.find(x => x.id === assignId);
+  if (!a) return;
+  if (taIsReviewable(a) && TA_CUR_OFFERING && TA_CUR_OFFERING.selfEnrolled) {
     showToast('您本身也是這門課的選課學生，批閱功能已停用（避免利益衝突）', 'error');
     return;
   }
-  const a = TA_ASSIGNMENTS.find(x => x.id === assignId);
-  if (!a) return;
   TA_REVIEW_ASSIGN = a;
   document.getElementById('ta-rv-crumb-course').textContent = TA_CUR_OFFERING.name_zh;
-  document.getElementById('ta-rv-title').textContent = '👥 批閱：'+a.title;
+  document.getElementById('ta-rv-title').textContent = (a.type==='video' ? '👁 觀看狀況：' : '👥 批閱：')+a.title;
   showSection('ta-review');
   document.getElementById('ta-rv-list-wrap').innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
   await loadTaReviewData();
@@ -1614,7 +1632,7 @@ function renderTaReviewStats() {
   const reviewed = TA_REVIEW_ROSTER.filter(r => r.review).length;
   const watching = TA_REVIEW_ASSIGN && TA_REVIEW_ASSIGN.type === 'video' ? TA_REVIEW_ROSTER.filter(r => r.submission && !r.done).length : 0;
   document.getElementById('ta-rv-stats').textContent =
-    `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）` + (watching ? `・觀看中 ${watching} 人` : '') + `・已批閱 ${reviewed} 人`;
+    (TA_REVIEW_ASSIGN && TA_REVIEW_ASSIGN.type === 'video' ? `全班 ${total} 人・已看完 ${submitted} 人（遲交 ${late} 人）` : `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）`) + (watching ? `・觀看中 ${watching} 人` : '') + (taIsReviewable(TA_REVIEW_ASSIGN) ? `・已批閱 ${reviewed} 人` : '');
 }
 
 function taQuizScoreFor(sub) {
@@ -1647,15 +1665,14 @@ function renderTaReviewTable() {
     thSort('學號','code',TA_REVIEW_SORT,'taReviewSortBy') +
     thSort('姓名','name',TA_REVIEW_SORT,'taReviewSortBy') +
     thSort('繳交狀態','status',TA_REVIEW_SORT,'taReviewSortBy') +
-    thSort('批閱結果','result',TA_REVIEW_SORT,'taReviewSortBy') +
-    '<th>操作</th>' +
+    (taIsReviewable(TA_REVIEW_ASSIGN) ? thSort('批閱結果','result',TA_REVIEW_SORT,'taReviewSortBy') + '<th>操作</th>' : '') +
     '</tr></thead><tbody>' +
     roster.map(r => {
       let statusHtml;
       if (r.done) {
         statusHtml = r.submission.is_late
           ? '<span class="result-badge" style="background:#FEE;color:var(--red)">🔴 遲交</span>'
-          : '<span class="result-badge result-達標">✅ 已繳交</span>';
+          : '<span class="result-badge result-達標">'+(TA_REVIEW_ASSIGN && TA_REVIEW_ASSIGN.type==='video' ? '✅ 已看完' : '✅ 已繳交')+'</span>';
       } else if (r.submission) {
         statusHtml = '<span class="result-badge" style="background:#FFF3CD;color:#8A6D00">▶️ 觀看中 '+taVideoPct(r.submission)+'%</span>';
       } else if (r.overdue) {
@@ -1670,8 +1687,8 @@ function renderTaReviewTable() {
         '<td style="font-size:12.5px">'+esc(r.student_code||'')+'</td>' +
         '<td>'+esc(r.name_zh)+'</td>' +
         '<td>'+statusHtml+'</td>' +
-        '<td>'+resultHtml+'</td>' +
-        '<td>'+(r.done ? '<button class="btn btn-sec btn-sm" onclick="openTaReviewModal(\''+r.student_id+'\')">'+(r.review?'✎ 修改批閱':'📝 批閱')+'</button>' : '—')+'</td>' +
+        (taIsReviewable(TA_REVIEW_ASSIGN) ? '<td>'+resultHtml+'</td>' +
+          '<td>'+(r.done ? '<button class="btn btn-sec btn-sm" onclick="openTaReviewModal(\''+r.student_id+'\')">'+(r.review?'✎ 修改批閱':'📝 批閱')+'</button>' : '—')+'</td>' : '') +
       '</tr>';
     }).join('') +
     '</tbody></table>';
@@ -1792,6 +1809,38 @@ let TA_OV_REVIEWS = {};
 let TA_OV_QUIZ_Q = {};
 let TA_OV_QUIZ_KEYS = {};
 
+/* ── TA預覽教材/影片教材：助教本身沒選課，不能走學生端的播放流程，這裡只給「看內容」，不記錄任何觀看進度 ──
+   需要資料庫已執行 schema/ta_media_read_policy.sql(讓助教能讀自己負責課程的 course-videos / course-materials 檔案) */
+async function openTaPreview(assignId) {
+  const a = TA_ASSIGNMENTS.find(x => x.id === assignId);
+  if (!a) return;
+  if (a.type === 'video') {
+    if (!a.video_file_path) { showToast('這份影片教材還沒有上傳影片檔案', 'error'); return; }
+    const { data, error } = await sb.storage.from('course-videos').createSignedUrl(a.video_file_path, 3600);
+    if (error) { showToast('無法載入影片：'+error.message+'（若是權限問題，請行政執行 ta_media_read_policy.sql）', 'error'); return; }
+    openThModal('▶ 預覽：'+a.title,
+      (a.instructions ? '<div style="font-size:13px;white-space:pre-wrap;margin-bottom:10px;color:var(--ink2)">'+esc(a.instructions)+'</div>' : '') +
+      '<video controls preload="metadata" style="width:100%;max-height:420px;background:#000;border-radius:8px" src="'+data.signedUrl+'"></video>' +
+      '<div style="font-size:11.5px;color:var(--ink3);margin-top:6px">助教預覽不會記錄觀看進度，也不受防快轉限制。</div>');
+    return;
+  }
+  // 教材：說明文字 + 連結 + 檔案
+  let html = '';
+  if (a.instructions) html += '<div style="font-size:13px;white-space:pre-wrap;line-height:1.6;margin-bottom:10px">'+esc(a.instructions)+'</div>';
+  if (a.material_link_url) html += '<div style="margin-bottom:10px"><a href="'+esc(a.material_link_url)+'" target="_blank" rel="noopener" class="btn btn-sec btn-sm">🔗 開啟教材連結</a></div>';
+  if (a.material_file_path) html += '<div style="margin-bottom:10px"><button class="btn btn-sec btn-sm" onclick="previewMaterialFileTa(\''+a.id+'\')">👁 線上看：'+esc(a.material_file_name||'教材檔案')+'</button></div>';
+  if (!html) html = '<div style="color:var(--ink3);font-size:13px">（這份教材目前沒有內容）</div>';
+  openThModal('👁 預覽：'+a.title, html);
+}
+async function previewMaterialFileTa(assignId) {
+  const a = TA_ASSIGNMENTS.find(x => x.id === assignId);
+  if (!a || !a.material_file_path) return;
+  const { data, error } = await sb.storage.from('course-materials').createSignedUrl(a.material_file_path, 600);
+  if (error) { showToast('無法取得預覽連結：'+error.message+'（若是權限問題，請行政執行 ta_media_read_policy.sql）', 'error'); return; }
+  const ext = (a.material_file_name||'').match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase() || '';
+  openViewer(encodeURIComponent(data.signedUrl), ext, a.material_file_name || '教材檔案');
+}
+
 async function openTaOverview() {
   if (!TA_CUR_OFFERING) { showSection('ta-mode'); return; }
   document.getElementById('ta-ov-crumb-course').textContent = TA_CUR_OFFERING.name_zh;
@@ -1870,6 +1919,7 @@ function taOverviewCellInfo(a, sub, review) {
   const overdue = a.due_at && new Date(a.due_at) < new Date();
   if (!sub) return { text: overdue ? '未繳（逾期）' : '未繳', cls };
   if (!taIsDone(a, sub)) return { text: '觀看中 '+taVideoPct(sub)+'%', cls };
+  if (a.type === 'video') return { text: sub.is_late ? '已看完（遲交）' : '已看完', cls };
   let text = sub.is_late ? '已繳（遲交）' : '已繳';
   if (a.type === 'quiz') {
     const sc = taOverviewQuizScore(a.id, sub);
@@ -2005,6 +2055,7 @@ const TA_OV_XLSX_COLORS = {
 };
 function taOverviewColorKey(a, sub, review) {
   if (!sub || !taIsDone(a, sub)) return (a.due_at && new Date(a.due_at) < new Date()) ? 'miss' : 'pending';
+  if (a.type === 'video') return 'ok'; // 影片教材只看有沒有看完，不批閱
   if (!review) return 'wait';
   return review.result === '特優' ? 'top' : review.result === '待改進' ? 'bad' : 'ok';
 }
@@ -4512,7 +4563,16 @@ async function loadDiscussionSection() {
   empty.style.display = 'none';
   const { data: courses } = await sb.from('v_course_schedule')
     .select('offering_id, code, name_zh, semester_label').in('offering_id', ids).order('semester_label', { ascending: false });
-  DSC.offerings = (courses || []).map(c => ({ ...c, isTa: taIds.has(c.offering_id) }));
+  // 討論區只開放「本學期」的課程（例如115-1）：往年已結束的課程不列出，助教也只看到本學期負責的課
+  DSC.offerings = (courses || [])
+    .filter(c => !ACTIVE_SEM_LABEL || c.semester_label === ACTIVE_SEM_LABEL)
+    .map(c => ({ ...c, isTa: taIds.has(c.offering_id) }));
+  if (!DSC.offerings.length) {
+    empty.style.display = '';
+    ['dsc-courses', 'dsc-tabs', 'dsc-composer', 'dsc-main'].forEach(i => { document.getElementById(i).innerHTML = ''; });
+    DSC.offId = null;
+    return;
+  }
   if (!DSC.offerings.some(c => c.offering_id === DSC.offId)) DSC.offId = DSC.offerings.length ? DSC.offerings[0].offering_id : null;
   renderDscCourses();
   await dscLoadCourse();

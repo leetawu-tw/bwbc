@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.35 2026-10-08 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
+<!-- BWBC Teacher v3.38 2026-10-08 老師端影片教材列表新增「▶ 線上看」，老師預覽不設限(可快轉/後退，不記錄進度)。前次(v3.37) 影片教材/教材不需批閱，只看觀看狀況。 前次(v3.36) 新增作業/教材預帶的截止時間改為「上傳日（單元課程還沒上完則為最後一堂課日期）+7天」晚上8:00，不再預帶到已經過去的日期。前次(v3.35) 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -1973,9 +1973,10 @@ function renderAssignments() {
         '<td style="text-align:center">'+(CUR_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' +
         '<td style="white-space:nowrap">' +
           (a.type==='quiz' ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openQuizBuilder(\''+a.id+'\')">🎯 出題</button>' : '') +
+          (a.type==='video' && a.video_file_path ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="previewVideoFile(\''+a.id+'\')">▶ 線上看</button>' : '') +
           (a.type==='material'
             ? (a.material_file_path ? '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="previewMaterialFile(\''+a.id+'\')">👁 線上看</button>' : '')
-            : '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openReviewPanel(\''+a.id+'\')">👥 批閱</button>') +
+            : '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openReviewPanel(\''+a.id+'\')">'+(a.type==='video'?'👁 觀看狀況':'👥 批閱')+'</button>') +
           '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="toggleAssignPublish(\''+a.id+'\')">'+(a.status==='published'?'↩️ 改回草稿':'🚀 發布')+'</button>' +
           '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;margin-right:4px" onclick="openAssignmentModal(\''+a.id+'\')">✎ 編輯</button>' +
           '<button class="btn-syl none" style="padding:4px 10px;font-size:11.5px;color:#C04030" onclick="deleteAssignment(\''+a.id+'\')">🗑</button>' +
@@ -2001,18 +2002,22 @@ async function toggleAssignPublish(id) {
 
 let AM_IS_NEW = true;
 
-// 用單元涵蓋的課次裡最晚一堂課的日期 +N天 晚上8:00 當截止時間預設值，方便TA抓batch節奏；只在新增時自動帶，編輯既有作業不動它
+// 用「單元最晚一堂課的日期與今天(上傳日)較晚者」+N天 晚上8:00 當截止時間預設值，方便TA抓batch節奏；只在新增時自動帶，編輯既有作業不動它
 // 預設 +7天；老師也可以從下拉選單選別的天數，沒有特別選就是7天
 const DUE_OFFSET_DEFAULT_DAYS = 7;
 function computeDefaultDueForUnit(unitId, offsetDays) {
   const sessionIds = CUR_UNIT_SESSIONS[unitId] || [];
   const dates = sessionIds.map(sid => CUR_SESSIONS.find(s => s.id === sid)?.session_date).filter(Boolean);
-  if (!dates.length) return '';
-  const maxDate = dates.slice().sort().slice(-1)[0]; // YYYY-MM-DD 字串排序即可取得最晚日期
+  const pad = n => String(n).padStart(2,'0');
+  const now = new Date();
+  const todayStr = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+  // 基準日 = 「單元最晚課次日期」與「今天(上傳日)」取較晚者：課都上完了才上傳教材/作業，就從上傳日起算，
+  // 不會預帶到已經過去的日期；單元還沒上完課，則維持最後一堂課後 +N 天；單元沒有勾選課次也從今天起算
+  const lastDate = dates.length ? dates.slice().sort().slice(-1)[0] : ''; // YYYY-MM-DD 字串排序即可取得最晚日期
+  const maxDate = (lastDate && lastDate > todayStr) ? lastDate : todayStr;
   const d = new Date(maxDate + 'T00:00:00');
   d.setDate(d.getDate() + (Number(offsetDays) || DUE_OFFSET_DEFAULT_DAYS));
   d.setHours(20, 0, 0, 0);
-  const pad = n => String(n).padStart(2,'0');
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
 }
 function onAssignUnitChange() {
@@ -2053,7 +2058,7 @@ function openAssignmentModal(assignId) {
       <div id="am-due-wrap">
         <label class="flabel">截止時間（選填）</label>
         <input class="finput" type="datetime-local" id="am-due" value="${dueVal}">
-        ${AM_IS_NEW ? '<div style="font-size:11px;color:var(--ink3);margin-top:3px">已依單元最晚課次日期 +7天 晚上8:00 預帶，可自行修改</div>' : ''}
+        ${AM_IS_NEW ? '<div style="font-size:11px;color:var(--ink3);margin-top:3px">已預帶「上傳日（若單元課程還沒上完，則為最後一堂課日期）+7天」晚上8:00，可自行修改</div>' : ''}
       </div>
     </div>
     <div class="frow">
@@ -2296,6 +2301,9 @@ function isSubmissionDone(a, sub) {
   return true;
 }
 
+// 影片教材只統計「看完了沒」，不需要老師批閱(沒有特優/達標/待改進)；所有批閱相關的欄位、按鈕、狀態都靠這個函式判斷
+function isReviewable(a) { return !!a && a.type !== 'video' && a.type !== 'material'; }
+
 let CUR_REVIEW_ROSTER = [];     // [{student_id, student_code, name_zh, submission, done, review, isLate, overdue}]
 let CUR_REVIEW_KEYS = {};       // quiz用：{question_id: correct_answer}
 let CUR_REVIEW_QUESTIONS_BY_VERSION = {};  // quiz用：{version: [題目...]}，因為題目版本鎖定後不同學生可能是用不同版本作答的
@@ -2325,7 +2333,7 @@ async function openReviewPanel(assignId) {
   CUR_REVIEW_ASSIGN = a;
   document.getElementById('rv-crumb-hub').textContent = CUR_HUB.name;
   const unitMap = {}; CUR_UNITS.forEach(u => { unitMap[u.id] = u.title; });
-  document.getElementById('rv-title').textContent = '👥 批閱：'+a.title;
+  document.getElementById('rv-title').textContent = (a.type==='video' ? '👁 觀看狀況：' : '👥 批閱：')+a.title;
   showSection('review-panel');
   document.getElementById('rv-list-wrap').innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:20px">載入中…</div>';
   await loadReviewData();
@@ -2390,7 +2398,7 @@ function renderReviewStats() {
   const reviewed = CUR_REVIEW_ROSTER.filter(r => r.review).length;
   const watching = a.type === 'video' ? CUR_REVIEW_ROSTER.filter(r => r.submission && !r.done).length : 0;
   document.getElementById('rv-stats').textContent =
-    `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）` + (watching ? `・觀看中 ${watching} 人` : '') + `・已批閱 ${reviewed} 人`;
+    (a.type === 'video' ? `全班 ${total} 人・已看完 ${submitted} 人（遲交 ${late} 人）` : `全班 ${total} 人・已繳交 ${submitted} 人（遲交 ${late} 人）`) + (watching ? `・觀看中 ${watching} 人` : '') + (isReviewable(a) ? `・已批閱 ${reviewed} 人` : '');
 }
 
 function quizScoreFor(sub) {
@@ -2426,15 +2434,15 @@ function renderReviewTable() {
     thSort('姓名','name',REVIEW_SORT,'reviewSortBy') +
     thSort('繳交狀態','status',REVIEW_SORT,'reviewSortBy') +
     (a.type==='quiz' ? thSort('得分','score',REVIEW_SORT,'reviewSortBy','text-align:center') : '') +
-    thSort('批閱結果','result',REVIEW_SORT,'reviewSortBy') +
-    '<th style="position:sticky;top:0;background:var(--navy);z-index:2">操作</th>' +
+    (isReviewable(a) ? thSort('批閱結果','result',REVIEW_SORT,'reviewSortBy') : '') +
+    (isReviewable(a) ? '<th style="position:sticky;top:0;background:var(--navy);z-index:2">操作</th>' : '') +
     '</tr></thead><tbody>' +
     roster.map(r => {
       let statusHtml;
       if (r.done) {
         statusHtml = r.submission.is_late
           ? '<span class="result-badge status-draft" style="background:#FFEBEE;color:#C04030">🔴 遲交</span>'
-          : '<span class="result-badge status-published">✅ 已繳交</span>';
+          : '<span class="result-badge status-published">'+(a.type==='video' ? '✅ 已看完' : '✅ 已繳交')+'</span>';
       } else if (r.submission) {
         const vc = r.submission.content || {};
         const vpct = vc.duration_sec ? Math.min(100, Math.round((vc.watched_sec||0)/vc.duration_sec*100)) : 0;
@@ -2456,8 +2464,8 @@ function renderReviewTable() {
         '<td><strong>'+esc(r.name_zh||'')+'</strong></td>' +
         '<td>'+statusHtml+'</td>' +
         scoreCell +
-        '<td>'+resultHtml+'</td>' +
-        '<td><button class="btn-syl none" style="padding:4px 10px;font-size:11.5px" onclick="openReviewModal(\''+r.student_id+'\')">'+btnLabel+'</button></td>' +
+        (isReviewable(a) ? '<td>'+resultHtml+'</td>' +
+        '<td><button class="btn-syl none" style="padding:4px 10px;font-size:11.5px" onclick="openReviewModal(\''+r.student_id+'\')">'+btnLabel+'</button></td>' : '') +
       '</tr>';
     }).join('') +
     '</tbody></table></div>';
@@ -2530,7 +2538,7 @@ function openReviewModal(studentId) {
   const rv = r.review || {};
   const body = `
     <div style="margin-bottom:16px">${renderSubmissionContentForReview(r)}</div>
-    ${r.done ? `
+    ${r.done && isReviewable(CUR_REVIEW_ASSIGN) ? `
     <div class="frow">
       <label class="flabel">批閱結果</label>
       <div style="display:flex;gap:10px">
@@ -2554,9 +2562,9 @@ function openReviewModal(studentId) {
     ` : ''}
   `;
   openGenericModal(
-    (r.done ? '批閱：' : '查看：') + (r.name_zh||''),
+    ((r.done && isReviewable(CUR_REVIEW_ASSIGN)) ? '批閱：' : '查看：') + (r.name_zh||''),
     body,
-    r.done ? () => saveReview(studentId) : null,   // 影片「觀看中」(未達90%)沒有批閱表單，不給儲存按鈕，否則按下去會因找不到評語欄位而出錯
+    (r.done && isReviewable(CUR_REVIEW_ASSIGN)) ? () => saveReview(studentId) : null,   // 影片「觀看中」(未達90%)沒有批閱表單，不給儲存按鈕，否則按下去會因找不到評語欄位而出錯
     560
   );
 }
@@ -2569,7 +2577,7 @@ function onReviewResultChange() {
 
 async function saveReview(studentId) {
   const r = CUR_REVIEW_ROSTER.find(x => x.student_id === studentId);
-  if (!r || !r.submission || !r.done) return;
+  if (!r || !r.submission || !r.done || !isReviewable(CUR_REVIEW_ASSIGN)) return;
   const result = document.querySelector('input[name="rv-result"]:checked')?.value;
   const comment = document.getElementById('rv-comment').value.trim();
   const pepperLevel = result === '待改進' ? parseInt(document.getElementById('rv-pepper').value, 10) : null;
@@ -2685,6 +2693,7 @@ function overviewCellInfo(a, sub, review) {
     const pct = c.duration_sec ? Math.min(100, Math.round((c.watched_sec||0)/c.duration_sec*100)) : 0;
     return { text: '觀看中 '+pct+'%', cls };
   }
+  if (a.type === 'video') return { text: sub.is_late ? '已看完（遲交）' : '已看完', cls };
   let text = sub.is_late ? '已繳（遲交）' : '已繳';
   if (a.type === 'quiz') {
     const sc = overviewQuizScore(a.id, sub);
@@ -2821,6 +2830,7 @@ const OVERVIEW_XLSX_COLORS = {
 };
 function overviewColorKey(a, sub, review) {
   if (!sub || !isSubmissionDone(a, sub)) return (a.due_at && new Date(a.due_at) < new Date()) ? 'miss' : 'pending';
+  if (a.type === 'video') return 'ok'; // 影片教材只看有沒有看完，不批閱
   if (!review) return 'wait';
   return review.result === '特優' ? 'top' : review.result === '待改進' ? 'bad' : 'ok';
 }
@@ -4937,7 +4947,7 @@ async function submitConductBatch(adjField, submittedField) {
 /* ════ 🏆 獎學金推薦（只有主授教師能填，截止前可隨時修改） ════ */
 // 附件線上看（PDF瀏覽器原生顯示，Word/Excel用微軟線上檢視器嵌入）
 const VIEWER_IMG_EXT = ['jpg','jpeg','png','gif','heic','webp'];
-const VIEWER_VIDEO_EXT = ['mp4','mov','quicktime'];
+const VIEWER_VIDEO_EXT = ['mp4','mov','quicktime','m4v','webm'];
 function openViewer(encodedUrl, ext, fileName) {
   const url = decodeURIComponent(encodedUrl);
   const e = (ext||'').toLowerCase();
@@ -6327,6 +6337,25 @@ async function lpSaveSet() {
       (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.38', date: '2026-10-08',
+    items: [
+      '影片教材列表新增「▶ 線上看」：老師預覽不設限，可自由快轉、後退，也不會記錄觀看進度（學生端仍維持原本的觀看規則）'
+    ]
+  },
+  {
+    version: 'v3.37', date: '2026-10-08',
+    items: [
+      '影片教材不再有批閱：列表按鈕改為「👁 觀看狀況」，面板只顯示已看完/觀看中/未看，不再有批閱結果與批閱按鈕；全班總覽顯示「已看完」',
+      '作業(繳交/測驗/申論/簽到)仍維持批閱；教材與影片教材只需學生自己觀看'
+    ]
+  },
+  {
+    version: 'v3.36', date: '2026-10-08',
+    items: [
+      '新增作業/教材預帶的截止時間修正：改為「上傳日（今天）+7天」晚上8:00；若單元的課程還沒上完（最後一堂課在今天之後），則維持最後一堂課日期+7天。原本固定從單元最後一堂課起算，單元早已上完時會預帶到已經過去的日期（例如9/16的單元預帶成9/23）。單元沒有勾選課次時也從今天起算',
+    ]
+  },
   {
     version: 'v3.35', date: '2026-10-08',
     items: [
