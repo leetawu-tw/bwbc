@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.44 2026-10-08 TA課程管理「作業/教材列表」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，可切換回表格。前次(v3.43) 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
+<!-- BWBC Student v3.45 2026-10-12 左側選單移除舊的「教材與作業」「課程討論區」(統一從「我的課程」進入，討論區由各單元的「前往討論區」進入)；「我的課程」新增「🗂 依單元／📋 全部清單」切換。前次(v3.44) TA課程管理「作業/教材列表」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，可切換回表格。前次(v3.43) 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -380,8 +380,8 @@ input{font-family:inherit}
       <div class="side-item" id="nav-ann"    onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
       <div class="side-item" id="nav-select" onclick="showSection('select')"><span class="nav-icon">📚</span><span class="nav-txt">選課</span></div>
       <div class="side-item" id="nav-mycourse" onclick="showSection('mycourse')"><span class="nav-icon">🎓</span><span class="nav-txt">我的課程</span></div>
-      <div class="side-item" id="nav-assignments" onclick="showSection('assignments')"><span class="nav-icon">📝</span><span class="nav-txt">教材與作業</span></div>
-      <div class="side-item" id="nav-discussion" onclick="showSection('discussion')"><span class="nav-icon">💬</span><span class="nav-txt">課程討論區</span></div>
+      <div class="side-item" id="nav-assignments" onclick="showSection('assignments')" style="display:none"><span class="nav-icon">📝</span><span class="nav-txt">教材與作業</span></div>
+      <div class="side-item" id="nav-discussion" onclick="showSection('discussion')" style="display:none"><span class="nav-icon">💬</span><span class="nav-txt">課程討論區</span></div>
       <div class="side-item" id="nav-ta-apply" onclick="showSection('ta-apply')"><span class="nav-icon">🙋</span><span class="nav-txt">TA申請</span></div>
       <div class="side-item" id="nav-ta-mode" onclick="showSection('ta-mode')" style="display:none"><span class="nav-icon">🎓</span><span class="nav-txt">TA課程管理</span></div>
       <div class="side-item" id="nav-attendance" onclick="showSection('attendance')" style="display:none"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
@@ -399,7 +399,7 @@ input{font-family:inherit}
     <!-- 右側主內容 -->
     <div class="main" style="flex:1;max-width:none">
       <div id="status-banner" style="display:none"></div>
-      <div id="assign-reminder-banner" style="display:none" onclick="showSection('assignments')" title="點擊前往查看"></div>
+      <div id="assign-reminder-banner" style="display:none" onclick="showSection('mycourse')" title="點擊前往查看"></div>
 
       <!-- ── 公佈欄 ── -->
       <div id="sec-ann" class="t-section">
@@ -845,6 +845,13 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.45', date: '2026-10-12',
+    items: [
+      '左側選單移除舊的「教材與作業」「課程討論區」，教材、作業、討論統一從「🎓 我的課程」進入；討論區從各單元的「前往討論區」按鈕進入（登入後的待辦提醒橫幅也改為前往「我的課程」）',
+      '「我的課程」新增「🗂 依單元」與「📋 全部清單」切換：全部清單不分單元，未完成的排前面（依截止時間），已完成的排後面，每項標示所屬單元'
+    ]
+  },
   {
     version: 'v3.44', date: '2026-10-08',
     items: [
@@ -4286,7 +4293,8 @@ function renderAssignmentList() {
  * 資料與卡片共用「教材與作業」那一套（ASSIGN_S_*、renderAssignmentCard…），只是換成單元視圖
  * 全班完成率需要資料庫函式 class_completion（schema/class_completion.sql），沒有執行就不顯示這一項
  * ════════════════════════════════════════════════════════ */
-const MC = { offId: null, collapsed: {}, rates: {}, threads: {} };
+const MC = { offId: null, collapsed: {}, rates: {}, threads: {}, view: 'unit' };   // view: 'unit' 依單元 | 'all' 全部清單
+function mcSetView(v) { MC.view = v; renderMyCourse(); }
 
 async function loadMyCourse() {
   ASSIGN_HOST = 'mc';
@@ -4378,6 +4386,22 @@ function renderMyCourse() {
     '<div style="font-size:13px;margin-bottom:4px">我的進度：<b>' + doneN + ' / ' + track.length + '</b> 件' + classTxt + '</div>' +
     '<div class="mc-next">' + next + '</div></div>';
 
+  html += '<div style="display:flex;gap:6px;margin:0 0 12px">' +
+    '<button class="btn btn-sm ' + (MC.view === 'unit' ? 'btn-pri' : 'btn-sec') + '" onclick="mcSetView(\'unit\')">🗂 依單元</button>' +
+    '<button class="btn btn-sm ' + (MC.view === 'all' ? 'btn-pri' : 'btn-sec') + '" onclick="mcSetView(\'all\')">📋 全部清單</button></div>';
+  if (MC.view === 'all') {
+    // 全部清單：不分單元，未完成的排前面（依截止時間由近到遠），已完成的排後面；每項上方標示所屬單元
+    const unitTitleOf = id => (units.find(u => u.id === id) || {}).title || '（其他）';
+    const doneFlag = a => (mcTrackable(a) && mcIsDone(a)) ? 1 : 0;
+    const dueMs = a => a.due_at ? new Date(a.due_at).getTime() : 9e15;
+    const flat = list.slice().sort((x, y) => (doneFlag(x) - doneFlag(y)) || (dueMs(x) - dueMs(y)));
+    html += flat.length
+      ? '<div class="mc-unit"><div class="mc-unit-body">' + flat.map(a =>
+          '<div><div class="mc-block-note" style="margin:8px 2px 2px">🗂 ' + esc(unitTitleOf(a.unit_id)) + '</div>' + renderAssignmentCard(a) + '</div>').join('') + '</div></div>'
+      : '<div class="mc-none" style="padding:14px">這門課目前還沒有教材或作業</div>';
+    wrap.innerHTML = html;
+    return;
+  }
   if (!groups.length) html += '<div class="mc-none" style="padding:14px">這門課老師還沒有建立單元</div>';
   groups.forEach(g => {
     const mats = g.items.filter(a => a.type === 'material' || a.type === 'video');
@@ -5345,7 +5369,7 @@ function showSection(id) {
   document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
   const sec = document.getElementById('sec-' + id);
   // TA課程管理的子畫面(該課作業列表/批閱/完成度總覽)沒有自己的側邊欄項目，掛在「TA課程管理」底下，維持該項反白
-  const navId = ['ta-course','ta-review','ta-overview'].includes(id) ? 'ta-mode' : id;
+  const navId = ['ta-course','ta-review','ta-overview'].includes(id) ? 'ta-mode' : (['assignments','discussion'].includes(id) ? 'mycourse' : id);
   const nav = document.getElementById('nav-' + navId);
   if (sec) sec.classList.add('on');
   if (nav) nav.classList.add('active');
