@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.43 2026-10-08 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
+<!-- BWBC Student v3.44 2026-10-08 TA課程管理「作業/教材列表」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，可切換回表格。前次(v3.43) 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -391,7 +391,7 @@ input{font-family:inherit}
       <div class="side-item" id="nav-regulations" onclick="showSection('regulations')"><span class="nav-icon">⚖️</span><span class="nav-txt">相關法規查詢</span></div>
       </div>
       <div class="side-nav-footer" onclick="openChangelogS()">
-        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.40　2026-10-08</div>
+        <div id="app-version-label-s" style="font-weight:600;color:var(--ink2)">v3.43　2026-10-08</div>
         <div style="text-decoration:underline">📋 更新紀錄</div>
       </div>
     </div>
@@ -846,6 +846,12 @@ function resolveReqType(baseReqType, overrides, cohort) {
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
   {
+    version: 'v3.44', date: '2026-10-08',
+    items: [
+      'TA課程管理的「作業/教材列表」預設改為依單元分區：每個單元分「📖 教材（自己看，不批閱）」與「✍️ 作業（要繳交，需批閱）」，可切換回「📋 表格」檢視；預覽、觀看狀況、批閱按鈕與原本相同'
+    ]
+  },
+  {
     version: 'v3.43', date: '2026-10-08',
     items: [
       '新增「🎓 我的課程」：本學期每門課一個頁面，依單元整理 📖教材（自己看就好）、✍️作業（要繳交、老師批閱）、💬討論，並顯示自己的進度條、「下一件該做的事」與全班整體完成率（只顯示百分比，不顯示個別同學）；舊的「教材與作業」「課程討論區」暫時並存',
@@ -1161,6 +1167,12 @@ const APP_CHANGELOG_S = [
     ]
   },
 ];
+
+// 側邊欄版本號標籤自動同步：抓APP_CHANGELOG_S最前面(最新)一筆，不用再手動改
+(function syncAppVersionLabelS() {
+  const lbl = document.getElementById('app-version-label-s');
+  if (lbl && APP_CHANGELOG_S[0]) lbl.textContent = APP_CHANGELOG_S[0].version + '　' + APP_CHANGELOG_S[0].date;
+})();
 
 function openChangelogS() {
   const body = document.getElementById('changelog-body-s');
@@ -1553,6 +1565,46 @@ const TA_ASSIGN_SORT_FNS = {
 };
 function taAssignSortBy(key) { toggleSort(TA_ASSIGN_SORT, key, renderTaAssignments); }
 
+let TA_ASSIGN_VIEW = 'unit';  // 'unit' 依單元分區 | 'table' 表格
+function taActionsHtml(a, selfEnrolled) {
+  return ((a.type==='material' || a.type==='video') ? '<button class="btn btn-sec btn-sm" style="margin-right:4px" onclick="openTaPreview(\''+a.id+'\')">'+(a.type==='video'?'▶ 預覽影片':'👁 預覽教材')+'</button>' : '') +
+    (a.type==='material' ? '' : a.type==='video' ? '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👁 觀看狀況</button>' : selfEnrolled ? '<span style="font-size:11.5px;color:var(--ink3)">批閱已停用</span>' : '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👥 批閱</button>');
+}
+function setTaAssignView(v) { TA_ASSIGN_VIEW = v; renderTaAssignments(); }
+function taStatusBadge(a) {
+  return a.status === 'published'
+    ? '<span class="result-badge result-達標">✅ 已發布</span>'
+    : '<span class="result-badge" style="background:var(--cr3);color:var(--ink3)">📝 草稿</span>';
+}
+function taDueStr(a) {
+  const overdue = a.due_at && new Date(a.due_at) < new Date() && a.status === 'published';
+  const d = a.due_at ? new Date(a.due_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+  return '<span style="'+(overdue?'color:var(--red)':'')+'">'+d+(overdue?' 🔴已逾期':'')+'</span>';
+}
+// 依單元分區：每個單元分「📖 教材（不批閱）」與「✍️ 作業（批閱）」
+function renderTaAssignmentsByUnit(list, selfEnrolled) {
+  const isMat = a => a.type === 'material' || a.type === 'video';
+  const known = {}; TA_UNITS.forEach(u => { known[u.id] = true; });
+  const groups = TA_UNITS.map(u => ({ title: u.title, items: list.filter(a => a.unit_id === u.id) }));
+  const orphan = list.filter(a => !a.unit_id || !known[a.unit_id]);
+  if (orphan.length) groups.push({ title: '（未分類單元）', items: orphan });
+  const tbl = (items, withSub) => {
+    if (!items.length) return '<div style="color:var(--ink3);font-size:12.5px;padding:4px 2px">（尚無）</div>';
+    return '<table class="my-table"><thead><tr><th>狀態</th><th>類型</th><th>標題</th><th>截止時間</th>' + (withSub ? '<th style="text-align:center">已繳交</th>' : '') + '<th>操作</th></tr></thead><tbody>' +
+      items.map(a => '<tr><td>'+taStatusBadge(a)+'</td><td style="font-size:12.5px">'+(TA_TYPE_LABEL[a.type]||a.type)+'</td><td><strong>'+esc(a.title)+'</strong></td><td style="font-size:12.5px">'+taDueStr(a)+'</td>' +
+        (withSub ? '<td style="text-align:center">'+(TA_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' : '') +
+        '<td style="white-space:nowrap">'+taActionsHtml(a, selfEnrolled)+'</td></tr>').join('') + '</tbody></table>';
+  };
+  return groups.map(g => {
+    const mats = g.items.filter(isMat), works = g.items.filter(a => !isMat(a));
+    return '<div style="border:1px solid var(--cr3);border-radius:10px;padding:12px 14px;margin-bottom:12px;background:#fff">' +
+      '<div style="font-weight:700;color:var(--navy);margin-bottom:8px">'+esc(g.title)+'</div>' +
+      '<div style="font-size:12.5px;font-weight:600;color:var(--ink2);margin:4px 0">📖 教材（自己看，不批閱）</div>' + tbl(mats, false) +
+      '<div style="font-size:12.5px;font-weight:600;color:var(--ink2);margin:10px 0 4px">✍️ 作業（要繳交，需批閱）</div>' + tbl(works, true) +
+      '</div>';
+  }).join('');
+}
+
 function renderTaAssignments() {
   const wrap = document.getElementById('ta-assign-list-wrap');
   const unitMap = {}; TA_UNITS.forEach(u => { unitMap[u.id] = u.title; });
@@ -1564,8 +1616,15 @@ function renderTaAssignments() {
     wrap.innerHTML = banner + '<div style="color:var(--ink3);font-size:13px;padding:20px">這門課目前尚未建立任何作業/教材</div>';
     return;
   }
+  const toggle = '<div style="display:flex;gap:6px;margin-bottom:10px">' +
+    '<button class="btn btn-sm '+(TA_ASSIGN_VIEW==='unit'?'btn-pri':'btn-sec')+'" onclick="setTaAssignView(\'unit\')">🗂 依單元</button>' +
+    '<button class="btn btn-sm '+(TA_ASSIGN_VIEW==='table'?'btn-pri':'btn-sec')+'" onclick="setTaAssignView(\'table\')">📋 表格</button></div>';
+  if (TA_ASSIGN_VIEW === 'unit' && TA_UNITS.length) {
+    wrap.innerHTML = banner + toggle + renderTaAssignmentsByUnit(TA_ASSIGNMENTS, selfEnrolled);
+    return;
+  }
   const list = sortRows(TA_ASSIGNMENTS, TA_ASSIGN_SORT, TA_ASSIGN_SORT_FNS);
-  wrap.innerHTML = banner + '<table class="my-table"><thead><tr>' +
+  wrap.innerHTML = banner + toggle + '<table class="my-table"><thead><tr>' +
     thSort('狀態','status',TA_ASSIGN_SORT,'taAssignSortBy') +
     thSort('單元','unit',TA_ASSIGN_SORT,'taAssignSortBy') +
     thSort('類型','type',TA_ASSIGN_SORT,'taAssignSortBy') +
@@ -1588,8 +1647,7 @@ function renderTaAssignments() {
         '<td style="font-size:12.5px'+(overdue?';color:var(--red)':'')+'">'+dueStr+(overdue?' 🔴已逾期':'')+'</td>' +
         '<td style="text-align:center">'+(TA_ASSIGN_SUBCOUNT[a.id]||0)+'</td>' +
         '<td style="white-space:nowrap">'+
-          ((a.type==='material' || a.type==='video') ? '<button class="btn btn-sec btn-sm" style="margin-right:4px" onclick="openTaPreview(\''+a.id+'\')">'+(a.type==='video'?'▶ 預覽影片':'👁 預覽教材')+'</button>' : '') +
-          (a.type==='material' ? '' : a.type==='video' ? '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👁 觀看狀況</button>' : selfEnrolled ? '<span style="font-size:11.5px;color:var(--ink3)">批閱已停用</span>' : '<button class="btn btn-sec btn-sm" onclick="openTaReview(\''+a.id+'\')">👥 批閱</button>') +
+          taActionsHtml(a, selfEnrolled) +
         '</td>' +
       '</tr>';
     }).join('') +
