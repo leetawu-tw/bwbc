@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.61 2026-10-08 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.62 2026-10-12 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -865,6 +865,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         </div>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
           <button class="btn btn-pri btn-sm" onclick="swPrint()">🖨 列印勾選的簽到表</button>
+          <button class="btn btn-sec btn-sm" onclick="swExportWord()">📄 匯出Word（每人一檔）</button>
           <label style="font-size:12.5px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="sw-all" checked onchange="swToggleAll(this.checked)">全選</label>
           <span id="sw-count" style="font-size:12px;color:var(--ink3)"></span>
         </div>
@@ -10946,6 +10947,12 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.62', date: '2026-10-12',
+    items: [
+      '工讀生簽到表新增「📄 匯出Word（每人一檔）」：每位同學一個Word檔，檔名「學號姓名_115年10月.docx」；一位同學有幾個用人單位（乘以「每個單位印幾頁」）檔案就有幾頁，只有一張就只有一頁。勾選多位同學時打包成一個zip，只勾一位則直接下載Word檔。版面比照列印版（A4直式、標楷體、22列簽到格）'
+    ]
+  },
+  {
     version: 'v10.61', date: '2026-10-08',
     items: [
       '工讀生簽到表：用人單位範例文字「SEL」改為「社會情緒計畫」（已存在名單用 schema/student_workers_rename_sel.sql 一次改名）'
@@ -13848,6 +13855,96 @@ function swPrint() {
   const w = window.open('','_blank');
   w.document.write(buildWorkerSheetsHtml(items, parseInt(y)-1911, parseInt(m), pages));
   w.document.close();
+}
+
+// ── 工讀生簽到表：匯出Word（每位同學一個檔案，一個單位一頁；單位數×每單位頁數＝該檔頁數）──
+// 不依賴範本檔：直接用JSZip組最精簡的docx（A4直式、標楷體），版面比照列印版
+function buildWorkerSheetsDocxBlob(sheets, rocYear, month) {
+  const mm = v => Math.round(v * 56.693);              // mm → twips
+  const FONT = '<w:rFonts w:ascii="標楷體" w:hAnsi="標楷體" w:eastAsia="標楷體" w:cs="標楷體"/>';
+  const run = (txt, o) => {
+    o = o || {};
+    return '<w:r><w:rPr>' + FONT + (o.b ? '<w:b/>' : '') +
+      '<w:sz w:val="' + (o.sz || 26) + '"/><w:szCs w:val="' + (o.sz || 26) + '"/>' + (o.u ? '<w:u w:val="single"/>' : '') + '</w:rPr>' +
+      '<w:t xml:space="preserve">' + escapeXml(txt) + '</w:t></w:r>';
+  };
+  const tab = '<w:r><w:tab/></w:r>';
+  const NB = '\u3000';                                   // 全形空白(寬度固定，加底線當填寫線；不會像半形空白被Word吃掉)
+  const ROWS = 22;
+  const colsPct = [11, 15, 15, 14, 12, 33];
+  const W = 10772;                                       // 內容寬 190mm（左右邊界各10mm）
+  const colW = colsPct.map(p => Math.round(W * p / 100));
+  colW[5] += W - colW.reduce((a, b) => a + b, 0);
+  const border = '<w:top w:val="single" w:sz="8" w:space="0" w:color="111111"/><w:left w:val="single" w:sz="8" w:space="0" w:color="111111"/><w:bottom w:val="single" w:sz="8" w:space="0" w:color="111111"/><w:right w:val="single" w:sz="8" w:space="0" w:color="111111"/>';
+  const cellP = (w, txt, bold) => '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/><w:tcBorders>' + border + '</w:tcBorders><w:vAlign w:val="center"/></w:tcPr>' +
+    '<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>' + (txt ? run(txt, { sz: 24, b: bold }) : '') + '</w:p></w:tc>';
+  const heads = ['日期', '簽到時間', '簽退時間', '姓名', '時數', '工作內容'];
+  const headRow = '<w:tr><w:trPr><w:trHeight w:val="' + mm(10) + '" w:hRule="exact"/><w:cantSplit/></w:trPr>' + heads.map((h, i) => cellP(colW[i], h, true)).join('') + '</w:tr>';
+  const bodyRow = '<w:tr><w:trPr><w:trHeight w:val="' + mm(9.4) + '" w:hRule="exact"/><w:cantSplit/></w:trPr>' + colW.map(w => cellP(w, '', false)).join('') + '</w:tr>';
+  const table = '<w:tbl><w:tblPr><w:tblW w:w="' + W + '" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/>' +
+    '<w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr>' +
+    '<w:tblGrid>' + colW.map(w => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>' + headRow + bodyRow.repeat(ROWS) + '</w:tbl>';
+  const ul = n => run(NB.repeat(n), { u: true, sz: 24 });
+  const endMark = run('\u2060', { sz: 24 });                 // 行尾的底線空白會被Word/LibreOffice吃掉，補一個看不見的字元讓底線完整顯示
+  const page = (it, idx) => {
+    const unitLen = Array.from(it.unit || '').length;
+    const metaSz = unitLen > 15 ? Math.max(16, Math.floor(26 * 15 / unitLen)) : 26;   // 單位名稱很長時縮小，確保同一行放得下
+    const title = '<w:p><w:pPr>' + (idx > 0 ? '<w:pageBreakBefore/>' : '') + '<w:spacing w:before="40" w:after="140"/><w:jc w:val="center"/></w:pPr>' +
+      run('福智佛教學院臨時人員（專兼任助理、工讀生）簽到退紀錄表', { b: true, sz: 34 }) + '</w:p>';
+    const meta = '<w:p><w:pPr><w:tabs><w:tab w:val="left" w:pos="' + mm(95) + '"/><w:tab w:val="right" w:pos="' + W + '"/></w:tabs><w:spacing w:before="0" w:after="80"/></w:pPr>' +
+      run('用人單位：', { sz: metaSz }) + run(it.unit || '', { b: true, sz: metaSz }) + tab +
+      run('姓名：', { sz: 26 }) + run(it.name || '', { b: true, sz: 26 }) + tab +
+      run('簽到退月份：', { sz: 26 }) + run(String(rocYear), { b: true, sz: 26 }) + run('年', { sz: 26 }) + run(String(month), { b: true, sz: 26 }) + run('月', { sz: 26 }) + '</w:p>';
+    const f1 = '<w:p><w:pPr><w:tabs><w:tab w:val="right" w:pos="' + W + '"/></w:tabs><w:spacing w:before="120" w:after="0"/></w:pPr>' +
+      run('本月工作時數：', { sz: 24 }) + ul(9) + tab + run('薪資總計：', { sz: 24 }) + ul(9) + endMark + '</w:p>';
+    const f2 = '<w:p><w:pPr><w:spacing w:before="160" w:after="0"/></w:pPr>' +
+      run('承辦人員：', { sz: 24 }) + ul(6) + run('　單位主管(計畫召集人)：', { sz: 24 }) + ul(5) + run('　人事經辦：', { sz: 24 }) + ul(5) + endMark + '</w:p>';
+    return title + meta + table + f1 + f2;
+  };
+  const body = sheets.map(page).join('');
+  const sect = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="' + mm(10) + '" w:right="' + mm(10) + '" w:bottom="' + mm(10) + '" w:left="' + mm(10) + '" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>';
+  const docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' + body + sect + '</w:body></w:document>';
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>', { createFolders: false });
+  zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>', { createFolders: false });
+  zip.file('word/document.xml', docXml, { createFolders: false });
+  return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+async function swExportWord() {
+  if (typeof JSZip === 'undefined') { showToast('打包功能缺少JSZip函式庫，請重新整理頁面','error'); return; }
+  const ids = new Set([...document.querySelectorAll('.sw-chk:checked')].map(c=>c.value));
+  const rows = SW_ROWS.filter(r=>ids.has(r.id));
+  if (!rows.length) { showToast('請先勾選要匯出的名單','error'); return; }
+  const mv = document.getElementById('sw-month').value;
+  if (!mv) { showToast('請選擇簽到退月份','error'); return; }
+  const [y, m] = mv.split('-');
+  const rocYear = parseInt(y) - 1911, month = parseInt(m);
+  const pages = Math.max(1, Math.min(4, parseInt(document.getElementById('sw-pages').value)||1));
+  // 依同學分組（保留名單順序）：每位同學一個檔，單位數×每單位頁數＝頁數
+  const order = [], by = {};
+  rows.forEach(r => {
+    if (!by[r.student_id]) { by[r.student_id] = { code: r.students?.student_code||'', name: r.students?.name_zh||'', units: [] }; order.push(r.student_id); }
+    by[r.student_id].units.push(r.unit_name);
+  });
+  const files = [];
+  for (const sid of order) {
+    const st = by[sid];
+    const sheets = [];
+    st.units.forEach(u => { for (let i=0;i<pages;i++) sheets.push({ unit: u, name: st.name }); });
+    files.push({ fileName: `${st.code}${st.name}_${rocYear}年${month}月.docx`, blob: await buildWorkerSheetsDocxBlob(sheets, rocYear, month), pages: sheets.length });
+  }
+  const save = (blob, name) => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 2000); };
+  if (files.length === 1) {
+    save(files[0].blob, files[0].fileName);
+    showToast(`✅ 已匯出 ${files[0].fileName}（${files[0].pages} 頁）`);
+    return;
+  }
+  const zip = new JSZip();
+  files.forEach(f => zip.file(f.fileName, f.blob));
+  showToast('打包中…');
+  const zblob = await zip.generateAsync({ type: 'blob' });
+  save(zblob, `工讀生簽到表_${rocYear}年${month}月.zip`);
+  showToast(`✅ 已打包 ${files.length} 位同學的Word檔`);
 }
 
 function buildReceiptPrintHtml(blocks) {
