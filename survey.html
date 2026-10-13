@@ -49,6 +49,9 @@ textarea:focus{border-color:var(--navy2)}
 .toast.show{opacity:1}
 .toast.success{background:var(--navy);color:#fff}
 .toast.error{background:var(--red);color:#fff}
+.sec-head{margin:6px 0 18px;padding:12px 14px;background:var(--navy3);border-left:4px solid var(--navy);border-radius:6px}
+.sec-title{font-family:'Noto Serif TC',serif;font-size:16px;font-weight:600;color:var(--navy)}
+.sec-sub{font-size:13px;color:var(--ink2);margin-top:2px}
 .note{font-size:12.5px;color:var(--ink3);background:var(--cr3);border-radius:8px;padding:10px 14px;margin-bottom:20px;line-height:1.7}
 </style>
 </head>
@@ -134,20 +137,34 @@ async function init() {
   }
 }
 
+function qNo(q) {
+  // 一般題連續編號；遠距題在自己的區塊內從 1 重新編號
+  const same = QUESTIONS.filter(x => (x.kind==='remote') === (q.kind==='remote'));
+  return same.indexOf(q) + 1;
+}
+
 function renderForm(course, teacherName) {
-  const qHtml = QUESTIONS.map((q,idx) => {
+  let remoteStarted = false;
+  const qHtml = QUESTIONS.map((q) => {
+    const idx = qNo(q) - 1;
+    let head = '';
+    if (q.kind === 'remote' && !remoteStarted) {
+      remoteStarted = true;
+      head = `<div class="sec-head"><div class="sec-title">遠距教學課程 教學品質調查</div>
+        <div class="sec-sub">本課程為數位課程，請再協助填寫以下題目（1＝非常不滿意，5＝非常滿意）。</div></div>`;
+    }
     if (q.type === 'single') {
       const opts = (q.options||[]).map(o=>`
         <label class="opt" onclick="selOpt('${q.id}','${o.replace(/'/g,'')}',this)">
           <input type="radio" name="q-${q.id}" value="${o}">
           <span>${o}</span>
         </label>`).join('');
-      return `<div class="q">
+      return head + `<div class="q">
         <div class="q-text"><span class="q-num">${idx+1}.</span>${q.question_text}${q.required?' <span class="q-req">*</span>':''}</div>
         <div class="opts" id="opts-${q.id}">${opts}</div>
       </div>`;
     } else {
-      return `<div class="q">
+      return head + `<div class="q">
         <div class="q-text"><span class="q-num">${idx+1}.</span>${q.question_text}${q.required?' <span class="q-req">*</span>':'<span style="font-size:12px;color:var(--ink3)">（可不填）</span>'}</div>
         <textarea placeholder="請輸入您的意見…" oninput="ANSWERS['${q.id}']=this.value"></textarea>
       </div>`;
@@ -180,7 +197,7 @@ async function submitSurvey() {
   // 驗證必填
   for (const q of QUESTIONS) {
     if (q.required && !ANSWERS[q.id]) {
-      showToast(`請完成第 ${QUESTIONS.indexOf(q)+1} 題`, 'error');
+      showToast(`請完成${q.kind==='remote'?'遠距教學調查':''}第 ${qNo(q)} 題`, 'error');
       return;
     }
   }
