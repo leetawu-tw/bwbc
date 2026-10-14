@@ -165,7 +165,7 @@ function renderForm(course, teacherName) {
       </div>`;
     } else {
       return head + `<div class="q">
-        <div class="q-text"><span class="q-num">${idx+1}.</span>${q.question_text}${q.required?' <span class="q-req">*</span>':'<span style="font-size:12px;color:var(--ink3)">（可不填）</span>'}</div>
+        <div class="q-text"><span class="q-num">${idx+1}.</span>${q.question_text}${q.required?' <span class="q-req">*</span>':''}</div>
         <textarea placeholder="請輸入您的意見…" oninput="ANSWERS['${q.id}']=this.value"></textarea>
       </div>`;
     }

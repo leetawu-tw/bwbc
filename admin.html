@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.63 2026-10-13 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出，統計區塊下一版加入。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.64 2026-10-14 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -5299,6 +5299,7 @@ async function viewSurveyIncompleteByStudent(surveyId) {
 /* 批次 S4 佔位 */
 /* ════ 批次 S4：統計結果 ════ */
 let STAT_DATA = null;
+let STAT_REMOTE_Q = [];   // 遠距教學調查題目(kind=remote)，統計時另外顯示在數位課程的報表最後
 
 async function viewSurveyStats(surveyId) {
   // 改用整頁顯示（資料量大），切換到專屬統計畫面
@@ -5309,6 +5310,9 @@ async function viewSurveyStats(surveyId) {
       .select('*, semesters(label)').eq('id', surveyId).maybeSingle();
     const { data:questions } = await sb.from('survey_questions')
       .select('*').eq('active', true).neq('kind','remote').order('sort_order');
+    const { data:remoteQs } = await sb.from('survey_questions')
+      .select('*').eq('active', true).eq('kind','remote').order('sort_order');
+    STAT_REMOTE_Q = remoteQs || [];
     const { data:responses } = await sb.from('survey_responses')
       .select('*').eq('survey_id', surveyId);
 
@@ -5399,13 +5403,13 @@ function buildSurveyCourseBlockHtml(c, questions, SCALE, SCORE, withDownloadBtn)
     </div>
     <div id="${bodyId}">`;
 
-  questions.forEach((q,qi) => {
+  const SCALE_COLOR_GEN = {'非常同意':'#2E9E5B','同意':'#8BC34A','普通':'#F0C419','不同意':'#F2994A','非常不同意':'#E5544D'};
+  const renderQs = (qs, SCALE, SCORE, SCALE_COLOR) => qs.forEach((q,qi) => {
     const ans = c.answers[q.id] || [];
     html += `<div style="margin-bottom:14px">
       <div style="font-size:13.5px;font-weight:500;margin-bottom:8px">${qi+1}. ${q.question_text}</div>`;
 
     if (q.type === 'single') {
-      const SCALE_COLOR = {'非常同意':'#2E9E5B','同意':'#8BC34A','普通':'#F0C419','不同意':'#F2994A','非常不同意':'#E5544D'};
       const cnt = {}; SCALE.forEach(s=>cnt[s]=0);
       let sum=0, valid=0;
       ans.forEach(a=>{ if(a in cnt){cnt[a]++; sum+=SCORE[a]||0; valid++;} });
@@ -5434,6 +5438,17 @@ function buildSurveyCourseBlockHtml(c, questions, SCALE, SCORE, withDownloadBtn)
     }
     html += `</div>`;
   });
+  renderQs(questions, SCALE, SCORE, SCALE_COLOR_GEN);
+
+  // 數位課程：最後多一個「遠距教學課程 教學品質調查」區塊(題目自己從1重新編號，量表為滿意度)
+  const rq = STAT_REMOTE_Q || [];
+  if (rq.some(q => (c.answers[q.id] || []).length)) {
+    const RSCALE = ['非常滿意','滿意','尚可','不滿意','非常不滿意'];
+    const RSCORE = {'非常滿意':5,'滿意':4,'尚可':3,'不滿意':2,'非常不滿意':1};
+    const RCOLOR = {'非常滿意':'#2E9E5B','滿意':'#8BC34A','尚可':'#F0C419','不滿意':'#F2994A','非常不滿意':'#E5544D'};
+    html += `<div style="margin:18px 0 12px;padding:8px 12px;background:var(--navy3);border-left:4px solid var(--navy);border-radius:6px;font-weight:600;color:var(--navy);font-size:14px">遠距教學課程 教學品質調查</div>`;
+    renderQs(rq, RSCALE, RSCORE, RCOLOR);
+  }
   html += `</div></div>`;
   return html;
 }
@@ -10946,6 +10961,12 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
       這裡每次忘記手動同步的bug已發生多次(v10.52這次又重演一次)，從此不用再記得這條規則
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.64', date: '2026-10-14',
+    items: [
+      '教學意見調查統計：有作答遠距題的數位課程，報表最後多出「遠距教學課程 教學品質調查」區塊（題號從1開始，量表為非常滿意～非常不滿意，平均分5分制，第8題列出所有建議）；畫面、「單獨下載這科」、「依課程分別下載(ZIP)」、合併列印都會包含'
+    ]
+  },
   {
     version: 'v10.63', date: '2026-10-13',
     items: [
