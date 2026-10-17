@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.64 2026-10-14 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.65 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -921,6 +921,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <button class="btn btn-sec" onclick="togglePayrollCards(true)">⬇ 全部展開</button>
           <button class="btn btn-sec" onclick="togglePayrollCards(false)">⬆ 全部收合</button>
         </div>
+        <div id="payroll-hints"></div>
         <details id="payroll-section-contracted" open style="margin-bottom:24px">
           <summary class="payroll-toggle-summary">
             <span class="payroll-toggle-arrow">▾</span> 一、聘任兼課教師
@@ -10452,6 +10453,7 @@ async function saveTeacher() {
   closeModal('teacher-modal'); showToast('✅ 教師資料已更新');
   writeAuditLog('教師管理', id?'編輯教師':'新增教師', 'teachers', id||null, data.name_zh, `${TYPE_LABEL[data.teacher_type]||data.teacher_type} ${data.title||''}`.trim());
   loadTeachers();
+  if (document.getElementById('page-payroll')?.style.display !== 'none') loadPayrollPage(); // 在鐘點費頁設定兼課後，立刻刷新清單
 }
 
 /* ════ CLASSROOM MODAL ════ */
@@ -10961,6 +10963,13 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
       這裡每次忘記手動同步的bug已發生多次(v10.52這次又重演一次)，從此不用再記得這條規則
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.65', date: '2026-10-17',
+    items: [
+      '兼課鐘點費核銷：判斷「本學期有授課」時排除已停開(is_cancelled)或停用(is_active=false)的開課記錄，課程停開後該老師若沒有其他授課、也沒有核銷記錄，就不會再出現在清單',
+      '兼課鐘點費核銷：新增自動提示——本學期有授課、但不在兼課清單的教師（沒勾「兼課老師」或已停用）會在清單上方以黃色提示列出，附授課課程與原因，並可一鍵開啟教師編輯視窗設為兼課；教師卡片標題旁新增「授課：課程」說明，若是因為這個月已有核銷記錄才顯示、本學期卻沒掛課，則標示「無開課（因有核銷記錄而顯示）」，方便判斷為什麼某位老師會出現或沒出現。清單篩選規則本身沒有改'
+    ]
+  },
   {
     version: 'v10.64', date: '2026-10-14',
     items: [
@@ -13311,6 +13320,7 @@ async function deleteAdvisor(id) {
 let _payRates = [];
 let _adjunctTeachers = [];
 let _payrollMap = {}; // teacher_id -> { row: adjunct_payroll, days: [...] }
+let _payrollTeachCourses = {}, _payrollSemLabel = '', _payrollMissingTeachers = []; // 本學期授課課程對照、學期名稱、有授課但不在兼課清單的教師
 let _payrollTeachersForMonth = []; // 本月實際要顯示的老師清單(=本學期有開課 或 這個月已有核銷記錄的老師)，_adjunctTeachers是全部兼課教師(不隨月份篩選)
 
 // 數字轉中文大寫金額(用於收據"應領金額"欄位)，逐位處理+跨組零判斷，支援到億(鐘點費/交通費金額不會超過這個範圍)
@@ -13405,13 +13415,28 @@ async function loadPayroll() {
   const { data: semRows } = await sb.from('semesters').select('id,start_date,end_date');
   const sem = (semRows||[]).find(s => ym >= s.start_date.slice(0,7) && ym <= s.end_date.slice(0,7));
   let teachingIds = new Set();
+  _payrollTeachCourses = {};   // teacher_id -> ['AD22001 課名', ...]（本學期授課，用來在卡片/提示上說明為什麼會出現）
   if (sem) {
-    const { data: offs } = await sb.from('course_offerings').select('id').eq('semester_id', sem.id);
-    const offIds = (offs||[]).map(o=>o.id);
+    const { data: offs } = await sb.from('course_offerings').select('id, courses(code, name_zh)').eq('semester_id', sem.id).eq('is_active', true).eq('is_cancelled', false); // 已停開的課不算授課
+    const offMap = {};
+    (offs||[]).forEach(o => { offMap[o.id] = o.courses ? `${o.courses.code} ${o.courses.name_zh}` : '(未知課程)'; });
+    const offIds = Object.keys(offMap);
     if (offIds.length) {
-      const { data: ot } = await sb.from('offering_teachers').select('teacher_id').in('offering_id', offIds);
-      teachingIds = new Set((ot||[]).map(o=>o.teacher_id));
+      const { data: ot } = await sb.from('offering_teachers').select('teacher_id, offering_id').in('offering_id', offIds);
+      (ot||[]).forEach(o => {
+        teachingIds.add(o.teacher_id);
+        (_payrollTeachCourses[o.teacher_id] = _payrollTeachCourses[o.teacher_id] || []).push(offMap[o.offering_id]);
+      });
     }
+  }
+  _payrollSemLabel = sem ? sem.label : '';
+  // 本學期有授課、但不在兼課清單的教師（沒勾兼課或已停用）→ 提示 admin 是否漏設定
+  const adjIds = new Set(_adjunctTeachers.map(t=>t.id));
+  const missIds = [...teachingIds].filter(id => !adjIds.has(id));
+  _payrollMissingTeachers = [];
+  if (missIds.length) {
+    const { data: mt } = await sb.from('teachers').select('id, name_zh, is_adjunct, active, teacher_type').in('id', missIds).order('name_zh');
+    _payrollMissingTeachers = mt || [];
   }
   _payrollTeachersForMonth = _adjunctTeachers.filter(t => {
     if (teachingIds.has(t.id)) return true;
@@ -14095,7 +14120,33 @@ function prevYearMonth(ym) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
 
+function renderPayrollHints() {
+  const box = document.getElementById('payroll-hints');
+  if (!box) return;
+  const miss = _payrollMissingTeachers || [];
+  if (!miss.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div style="background:#fff8e1;border:1px solid #f0c36d;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px">
+    <div style="font-weight:600;margin-bottom:6px">⚠️ ${_payrollSemLabel||'本學期'}有授課，但不在下方兼課清單的教師（${miss.length} 位）</div>
+    ${miss.map(t => {
+      const why = !t.active ? '已停用' : '尚未勾選「兼課老師」';
+      return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:4px 0">
+        <b>${t.name_zh}</b>
+        <span style="color:var(--ink3)">${(_payrollTeachCourses[t.id]||[]).join('、')}</span>
+        <span style="font-size:11px;background:#fde8c4;padding:2px 8px;border-radius:10px">${why}</span>
+        <button class="btn btn-sec btn-sm" onclick="payrollEditTeacher('${t.id}')">設為兼課／編輯</button>
+      </div>`;
+    }).join('')}
+    <div style="margin-top:6px;font-size:12px;color:var(--ink3)">若該老師是專任或不需核銷，可以忽略此提示。</div>
+  </div>`;
+}
+
+async function payrollEditTeacher(id) {
+  if (!TEACHERS.find(x=>x.id===id)) await loadTeachers();
+  editTeacher(id);
+}
+
 function renderPayrollLists() {
+  renderPayrollHints();
   const contracted = _payrollTeachersForMonth.filter(t=>t.adjunct_type==='contracted');
   const general = _payrollTeachersForMonth.filter(t=>t.adjunct_type!=='contracted');
   document.getElementById('payroll-list-contracted').innerHTML = contracted.map(renderTeacherPayrollCard).join('') || '<div style="color:var(--ink3);font-size:13px;padding:10px">尚無聘任兼課教師（請至教師管理設定）</div>';
@@ -14121,6 +14172,9 @@ function renderTeacherPayrollCard(t) {
       <span class="payroll-toggle-arrow">▾</span>
       <span style="font-weight:600;font-size:14px">${t.name_zh}</span>
       <span style="font-size:11px;background:var(--navy3);color:var(--navy);padding:2px 10px;border-radius:10px">${t.adjunct_rank||''}　${rate}元/時</span>
+      ${(_payrollTeachCourses[t.id]||[]).length
+        ? `<span style="font-size:11px;color:var(--ink3)" title="${_payrollTeachCourses[t.id].join('、')}">授課：${_payrollTeachCourses[t.id].join('、')}</span>`
+        : `<span style="font-size:11px;background:#fde8c4;padding:2px 8px;border-radius:10px" title="${_payrollSemLabel||'本學期'}在系統中沒有掛這位老師的課，只因這個月已有核銷記錄才顯示">${_payrollSemLabel||'本學期'}無開課（因有核銷記錄而顯示）</span>`}
       <span style="margin-left:auto;font-size:13px">時數合計：<b id="payroll-hours-${t.id}">${row.total_hours}</b> 小時</span>
     </summary>
     <div style="margin-top:10px">
