@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.65 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.66 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -447,6 +447,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="teachers" onclick="showPage('advisors',this)"><span class="nav-icon">🎓</span>班級導師管理</div>
         <div class="nav-item" data-perm="classrooms" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
         <div class="nav-item" data-perm="students" onclick="showPage('students',this)"><span class="nav-icon">🧑‍🎓</span>學生資料</div>
+        <div class="nav-item" data-perm="students" onclick="showPage('credit-students',this)"><span class="nav-icon">🎓</span>學分班學生</div>
         <div class="nav-item" data-perm="__admin_only" onclick="showPage('users',this)"><span class="nav-icon">👥</span>帳號管理</div>
       </div>
       <div class="nav-section">
@@ -870,6 +871,27 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <span id="sw-count" style="font-size:12px;color:var(--ink3)"></span>
         </div>
         <div id="sw-wrap" class="tbl-wrap"></div>
+      </div>
+
+      <!-- ▌學分班學生 ▌-->
+      <div id="page-credit-students" style="display:none">
+        <div class="page-hdr"><div class="page-title">🎓 學分班學生</div></div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">隨班附讀、學分專班的同學另行管理，不屬於一般生。學號為10碼（一般生為8碼），由人工輸入或 Excel 匯入；選課人數、點名單、教學意見調查沿用「選課記錄」，只要有「已確認」的選課就會自動帶入。</div>
+        <div class="toolbar">
+          <select class="finput" id="cs-semester" style="width:130px" onchange="csRender()"></select>
+          <select class="finput" id="cs-type" style="width:120px" onchange="csRender()">
+            <option value="">全部類別</option><option value="audit">隨班附讀</option><option value="credit_program">學分專班</option>
+          </select>
+          <input class="finput" id="cs-q" style="width:170px" placeholder="搜尋學號或姓名" oninput="csRender()">
+          <button class="btn btn-pri btn-sm" onclick="csEdit('')">＋ 新增學分班學生</button>
+          <button class="btn btn-sec btn-sm" onclick="document.getElementById('cs-file').click()">📥 匯入 Excel</button>
+          <button class="btn btn-sec btn-sm" onclick="csDownloadTemplate()">📄 下載匯入範本</button>
+          <input type="file" id="cs-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="csImportFile(this)">
+        </div>
+        <div id="cs-import-box"></div>
+        <div id="cs-summary" style="margin-bottom:6px"></div>
+        <div id="cs-stats" style="font-size:12px;color:var(--ink3);padding:0 4px 6px"></div>
+        <div id="cs-wrap" class="tbl-wrap" style="max-height:calc(100vh - 230px)"></div>
       </div>
 
       <div id="page-receipt" style="display:none">
@@ -4879,6 +4901,7 @@ async function loadSurveyAdmin() {
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${s.status==='draft' ? `<button class="btn" onclick="genSurveyTokens('${s.id}')">🎫 產生填答連結</button>` : ''}
+          ${s.status==='open' ? `<button class="btn" onclick="genSurveyTokens('${s.id}')" title="開放中也能補：只替還沒有連結的選課記錄建立，已發出的連結不變">🎫 補產生連結</button>` : ''}
           ${s.status==='draft' && tokenCount>0 ? `<button class="btn btn-pri" onclick="setSurveyStatus('${s.id}','open')">▶ 開放調查</button>` : ''}
           ${s.status==='open' ? `<button class="btn" onclick="setSurveyStatus('${s.id}','closed')" style="background:#FFF3E0;color:#B05010">⏹ 截止調查</button>` : ''}
           ${s.status==='closed' ? `<button class="btn" onclick="reopenSurvey('${s.id}','${s.end_at}')" style="background:#EAF4EE;color:#1F5C3A">🔓 重新開放</button>` : ''}
@@ -5046,12 +5069,15 @@ async function genSurveyTokens(surveyId) {
     if (!survey) { showToast('查無調查','error'); return; }
 
     // 取該學期所有確認修課（含課程、學生、主授教師）
-    const { data:enrolls } = await sb.from('enrollments')
-      .select('id, offering_id, student_id')
+    const { data:enrollsAll } = await sb.from('enrollments')
+      .select('id, offering_id, student_id, students(status)')
       .eq('semester_id', survey.semester_id)
       .eq('status', 'confirmed');
 
-    if (!enrolls?.length) { showToast('此學期沒有確認的修課記錄','error'); return; }
+    if (!enrollsAll?.length) { showToast('此學期沒有確認的修課記錄','error'); return; }
+    // 休學(leave)、退學(withdrawn)的學生不需要填教學意見調查
+    const enrolls = enrollsAll.filter(e => !['leave','withdrawn'].includes(e.students?.status));
+    const skippedLeave = enrollsAll.length - enrolls.length;
 
     // 取各 offering 的主授教師
     const offeringIds = [...new Set(enrolls.map(e=>e.offering_id))];
@@ -5084,7 +5110,7 @@ async function genSurveyTokens(surveyId) {
       const { error } = await sb.from('survey_tokens').insert(rows.slice(i,i+200));
       if (error) { showToast('產生失敗：'+error.message,'error'); return; }
     }
-    showToast(`✅ 已產生 ${rows.length} 份填答連結`);
+    showToast(`✅ 已產生 ${rows.length} 份填答連結` + (skippedLeave ? `（已略過 ${skippedLeave} 筆休學／退學學生的選課）` : ''));
     loadSurveyAdmin();
   } catch(e) { showToast('產生失敗：'+e.message,'error'); console.warn(e); }
 }
@@ -5162,7 +5188,7 @@ async function viewSurveyLinks(surveyId) {
     const { data:courses } = await sb.from('v_course_schedule')
       .select('offering_id, name_zh, code').in('offering_id', offIds);
     const { data:students } = await sb.from('students')
-      .select('id, name_zh, student_code').in('id', stuIds);
+      .select('id, name_zh, student_code, student_type, personal_email').in('id', stuIds);
     const cMap = {}; (courses||[]).forEach(c=>cMap[c.offering_id]=c);
     const sMap = {}; (students||[]).forEach(s=>sMap[s.id]=s);
 
@@ -5171,14 +5197,15 @@ async function viewSurveyLinks(surveyId) {
     const rows = tokens.map(t=>{
       const c = cMap[t.offering_id]||{}; const s = sMap[t.student_id]||{};
       const url = `${base}?t=${t.token}`;
-      const email = s.student_code ? `${s.student_code}@bwbc.edu.tw` : '';
-      return { course:c.name_zh||'', code:c.code||'', name:s.name_zh||'', sc:s.student_code||'', url, used:t.used, email };
+      const email = s.student_type && s.student_type !== 'regular' ? (s.personal_email || '') : (s.student_code ? `${s.student_code}@bwbc.edu.tw` : ''); // 學分班沒有學校信箱，改用登錄的Email
+      const note = s.student_type && s.student_type !== 'regular' ? (CS_TYPE_LABEL[s.student_type] || s.student_type) : ''; // 學分班：備註欄帶入課程類別（隨班附讀／學分專班）
+      return { course:c.name_zh||'', code:c.code||'', name:s.name_zh||'', sc:s.student_code||'', url, used:t.used, email, note };
     }).sort((a,b)=> (a.course+a.name).localeCompare(b.course+b.name,'zh'));
 
     let html = `<div style="margin-bottom:12px;font-size:13px;color:var(--ink3)">
       共 ${rows.length} 份連結。可複製個別連結發給學生，或全部複製。</div>
       <div style="text-align:right;margin-bottom:10px">
-        <button class="btn" onclick="copyAllLinks('${surveyId}')">📋 複製全部（課程/姓名/連結）</button>
+        <button class="btn" onclick="copyAllLinks('${surveyId}')">📋 複製全部（姓名/課程/連結）</button>
       </div>
       <div style="max-height:55vh;overflow-y:auto;border:1px solid var(--cr2);border-radius:8px">
       <table style="width:100%;border-collapse:collapse;font-size:12.5px">
@@ -5204,8 +5231,8 @@ async function viewSurveyLinks(surveyId) {
 
 function copyAllLinks(surveyId) {
   const rows = window._surveyLinkRows || [];
-  const header = '課程名稱\t學生姓名\t意見調查表連結\tEmail';
-  const body = rows.map(r=>`${r.course}\t${r.name}\t${r.url}\t${r.email}`).join('\n');
+  const header = '學生姓名\t課程名稱\t意見調查表連結\tEmail\t備註';
+  const body = rows.map(r=>`${r.name}\t${r.course}\t${r.url}\t${r.email}\t${r.note||''}`).join('\n');
   navigator.clipboard.writeText(header+'\n'+body).then(()=>showToast(`✅ 已複製 ${rows.length} 筆`));
 }
 
@@ -10964,6 +10991,17 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.66', date: '2026-10-18',
+    items: [
+      '教學意見調查：產生／補產生填答連結時，自動略過目前狀態為休學(leave)或退學(withdrawn)的學生。已經產生的連結不會自動刪除，需要時用SQL清掉「休學／退學且尚未填答」的連結。',
+      '教學意見調查：開放中的調查也會顯示「🎫 補產生連結」按鈕（原本只有草稿才有）。只替「還沒有連結」的已確認選課記錄建立，已發出的連結不變；用於開放後才加選的同學（例如學分班）。',
+      '教學意見調查「複製全部」欄位順序改為：學生姓名、課程名稱、意見調查表連結、Email、備註；備註欄在學分班同學帶入課程類別（隨班附讀／學分專班），一般生留空。',
+      '教學意見調查「查看填答連結／複製全部」的Email欄：學分班同學沒有學校信箱，改帶入登錄的Email（一般生仍是學號@bwbc.edu.tw）。',
+      '學分班學生頁面操作與「學生資料」一致：表頭可點選排序（學號/姓名/類別/性別/Email/修課，再點反向）、表頭固定（sticky）、上方顯示人數統計。',
+      '新增側邊欄「🎓 學分班學生」：管理隨班附讀／學分專班同學（students.student_type≠regular，學號10碼）。可依學期、類別、學號姓名篩選，列表顯示各人修的課與本學期各科學分班人數；可新增、編輯、加選、退選（標為dropped，不刪歷史）、刪除（有任何選課記錄就不能刪）。支援 Excel 匯入（欄位：年度、學年度、學期、學號、姓名、課程類別、課程編號、學分數、Email、性別）：先預覽並標出問題列（找不到學期／課程未開或已停開／學號非10碼／學號屬於一般生／姓名不一致／學分數不符），確認後才寫入；新學號建立學生並加選為「已確認」，已存在的學號只補性別/Email、不覆蓋姓名；已選過的略過、已退選的恢復。匯入後到教學意見調查再按一次「產生填答連結」即可補上這些同學（既有連結不變）。需先執行 student_type／10碼學號 SQL',
+    ]
+  },
+  {
     version: 'v10.65', date: '2026-10-17',
     items: [
       '兼課鐘點費核銷：判斷「本學期有授課」時排除已停開(is_cancelled)或停用(is_active=false)的開課記錄，課程停開後該老師若沒有其他授課、也沒有核銷記錄，就不會再出現在清單',
@@ -13126,6 +13164,7 @@ function showPage(page, btn) {
   if (page==='payroll') loadPayrollPage();
   if (page==='receipt') rpInit();
   if (page==='workers') swInit();
+  if (page==='credit-students') csInit();
   if (page==='users') loadUsers();
   if (page==='lending') lendLoadAll();
   if (page==='room-booking') rbInit();
@@ -13761,6 +13800,477 @@ async function generateReceiptPrint(teacherId) {
 
 // 收據列印版面：只選一種→A5橫式(210×148mm)一頁；兩種都選→A4直式(210×297mm)一頁，上下各半。
 // 每份收據放在固定高度的格子(.rc-sheet)裡，載入後若內容比格子高或寬，就自動等比例縮小到剛好放進去(保證不會跑到第二頁)。
+/* ════════════════════════════════════════════════════════
+ * 🎓 學分班學生（students.student_type <> 'regular'；選課記錄沿用 enrollments）
+ * 需要先執行 student_type 欄位與 10 碼學號 SQL（2026-10-18）
+ * ════════════════════════════════════════════════════════ */
+const CS_TYPE_LABEL = { audit:'隨班附讀', credit_program:'學分專班' };
+const CS_TYPE_FROM_ZH = { '隨班附讀':'audit', '學分專班':'credit_program', 'audit':'audit', 'credit_program':'credit_program' };
+const CS_GENDER_ZH = { M:'男', F:'女', O:'其他' };
+let CS_STU = [], CS_ENR = [], CS_SEMS = [], CS_IMPORT = null;
+let _csSort = { field:'student_code', dir:1 };   // 跟「學生資料」同樣：點表頭排序，再點一次反向
+
+async function csInit() {
+  const semSel = document.getElementById('cs-semester');
+  if (!semSel.options.length) {
+    const { data: sems } = await sb.from('semesters').select('id,label').order('label',{ascending:false});
+    CS_SEMS = sems || [];
+    semSel.innerHTML = '<option value="">全部學期</option>' + CS_SEMS.map(x=>`<option value="${x.id}">${adEsc(x.label)}</option>`).join('');
+    const cur = await getCurrentSemesterByDate();
+    if (cur && CS_SEMS.find(x=>x.id===cur.id)) semSel.value = cur.id;
+  }
+  await csLoad();
+}
+
+async function csLoad() {
+  const wrap = document.getElementById('cs-wrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">載入中…</div>';
+  try {
+    const [r1, r2] = await Promise.all([
+      sb.from('students').select('id,student_code,name_zh,student_type,gender,personal_email,notes,status').neq('student_type','regular').order('student_code'),
+      sb.from('enrollments').select('id,student_id,status,semester_id,offering_id,semesters(label),course_offerings(courses(code,name_zh)),students!inner(student_type)')
+        .neq('students.student_type','regular').neq('status','dropped')
+    ]);
+    if (r1.error) throw r1.error;
+    if (r2.error) throw r2.error;
+    CS_STU = r1.data || [];
+    CS_ENR = r2.data || [];
+    csRender();
+  } catch (e) {
+    wrap.innerHTML = `<div style="padding:20px;color:#C0392B">載入失敗：${adEsc(e.message||e)}（請確認已執行 student_type 的 SQL）</div>`;
+  }
+}
+
+function csRender() {
+  const sem = document.getElementById('cs-semester').value;
+  const type = document.getElementById('cs-type').value;
+  const q = document.getElementById('cs-q').value.trim().toLowerCase();
+  const enrBy = {};
+  CS_ENR.forEach(e => { (enrBy[e.student_id] = enrBy[e.student_id] || []).push(e); });
+
+  const rows = CS_STU.filter(s => {
+    if (type && s.student_type !== type) return false;
+    if (q && !(s.student_code.includes(q) || (s.name_zh||'').toLowerCase().includes(q))) return false;
+    if (sem) { const list = enrBy[s.id] || []; if (list.length && !list.some(e => e.semester_id === sem)) return false; }
+    return true;
+  });
+
+  // 排序（修課欄用「所顯示課程的課號」排）
+  const courseKey = s => (enrBy[s.id]||[]).filter(e => !sem || e.semester_id === sem)
+    .map(e => e.course_offerings?.courses?.code || '').sort().join(',');
+  rows.sort((a,b) => {
+    let va = _csSort.field === '_courses' ? courseKey(a) : a[_csSort.field];
+    let vb = _csSort.field === '_courses' ? courseKey(b) : b[_csSort.field];
+    if (_csSort.field === 'student_type') { va = CS_TYPE_LABEL[va]||va; vb = CS_TYPE_LABEL[vb]||vb; }
+    if (va == null) va = ''; if (vb == null) vb = '';
+    return va.toString().localeCompare(vb.toString(), 'zh') * _csSort.dir;
+  });
+  document.getElementById('cs-stats').textContent =
+    `共 ${CS_STU.length} 人（隨班附讀 ${CS_STU.filter(x=>x.student_type==='audit').length}　·　學分專班 ${CS_STU.filter(x=>x.student_type==='credit_program').length}）　·　顯示 ${rows.length} 人`;
+
+  // 各科人數摘要（只算目前篩選到的學生，且只算所選學期；選「全部學期」時不顯示）
+  const sumEl = document.getElementById('cs-summary');
+  if (sem) {
+    const cnt = {};
+    rows.forEach(s => (enrBy[s.id]||[]).filter(e => e.semester_id === sem).forEach(e => {
+      const c = e.course_offerings?.courses;
+      const k = c ? `${c.code} ${c.name_zh}` : '(未知課程)';
+      cnt[k] = (cnt[k]||0) + 1;
+    }));
+    const keys = Object.keys(cnt).sort();
+    sumEl.innerHTML = keys.length
+      ? `<span style="font-size:12px;color:var(--ink3)">本學期各科學分班人數：</span>` + keys.map(k=>`<span style="display:inline-block;margin:2px 6px 2px 0;font-size:12px;background:var(--navy3);color:var(--navy);padding:2px 10px;border-radius:10px">${adEsc(k)}　${cnt[k]} 人</span>`).join('')
+      : '';
+  } else sumEl.innerHTML = '';
+
+  const wrap = document.getElementById('cs-wrap');
+  if (!rows.length) { wrap.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">沒有符合的學分班學生</div>'; return; }
+  const th = (f, label, extra) => `<th class="stu-th" onclick="csSort('${f}')" ${extra||''}>${label} <span class="sort-icon" id="cs-sort-${f}">${_csSort.field===f ? (_csSort.dir===1?'↑':'↓') : '⇅'}</span></th>`;
+  wrap.innerHTML = `<table style="border-collapse:separate;border-spacing:0;min-width:900px;width:100%">
+    <thead style="position:sticky;top:0;z-index:2"><tr style="background:var(--navy);color:#fff">
+      ${th('student_code','學號')}${th('name_zh','姓名')}${th('student_type','類別')}${th('gender','性別','style="text-align:center"')}${th('personal_email','Email')}${th('_courses','修課')}
+      <th class="stu-th" style="cursor:default">操作</th>
+    </tr></thead><tbody>` + rows.map(s => {
+      const list = (enrBy[s.id]||[]).filter(e => !sem || e.semester_id === sem);
+      const chips = list.length ? list.map(e => {
+        const c = e.course_offerings?.courses;
+        const lab = (c ? `${c.code} ${c.name_zh}` : '(未知課程)') + (sem ? '' : `（${e.semesters?.label||''}）`);
+        const warn = e.status !== 'confirmed' ? `<span style="color:#C0392B">[${adEsc(e.status)}]</span>` : '';
+        return `<span style="display:inline-block;margin:2px 4px 2px 0;font-size:11.5px;background:#EAF4EE;color:#1F5C3A;border:0.5px solid #C0DD97;padding:2px 8px;border-radius:10px">${adEsc(lab)}${warn}
+          <a href="javascript:void(0)" title="退選" onclick="csDropEnroll('${e.id}')" style="color:#C0392B;margin-left:4px;text-decoration:none">✕</a></span>`;
+      }).join('') : '<span style="color:var(--ink3);font-size:12px">尚未選課</span>';
+      return `<tr>
+        <td>${adEsc(s.student_code)}</td>
+        <td style="font-weight:600">${adEsc(s.name_zh)}</td>
+        <td>${adEsc(CS_TYPE_LABEL[s.student_type]||s.student_type)}</td>
+        <td>${adEsc(CS_GENDER_ZH[s.gender]||'')}</td>
+        <td style="font-size:12px">${adEsc(s.personal_email||'')}</td>
+        <td>${chips}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sec btn-sm" onclick="csEdit('${s.id}')">✏️ 編輯</button>
+          <button class="btn btn-sec btn-sm" onclick="csAddEnroll('${s.id}')">＋ 加選</button>
+          <button class="btn btn-sm" style="color:#D9534F;border-color:#D9534F" onclick="csDeleteStudent('${s.id}')">刪除</button>
+        </td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+
+function csSort(field) {
+  if (_csSort.field === field) _csSort.dir *= -1;
+  else { _csSort.field = field; _csSort.dir = 1; }
+  csRender();
+}
+
+// 依學期載入可加選的開課（排除已停開／停用）
+async function csFillOfferings(semSelId, offSelId, withBlank) {
+  const semId = document.getElementById(semSelId).value;
+  const off = document.getElementById(offSelId);
+  if (!semId) { off.innerHTML = '<option value="">（請先選學期）</option>'; return; }
+  const { data } = await sb.from('course_offerings').select('id, courses(code,name_zh)')
+    .eq('semester_id', semId).eq('is_active', true).eq('is_cancelled', false);
+  const list = (data||[]).sort((a,b)=>(a.courses?.code||'').localeCompare(b.courses?.code||''));
+  off.innerHTML = (withBlank ? '<option value="">（先不加選）</option>' : '') +
+    (list.map(o=>`<option value="${o.id}">${adEsc(o.courses?.code||'')} ${adEsc(o.courses?.name_zh||'')}</option>`).join('') || '<option value="">該學期沒有開課記錄</option>');
+}
+
+function csSemOptions(selId) {
+  return CS_SEMS.map(x=>`<option value="${x.id}"${x.id===selId?' selected':''}>${adEsc(x.label)}</option>`).join('');
+}
+
+// 新增／編輯學分班學生
+function csEdit(id) {
+  const s = id ? CS_STU.find(x=>x.id===id) : null;
+  const curSem = document.getElementById('cs-semester').value || (CS_SEMS[0]?.id || '');
+  const html = `
+    <div class="frow"><label class="flabel">學號（10碼）*</label>
+      <input class="finput" id="cs-f-code" maxlength="10" value="${adEsc(s?.student_code||'')}" ${s?'disabled':''} placeholder="例：1142401019"></div>
+    <div class="frow"><label class="flabel">姓名 *</label><input class="finput" id="cs-f-name" value="${adEsc(s?.name_zh||'')}"></div>
+    <div class="frow-2">
+      <div><label class="flabel">類別 *</label><select class="finput" id="cs-f-type">
+        <option value="audit"${s?.student_type==='audit'||!s?' selected':''}>隨班附讀</option>
+        <option value="credit_program"${s?.student_type==='credit_program'?' selected':''}>學分專班</option></select></div>
+      <div><label class="flabel">性別</label><select class="finput" id="cs-f-gender">
+        <option value="">—</option><option value="F"${s?.gender==='F'?' selected':''}>女</option>
+        <option value="M"${s?.gender==='M'?' selected':''}>男</option><option value="O"${s?.gender==='O'?' selected':''}>其他</option></select></div>
+    </div>
+    <div class="frow"><label class="flabel">Email</label><input class="finput" id="cs-f-email" value="${adEsc(s?.personal_email||'')}"></div>
+    <div class="frow"><label class="flabel">備註</label><input class="finput" id="cs-f-notes" value="${adEsc(s?.notes||'')}"></div>
+    ${s ? '' : `
+    <div class="frow-2">
+      <div><label class="flabel">同時加選：學期</label><select class="finput" id="cs-f-sem" onchange="csFillOfferings('cs-f-sem','cs-f-off',true)">${csSemOptions(curSem)}</select></div>
+      <div><label class="flabel">課程</label><select class="finput" id="cs-f-off"><option value="">（先不加選）</option></select></div>
+    </div>`}
+    <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="csSave('${id||''}')">儲存</button>`;
+  openThModal(s ? `編輯：${s.name_zh}` : '新增學分班學生', html);
+  if (!s) csFillOfferings('cs-f-sem','cs-f-off',true);
+}
+
+// 確保一筆「已確認」的選課：回傳 'added' | 'exists' | 'restored'
+async function csEnsureEnrollment(studentId, offeringId, semesterId) {
+  const { data: ex } = await sb.from('enrollments').select('id,status').eq('student_id', studentId).eq('offering_id', offeringId).maybeSingle();
+  if (ex) {
+    if (ex.status === 'confirmed') return 'exists';
+    const { error } = await sb.from('enrollments').update({ status:'confirmed', drop_at:null, withdraw_at:null }).eq('id', ex.id);
+    if (error) throw error;
+    return 'restored';
+  }
+  const { error } = await sb.from('enrollments').insert({
+    student_id: studentId, offering_id: offeringId, semester_id: semesterId, status: 'confirmed',
+    approved_by: window.ADMIN_USER_ID || null, approved_at: new Date().toISOString()
+  });
+  if (error) throw error;
+  return 'added';
+}
+
+async function csSave(id) {
+  const code = document.getElementById('cs-f-code').value.trim();
+  const name = document.getElementById('cs-f-name').value.trim();
+  const type = document.getElementById('cs-f-type').value;
+  const gender = document.getElementById('cs-f-gender').value || null;
+  const email = document.getElementById('cs-f-email').value.trim() || null;
+  const notes = document.getElementById('cs-f-notes').value.trim() || null;
+  if (!id && !/^\d{10}$/.test(code)) { showToast('學號需為10碼數字（8碼是一般生）','error'); return; }
+  if (!name) { showToast('請填入姓名','error'); return; }
+  try {
+    let studentId = id;
+    if (id) {
+      const { error } = await sb.from('students').update({ name_zh:name, student_type:type, gender, personal_email:email, notes }).eq('id', id);
+      if (error) throw error;
+      writeAuditLog('學分班學生', '編輯', 'students', id, name, CS_TYPE_LABEL[type]);
+    } else {
+      const { data, error } = await sb.from('students').insert({
+        student_code: code, name_zh: name, student_type: type, gender, personal_email: email, notes, status: 'active'
+      }).select('id').single();
+      if (error) {
+        if (error.code === '23505' || (error.message||'').includes('duplicate')) { showToast('這個學號已經存在','error'); return; }
+        throw error;
+      }
+      studentId = data.id;
+      writeAuditLog('學分班學生', '新增', 'students', studentId, name, `${code} ${CS_TYPE_LABEL[type]}`);
+      const offId = document.getElementById('cs-f-off')?.value;
+      const semId = document.getElementById('cs-f-sem')?.value;
+      if (offId && semId) await csEnsureEnrollment(studentId, offId, semId);
+    }
+    closeThModal();
+    showToast('✅ 已儲存');
+    csLoad();
+  } catch (e) { showToast('儲存失敗：'+(e.message||e),'error'); }
+}
+
+async function csAddEnroll(studentId) {
+  const s = CS_STU.find(x=>x.id===studentId); if (!s) return;
+  const curSem = document.getElementById('cs-semester').value || (CS_SEMS[0]?.id || '');
+  openThModal(`加選：${s.name_zh}`, `
+    <div class="frow"><label class="flabel">學期</label><select class="finput" id="cs-a-sem" onchange="csFillOfferings('cs-a-sem','cs-a-off',false)">${csSemOptions(curSem)}</select></div>
+    <div class="frow"><label class="flabel">課程</label><select class="finput" id="cs-a-off"></select></div>
+    <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="csAddEnrollSubmit('${studentId}')">確認加選</button>`);
+  csFillOfferings('cs-a-sem','cs-a-off',false);
+}
+
+async function csAddEnrollSubmit(studentId) {
+  const semId = document.getElementById('cs-a-sem').value;
+  const offId = document.getElementById('cs-a-off').value;
+  if (!semId || !offId) { showToast('請選擇學期與課程','error'); return; }
+  try {
+    const r = await csEnsureEnrollment(studentId, offId, semId);
+    closeThModal();
+    showToast(r === 'exists' ? '這位同學已經選過這門課了' : '✅ 已加選');
+    csLoad();
+  } catch (e) { showToast('加選失敗：'+(e.message||e),'error'); }
+}
+
+// 退選：把選課記錄標為 dropped（不刪除，點名單／人數／問卷連結都不再算他）
+async function csDropEnroll(enrId) {
+  if (!confirm('確定要把這筆選課退選嗎？（退選後不會出現在點名單與選課人數）')) return;
+  const { error } = await sb.from('enrollments').update({ status:'dropped', drop_at:new Date().toISOString() }).eq('id', enrId);
+  if (error) { showToast('退選失敗：'+error.message,'error'); return; }
+  showToast('✅ 已退選');
+  csLoad();
+}
+
+async function csDeleteStudent(id) {
+  const s = CS_STU.find(x=>x.id===id); if (!s) return;
+  const { count } = await sb.from('enrollments').select('id',{count:'exact',head:true}).eq('student_id', id);
+  if (count > 0) { showToast(`${s.name_zh} 有 ${count} 筆選課記錄（含已退選），為保留歷史資料不能刪除。若只是不再修課，直接退選即可`,'error'); return; }
+  if (!confirm(`確定要刪除「${s.name_zh}」（${s.student_code}）嗎？`)) return;
+  const { error } = await sb.from('students').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：'+error.message,'error'); return; }
+  writeAuditLog('學分班學生', '刪除', 'students', id, s.name_zh, s.student_code);
+  showToast('✅ 已刪除');
+  csLoad();
+}
+
+/* ── Excel 匯入：欄位＝年度、學年度、學期、學號、姓名、課程類別、課程編號、學分數、Email、性別 ── */
+async function csDownloadTemplate() {
+  await ensureXLSX();
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([['年度','學年度','學期','學號','姓名','課程類別','課程編號','學分數','Email','性別']]);
+  ws['!cols'] = [8,8,6,14,10,10,10,8,28,6].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, '學分班名單');
+  const help = XLSX.utils.aoa_to_sheet([
+    ['欄位說明'],
+    ['學年度、學期：例如 115、1（對應學期「115-1」）；年度欄僅供參考，匯入時不使用'],
+    ['學號：10碼數字；同一位同學修多門課就多列，學號、姓名相同'],
+    ['課程類別：隨班附讀 或 學分專班'],
+    ['課程編號：例如 AD22010，該學期必須有開這門課'],
+    ['學分數：僅用來核對課程學分，不一致只會提示、不影響匯入'],
+    ['Email、性別（男／女）：可空白'],
+    ['已存在的學分班學號會更新性別／Email，姓名不一致只提示不覆蓋；與一般生學號相同的列會被擋下'],
+    ['範例：2026 | 115 | 1 | 1142401019 | 王小明 | 隨班附讀 | AD21008 | 3 | a@example.com | 男']
+  ]);
+  ws['!cols'] = ws['!cols'];
+  help['!cols'] = [{wch:100}];
+  XLSX.utils.book_append_sheet(wb, help, '說明');
+  XLSX.writeFile(wb, '學分班學生匯入範本.xlsx');
+}
+
+async function csImportFile(input) {
+  const f = input.files && input.files[0];
+  input.value = '';
+  if (!f) return;
+  const box = document.getElementById('cs-import-box');
+  box.innerHTML = '<div style="padding:12px;color:var(--ink3)">解析中…</div>';
+  try {
+    await ensureXLSX();
+    const wb = XLSX.read(await f.arrayBuffer(), { type:'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval:'', raw:true });
+    if (!raw.length) { box.innerHTML = ''; showToast('檔案裡沒有資料列','error'); return; }
+    const need = ['學年度','學期','學號','姓名','課程類別','課程編號'];
+    const heads = Object.keys(raw[0]).map(h=>h.trim());
+    const miss = need.filter(h => !heads.includes(h));
+    if (miss.length) { box.innerHTML = ''; showToast('缺少欄位：'+miss.join('、'),'error'); return; }
+
+    // 欄位名稱去空白
+    const rows = raw.map((r,i) => {
+      const o = {}; Object.keys(r).forEach(k => { o[k.trim()] = r[k]; });
+      return { n:i+2, ay:String(o['學年度']).trim(), sm:String(o['學期']).trim(), code:String(o['學號']).replace(/\s/g,''),
+               name:String(o['姓名']).trim(), typeZh:String(o['課程類別']).trim(), course:String(o['課程編號']).trim().toUpperCase(),
+               credits:String(o['學分數']??'').trim(), email:String(o['Email']??'').trim(), genderZh:String(o['性別']??'').trim(),
+               errors:[], warns:[] };
+    }).filter(r => r.code || r.name || r.course);
+
+    // 參照資料
+    if (!CS_SEMS.length) { const { data } = await sb.from('semesters').select('id,label').order('label',{ascending:false}); CS_SEMS = data||[]; }
+    const semByLabel = Object.fromEntries(CS_SEMS.map(s=>[s.label, s]));
+    const semIds = [...new Set(rows.map(r => semByLabel[`${r.ay}-${r.sm}`]?.id).filter(Boolean))];
+    const offMap = {};
+    if (semIds.length) {
+      const { data: offs } = await sb.from('course_offerings').select('id,semester_id,courses(code,credits)')
+        .in('semester_id', semIds).eq('is_active', true).eq('is_cancelled', false);
+      (offs||[]).forEach(o => { if (o.courses) offMap[`${o.semester_id}|${o.courses.code}`] = { id:o.id, credits:o.courses.credits }; });
+    }
+    const codes = [...new Set(rows.map(r=>r.code).filter(Boolean))];
+    const stuByCode = {};
+    if (codes.length) {
+      const { data: st } = await sb.from('students').select('id,student_code,name_zh,student_type,gender,personal_email').in('student_code', codes);
+      (st||[]).forEach(s => { stuByCode[s.student_code] = s; });
+    }
+    const enrByKey = {};
+    const stuIds = Object.values(stuByCode).map(s=>s.id);
+    if (stuIds.length) {
+      const { data: en } = await sb.from('enrollments').select('id,student_id,offering_id,status').in('student_id', stuIds);
+      (en||[]).forEach(e => { enrByKey[`${e.student_id}|${e.offering_id}`] = e; });
+    }
+
+    const seenName = {}, seenKey = {};
+    rows.forEach(r => {
+      const sem = semByLabel[`${r.ay}-${r.sm}`];
+      if (!sem) r.errors.push(`找不到學期 ${r.ay}-${r.sm}`);
+      if (!/^\d{10}$/.test(r.code)) r.errors.push('學號需為10碼數字');
+      if (!r.name) r.errors.push('缺少姓名');
+      r.type = CS_TYPE_FROM_ZH[r.typeZh];
+      if (!r.type) r.errors.push('課程類別需為「隨班附讀」或「學分專班」');
+      const off = sem ? offMap[`${sem.id}|${r.course}`] : null;
+      if (sem && !off) r.errors.push(`${sem.label} 沒有開 ${r.course || '(空白)'}（或已停開）`);
+      r.sem = sem; r.off = off;
+      if (off && r.credits && Number(r.credits) !== Number(off.credits)) r.warns.push(`學分數 ${r.credits} 與課程主檔 ${off.credits} 不同`);
+      r.gender = r.genderZh === '男' || r.genderZh === 'M' ? 'M' : r.genderZh === '女' || r.genderZh === 'F' ? 'F' : r.genderZh === '其他' ? 'O' : null;
+      if (r.genderZh && !r.gender) r.warns.push(`性別「${r.genderZh}」無法辨識，已略過`);
+      if (r.email && !/^\S+@\S+\.\S+$/.test(r.email)) { r.warns.push('Email 格式不正確，已略過'); r.email = ''; }
+      const ex = stuByCode[r.code];
+      r.stu = ex || null;
+      if (ex && ex.student_type === 'regular') r.errors.push('這個學號屬於一般生');
+      if (ex && ex.student_type !== 'regular' && ex.name_zh !== r.name) r.warns.push(`姓名與系統不同（系統：${ex.name_zh}），不覆蓋`);
+      if (ex && ex.student_type !== 'regular' && r.type && ex.student_type !== r.type) r.warns.push(`類別將由「${CS_TYPE_LABEL[ex.student_type]}」改為「${CS_TYPE_LABEL[r.type]}」`);
+      if (r.code) {
+        if (seenName[r.code] && seenName[r.code] !== r.name) r.errors.push(`同一學號在檔案中姓名不一致（${seenName[r.code]}）`);
+        seenName[r.code] = seenName[r.code] || r.name;
+      }
+      if (off) {
+        const k = `${r.code}|${off.id}`;
+        if (seenKey[k]) r.errors.push('檔案中重複的同學＋課程');
+        seenKey[k] = true;
+      }
+      // 動作
+      if (!r.errors.length) {
+        const en = ex && off ? enrByKey[`${ex.id}|${off.id}`] : null;
+        r.newStudent = !ex;
+        r.enrollAction = !en ? 'add' : en.status === 'confirmed' ? 'skip' : 'restore';
+        r.enrId = en?.id || null;
+      }
+    });
+
+    CS_IMPORT = { rows };
+    csImportPreview();
+  } catch (e) {
+    box.innerHTML = '';
+    showToast('解析失敗：'+(e.message||e),'error');
+    console.warn(e);
+  }
+}
+
+function csImportPreview() {
+  const box = document.getElementById('cs-import-box');
+  const rows = CS_IMPORT.rows;
+  const ok = rows.filter(r=>!r.errors.length);
+  const newStu = new Set(ok.filter(r=>r.newStudent).map(r=>r.code)).size;
+  const add = ok.filter(r=>r.enrollAction==='add').length;
+  const restore = ok.filter(r=>r.enrollAction==='restore').length;
+  const skip = ok.filter(r=>r.enrollAction==='skip').length;
+  const err = rows.length - ok.length;
+  const tr = rows.map(r => {
+    const bad = r.errors.length;
+    const act = bad ? '' : (r.newStudent ? '新增學生＋' : '') + (r.enrollAction==='add' ? '加選' : r.enrollAction==='restore' ? '恢復選課' : '已選過，略過');
+    const msg = [...r.errors.map(x=>`<span style="color:#C0392B">${adEsc(x)}</span>`), ...r.warns.map(x=>`<span style="color:#B7791F">${adEsc(x)}</span>`)].join('；');
+    return `<tr style="${bad?'background:#FDEBEC':''}">
+      <td>${r.n}</td><td>${adEsc(r.ay+'-'+r.sm)}</td><td>${adEsc(r.code)}</td><td>${adEsc(r.name)}</td>
+      <td>${adEsc(r.typeZh)}</td><td>${adEsc(r.course)}</td>
+      <td>${bad?'❌':r.warns.length?'⚠️':'✅'} ${adEsc(act)}</td><td style="font-size:12px">${msg}</td></tr>`;
+  }).join('');
+  box.innerHTML = `
+    <div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:6px">匯入預覽（共 ${rows.length} 列）</div>
+      <div style="font-size:13px;margin-bottom:8px">新增學生 <b>${newStu}</b> 位　加選 <b>${add}</b> 筆　恢復選課 <b>${restore}</b> 筆　已選過略過 <b>${skip}</b> 筆　<span style="color:${err?'#C0392B':'inherit'}">有問題 <b>${err}</b> 列（不會匯入）</span></div>
+      <div class="tbl-wrap" style="max-height:340px;overflow:auto"><table><thead><tr>
+        <th>列</th><th>學期</th><th>學號</th><th>姓名</th><th>類別</th><th>課程</th><th>處理</th><th>說明</th></tr></thead><tbody>${tr}</tbody></table></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn btn-pri btn-sm" id="cs-import-go" onclick="csImportRun()" ${ok.length?'':'disabled'}>確認匯入 ${ok.length} 列</button>
+        <button class="btn btn-sec btn-sm" onclick="CS_IMPORT=null;document.getElementById('cs-import-box').innerHTML=''">取消</button>
+      </div>
+    </div>`;
+}
+
+async function csImportRun() {
+  if (!CS_IMPORT) return;
+  const ok = CS_IMPORT.rows.filter(r=>!r.errors.length);
+  if (!ok.length) return;
+  const btn = document.getElementById('cs-import-go'); if (btn) { btn.disabled = true; btn.textContent = '匯入中…'; }
+  try {
+    // 1) 新增學生（同學號只建一次）
+    const newByCode = {};
+    ok.filter(r=>r.newStudent).forEach(r => { if (!newByCode[r.code]) newByCode[r.code] = r; });
+    const idByCode = {};
+    ok.filter(r=>r.stu).forEach(r => { idByCode[r.code] = r.stu.id; });
+    const newList = Object.values(newByCode).map(r => ({
+      student_code: r.code, name_zh: r.name, student_type: r.type, gender: r.gender, personal_email: r.email || null, status: 'active'
+    }));
+    if (newList.length) {
+      const { data, error } = await sb.from('students').insert(newList).select('id,student_code');
+      if (error) throw new Error('新增學生失敗：' + error.message);
+      (data||[]).forEach(s => { idByCode[s.student_code] = s.id; });
+    }
+    // 2) 已存在的學分班學生：補性別／Email、必要時更新類別
+    const upd = {};
+    ok.filter(r=>r.stu).forEach(r => {
+      const u = {};
+      if (r.type && r.stu.student_type !== r.type) u.student_type = r.type;
+      if (r.gender && r.stu.gender !== r.gender) u.gender = r.gender;
+      if (r.email && r.stu.personal_email !== r.email) u.personal_email = r.email;
+      if (Object.keys(u).length) upd[r.stu.id] = Object.assign(upd[r.stu.id]||{}, u);
+    });
+    for (const [id, u] of Object.entries(upd)) {
+      const { error } = await sb.from('students').update(u).eq('id', id);
+      if (error) throw new Error('更新學生失敗：' + error.message);
+    }
+    // 3) 選課
+    const toAdd = [], toRestore = [], seen = new Set();
+    ok.forEach(r => {
+      const sid = idByCode[r.code];
+      if (r.enrollAction === 'add') {
+        const k = sid + '|' + r.off.id;
+        if (!seen.has(k)) { seen.add(k); toAdd.push({ student_id:sid, offering_id:r.off.id, semester_id:r.sem.id, status:'confirmed',
+          approved_by: window.ADMIN_USER_ID || null, approved_at: new Date().toISOString() }); }
+      } else if (r.enrollAction === 'restore' && r.enrId) toRestore.push(r.enrId);
+    });
+    for (let i = 0; i < toAdd.length; i += 200) {
+      const { error } = await sb.from('enrollments').insert(toAdd.slice(i, i+200));
+      if (error) throw new Error('加選失敗：' + error.message);
+    }
+    if (toRestore.length) {
+      const { error } = await sb.from('enrollments').update({ status:'confirmed', drop_at:null, withdraw_at:null }).in('id', toRestore);
+      if (error) throw new Error('恢復選課失敗：' + error.message);
+    }
+    writeAuditLog('學分班學生', 'Excel匯入', 'students', null, '學分班名單', `新增學生${newList.length}、加選${toAdd.length}、恢復${toRestore.length}`);
+    CS_IMPORT = null;
+    document.getElementById('cs-import-box').innerHTML = `<div style="background:#EAF4EE;border:1px solid #C0DD97;border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px">✅ 匯入完成：新增學生 ${newList.length} 位、加選 ${toAdd.length} 筆、恢復選課 ${toRestore.length} 筆。接下來到「教學意見調查」再按一次「產生填答連結」，就會替新加入的同學補上連結。</div>`;
+    csLoad();
+  } catch (e) {
+    showToast(e.message || String(e), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '重試匯入'; }
+    console.warn(e);
+  }
+}
+
 /* ════════════════════════════════════════════════════════
  * 🕘 工讀生簽到表（名單存 student_workers；一位同學×一個用人單位＝一張簽到退紀錄表）
  * 需要先執行 schema/student_workers.sql
