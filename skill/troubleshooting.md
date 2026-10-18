@@ -159,3 +159,16 @@
 grep -n "is_current" admin.html
 ```
 逐一檢查每個出現點的語境——如果是`semesters.is_current`（決定排課可編輯範圍，正確用法，不要動）或`class_advisors.is_current`（決定導師是否現任，跟學期判斷完全無關，不要動）就跳過；如果是拿`semesters.is_current`去猜「現在是哪個學期」當某個功能的預設值，一律換成`getCurrentSemesterByDate()`。
+
+## 症狀16：統計頁或填答頁突然多出一批沒人填的題目（或某些課程看不到該有的題目）
+
+**可能原因**：`survey_questions` 是全域題庫。新增分類欄位（如 `kind='remote'`）或新題目後，沒有在讀取題目的地方加篩選。
+
+**標準排查**：
+1. `grep -n "survey_questions" admin.html teacher.html survey.html`：列出所有前端讀取點，確認一般統計有 `.neq('kind','remote')`。
+2. 在資料庫跑 `SELECT kind, count(*) FROM survey_questions GROUP BY kind;`，確認各分類題數。
+3. 填答頁題目不對：在 SQL Editor 執行 `SELECT get_survey_form_by_token('該連結token');`，看回傳的 `is_digital`、`questions[].kind`，確認是函式判斷問題還是前端顯示問題。
+4. 看不到遠距題：先確認該課程 `courses.is_digital = true`，再確認該連結 `used=false`（已填過的連結不會再顯示題目）。
+5. 出現重複的遠距題：多半是重跑過 `schema/remote_survey.sql` 且題目文字被改過，查 `SELECT sort_order, question_text, count(*) FROM survey_questions WHERE kind='remote' GROUP BY 1,2 HAVING count(*)>1;`，保留一筆其餘刪除（刪除前確認沒有 `survey_responses` 引用）。
+
+詳細設計見 `User_Manual_V14.md` 第 69 節與 `conventions.md` 第 30 條。
