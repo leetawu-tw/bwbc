@@ -172,3 +172,59 @@ grep -n "is_current" admin.html
 5. 出現重複的遠距題：多半是重跑過 `schema/remote_survey.sql` 且題目文字被改過，查 `SELECT sort_order, question_text, count(*) FROM survey_questions WHERE kind='remote' GROUP BY 1,2 HAVING count(*)>1;`，保留一筆其餘刪除（刪除前確認沒有 `survey_responses` 引用）。
 
 詳細設計見 `User_Manual_V14.md` 第 69 節與 `conventions.md` 第 30 條。
+
+## 症狀17：改欄位型別時出現 `cannot alter type of a column used by a generated column`（或「used by a view」）
+
+**原因**：該欄位被生成欄位（如 `students.cohort`＝取學號前 3 碼）或視圖依賴，PostgreSQL 不允許直接改型別。
+
+**排查順序**：
+1. 先跑 `conventions.md` 第 31 條的三段查詢，找出所有依賴物件（生成欄位、視圖、索引、policy）。
+2. **不要猜生成欄位的計算式**，用 `pg_get_expr` 動態讀出，在同一個 `DO $$ ... $$` 裡「暫存→移除→修改→重建→比對→還原視圖權限」。
+3. 失敗時整段會還原，資料不會有任何變動；把錯誤訊息裡的依賴物件名稱補進暫存清單再重跑。
+4. 成功後驗證：欄位型別、CHECK、視圖筆數、生成欄位抽樣（`SELECT student_code, cohort ... LIMIT 5`）。
+
+## 症狀18：某位老師／學生「不該出現在清單卻出現」或「該出現卻沒出現」
+
+**先不要假設是程式寫死**。先找出清單的篩選規則，再用 SQL 對照該人的資料欄位。例如「兼課鐘點費核銷」的規則是：`teachers.is_adjunct=true 且 active=true`，且（本學期有授課 或 當月已有核銷記錄）；授課是看該學期未停開、啟用的開課的 `offering_teachers`。
+
+**診斷 SQL（一次看清楚）**：
+```sql
+SELECT t.name_zh, t.is_adjunct, t.active, t.adjunct_rank,
+  (SELECT count(*) FROM offering_teachers ot JOIN course_offerings co ON co.id = ot.offering_id
+     JOIN semesters s ON s.id = co.semester_id
+    WHERE ot.teacher_id = t.id AND s.label = '115-1' AND co.is_active AND NOT co.is_cancelled) AS 授課數
+FROM teachers t WHERE t.name_zh IN ('姓名1','姓名2');
+```
+常見原因：沒勾兼課（有授課也不進清單）、課程已停開但授課教師仍掛著（要排除 `is_cancelled`，見 `conventions.md` 第 34 條）、當月已有核銷記錄所以保留顯示。介面已有黃色提示列與卡片說明，先看那裡。
+
+## 症狀19：調查開放之後才加選的學生（例如學分班）沒有填答連結，畫面上也找不到「產生連結」
+
+**原因**：舊版「🎫 產生填答連結」只在調查為草稿時顯示。
+
+**處理**：
+1. 新版開放中的調查有「🎫 補產生連結」按鈕，只替沒有連結的已確認選課建立，並自動略過休學／退學學生。
+2. 沒更新程式時，用 SQL 補（`conventions.md` 第 33 條的寫法），完成後重新整理頁面確認連結數。
+3. 休學的人若已有連結，先 `SELECT` 預覽（休學／退學且 `used=false`），確認名單後再 `DELETE`。
+
+**驗證**：頁面上「已產生連結：N 份」增加；「查看連結」找得到該同學；複製全部的欄位順序是姓名、課程、連結、Email、備註（學分班同學的 Email 是個人信箱、備註是課程類別）。
+
+## 症狀20：休學的同學在名單上被標成「停修」，或被算進選課人數
+
+**原因**：名單程式只看 `enrollments.status`，沒有先看 `students.status`；或查詢只抓 `status='confirmed'`，休學同學的選課記錄未被改動，於是被當成正常修課。
+
+**排查順序**：
+1. 用 SQL 對照該生：`SELECT s.student_code, s.name_zh, s.status AS 學籍, e.status AS 選課 FROM enrollments e JOIN students s ON s.id=e.student_id WHERE ...`。
+2. 學籍是 `leave` 但選課是 `withdrawn`／`confirmed` → 資料本身的慣例問題，修顯示規則（`conventions.md` 第 35 條），不要先改資料。
+3. 確認各處（點名單、空白評分表、老師端名單、開課記錄人數）都已套用「學籍優先」與「不計入人數」。
+
+**驗證**：休學同學出現在名單上，狀態寫「休學」，選課總人數不含他。
+
+## 症狀21：Excel 開啟匯出檔，10 碼學號變成 1.14E+09，或學號被欄寬截斷
+
+**原因**：CSV 沒有欄位型別與欄寬資訊，Excel 把純數字當數值。
+
+**處理**：CSV 學號寫成 `="1142401007"`；需要欄寬時改匯出 `.xlsx` 並設定 `!cols`（`conventions.md` 第 36 條）。已經產生的檔案不會自動改，需重新匯出。
+
+## 症狀22：改了程式，下載出來的 Excel／畫面還是舊格式
+
+**先做**：不要先改程式。請使用者在「更新紀錄」確認第一項是不是這次新增的內容；再確認本機檔案已覆蓋並 Ctrl+F5。2026-10-23 就發生一次：下載的點名記錄 Excel 欄位是舊版的「學號／姓名／類別」，原因是本機 `teacher.html` 還沒換成新版。與 SKILL.md 核心提醒第 0 條同一類。

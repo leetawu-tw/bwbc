@@ -361,3 +361,87 @@ SELECT current_user_can_write('courses'), current_user_can_write('open_courses')
 **真實案例**：2026-10-13～14，新增「遠距教學課程 教學品質調查」。資料庫加 `kind` 欄位與 8 題之後，admin／teacher 的統計頁各有一處 `from('survey_questions')`，不加篩選就會在每一科的一般統計裡多出 8 題空白題目；兩處補上 `.neq('kind','remote')`，遠距題改由獨立區塊顯示。
 
 **檢查方式**：新增任何「只對一部分資料適用」的內容時，先問「現有所有讀取這張表的地方，各自該不該看到它？」再動手。
+
+## 31. 改既有表的欄位型別／長度前，先查「生成欄位、視圖、索引」的相依，用「暫存→移除→修改→重建→比對」流程，整段放在同一個交易
+
+**規則**：要對 `students.student_code` 這類被其他物件依賴的欄位做 `ALTER COLUMN ... TYPE`（或改 CHECK），先查清楚有誰依賴它，不要直接改：
+```sql
+-- 生成欄位及計算式
+SELECT a.attname, pg_get_expr(d.adbin, d.adrelid) AS expression, a.attgenerated
+FROM pg_attribute a JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+WHERE a.attrelid = 'public.students'::regclass AND a.attgenerated <> '';
+-- 依賴某欄位的視圖
+SELECT DISTINCT v.relname FROM pg_depend d
+JOIN pg_rewrite r ON r.oid = d.objid JOIN pg_class v ON v.oid = r.ev_class
+JOIN pg_attribute a ON a.attrelid = d.refobjid AND a.attnum = d.refobjsubid
+WHERE d.refobjid = 'public.students'::regclass AND a.attname = '欄位名' AND v.relname <> 'students';
+-- 相關索引、policy 另外用 pg_indexes / pg_policies 查
+```
+
+**標準流程（`DO $$ ... END $$` 一整段＝單一交易，失敗全部還原）**：
+1. 備份依賴物件：視圖用 `pg_get_viewdef(oid,true)` ＋ `reloptions` ＋ `relacl` 存進變數/暫存表；生成欄位用 `pg_get_expr(adbin, adrelid)` 讀出計算式；另備份生成欄位目前的值到暫存表。
+2. 移除依賴物件（`DROP VIEW`、`DROP COLUMN` 生成欄位）。
+3. 修改（改型別、CHECK 等）。
+4. 重建：生成欄位用 `format('ALTER TABLE ... ADD COLUMN x smallint GENERATED ALWAYS AS (%s) STORED', 計算式)`，補回索引；視圖用 `CREATE VIEW ... AS 備份定義`，再用 `aclexplode(relacl)` 還原 GRANT。
+5. **比對**：重建後的生成欄位值跟備份逐筆比對，有任何不同就 `RAISE EXCEPTION` 讓整段還原。
+
+**根本原因**：`ALTER COLUMN TYPE` 遇到生成欄位會報 `cannot alter type of a column used by a generated column`，遇到視圖會報被視圖使用；而 Supabase SQL Editor 一次執行整段時，錯誤會讓整段回滾，才不會留下「改一半」的狀態。
+
+**真實案例**：2026-10-18，學分班學號是 10 碼，`students.student_code` 是 `char(8)` 加 `CHECK ^\d{8}$`。`cohort` 是「取學號前 3 碼」的生成欄位，`v_student_advisors`、`v_presentation_participants_public` 兩個視圖依賴相關欄位，依序造成兩次失敗，最後用上述流程一次完成（改 `varchar(10)`、CHECK 改 8 或 10 碼、重建 `cohort` 與兩個視圖，並比對 55 位學生的 `cohort` 不變）。**別用「先猜計算式」的寫法，一律從資料庫動態讀出計算式再重建。**
+
+## 32. 非正式學生（學分班）放在 `students` 表，用 `student_type` 區分；所有「學生統計」類功能都要排除 `student_type <> 'regular'`
+
+**設計（2026-10-18）**：
+- `students.student_type`：`regular`（預設，一般生）、`audit`（隨班附讀）、`credit_program`（學分專班）。學號 10 碼（一般生 8 碼），`chk_student_code` 允許 8 或 10 碼。
+- Email 存 `personal_email`；不產生 `@bwbc.edu.tw` 學校信箱，也不建立登入帳號（學分班不登入學生端）。
+- 選課沿用 `enrollments`（狀態 `confirmed`）。因此「選課人數、點名單、教學意見調查連結」這幾個從 `enrollments` 讀資料的功能**自動涵蓋**學分班，不需要另外一套名單。
+- `cohort`（屆別）由學號前 3 碼算出，對學分班沒有意義（同一個人各學期沿用第一次的學號），**學分班不參與任何屆別統計**，不要把它改成手動輸入。
+
+**必須遵守**：
+1. 任何讀取 `students` 做「統計」「完成度」「畢業」「導師」「論文」的功能，都要加 `student_type = 'regular'` 的條件，否則學分班同學會混進一般生的分母；新增這類功能時主動加。**2026-10-19～23 已完成**：選課統計分析、選課完成度總覽、推薦選課缺漏名單、成績彙總、操行成績（產生名單、非在學名單）、學生資料、工讀生簽到、發表會參加者、班級導師名單共 11 處已加 `.eq('student_type','regular')`。新增功能時比照辦理，不要憑印象判斷。
+2. 學分班匯入不可覆蓋一般生：學號對到 `student_type='regular'` 的列一律擋下。
+3. 「正式功能」（一般生匯入、學號格式驗證 `^\d{8}$`）維持 8 碼，不要因為學分班放寬而一起放寬。
+4. **名單類功能要含學分班、統計類功能要排除**：點名單、選課學生名單、成績登錄、空白評分表、教學意見調查連結要列學分班（他們佔座位、要點名、要發問卷），人數寫成「一般生 ＋ 學分班 N 人」；成績照常登錄與保存，但不進任何統計。
+5. **學分班加選只能選 `courses.is_audit = true` 的課**：加選視窗、新增學生視窗的課程下拉、Excel 匯入三處同一規則。`is_audit`（開放隨班附讀）與 `is_digital`（數位課程）是不同欄位，不要混用。
+6. 獎學金推薦目前只靠資料檢查（2026-10-23 SQL 查得 0 筆），程式端沒有排除；若日後發現學分班被推薦，補 `student_type = 'regular'`。
+
+詳細見 `User_Manual_V14.md` 第 70 節。
+
+## 33. 「批次產生記錄」的功能（如問卷連結）要能補產生，並依學生狀態過濾
+
+**規則**：
+1. **產生功能要有補產生的入口**：原本「🎫 產生填答連結」只在調查為「草稿」時顯示，調查一開放就沒有按鈕，晚加選的學生（如學分班）永遠補不上連結。批次產生要靠唯一鍵（`UNIQUE(survey_id, enrollment_id)`）與「已存在就略過」保證可重複執行，並在開放中也提供「補產生」按鈕。
+2. **產生時過濾不該有的人**：略過 `students.status` 為 `leave`（休學）、`withdrawn`（退學）的學生。系統慣例是休學只改學生狀態，不動選課記錄，所以只看 `enrollments.status='confirmed'` 一定會把休學的人算進去。
+3. **已產生的連結不自動刪除**：需要時用 SQL 只刪 `used=false` 的（已填答的保留）。先 `SELECT` 預覽名單，確認後再 `DELETE`。
+4. 用 SQL 補產生時，條件必須與程式一致（含休學／退學過濾），並用 `WITH ins AS (INSERT ... RETURNING ...) SELECT count(*) FROM ins` 取得新增筆數；**舊版的補產生 SQL 沒有休學條件，不要重複執行**。
+
+## 34. 判斷「這學期有沒有開這門課」一律要排除已停開／停用的開課
+
+**規則**：凡是用 `course_offerings` 判斷「有開課」「有授課」的地方，都要加 `.eq('is_active', true).eq('is_cancelled', false)`。停開只是把 `is_cancelled` 標成 `true`，開課記錄與 `offering_teachers` 都還在，不加條件就會把停開的課算進去。
+
+**真實案例**：2026-10-17，兼課鐘點費核銷頁，課程停開後吳昌衛、林君昱仍出現在清單（程式只看 `offering_teachers`，沒有排除停開的開課）。修法：載入授課資訊時加上述兩個條件。
+
+**檢查方式**：新增或修改「授課／有開課」判斷時，`grep -n "course_offerings" admin.html`，確認每一處是否該排除停開；診斷用 SQL 也要同時印出 `is_active`、`is_cancelled`，只印「有幾筆」會被停開的課誤導。
+
+## 35. 判斷學生狀態，一律「學籍狀態優先於選課狀態」；名單與人數要用同一套算法
+
+**規則**：
+1. 顯示順序：先看 `students.status`（`leave` → 休學、`withdrawn` → 退學），再看 `enrollments.status`（`withdrawn` → 停修、`dropped` → 退選），最後才顯示類別（一般生／隨班附讀／學分專班）。
+2. **「選課總人數」「修課學生數」不算休學、退學、停修**，但這些同學仍列在名單上並標示（整列灰底、各週格子寫狀態、不可編輯）。
+3. 有學分班時人數分開寫：`16 ＋ 學分班 5 人`；沒有學分班只寫一個數字。
+4. 名單排序：一般生在前、學分班在後，組內依學號；序號連續編號（含休學、退學、學分班），不受分組影響。
+5. 以下功能共用同一套規則，修改其中一處要同步檢查其他處：行政端課程點名單（列印＋Excel）、空白評分表、開課記錄「已選 X 人」、老師端課堂點名與點名記錄 Excel、老師端成績登錄與匯出。
+
+**根本原因**：系統慣例是「休學只改學生狀態，不動選課記錄」，且曾有休學同學的選課記錄被標成 `withdrawn`。若先看選課狀態，休學的同學會被寫成「停修」；若只看 `enrollments.status='confirmed'`，休學的人會被算進人數。
+
+**檢查方式**：新增或修改任何「列出修課學生」的功能時，確認 select 同時帶出 `enrollments.status` 與 `students.status`、`student_type`；查詢條件用 `.in('status',['confirmed','withdrawn'])`（才看得到停修），再由程式依上述順序決定標示與是否計入人數。
+
+## 36. 匯出給 Excel 開啟的檔案：10 碼學號與欄寬
+
+**規則**：
+1. CSV 裡的學號要寫成文字格式（`="1142401007"`），否則 Excel 會把 10 碼學號顯示成 1.14E+09。批次匯入成績要能讀回這種寫法（去掉 `="` 與 `"`）。
+2. CSV 無法設定欄寬；需要欄寬時改匯出 `.xlsx`（SheetJS，`ensureXlsxLib()` 載入），並設定 `ws['!cols']`；學號姓名同一欄時寬度至少 24。CSV 可保留給需要純文字的情況。
+3. 老師端目前只匯出 `.xlsx`／`.csv`，匯入仍只收 CSV（刻意不做 `.xlsx` 匯入）。
+4. 欄位順序、標頭用同一個函式或同一份規格，避免行政端與老師端各寫一套。
+
+**真實案例**：2026-10-22，學分班 10 碼學號在 Excel CSV 顯示 1.14E+09，改文字格式後仍有 2 碼被欄寬截斷，最後新增「匯出 Excel」並加寬欄位。
