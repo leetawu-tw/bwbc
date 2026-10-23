@@ -445,3 +445,87 @@ WHERE d.refobjid = 'public.students'::regclass AND a.attname = '欄位名' AND v
 4. 欄位順序、標頭用同一個函式或同一份規格，避免行政端與老師端各寫一套。
 
 **真實案例**：2026-10-22，學分班 10 碼學號在 Excel CSV 顯示 1.14E+09，改文字格式後仍有 2 碼被欄寬截斷，最後新增「匯出 Excel」並加寬欄位。
+
+
+## 37. 日期字串（yyyy-mm-dd）全程當字串處理；只要轉成 Date 物件再轉回來，就有 ±1 天的時區地雷
+
+> 補回：原記於 2026-07-02 的規則（當時編號 18），7/7 後的 skill 版本漏掉，2026-10-23 從舊對話找回。
+
+**規則**：
+1. 日期欄位（`class_date`、`start_date`、`change_deadline` …）存進資料庫、`<input type="date">`、字串比對、排序、`.slice()` 都直接用字串，永遠安全。
+2. 需要「迴圈走過每一天」或「算星期幾」時，用 `new Date(y, m-1, d)` 取 `getDay()`，但**輸出回字串時用 y/m/d 數字手動拼**（`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`），**不要用 `.toISOString().slice(0,10)`**。
+3. `new Date("2026-06-02")` 會被當成 UTC 午夜解析，與 `new Date(2026,5,2)`（本地午夜）不同；兩種混著用、或其中一種再 `toISOString()`，在台灣（UTC+8）就會差一天。
+
+**真實案例**：兼課鐘點費「依課表帶入」（`prefillFromSchedule()`）用 `dt.toISOString().slice(0,10)` 存日期，本地午夜轉 UTC 後往前推一天，週二的課被存成週一的日期。
+
+**唯一例外**：`new Date().toISOString().slice(0,10)` 只用來當匯出檔名的日期戳，誤差最多幾小時，不影響可讀性，不用改。
+
+## 38. 定期用單一查詢整批盤查全資料庫的 RLS，不要只檢查剛動到的表
+
+> 補回：原記於 2026-07-03（當時編號 19）。
+
+**規則**：大改版或排查權限問題時，跑一次全庫盤查：
+```sql
+SELECT schemaname, tablename, rowsecurity FROM pg_tables WHERE schemaname='public' ORDER BY tablename;
+SELECT tablename, policyname, cmd FROM pg_policies WHERE schemaname='public' ORDER BY tablename;
+```
+比對兩種異常：① 有 policy 但 `rowsecurity=false`（policy 等於白寫）；② 完全沒有 policy（可能是刻意公開，也可能是漏洞）。逐一確認是刻意還是遺漏。
+
+**真實案例**：2026-06-25 寫文件時整批 dump schema，才發現 `courses`／`teachers`／`course_offerings` 三張核心表 policy 寫好卻從沒開 RLS，`offering_teachers`／`classrooms` 則完全沒 policy，已存在好幾週沒人發現。
+
+**刻意例外（需向使用者確認現況）**：2026-07 使用者曾確認教學意見調查四張表（`surveys`／`survey_tokens`／`survey_questions`／`survey_responses`）刻意不開 RLS。盤查時看到這幾張沒開不要擅自開啟，先問使用者現在是否仍是這個決定。
+
+## 39. 產生或解析 Word 文件（套版、匯入）的常見坑
+
+> 補回：原記於 2026-07-03（當時編號 20）。原文只找回重點，細節以實際測試為準。
+
+1. **`\n` 不會變成 Word 換行**：套版置換文字時，換行要用 Word 的換行標記，不能直接塞 `\n`。
+2. **mammoth 轉 HTML 會產生 `<br>`**：解析時要把 `<br>` 當換行處理，否則多行內容會黏在一起。
+3. **動態表格列**：資料筆數不固定的表格，要複製範本列再填入，不能假設列數固定。
+4. **表格定位不要靠表頭文字或相對位置**：最穩的做法是把整份文件所有表格的所有列攤平成一個陣列，逐列比對固定的「標籤文字」去抓值；不同表格的標籤通常不重複。
+5. **新增或修改套版功能前，先解壓範本 .docx，確認 `word/document.xml` 裡「真的有」`{{XXX}}`／`[[XXX]]` 標記**。本專案踩過兩次：以為範本有標記，置換邏輯其實從沒生效，下載的檔案只是範本換個檔名，沒人發現。
+
+## 40. 匯入會覆蓋既有資料時，先做「新舊比對、逐欄選擇」，不要靜默覆蓋
+
+> 補回：原記於 2026-07-03（當時編號 21）。
+
+**規則**：目標記錄已有資料時，不要匯入完直接存檔。流程是「讀舊資料 → 與新資料逐欄並排 → 使用者每欄選舊或新（預設新）→ 預覽 → 再按一次儲存才寫入」，中間沒有任何一步是靜默覆蓋。新舊相同的欄位自動變暗、標示不用選。
+
+**批次比對編號時**：不要只在「目前畫面篩選範圍」（例如只查選定學期）找，找不到要再查資料庫全集，否則會把「資料存在、只是不在篩選範圍」誤判成「找不到」。更好的做法是讓使用者選「優先比對範圍」，並保留全集查詢當備援。
+
+**可重用**：這個比對框架同樣適用「從舊學期複製」等其他資料來源。
+
+## 41. 工具列按鈕超過 5～6 顆，就收進下拉選單
+
+> 補回：原記於 2026-07-03（當時編號 22）。
+
+**規則**：一個功能區的按鈕一路橫排，筆電就放不下、手機更糟。超過 5～6 顆就依性質分成 2～3 個下拉選單（例如「列印／範本」「大綱匯入」「資料」），只留最常用的一顆（如「＋新增」）獨立。下拉選單要：點外面自動收起、點項目執行後自動收起、手機寬度（≤600px）改成貼齊左右兩側並加大字體與間距。
+
+**排版陷阱**：標題若設了 `flex:1`，後面接的選單會被推很遠；要另放一個獨立的 `flex:1` 空白區塊把按鈕推到右邊，不要依賴標題本身的 flex。
+
+## 42. Supabase Storage 路徑（key）不能含中文或任何非 ASCII 字元
+
+> 補回：原記於 2026-07-03（當時編號 23）。
+
+**症狀**：`.upload(path, file)` 的 `path` 含中文，直接回 `Invalid key`；改用 `encodeURIComponent()` 也不行，會變 `400 Bad Request`，因為 `%` 本身不在允許字元內。
+
+**規則**：路徑只用英數字與 `-` `_` `.` `/`；中文姓名、原始檔名只存資料庫欄位（如 `file_name`）給畫面顯示，與 Storage 底層路徑脫鉤。
+```js
+// ❌ const path = `${eventId}/${studentCode}_${studentName}/${file.name}`;
+// ❌ const path = `${eventId}/${encodeURIComponent(studentName)}/...`;
+// ✅ const ext = file.name.split('.').pop();
+//    const path = `${eventId}/${studentCode}/${Date.now()}.${ext}`;
+```
+新增任何上傳功能、組路徑前，先檢查有沒有姓名、課程名稱、原始檔名這類可能含中文的變數。這個坑踩過兩次（公佈欄附件、畢業論文發表會附件）。
+
+## 43. 用 SQL Editor 建新表，要另外 GRANT；只做 RLS 不夠
+
+> 補回：原記於 2026-07-03（當時編號 24）。
+
+**規則**：GRANT（資料表層級權限）在 RLS（列層級）之前檢查，缺 GRANT 會直接 `42501 permission denied for table xxx`，連 policy 都還沒機會生效。新建表後要補：
+```sql
+GRANT SELECT ON 表名 TO anon;            -- 只有需要公開讀取時
+GRANT ALL ON 表名 TO authenticated;
+-- 序號欄位另補：GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+```
+`GRANT ALL ON ALL TABLES` 只涵蓋執行當下已存在的表；要讓之後新建的表自動授權，可設 `ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authenticated;`。GRANT 與 RLS 兩者獨立，都要規劃。
