@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.46 2026-10-23 休學/退學學期的課改顯示「休學/退學」不再顯示停修；左側選單移除舊的「教材與作業」「課程討論區」(統一從「我的課程」進入，討論區由各單元的「前往討論區」進入)；「我的課程」新增「🗂 依單元／📋 全部清單」切換。前次(v3.44) TA課程管理「作業/教材列表」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，可切換回表格。前次(v3.43) 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
+<!-- BWBC Student v3.47 2026-10-23 休學學期在「歷年已選課程」顯示「本學期：休學」(即使沒有選課)並顯示累計休學學期數(需執行 student_status_history_self_read.sql)。前次(v3.46) 休學/退學學期的課改顯示「休學/退學」不再顯示停修；左側選單移除舊的「教材與作業」「課程討論區」(統一從「我的課程」進入，討論區由各單元的「前往討論區」進入)；「我的課程」新增「🗂 依單元／📋 全部清單」切換。前次(v3.44) TA課程管理「作業/教材列表」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，可切換回表格。前次(v3.43) 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -115,7 +115,7 @@ input{font-family:inherit}
 .my-table td{padding:10px 12px;font-size:13px;vertical-align:middle}
 
 /* ── BADGE ── */
-.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
 .badge-req{background:#FFF3E0;color:#B05010;border:1px solid #F0C080}
 .badge-sel{background:var(--green3);color:var(--green);border:1px solid #90D090}
 .badge-go{background:#E8EAF6;color:#3949AB;border:1px solid #9FA8DA}
@@ -855,9 +855,15 @@ function resolveReqType(baseReqType, overrides, cohort) {
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
   {
+    version: 'v3.47', date: '2026-10-23',
+    items: [
+      '「歷年已選課程」新增休學學期顯示：已過去且當時為休學的學期，即使沒有任何選課，也會列出一列「本學期：休學，無修課記錄」；清單最上方顯示「累計休學 N 學期」。依「學生狀態異動歷程」推算每個學期結束當下的學籍。需先執行 student_status_history_self_read.sql（讓學生能讀自己的異動歷程）；未執行時此功能自動略過，不影響其他畫面。'
+    ]
+  },
+  {
     version: 'v3.46', date: '2026-10-23',
     items: [
-      '休學、退學學期的課程，在「已選課程」「歷年已選課程」與選課頁的按鈕上改顯示「休學」「退學」，不再顯示「停修」或「停修 W」（休學是學籍狀態，與課程的停修不同）。判斷依據是選課記錄的原因欄開頭為「休學」或「退學」。',
+      '修正「已選課程」狀態欄在窄螢幕把「休學」兩個字擠成上下兩行的外觀問題（狀態標籤不換行）。休學、退學學期的課程，在「已選課程」「歷年已選課程」與選課頁的按鈕上改顯示「休學」「退學」，不再顯示「停修」或「停修 W」（休學是學籍狀態，與課程的停修不同）。判斷依據是選課記錄的原因欄開頭為「休學」或「退學」。',
     ]
   },
   {
@@ -3588,6 +3594,36 @@ function closeSyllabus() {
 }
 
 /* ════ HISTORY TAB ════ */
+/* 由 student_status_history 推算「已結束的學期中，哪些學期結束當下是休學」＋累計休學學期數
+   規則：學期結束日(含)之前最後一筆生效的異動 = 該學期狀態；最早一筆之前用 old_status 回推；
+   完全沒有歷程 → 不推算（回傳空）。需資料庫已開放學生讀取自己的歷程(student_status_history_self_read)。 */
+async function getMyLeaveSemesters() {
+  const out = { byLabel:{}, count:0 };
+  try {
+    const [{ data:hist, error:hErr }, { data:sems }] = await Promise.all([
+      sb.from('student_status_history').select('new_status, old_status, changed_at, is_applied')
+        .eq('student_id', ME.id).or('is_applied.is.null,is_applied.eq.true').order('changed_at'),
+      sb.from('semesters').select('id,label,start_date,end_date').order('start_date')
+    ]);
+    if (hErr || !hist?.length || !sems?.length) return out;
+    const list = hist.map(h => ({ t:new Date(h.changed_at).getTime(), st:h.new_status, old:h.old_status })).filter(h => !Number.isNaN(h.t));
+    if (!list.length) return out;
+    const today = new Date().toISOString().slice(0,10);
+    const skip = new Set([ACTIVE_SEM_ID, CURRENT_SEM_ID].filter(Boolean));
+    for (const sm of sems) {
+      if (!sm.end_date || !sm.start_date || sm.start_date > today) continue; // 還沒開始的學期不算
+      const ref = new Date(sm.end_date + 'T23:59:59+08:00').getTime();
+      let st = null;
+      for (const h of list) { if (h.t <= ref) st = h.st; else break; }
+      if (st == null) st = list[0].old || 'active';
+      if (st !== 'leave') continue;
+      out.count++;                                   // 累計休學學期數（含目前學期）
+      if (!skip.has(sm.id)) out.byLabel[sm.label] = '休學'; // 目前學期由頁面頂端橫幅提示，歷年清單只列已過去的學期
+    }
+  } catch (e) { console.warn('getMyLeaveSemesters', e); }
+  return out;
+}
+
 async function loadHistory() {
   const wrap = document.getElementById('history-wrap');
   wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
@@ -3599,16 +3635,22 @@ async function loadHistory() {
     .in('status', ['confirmed','withdrawn'])
     .order('enrolled_at');
 
-  if (!allEnr?.length) {
+  // 休學學期：由「學生狀態異動歷程」推算每個學期結束當下是否為休學（休學學期可能完全沒有選課記錄，仍要在這裡顯示）
+  // 讀不到歷程（權限未開或沒有記錄）時略過，不影響原本顯示
+  const leaveInfo = await getMyLeaveSemesters();
+  window._histLeave = leaveInfo.byLabel;   // { '114-1': '休學', ... }
+  window._histLeaveCount = leaveInfo.count;
+
+  if (!allEnr?.length && !Object.keys(leaveInfo.byLabel).length) {
     wrap.innerHTML = '<div style="color:var(--ink3);padding:20px">尚無歷史記錄</div>';
     return;
   }
 
-  const ids = allEnr.map(e=>e.offering_id);
+  const ids = (allEnr||[]).map(e=>e.offering_id);
   // 直接查 course_offerings + courses，避免 v_course_schedule is_active 過濾
-  const { data:offsData } = await sb.from('course_offerings')
+  const { data:offsData } = ids.length ? await sb.from('course_offerings')
     .select('id, course_id, semester_id, time_raw, req_type_overrides, semesters(label), courses(code, name_zh, credits, req_type, course_axes(code))')
-    .in('id', ids);
+    .in('id', ids) : { data: [] };
   const courseMap = {};
   (offsData||[]).forEach(o=>{
     const c = o.courses;
@@ -3630,12 +3672,12 @@ async function loadHistory() {
   // 代表已經重修通過，舊的不及格那筆在學生自己看的歷年已選課程/畢業進度不用再顯示(admin後台仍看得到，這裡只影響學生端畫面)
   const failedOfferingIdsForHistory = await getFailedOfferingIds();
   const passedCourseIds = new Set(); // 有任何一筆confirmed且「這一筆本身」不是不及格的course_id
-  allEnr.forEach(e => {
+  (allEnr||[]).forEach(e => {
     const c = courseMap[e.offering_id];
     if (!c) return;
     if (e.status==='confirmed' && !failedOfferingIdsForHistory.has(e.offering_id)) passedCourseIds.add(c.course_id);
   });
-  const visibleEnr = allEnr.filter(e => {
+  const visibleEnr = (allEnr||[]).filter(e => {
     const c = courseMap[e.offering_id];
     if (!c) return true;
     const isThisFailed = e.status==='confirmed' && failedOfferingIdsForHistory.has(e.offering_id);
@@ -3650,6 +3692,9 @@ async function loadHistory() {
     if (!byTerm[term]) byTerm[term] = [];
     byTerm[term].push({...c, status: e.status, grade: e.final_grade, reason: e.withdraw_reason||''});
   });
+
+  // 休學學期即使沒有任何選課，也要有一列
+  Object.keys(leaveInfo.byLabel).forEach(l => { if (!byTerm[l]) byTerm[l] = []; });
 
   window._histByTerm = byTerm;
   window._histSort = { field:'code', dir:1 };
@@ -3684,15 +3729,27 @@ function renderHistory() {
   };
 
   let html = '';
+  if (window._histLeaveCount) html += `<div style="margin-bottom:14px;padding:10px 14px;border-radius:8px;background:#FFF8F0;color:#B05010;font-size:13px">累計休學 <strong>${window._histLeaveCount}</strong> 學期</div>`;
   for (const term of Object.keys(byTerm).sort().reverse()) {
     const items = [...byTerm[term]].sort((a,b)=>{
       const va=getVal(a,s.field), vb=getVal(b,s.field);
       return (typeof va==='number' ? (va-vb) : va.localeCompare(vb,'zh')) * s.dir;
     });
     const termCredits = items.filter(i=>i.status==='confirmed').reduce((sum,i)=>sum+i.credits,0);
+    const leaveLabel = (window._histLeave||{})[term] || '';
+    const leaveBadge = leaveLabel ? `<span style="font-size:11px;padding:2px 10px;border-radius:20px;background:#FFF3E0;color:#B05010;white-space:nowrap">本學期：${leaveLabel}</span>` : '';
+    if (!items.length) {
+      html += `<div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--navy)">${term}</span>${leaveBadge}
+        </div>
+        <div style="padding:12px 14px;border-radius:8px;background:#FFF8F0;color:#B05010;font-size:13px">本學期為休學，無修課記錄。</div>
+      </div>`;
+      continue;
+    }
     html += `<div style="margin-bottom:20px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <span style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--navy)">${term}</span>
+        <span style="font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--navy)">${term}</span>${leaveBadge}
         <span style="font-size:12px;color:var(--ink3)">共 ${items.length} 門 · ${termCredits} 學分</span>
       </div>
       <table class="my-table">

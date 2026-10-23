@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.42 2026-10-19 「選課學生名單」/成績登錄/點名表學分班同學姓名旁加註類別(隨班附讀/學分專班)，點名Excel新增「類別」欄，獎學金推薦排除學分班；名單/成績登錄/點名一般生在前學分班在後並分組標題，休學→退學→停修判斷，點名表/點名Excel休學退學照列並標示(不能點名、不計人數)。前次(v3.41) 2026-10-14 教學意見調查統計：數位課程最後多出「遠距教學課程 教學品質調查」區塊(受「老師可見」開關控制)。前次(v3.40) 教學意見調查統計只讀一般題，不含遠距教學題(kind=remote)。前次(v3.39) 「教材與作業」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，各自有「＋教材」「＋作業」，可切換回表格。前次(v3.38) 老師端影片教材列表新增「▶ 線上看」，老師預覽不設限(可快轉/後退，不記錄進度)。前次(v3.37) 影片教材/教材不需批閱，只看觀看狀況。 前次(v3.36) 新增作業/教材預帶的截止時間改為「上傳日（單元課程還沒上完則為最後一堂課日期）+7天」晚上8:00，不再預帶到已經過去的日期。前次(v3.35) 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
+<!-- BWBC Teacher v3.43 2026-10-23 休學/退學不再顯示成停修、已結束學期名單不受學生現在學籍影響；「選課學生名單」/成績登錄/點名表學分班同學姓名旁加註類別(隨班附讀/學分專班)，點名Excel新增「類別」欄，獎學金推薦排除學分班；名單/成績登錄/點名一般生在前學分班在後並分組標題，休學→退學→停修判斷，點名表/點名Excel休學退學照列並標示(不能點名、不計人數)。前次(v3.41) 2026-10-14 教學意見調查統計：數位課程最後多出「遠距教學課程 教學品質調查」區塊(受「老師可見」開關控制)。前次(v3.40) 教學意見調查統計只讀一般題，不含遠距教學題(kind=remote)。前次(v3.39) 「教材與作業」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，各自有「＋教材」「＋作業」，可切換回表格。前次(v3.38) 老師端影片教材列表新增「▶ 線上看」，老師預覽不設限(可快轉/後退，不記錄進度)。前次(v3.37) 影片教材/教材不需批閱，只看觀看狀況。 前次(v3.36) 新增作業/教材預帶的截止時間改為「上傳日（單元課程還沒上完則為最後一堂課日期）+7天」晚上8:00，不再預帶到已經過去的日期。前次(v3.35) 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -1438,6 +1438,10 @@ async function loadMyCourses() {
       .in('offering_id', ids).order('sort_order', { ascending:true }),
     sb.from('enrollments').select('offering_id, students(student_type, status)').eq('status','confirmed').in('offering_id', ids)
   ]);
+  // 已結束學期的課：人數不能用學生「現在」的學籍排除休學（他後來才休學，那學期仍是正常修課）
+  const { data: _semRows } = await sb.from('semesters').select('label, end_date');
+  const _semEnd = {}; (_semRows||[]).forEach(r => { _semEnd[r.label] = r.end_date; });
+  const _offOver = {}; (csRes.data||[]).forEach(c => { const end = _semEnd[c.semester_label]; _offOver[c.offering_id] = !!end && new Date(end + 'T23:59:59+08:00') < new Date(); });
 
   const teacherMap = {};
   (otTeachersRes.data || []).forEach(t => {
@@ -1449,7 +1453,7 @@ async function loadMyCourses() {
   // 與admin.html「開課記錄」同一算法：含學分班、另計學分班人數，休學/退學不算
   const enrollCountMap = {}, enrollCsCountMap = {};
   (enrollCountRes.data || []).forEach(e => {
-    if (['leave','withdrawn'].includes(e.students?.status)) return;
+    if (!_offOver[e.offering_id] && ['leave','withdrawn'].includes(e.students?.status)) return;
     enrollCountMap[e.offering_id] = (enrollCountMap[e.offering_id]||0) + 1;
     if (e.students?.student_type && e.students.student_type !== 'regular') enrollCsCountMap[e.offering_id] = (enrollCsCountMap[e.offering_id]||0) + 1;
   });
@@ -1519,8 +1523,27 @@ function isCsStudent(s) { return !!s?.student_type && s.student_type !== 'regula
 function csGroupSort(a, b) { return (isCsStudent(a) - isCsStudent(b)) || (a?.student_code||'').localeCompare(b?.student_code||''); }
 // 不在修課的原因：學籍狀態優先（休學→退學），再看選課是否停修；仍在修課回傳空字串
 // 老師端各名單查詢只撈 confirmed/withdrawn，dropped（退選）在查詢就已排除，所以這裡不需處理（點名表也一樣，與admin點名單一致）
-function rosterOffLabel(stu, enrStatus) {
-  return stu?.status === 'leave' ? '休學' : stu?.status === 'withdrawn' ? '退學' : enrStatus === 'withdrawn' ? '停修' : '';
+// 休學是學籍狀態，不是停修：選課記錄 withdrawn 且原因以「休學」「退學」開頭的，顯示休學／退學；其餘（原因空白或其他）才是正式停修。
+// semOver：這門課所屬學期是否已結束。學期已結束的課，不能用學生「現在」的學籍判斷（他後來才休學，之前那學期仍是正常修課），
+// 只看選課記錄上的標記；學期還沒結束才併用現在的學籍（與管理端點名單的結果一致）。
+function rosterOffLabel(stu, enrStatus, reason, semOver) {
+  if (!semOver) {
+    if (stu?.status === 'leave') return '休學';
+    if (stu?.status === 'withdrawn') return '退學';
+  }
+  if (enrStatus === 'withdrawn') {
+    const r = reason || '';
+    if (r.startsWith('休學')) return '休學';
+    if (r.startsWith('退學')) return '退學';
+    return '停修';
+  }
+  return '';
+}
+// 這門課所屬學期是否已經結束（end_date 當天 23:59 之後）
+async function offeringSemesterIsOver(offeringId) {
+  const { data } = await sb.from('course_offerings').select('semesters(end_date)').eq('id', offeringId).maybeSingle();
+  const end = data?.semesters?.end_date;
+  return !!end && new Date(end + 'T23:59:59+08:00') < new Date();
 }
 async function viewCourseRoster(offeringId, courseName) {
   document.getElementById('roster-modal-title').textContent = `${courseName} — 選課學生名單`;
@@ -1529,17 +1552,18 @@ async function viewCourseRoster(offeringId, courseName) {
   document.getElementById('roster-modal').classList.add('open');
 
   const { data: enrollsRaw, error } = await sb.from('enrollments')
-    .select('status, students(student_code, name_zh, student_type, status)')
+    .select('status, withdraw_reason, students(student_code, name_zh, student_type, status)')
     .eq('offering_id', offeringId)
     .in('status', ['confirmed', 'withdrawn']);
+  const semOver = await offeringSemesterIsOver(offeringId);
 
   if (error) { body.innerHTML = `<div style="color:var(--red);font-size:13px">載入失敗：${error.message}</div>`; return; }
   if (!enrollsRaw?.length) { body.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">目前尚無選課學生</div>'; return; }
   const enrolls = enrollsRaw.slice().sort((a,b) => csGroupSort(a.students, b.students));
 
   // 仍在修課：不是休學/退學/停修（與「我的課程」小卡的已選人數同一算法）
-  const active   = enrolls.filter(e => !rosterOffLabel(e.students, e.status));
-  const inactive = enrolls.filter(e =>  rosterOffLabel(e.students, e.status));
+  const active   = enrolls.filter(e => !rosterOffLabel(e.students, e.status, e.withdraw_reason, semOver));
+  const inactive = enrolls.filter(e =>  rosterOffLabel(e.students, e.status, e.withdraw_reason, semOver));
   const regular  = active.filter(e => !isCsStudent(e.students));
   const cs       = active.filter(e =>  isCsStudent(e.students));
 
@@ -1566,7 +1590,7 @@ async function viewCourseRoster(offeringId, courseName) {
         <span style="font-family:monospace">${e.students?.student_code||''}</span>
         <span>${e.students?.name_zh||''}</span>
         ${csTypeTag(e.students)}
-        <span style="margin-left:auto;font-size:11px">${rosterOffLabel(e.students, e.status)}</span>
+        <span style="margin-left:auto;font-size:11px">${rosterOffLabel(e.students, e.status, e.withdraw_reason, semOver)}</span>
       </div>`;
     });
   }
@@ -4433,9 +4457,10 @@ async function loadGradeSheet(offeringId) {
   // 取得修課學生：confirmed + withdrawn（停修），排除 dropped/rejected/pending
   const { data: enrollmentsRaw, error: enrError } = await sb
     .from('enrollments')
-    .select('id, status, student_id')
+    .select('id, status, student_id, withdraw_reason')
     .eq('offering_id', offeringId)
     .in('status', ['confirmed', 'withdrawn']);
+  const semOver = await offeringSemesterIsOver(offeringId);
 
   if (enrError) { console.error('enrollments error:', enrError); }
 
@@ -4499,12 +4524,12 @@ async function loadGradeSheet(offeringId) {
   // 有學分班才插入分組標題列（class="grp-hdr"，只有1格，匯出/送出/匯入都會略過；按欄位排序時會移除）
   const hasCs = enrollments.some(e => isCsStudent(studentMap[e.student_id]));
   // 分組人數只算仍在修課的（休學/退學/停修那一列照常顯示，但不計入人數）
-  const grpCount = cs => enrollments.filter(e => isCsStudent(studentMap[e.student_id]) === cs && !rosterOffLabel(studentMap[e.student_id], e.status)).length;
+  const grpCount = cs => enrollments.filter(e => isCsStudent(studentMap[e.student_id]) === cs && !rosterOffLabel(studentMap[e.student_id], e.status, e.withdraw_reason, semOver)).length;
   const grpHdr = t => `<tr class="grp-hdr"><td colspan="6" style="background:var(--navy3);color:var(--navy);font-weight:600;font-size:12px;padding:5px 10px">${t}</td></tr>`;
   let prevCs = null;
   tbody.innerHTML = enrollments.map((e, idx) => {
     const s         = studentMap[e.student_id] || {};
-    const offLabel  = rosterOffLabel(s, e.status); // 休學→退學→停修（學籍狀態優先）
+    const offLabel  = rosterOffLabel(s, e.status, e.withdraw_reason, semOver); // 休學→退學→停修（學籍狀態優先）
     const isOff     = !!offLabel;
     const entry     = _gradeEntries[e.student_id] || {};
     const score     = entry.score ?? '';
@@ -6000,12 +6025,12 @@ async function loadTAttGrid() {
     sb.from('class_sessions').select('*').eq('offering_id', TATT_CUR.offering_id)
       .gte('session_date', ym+'-01').lt('session_date', tattNextMonthStr(y, m))
       .order('session_date'),
-    sb.from('enrollments').select('student_id, status, students(id, student_code, name_zh, student_type, status)')
+    sb.from('enrollments').select('student_id, status, withdraw_reason, students(id, student_code, name_zh, student_type, status)')
       .eq('offering_id', TATT_CUR.offering_id).in('status', ['confirmed', 'withdrawn'])
   ]);
   TATT_SESSIONS = sessions || [];
   // 休學/退學的同學照常列出（不能點名，直接標示休學/退學），排在各組最後面；一般生在前、學分班在後
-  TATT_STUDENTS = tattBuildStudents(enr);
+  TATT_STUDENTS = tattBuildStudents(enr, await offeringSemesterIsOver(TATT_CUR.offering_id));
   const tattActive = TATT_STUDENTS.filter(s => !s.off_label); // 人數不含休學/退學/停修（與admin點名單一致）
   const tattCsCount = tattActive.filter(isCsStudent).length;
 
@@ -6036,10 +6061,10 @@ function tattSelectStyle(status) {
 
 // 點名表／點名Excel 與 admin「課程點名單」同一套規則（admin認可的版本，這裡不再另外發展）：
 // 一般生在前、學分班在後，組內依學號；休學/退學/停修照常列出、標示原因，不算在選課總人數
-function tattBuildStudents(enr) {
+function tattBuildStudents(enr, semOver) {
   return (enr||[])
     .filter(e => e.students)
-    .map(e => ({ ...e.students, enr_status: e.status, off_label: rosterOffLabel(e.students, e.status) }))
+    .map(e => ({ ...e.students, enr_status: e.status, off_label: rosterOffLabel(e.students, e.status, e.withdraw_reason, semOver) }))
     .sort(csGroupSort);
 }
 // 「一般生 ＋ 學分班 N 人」（沒有學分班時只有一個數字），人數只算仍在修課的
@@ -6147,12 +6172,12 @@ async function downloadAttendanceXlsx(scope) {
   const [{ data: sessions }, { data: enr }] = await Promise.all([
     sb.from('class_sessions').select('*').eq('offering_id', TATT_CUR.offering_id)
       .gte('session_date', fromDate).lte('session_date', toDate).order('session_date'),
-    sb.from('enrollments').select('student_id, status, students(id, student_code, name_zh, student_type, status)')
+    sb.from('enrollments').select('student_id, status, withdraw_reason, students(id, student_code, name_zh, student_type, status)')
       .eq('offering_id', TATT_CUR.offering_id).in('status', ['confirmed', 'withdrawn'])
   ]);
   const sessionsArr = sessions || [];
   // 與畫面上的點名表一致：休學/退學照常列出（各週寫休學/退學）並排在各組最後面，一般生在前、學分班在後
-  const studentsArr = tattBuildStudents(enr);
+  const studentsArr = tattBuildStudents(enr, await offeringSemesterIsOver(TATT_CUR.offering_id));
   if (!sessionsArr.length) { showToast('此區間沒有任何點名場次', true); return; }
 
   const sessionIds = sessionsArr.map(s=>s.id);
@@ -6521,6 +6546,13 @@ async function lpSaveSet() {
       (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.43', date: '2026-10-23',
+    items: [
+      '休學、退學不再顯示成「停修」：「選課學生名單」、成績登錄、課堂點名與點名記錄 Excel，選課記錄原因以「休學」「退學」開頭的改顯示休學／退學，原因空白或其他理由的才是正式停修。',
+      '修正已結束學期的名單：學生「後來才」休學，他還正常修課的那個學期，名單與「我的課程」人數不再把他標成休學、少算人數（已結束的學期只看選課記錄上的標記，不看學生現在的學籍）。',
+    ]
+  },
   {
     version: 'v3.42', date: '2026-10-19',
     items: [

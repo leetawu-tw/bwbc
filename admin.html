@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.69 2026-10-23 名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.70 2026-10-23 成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -2019,6 +2019,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <option value="deferred">保留入學資格</option>
           </select>
           <div id="stu-status-note" style="display:none;margin-top:6px;padding:8px 10px;background:#FFF3E0;border:1px solid #F0C080;border-radius:6px;font-size:12px;color:#8A4A10;line-height:1.6"></div>
+          <div id="stu-leave-count" style="display:none;margin-top:6px;font-size:12px;color:#8A4A10"></div>
         </div>
         <div class="frow"><label class="flabel">性別</label>
           <select class="finput" id="stu-gender">
@@ -11010,6 +11011,13 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.70', date: '2026-10-23',
+    items: [
+      '成績單新增休學學期標註：依「學生狀態異動歷程」推算各學期結束當下的學籍。單一學期的成績單(PDF／Excel／含操行總成績單)若該學期休學，顯示「該學期：休學」（沒有修課記錄時顯示「休學（無修課記錄）」，不再顯示「查無成績記錄」）；整學年度／累計成績單，休學學期會獨立列出一段「XXX 學期：休學」，有成績的學期標【休學】。成績單頂部「本學期修讀」標籤依範圍改為「累計修讀」／「XXX學年度修讀」(單一學期不變)；成績彙總名單在姓名旁加「休學」，匯出的彙總Excel新增「備註」欄(休學N學期：學期清單)(整學年／累計則顯示「含休學N學期」)。完全沒有異動歷程記錄的學生不推算。',
+      '學生資料視窗(編輯學生)在學籍狀態下方新增「累計休學 N 學期（學期清單）」，依異動歷程計算，沒有休學過則不顯示。'
+    ]
+  },
+  {
     version: 'v10.69', date: '2026-10-23',
     items: [
       '修正名單把「後來才休學」的學生，在他還正常修課的學期也標成休學、少算選課人數的問題：點名單、空白評分表、查看成績、開課記錄的「已選 X 人」改用「該學期結束當下」的學籍判斷（依學生狀態異動歷程推算，與選課統計同一套規則），不再看學生現在的狀態。學期中途休學視為整學期休學。',
@@ -16661,8 +16669,22 @@ function onStuStatusChange() {
   }
 }
 
+// 學生資料視窗：顯示累計休學學期數（依學籍異動歷程，每個已開始學期結束當下為休學的才算）
+async function showStudentLeaveCount(studentId) {
+  const el = document.getElementById('stu-leave-count');
+  if (!el) return;
+  el.style.display = 'none';
+  const map = await gsumLeaveSemestersMap([studentId], 'all');
+  const list = map[studentId] || [];
+  if (document.getElementById('stu-id').value !== studentId) return; // 視窗已切換到別人
+  if (!list.length) return;
+  el.innerHTML = `📌 累計休學 <strong>${list.length}</strong> 學期（${list.join('、')}）`;
+  el.style.display = 'block';
+}
+
 function openStudentModal(id) {
   { const _n = document.getElementById('stu-status-note'); if (_n) _n.style.display = 'none'; }
+  { const _c = document.getElementById('stu-leave-count'); if (_c) _c.style.display = 'none'; }
   _stuPhotoFile = null;
   // 清空欄位
   ['stu-id','stu-code','stu-name-zh','stu-name-en','stu-school-email','stu-personal-email',
@@ -16687,6 +16709,7 @@ function openStudentModal(id) {
     if (!s) { showToast('找不到學生','error'); return; }
     document.getElementById('stu-modal-title').textContent = '編輯學生:' + s.name_zh;
     document.getElementById('stu-id').value = s.id;
+    showStudentLeaveCount(s.id);
     document.getElementById('stu-code').value = s.student_code || '';
     document.getElementById('stu-name-zh').value = s.name_zh || '';
     document.getElementById('stu-name-en').value = s.name_en || '';
@@ -21864,6 +21887,37 @@ function gsumSemInRange(semesterId, semRange) {
   return semesterId === semRange;
 }
 
+// 休學學期：依「學生狀態異動歷程」推算每位學生在各學期「結束當下」是否為休學（休學學期可能完全沒有選課/成績，成績單仍要註明）
+// 只計已開始的學期；完全沒有歷程記錄的學生不推算(避免把現在的休學套到所有學期)。回傳 { 學生id: [學期label,...] }（只含落在目前範圍內的學期）
+async function gsumLeaveSemestersMap(studentIds, semRange) {
+  const out = {};
+  try {
+    if (!studentIds.length) return out;
+    const [{ data: hist }, { data: sems }] = await Promise.all([
+      sb.from('student_status_history').select('student_id,new_status,old_status,changed_at')
+        .in('student_id', studentIds).or('is_applied.is.null,is_applied.eq.true').order('changed_at'),
+      sb.from('semesters').select('id,label,start_date,end_date').order('start_date')
+    ]);
+    if (!hist?.length || !sems?.length) return out;
+    const byStu = {};
+    hist.forEach(h => { const t = new Date(h.changed_at).getTime(); if (!Number.isNaN(t)) (byStu[h.student_id] ||= []).push({ t, st:h.new_status, old:h.old_status }); });
+    const today = new Date().toISOString().slice(0,10);
+    Object.keys(byStu).forEach(id => {
+      const list = byStu[id];
+      sems.forEach(sm => {
+        if (!sm.start_date || !sm.end_date || sm.start_date > today) return;
+        if (!gsumSemInRange(sm.id, semRange)) return;
+        const ref = new Date(sm.end_date + 'T23:59:59+08:00').getTime();
+        let st = null;
+        for (const h of list) { if (h.t <= ref) st = h.st; else break; }
+        if (st == null) st = list[0].old || 'active';
+        if (st === 'leave') (out[id] ||= []).push(sm.label);
+      });
+    });
+  } catch (e) { console.warn('gsumLeaveSemestersMap', e); }
+  return out;
+}
+
 async function loadGradeSummaryTable() {
   const wrap = document.getElementById('gsum-summary-wrap');
   const cohort = document.getElementById('gsum-cohort').value;
@@ -21963,6 +22017,7 @@ async function loadGradeSummaryTable() {
       });
     });
 
+    const _leaveMap = await gsumLeaveSemestersMap(studentIds, semRange);
     const rows = _gsumStudents.map(s => {
       const b = byStudent[s.id];
       const avg = b && b.attemptedCredits > 0 ? (b.totalScoreCredits / b.attemptedCredits) : null;
@@ -21981,6 +22036,7 @@ async function loadGradeSummaryTable() {
         pass: b?.pass || 0, fail: b?.fail || 0,
         enrolledCount: enrolledCountByStudent[s.id] || 0,
         submittedCount: courses.length,
+        leaveSems: _leaveMap[s.id] || [],   // 範圍內「結束當下為休學」的學期
         courses
       };
     });
@@ -22055,7 +22111,7 @@ function renderGradeSummaryTable() {
     html += `<tr style="border-top:1px solid var(--cr2);${top3?'background:var(--navy3)':''}">
       <td style="padding:8px 14px;text-align:center;font-size:${top3?'16px':'13px'}">${r.rank ? medal(r) : '—'}</td>
       <td style="padding:8px 14px;font-size:13px">${r.student.student_code||''}</td>
-      <td style="padding:8px 14px;font-size:13px;font-weight:${top3?600:400}">${r.student.name_zh||''}</td>
+      <td style="padding:8px 14px;font-size:13px;font-weight:${top3?600:400}">${r.student.name_zh||''}${r.leaveSems?.length ? ` <span style="font-size:11px;padding:1px 8px;border-radius:20px;background:#FFF3E0;color:#B05010;white-space:nowrap;font-weight:400">${gsumIsSingleSemester(document.getElementById('gsum-sem-range').value) ? '休學' : '含休學'+r.leaveSems.length+'學期'}</span>` : ''}</td>
       <td style="padding:8px 14px;text-align:center;font-size:13px">${r.enrolledCount}</td>
       <td style="padding:8px 14px;text-align:center;font-size:13px;${incomplete?'color:#B05010;font-weight:600':''}">${r.submittedCount}${incomplete?' ⚠️':''}</td>
       <td style="padding:8px 14px;text-align:center;font-size:13px">${r.totalCredits}</td>
@@ -22113,8 +22169,10 @@ function gsumGradeDisplay(c) {
 
 // 把課程依所屬學期分組，各自算出該學期的加權平均/及格科數/學分明細
 // 用於「整學年度」成績單：下方課程要拆成各學期分開列示，各自有小計
-function gsumGroupCoursesBySemester(courses) {
+function gsumGroupCoursesBySemester(courses, leaveSems) {
   const bySem = {};
+  // 休學學期即使沒有任何成績，也要有一組(標示休學)；有成績的學期也標記休學
+  (leaveSems||[]).forEach(l => { bySem[l] = { semLabel: l, courses: [], totalScoreCredits:0, attemptedCredits:0, totalCredits:0, reqCredits:0, selCredits:0, reqCount:0, selCount:0, pass:0, fail:0, leave:true }; });
   courses.forEach(c => {
     const key = c.semLabel || '未知學期';
     (bySem[key] ||= { semLabel: key, courses: [], totalScoreCredits:0, attemptedCredits:0, totalCredits:0, reqCredits:0, selCredits:0, reqCount:0, selCount:0, pass:0, fail:0 });
@@ -22162,9 +22220,11 @@ function buildTranscriptHTML(r, semLabel) {
   let courseSection;
   if (isMultiSem) {
     // 整學年度：依學期分組，各自一個小標題+表格+小計
-    const groups = gsumGroupCoursesBySemester(r.courses);
-    courseSection = groups.map(g => `
-      <div style="font-size:13px;font-weight:700;color:#1B3A6B;margin:16px 0 6px">${g.semLabel} 學期（修讀 ${g.courses.length} 門 ${g.attemptedCredits} 學分，加權平均 ${g.avg!=null?g.avg.toFixed(2):'—'}，及格 ${g.pass} 科／不及格 ${g.fail} 科，實得${g.pass}門${g.totalCredits}學分）</div>
+    const groups = gsumGroupCoursesBySemester(r.courses, r.leaveSems);
+    courseSection = groups.map(g => g.leave && !g.courses.length ? `
+      <div style="font-size:13px;font-weight:700;color:#B05010;margin:16px 0 6px">${g.semLabel} 學期：休學</div>
+      <div style="padding:12px;border:1px solid #ccc;text-align:center;color:#B05010;font-size:12.5px">該學期：休學，無修課記錄</div>` : `
+      <div style="font-size:13px;font-weight:700;color:#1B3A6B;margin:16px 0 6px">${g.semLabel} 學期${g.leave?'【休學】':''}（修讀 ${g.courses.length} 門 ${g.attemptedCredits} 學分，加權平均 ${g.avg!=null?g.avg.toFixed(2):'—'}，及格 ${g.pass} 科／不及格 ${g.fail} 科，實得${g.pass}門${g.totalCredits}學分）</div>
       <table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
         <colgroup><col style="width:80px"><col><col style="width:50px"><col style="width:42px"><col style="width:120px"></colgroup>
         ${courseTableHead}
@@ -22172,11 +22232,13 @@ function buildTranscriptHTML(r, semLabel) {
       </table>`).join('');
   } else {
     const rows = r.courses.map(courseRowHtml).join('');
-    courseSection = `
+    const _single = gsumIsSingleSemester(document.getElementById('gsum-sem-range').value);
+    const leaveNote = r.leaveSems?.length ? `<div style="font-size:13px;font-weight:700;color:#B05010;margin:0 0 8px">${_single ? '該學期：休學' : '休學學期：' + r.leaveSems.join('、')}${r.courses.length ? '' : '，無修課記錄'}</div>` : '';
+    courseSection = leaveNote + `
       <table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">
         <colgroup><col style="width:80px"><col><col style="width:50px"><col style="width:42px"><col style="width:120px"></colgroup>
         ${courseTableHead}
-        <tbody>${rows || `<tr><td colspan="5" style="padding:16px;text-align:center;border:1px solid #ccc;color:#888">查無成績記錄</td></tr>`}</tbody>
+        <tbody>${rows || `<tr><td colspan="5" style="padding:16px;text-align:center;border:1px solid #ccc;color:#888">${r.leaveSems?.length ? '休學（無修課記錄）' : '查無成績記錄'}</td></tr>`}</tbody>
       </table>`;
   }
 
@@ -22197,7 +22259,7 @@ function buildTranscriptHTML(r, semLabel) {
         <td style="padding:4px 8px;width:15%;color:#666">姓名</td><td style="padding:4px 8px;width:35%;font-weight:700">${r.student.name_zh||''}</td>
       </tr>
       <tr>
-        <td style="padding:4px 8px;color:#666;white-space:nowrap">本學期修讀</td>
+        <td style="padding:4px 8px;color:#666;white-space:nowrap">${gsumTakenLabel()}</td>
         <td style="padding:4px 8px;font-weight:700" colspan="3">${gsumCreditsBreakdown(r)}</td>
       </tr>
       <tr>
@@ -22227,7 +22289,8 @@ function buildCombinedTranscriptHTML(r, semInfo, conductScore, semesterOrdinal) 
       <td style="padding:6px 6px;border:1px solid #ccc;text-align:center;font-weight:600;white-space:nowrap;${textColor}">${c.score}${isFail?'（不及格）':''}</td>
     </tr>`;
   }).join('');
-  const blankRows = Array.from({length: Math.max(0, 8 - r.courses.length)}).map(() => `
+  const leaveRow = (!r.courses.length && r.leaveSems?.length) ? `<tr><td colspan="4" style="padding:8px;border:1px solid #ccc;text-align:center;color:#B05010;font-weight:600">該學期：休學</td></tr>` : '';
+  const blankRows = Array.from({length: Math.max(0, 8 - r.courses.length - (leaveRow?1:0))}).map(() => `
     <tr><td style="padding:6px 8px;border:1px solid #ccc">&nbsp;</td><td style="padding:6px 8px;border:1px solid #ccc"></td><td style="padding:6px 8px;border:1px solid #ccc"></td><td style="padding:6px 8px;border:1px solid #ccc"></td></tr>`).join('');
   const fmtDate = d => d ? `${d.slice(0,4)}年${d.slice(5,7)}月${d.slice(8,10)}日` : '';
   const dateRange = semInfo.start_date && semInfo.end_date
@@ -22251,7 +22314,7 @@ function buildCombinedTranscriptHTML(r, semInfo, conductScore, semesterOrdinal) 
         <td style="padding:6px 8px;border:1px solid #333;text-align:center;width:14%">學分</td>
         <td style="padding:6px 8px;border:1px solid #333;text-align:center;width:18%">成績</td>
       </tr>
-      ${rows}${blankRows}
+      ${rows}${leaveRow}${blankRows}
       <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">學業成績總平均</td><td style="padding:6px 10px;border:1px solid #333;text-align:center;font-weight:700">${r.avg!=null?r.avg.toFixed(2):'—'}</td></tr>
       <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">總修學分</td><td style="padding:6px 10px;border:1px solid #333;text-align:center">${r.attemptedCredits}</td></tr>
       <tr><td style="padding:6px 10px;border:1px solid #333" colspan="3">實得學分</td><td style="padding:6px 10px;border:1px solid #333;text-align:center">${earnedCredits}</td></tr>
@@ -22341,6 +22404,13 @@ async function renderTranscriptPdfBlob(r, semLabel) {
   }
 }
 
+// 「修讀」那一列的標籤：單一學期=本學期修讀；累計=累計修讀；整學年度=XXX學年度修讀
+function gsumTakenLabel() {
+  const v = document.getElementById('gsum-sem-range')?.value || '';
+  if (v === 'all') return '累計修讀';
+  if (v.startsWith('year:')) return v.slice(5) + '學年度修讀';
+  return '本學期修讀';
+}
 function currentGsumSemLabel() {
   return document.getElementById('gsum-sem-range').selectedOptions[0]?.textContent
     .replace('僅 ','').replace('累計至今（全部學期）','累計至今') || '';
@@ -22372,17 +22442,27 @@ function buildTranscriptAoa(r, semLabel) {
   let courseRows;
   const semHeaderRowIdxs = []; // 記錄哪幾列是「XXX學期（修讀...)」這種分段標題，之後要合併橫跨整列
   if (isMultiSem) {
-    const groups = gsumGroupCoursesBySemester(r.courses);
+    const groups = gsumGroupCoursesBySemester(r.courses, r.leaveSems);
     courseRows = [];
     groups.forEach(g => {
+      if (g.leave && !g.courses.length) {
+        semHeaderRowIdxs.push(courseRows.length);
+        courseRows.push([`${g.semLabel} 學期：休學（無修課記錄）`]);
+        courseRows.push([]);
+        return;
+      }
       semHeaderRowIdxs.push(courseRows.length);
-      courseRows.push([`${g.semLabel} 學期（修讀${g.courses.length}門${g.attemptedCredits}學分，加權平均${g.avg!=null?g.avg.toFixed(2):'—'}，及格${g.pass}科／不及格${g.fail}科，實得${g.pass}門${g.totalCredits}學分）`]);
+      courseRows.push([`${g.semLabel} 學期${g.leave?'【休學】':''}（修讀${g.courses.length}門${g.attemptedCredits}學分，加權平均${g.avg!=null?g.avg.toFixed(2):'—'}，及格${g.pass}科／不及格${g.fail}科，實得${g.pass}門${g.totalCredits}學分）`]);
       courseRows.push(header);
       g.courses.forEach(c => courseRows.push(courseRow(c)));
       courseRows.push([]);
     });
   } else {
     courseRows = [header, ...r.courses.map(courseRow)];
+    if (r.leaveSems?.length) {
+      const _single = gsumIsSingleSemester(document.getElementById('gsum-sem-range').value);
+      courseRows.push([(_single ? '該學期：休學' : '休學學期：' + r.leaveSems.join('、')) + (r.courses.length ? '' : '（無修課記錄）')]);
+    }
   }
 
   const aoa = [
@@ -22390,7 +22470,7 @@ function buildTranscriptAoa(r, semLabel) {
     [`${semLabel} 成績單`, '', '', '', '', ''],
     ['系所', '佛法應用研究所', '學號', r.student.student_code||'', '姓名', r.student.name_zh||''],
     ['加權平均', r.avg!=null?r.avg.toFixed(2):'', '及格科數', String(r.pass), '不及格科', String(r.fail)],
-    ['本學期修讀', gsumCreditsBreakdown(r), '', '', '', ''],
+    [gsumTakenLabel(), gsumCreditsBreakdown(r), '', '', '', ''],
     [],
     ...courseRows
   ];
@@ -22584,8 +22664,8 @@ async function exportGradeSummaryExcel() {
   }
   const cohort = document.getElementById('gsum-cohort').value;
   const semLabel = document.getElementById('gsum-sem-range').selectedOptions[0]?.textContent || '';
-  const header = ['排名','學號','姓名','已修科目數','繳交科目數','已修學分','加權平均','及格科數','不及格科數'];
-  const rows = _gsumRows.map(r => [r.rank||'', r.student.student_code||'', r.student.name_zh||'', r.enrolledCount, r.submittedCount, r.totalCredits, r.avg!=null?r.avg.toFixed(2):'尚無成績', r.pass, r.fail]);
+  const header = ['排名','學號','姓名','已修科目數','繳交科目數','已修學分','加權平均','及格科數','不及格科數','備註'];
+  const rows = _gsumRows.map(r => [r.rank||'', r.student.student_code||'', r.student.name_zh||'', r.enrolledCount, r.submittedCount, r.totalCredits, r.avg!=null?r.avg.toFixed(2):'尚無成績', r.pass, r.fail, r.leaveSems?.length ? `休學${r.leaveSems.length}學期：${r.leaveSems.join('、')}` : '']);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([[`${cohort}級 成績彙總（${semLabel}）`], header, ...rows]);
   XLSX.utils.book_append_sheet(wb, ws, '成績彙總');
