@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.67 2026-10-19 一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.68 2026-10-23 休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -2010,7 +2010,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       <div class="frow-3">
         <div class="frow"><label class="flabel">學籍狀態</label>
-          <select class="finput" id="stu-status">
+          <select class="finput" id="stu-status" onchange="onStuStatusChange()">
             <option value="pending">新生未報到</option>
             <option value="active">在學</option>
             <option value="leave">休學</option>
@@ -2018,6 +2018,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <option value="withdrawn">退學</option>
             <option value="deferred">保留入學資格</option>
           </select>
+          <div id="stu-status-note" style="display:none;margin-top:6px;padding:8px 10px;background:#FFF3E0;border:1px solid #F0C080;border-radius:6px;font-size:12px;color:#8A4A10;line-height:1.6"></div>
         </div>
         <div class="frow"><label class="flabel">性別</label>
           <select class="finput" id="stu-gender">
@@ -11005,6 +11006,15 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.68', date: '2026-10-23',
+    items: [
+      '休學／退學不再被標成「停修」：學生狀態改為休學或退學時，原本跳出的「批次標記停修」視窗（預設全部勾選）改為「確認後一次把本學期選課中的課記為休學／退學」，不再逐課勾選。休學是學籍狀態，與課程的停修是兩件事。',
+      '選課記錄的原因欄（withdraw_reason）開頭固定為「休學」或「退學」，後面可補充說明（例如「休學：家庭照顧」）；之後的名單、成績單、統計一律依這個開頭顯示休學／退學。',
+      '儲存時加入筆數驗證：預計更新幾門、實際更新幾門不一致時會提示，不會假裝成功。',
+      '學生資料表單：學籍狀態改成休學或退學時，欄位下方立刻說明「本學期選修中的課程會被標記為休學／退學」；套用預約的休學／退學前，確認框也加上同樣說明；該生本學期沒有選課時會提示不需標記。',
+    ]
+  },
+  {
     version: 'v10.67', date: '2026-10-19',
     items: [
       '儀表板「重要時程提醒」：已開始、尚未結束的期間型事件（例如期中教學意見調查）改列在「本學期進行中」，並標示還有幾天結束，不再放在「即將到來」；「本學期進行中」依剩餘天數由少到多排列，最快結束的在最上面',
@@ -16442,7 +16452,8 @@ async function submitScheduleStatusChange(studentId) {
 async function applyScheduledStatusChange(historyId, studentId) {
   const { data: hist } = await sb.from('student_status_history').select('new_status').eq('id', historyId).maybeSingle();
   if (!hist) return;
-  if (!confirm(`確定要套用這筆預約，把狀態正式改為「${STU_STATUS_LABEL[hist.new_status]||hist.new_status}」嗎？`)) return;
+  const _isLeaveLike = hist.new_status === 'leave' || hist.new_status === 'withdrawn';
+  if (!confirm(`確定要套用這筆預約，把狀態正式改為「${STU_STATUS_LABEL[hist.new_status]||hist.new_status}」嗎？` + (_isLeaveLike ? `\n\n套用後，該生本學期目前選修中的課程會被標記為「${STU_STATUS_LABEL[hist.new_status]}」（接著會列出課程請你確認）。` : ''))) return;
   try {
     const { error: e1 } = await sb.from('students').update({ status: hist.new_status }).eq('id', studentId);
     if (e1) { showToast('操作失敗：'+e1.message,'error'); return; }
@@ -16574,7 +16585,24 @@ async function submitWithdrawEnrollment(enrollmentId, studentId) {
   } catch(e) { showToast('處理失敗：'+e.message,'error'); }
 }
 
+// 學籍狀態改成休學／退學時，在表單上先說明會發生什麼事（存檔後還會再請管理者確認）
+function onStuStatusChange() {
+  const note = document.getElementById('stu-status-note');
+  if (!note) return;
+  const id = document.getElementById('stu-id').value;
+  const oldStatus = id ? (STUDENTS_ALL.find(s => s.id === id)?.status || null) : null;
+  const v = document.getElementById('stu-status').value;
+  if (id && v !== oldStatus && (v === 'leave' || v === 'withdrawn')) {
+    const label = v === 'withdrawn' ? '退學' : '休學';
+    note.innerHTML = `⚠️ 改為「${label}」後，該生<b>本學期目前選修中的課程</b>會被標記為「<b>${label}</b>」：各名單、成績單與統計都會顯示「${label}」，不計入選課人數與成績。<br>按「儲存」後會列出這些課程，請你再確認一次。`;
+    note.style.display = '';
+  } else {
+    note.style.display = 'none';
+  }
+}
+
 function openStudentModal(id) {
+  { const _n = document.getElementById('stu-status-note'); if (_n) _n.style.display = 'none'; }
   _stuPhotoFile = null;
   // 清空欄位
   ['stu-id','stu-code','stu-name-zh','stu-name-en','stu-school-email','stu-personal-email',
@@ -16788,7 +16816,11 @@ async function saveStudent() {
   }
 }
 
-// 學生狀態變成休學/退學時，列出「現在學期」還在confirmed狀態的選課記錄，讓admin勾選批次改成停修
+// 學生狀態變成休學/退學時，把「現在學期」還在選課中(confirmed)的課，一次記為「休學」或「退學」。
+// 注意：休學／退學是學籍狀態，不是停修。選課記錄的 status 欄位在資料庫裡仍用 'withdrawn' 存（沿用既有的排除人數／成績邏輯），
+// 但 withdraw_reason 以「休學」或「退學」開頭，畫面與成績單一律依這個開頭顯示「休學／退學」，不顯示「停修」。
+// 原因欄可在開頭之後補充說明（例如「休學：家庭照顧」）。
+let _leaveMarkCtx = null;
 async function promptWithdrawEnrollmentsForStatusChange(studentId, studentName, newStatus) {
   const curSem = await getCurrentSemesterByDate();
   if (!curSem) return;
@@ -16796,7 +16828,10 @@ async function promptWithdrawEnrollmentsForStatusChange(studentId, studentName, 
     .select('id, offering_id')
     .eq('student_id', studentId).eq('semester_id', curSem.id).eq('status', 'confirmed');
 
-  if (!enrolls?.length) return; // 這學期本來就沒有還在修的課，不用跳視窗打擾
+  if (!enrolls?.length) {
+    showToast(`ℹ️ ${studentName} 在${curSem.label}學期沒有選課中的課，不需要標記休學／退學`);
+    return;
+  }
 
   const offeringIds = enrolls.map(e => e.offering_id);
   const { data: offs } = await sb.from('course_offerings').select('id,course_id').in('id', offeringIds);
@@ -16805,35 +16840,44 @@ async function promptWithdrawEnrollmentsForStatusChange(studentId, studentName, 
   const courseMap = {}; (courses||[]).forEach(c=>courseMap[c.id]=c.name_zh);
   const offMap = {}; (offs||[]).forEach(o=>offMap[o.id]=courseMap[o.course_id]);
 
-  const statusLabel = STU_STATUS_LABEL[newStatus] || newStatus;
+  const label = newStatus === 'withdrawn' ? '退學' : '休學';
+  _leaveMarkCtx = { ids: enrolls.map(e => e.id), label };
   const html = `
     <div style="font-size:13px;color:var(--ink3);margin-bottom:12px">
-      ${studentName} 的狀態已改為「${statusLabel}」，但${curSem.label}學期還有 ${enrolls.length} 門課處於選課中狀態，選課記錄不會自動跟著變更。<br>
-      建議一併把這些課標記為停修，讓授課教師端「學生名單」正確反映實際狀況。
+      ${studentName} 的狀態已改為「${label}」，${curSem.label}學期還有 ${enrolls.length} 門課處於選課中。<br>
+      ${label}是學籍狀態（不是停修）：按下確認後，這 ${enrolls.length} 門課會一併記為「${label}」，
+      各名單、成績單、統計都會顯示「${label}」，且不計入選課人數與成績。
     </div>
-    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
       ${enrolls.map(e => `
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 8px;background:var(--cr3);border-radius:6px;cursor:pointer">
-          <input type="checkbox" class="withdraw-enroll-chk" value="${e.id}" checked>
+        <div style="font-size:13px;padding:6px 8px;background:var(--cr3);border-radius:6px">
           ${offMap[e.offering_id] || '（課程名稱不明）'}
-        </label>`).join('')}
+        </div>`).join('')}
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;color:var(--ink3)">原因（開頭固定為「${label}」，可在後面補充說明）</label>
+      <input id="leave-mark-reason" type="text" value="${label}" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--cr2);border-radius:6px;font-size:13px">
     </div>
     <div style="text-align:right">
       <button class="btn btn-sec btn-sm" onclick="closeThModal()">先不處理</button>
-      <button class="btn btn-pri btn-sm" onclick="confirmWithdrawEnrollmentsForStatusChange()">✅ 批次標記停修</button>
+      <button class="btn btn-pri btn-sm" onclick="confirmWithdrawEnrollmentsForStatusChange()">✅ 確認記為${label}</button>
     </div>`;
   openThModal(`${curSem.label} 選課記錄處理`, html);
 }
 
 async function confirmWithdrawEnrollmentsForStatusChange() {
-  const ids = Array.from(document.querySelectorAll('.withdraw-enroll-chk:checked')).map(el => el.value);
-  if (!ids.length) { showToast('沒有勾選任何課程','error'); return; }
-  const { error } = await sb.from('enrollments')
-    .update({ status: 'withdrawn', withdraw_at: new Date().toISOString() })
-    .in('id', ids);
+  const ctx = _leaveMarkCtx;
+  if (!ctx?.ids?.length) { showToast('沒有可處理的課程','error'); return; }
+  let reason = (document.getElementById('leave-mark-reason')?.value || '').trim();
+  if (!reason.startsWith(ctx.label)) reason = reason ? `${ctx.label}：${reason}` : ctx.label; // 開頭一定要是「休學／退學」，畫面靠它判斷
+  const { data, error } = await sb.from('enrollments')
+    .update({ status: 'withdrawn', withdraw_at: new Date().toISOString(), withdraw_reason: reason })
+    .in('id', ctx.ids).select('id');
   if (error) { showToast('處理失敗：'+error.message,'error'); return; }
+  if ((data?.length||0) !== ctx.ids.length) { showToast(`⚠️ 預計處理 ${ctx.ids.length} 門，實際只更新 ${data?.length||0} 門，請檢查權限`,'error'); return; }
+  _leaveMarkCtx = null;
   closeThModal();
-  showToast(`✅ 已將 ${ids.length} 門課標記為停修`);
+  showToast(`✅ 已將 ${ctx.ids.length} 門課記為${ctx.label}`);
 }
 
 /* ─── 批次匯入 ─── */
