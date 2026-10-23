@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.68 2026-10-23 休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.69 2026-10-23 名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -4068,11 +4068,14 @@ async function loadOfferings() {
   });
   renderOfferings(OFFERINGS, TEACHERS_MAP);
   // 選課人數：依offering_id分組計算已確認選課人數，供卡片顯示用
-  const { data: enr, error: enrErr } = await sb.from('enrollments').select('offering_id, students(student_type, status)').in('offering_id', ids).eq('status','confirmed');
+  const { data: enr, error: enrErr } = await sb.from('enrollments').select('offering_id, student_id, students(student_type, status)').in('offering_id', ids).eq('status','confirmed');
   if (enrErr) console.error('讀取選課人數失敗', enrErr);
+  // 休學判斷改用「該學期結束當下」的學籍（不是現在的狀態），學生後來才休學，他之前還在修課的學期人數才不會被少算
+  const { data: _semRow } = await sb.from('semesters').select('end_date').eq('label', semLabel).maybeSingle();
+  const _countAsOf = await getStudentStatusAsOf([...new Map((enr||[]).map(e => [e.student_id, { id: e.student_id, status: e.students?.status }])).values()], _semRow?.end_date);
   ENROLL_COUNT_MAP = {}; ENROLL_CS_COUNT_MAP = {}; // 選課人數含學分班（佔教室座位）；學分班另計人數供加註
   (enr||[]).forEach(e => {
-    if (['leave','withdrawn'].includes(e.students?.status)) return; // 休學/退學不算仍在修課（停修的選課記錄已由status=confirmed排除），與點名單「選課總人數」同一算法
+    if (['leave','withdrawn'].includes(_countAsOf[e.student_id] ?? e.students?.status)) return; // 休學/退學不算仍在修課（停修的選課記錄已由status=confirmed排除），與點名單「選課總人數」同一算法
     ENROLL_COUNT_MAP[e.offering_id] = (ENROLL_COUNT_MAP[e.offering_id]||0) + 1;
     if (e.students?.student_type && e.students.student_type !== 'regular') ENROLL_CS_COUNT_MAP[e.offering_id] = (ENROLL_CS_COUNT_MAP[e.offering_id]||0) + 1;
   });
@@ -6181,7 +6184,7 @@ async function generateOneBlankGradeSheet(course) {
 
   // 修課學生（confirmed + withdrawn，邏輯與teacher.html成績登錄一致）
   const { data: enr } = await sb.from('enrollments')
-    .select('student_id, status').eq('offering_id', course.offering_id).in('status', ['confirmed','withdrawn']);
+    .select('student_id, status, withdraw_reason').eq('offering_id', course.offering_id).in('status', ['confirmed','withdrawn']);
   const stuIds = (enr||[]).map(e=>e.student_id);
   let students = [];
   if (stuIds.length) {
@@ -6189,6 +6192,7 @@ async function generateOneBlankGradeSheet(course) {
     students = data || [];
   }
   const stuMap = {}; students.forEach(s => stuMap[s.id] = s);
+  const statusAsOfMap = await getStudentStatusAsOf(students, await getOfferingSemesterEnd(course.offering_id)); // 以該學期結束當下的學籍判斷休學／退學
 
   // 排序規則與老師端成績登錄／點名單一致：一般生在前、學分班在後，組內依學號；序號重新連續編（含休學／退學／停修的同學）
   const isCs = st => !!st && st.student_type && st.student_type !== 'regular';
@@ -6198,7 +6202,7 @@ async function generateOneBlankGradeSheet(course) {
     .sort((a,b) => (isCs(a.student) - isCs(b.student)) || (a.student.student_code||'').localeCompare(b.student.student_code||''))
     .map((r, idx) => {
       // 學籍狀態優先：休學→退學，再看選課是否停修（學生改休學時選課常被一併標成停修，若先判斷選課狀態，休學的人會被誤寫成「停修」）
-      const note = r.student.status === 'leave' ? '休學' : r.student.status === 'withdrawn' ? '退學' : r.status === 'withdrawn' ? '停修' : '';
+      const note = enrOffLabel(statusAsOfMap[r.student.id] ?? r.student.status, r.status, r.withdraw_reason);
       const score = note ? '--' : '';
       return { off: !!note, row: [idx+1, r.student.student_code, r.student.name_zh, score, '', note] };
     });
@@ -11005,6 +11009,13 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
       這裡每次忘記手動同步的bug已發生多次(v10.52這次又重演一次)，從此不用再記得這條規則
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.69', date: '2026-10-23',
+    items: [
+      '修正名單把「後來才休學」的學生，在他還正常修課的學期也標成休學、少算選課人數的問題：點名單、空白評分表、查看成績、開課記錄的「已選 X 人」改用「該學期結束當下」的學籍判斷（依學生狀態異動歷程推算，與選課統計同一套規則），不再看學生現在的狀態。學期中途休學視為整學期休學。',
+      '管理端名單與表單的「停修」改依原因顯示：選課記錄原因以「休學」「退學」開頭的，課程點名單（列印／Excel）、空白評分表（Excel／CSV）、查看成績都顯示「休學」「退學」，不再顯示「停修」；原因空白或其他理由的才是正式停修。',
+    ]
+  },
   {
     version: 'v10.68', date: '2026-10-23',
     items: [
@@ -16029,7 +16040,7 @@ async function buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital) {
 
   // 選課學生
   const { data: enrs, error: enrErr } = await sb.from('enrollments')
-    .select('student_id, status').eq('offering_id', offeringId);
+    .select('student_id, status, withdraw_reason').eq('offering_id', offeringId);
   let students = [];
   if (enrErr) console.warn('enrollments error:', enrErr.message);
   if (enrs?.length) {
@@ -16037,8 +16048,10 @@ async function buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital) {
     const { data: stuList } = await sb.from('students')
       .select('id, student_code, name_zh, status, student_type').in('id', stuIds).order('student_code');
     const enrMap = {};
-    enrs.forEach(e => { enrMap[e.student_id] = e.status; });
-    students = (stuList || []).map(s => ({ ...s, enr_status: enrMap[s.id] || 'confirmed',
+    const enrReasonMap = {};
+    const statusAsOfMap = await getStudentStatusAsOf(stuList || [], await getOfferingSemesterEnd(offeringId)); // 以「該學期結束當下」的學籍判斷休學，不是現在的狀態
+    enrs.forEach(e => { enrMap[e.student_id] = e.status; enrReasonMap[e.student_id] = e.withdraw_reason || ''; });
+    students = (stuList || []).map(s => ({ ...s, status: statusAsOfMap[s.id] ?? s.status, enr_status: enrMap[s.id] || 'confirmed', enr_reason: enrReasonMap[s.id] || '',
         is_cs: !!s.student_type && s.student_type !== 'regular',
         type_label: s.student_type && s.student_type !== 'regular' ? (CS_TYPE_LABEL[s.student_type] || s.student_type) : '一般生' })) // 狀態欄顯示類別（列印與Excel共用）
       .filter(s => s.enr_status !== 'dropped') // 加退選期間自己退選的，不列入點名單，等於沒選過；只有正式停修(withdrawn)才要保留顯示
@@ -16054,6 +16067,53 @@ async function buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital) {
   return { o, teacherArr, reqLabel, ROLE_LABEL, semText, attendBox, students, activeCount, csActiveCount, activeCountText, enrErr, angel, ta, av, isDigital };
 }
 
+// 共用：「不在修課」的原因文字。學籍狀態優先（休學→退學），再看選課記錄：
+// 選課記錄 withdrawn 且原因以「休學」「退學」開頭 → 顯示休學／退學（休學不是停修）；其餘才是正式停修。仍在修課回傳空字串。
+function enrOffLabel(stuStatus, enrStatus, reason) {
+  if (stuStatus === 'leave') return '休學';
+  if (stuStatus === 'withdrawn') return '退學';
+  if (enrStatus === 'withdrawn') {
+    const r = reason || '';
+    if (r.startsWith('休學')) return '休學';
+    if (r.startsWith('退學')) return '退學';
+    return '停修';
+  }
+  return '';
+}
+
+// 共用：學生在「某個學期結束當下」的學籍狀態（用狀態異動歷程推算，不是看他「現在」的狀態）。
+// 為什麼要這樣：名單判斷休學若直接用 students.status（現在的狀態），學生後來才休學，他「之前還在學」的學期名單也會被標成休學、少算人數。
+// 規則（與選課統計的 statusAsOf 同一套）：取已生效異動中「發生時間 <= 學期結束日」最晚的一筆；找不到就用最早一筆的 old_status 回推；
+// 完全沒有歷程記錄的舊生，退而用現在的狀態。學期中途休學＝整學期都算休學（以學期結束當下的狀態為準）。
+// students: [{id, status}]；endDate: 'YYYY-MM-DD'；回傳 { student_id: 狀態 }
+async function getStudentStatusAsOf(students, endDate) {
+  const map = {};
+  (students||[]).forEach(st => { map[st.id] = st.status; });
+  const ids = (students||[]).map(st => st.id);
+  if (!endDate || !ids.length) return map;
+  const { data: hist, error } = await sb.from('student_status_history')
+    .select('student_id, new_status, old_status, changed_at')
+    .in('student_id', ids).or('is_applied.is.null,is_applied.eq.true').order('changed_at');
+  if (error || !hist?.length) return map;
+  const ref = new Date(endDate + 'T23:59:59+08:00').getTime();
+  const byStu = {};
+  hist.forEach(h => { const t = new Date(h.changed_at).getTime(); if (!Number.isNaN(t)) (byStu[h.student_id] ||= []).push({ t, status: h.new_status, oldStatus: h.old_status }); });
+  ids.forEach(id => {
+    const list = byStu[id];
+    if (!list?.length) return; // 沒有歷程，維持現在的狀態
+    let result = null;
+    for (const h of list) { if (h.t <= ref) result = h.status; else break; }
+    if (result == null) result = list[0].oldStatus || 'active'; // 最早一筆之前：用 old_status 回推；old_status 為空代表當時還沒入學，視為在學
+    map[id] = result;
+  });
+  return map;
+}
+// 取得某筆開課所屬學期的結束日
+async function getOfferingSemesterEnd(offeringId) {
+  const { data } = await sb.from('course_offerings').select('semesters(end_date)').eq('id', offeringId).maybeSingle();
+  return data?.semesters?.end_date || null;
+}
+
 // 共用：單一學生的點名狀態顯示文字（enr_status是「這筆選課記錄」本身的狀態；status是「學生」整體學籍狀態，兩者不同表、不能混用同一個判斷結果）
 function attendanceStudentStatus(s, normalLabel) {
   const isEnrWithdrawn = s.enr_status === 'withdrawn'; // admin正式辦理停修
@@ -16061,7 +16121,7 @@ function attendanceStudentStatus(s, normalLabel) {
   const isLeave = s.status === 'leave';
   const isStudentWithdrawn = s.status === 'withdrawn';
   // 學籍狀態優先：學生改休學/退學時，admin通常會一併把選課批次標成停修，若選課狀態先判斷，休學的人會被誤顯示成「停修」
-  const dropLabel = isLeave ? '休學' : isStudentWithdrawn ? '退學' : isEnrWithdrawn ? '停修' : isEnrDropped ? '退選' : '';
+  const dropLabel = (isLeave || isStudentWithdrawn || isEnrWithdrawn) ? enrOffLabel(s.status, s.enr_status, s.enr_reason) : isEnrDropped ? '退選' : '';
   const isDropped = !!dropLabel;
   const sl = dropLabel || normalLabel || '';
   return { isDropped, dropLabel, sl };
@@ -22950,9 +23010,10 @@ async function downloadGradeImportTemplate(offeringId, courseLabel) {
   const gstRow = _gstRows.find(r => r.offering_id === offeringId);
   if (!gstRow) { showToast('找不到課程資料','error'); return; }
   const { data: enrollsRaw } = await sb.from('enrollments')
-    .select('status, students(student_code, name_zh)')
+    .select('student_id, status, withdraw_reason, students(student_code, name_zh, status)')
     .eq('offering_id', offeringId).in('status', ['confirmed','withdrawn']);
   if (!enrollsRaw?.length) { showToast('此課程目前沒有選課中的學生','error'); return; }
+  const _asOf = await getStudentStatusAsOf(enrollsRaw.map(e => ({ id: e.student_id, status: e.students?.status })), await getOfferingSemesterEnd(offeringId)); // 以該學期結束當下的學籍判斷
   // 巢狀欄位排序（.order('students(...)')）在PostgREST不一定可靠，改成抓回資料後自己排序保險
   const enrolls = enrollsRaw.slice().sort((a,b) => (a.students?.student_code||'').localeCompare(b.students?.student_code||''));
 
@@ -22971,7 +23032,7 @@ async function downloadGradeImportTemplate(offeringId, courseLabel) {
     row([`授課教師：${gstRow.teacher||'（尚未指定）'}`,'','',`修課學生數：${confirmedCount}`,'','']),
     row(['','','','','','']),
     row(['序號','學號','姓名','成績','等第','備註']),
-    ...enrolls.map((e,i) => row([i+1, e.students?.student_code||'', e.students?.name_zh||'', e.status==='withdrawn'?'停修':'', '', e.status==='withdrawn'?'已停修':''])),
+    ...enrolls.map((e,i) => row([i+1, e.students?.student_code||'', e.students?.name_zh||'', (enrOffLabel(_asOf[e.student_id] ?? e.students?.status, e.status, e.withdraw_reason) ? '--' : ''), '', enrOffLabel(_asOf[e.student_id] ?? e.students?.status, e.status, e.withdraw_reason)])),
     row(['','','','','','']),
     row([`修課學生數：${confirmedCount}`,'','','','','']),
     row(['註：滿70分為及格','','','','','']),
@@ -23173,10 +23234,11 @@ async function viewGradeEntries(offeringId, courseLabel, teacherName) {
   // 停修學生通常從沒被登錄過成績、grade_entries裡根本沒有那一筆，如果只查grade_entries會漏掉他們，
   // 跟「範本」下載那份文件的邏輯要一致（範本已經修過，這裡也要跟著改）
   const { data: enrollsRaw, error: e1 } = await sb.from('enrollments')
-    .select('student_id, status, students(student_code, name_zh)')
+    .select('student_id, status, withdraw_reason, students(student_code, name_zh, status)')
     .eq('offering_id', offeringId).in('status', ['confirmed','withdrawn']);
   if (e1) { showToast('載入失敗：'+e1.message,'error'); return; }
   if (!enrollsRaw?.length) { showToast('此課程目前沒有選課中的學生','error'); return; }
+  const _asOfV = await getStudentStatusAsOf(enrollsRaw.map(e => ({ id: e.student_id, status: e.students?.status })), await getOfferingSemesterEnd(offeringId)); // 以該學期結束當下的學籍判斷
 
   const { data: gradesRaw, error: e2 } = await sb.from('grade_entries')
     .select('student_id, score, grade_label, notes')
@@ -23189,8 +23251,9 @@ async function viewGradeEntries(offeringId, courseLabel, teacherName) {
   const rows = data.map((r,i) => {
     const s = r.students||{};
     const g = gradeMap[r.student_id];
-    const isWithdrawn = r.status === 'withdrawn';
-    const note = isWithdrawn ? '停修' : (g?.notes||'');
+    const offLabel = enrOffLabel(_asOfV[r.student_id] ?? s.status, r.status, r.withdraw_reason);
+    const isWithdrawn = !!offLabel;
+    const note = isWithdrawn ? offLabel : (g?.notes||'');
     const scoreDisplay = isWithdrawn ? '—' : (g?.score ?? '（尚未登錄）');
     const labelDisplay = isWithdrawn ? '' : (g?.grade_label||'');
     return `<tr style="${isWithdrawn?'color:var(--ink3);background:var(--cr3)':''}">

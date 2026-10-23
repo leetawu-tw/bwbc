@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.45 2026-10-12 左側選單移除舊的「教材與作業」「課程討論區」(統一從「我的課程」進入，討論區由各單元的「前往討論區」進入)；「我的課程」新增「🗂 依單元／📋 全部清單」切換。前次(v3.44) TA課程管理「作業/教材列表」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，可切換回表格。前次(v3.43) 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
+<!-- BWBC Student v3.46 2026-10-23 休學/退學學期的課改顯示「休學/退學」不再顯示停修；左側選單移除舊的「教材與作業」「課程討論區」(統一從「我的課程」進入，討論區由各單元的「前往討論區」進入)；「我的課程」新增「🗂 依單元／📋 全部清單」切換。前次(v3.44) TA課程管理「作業/教材列表」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，可切換回表格。前次(v3.43) 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -762,6 +762,15 @@ const STATUS_LABEL = {
   confirmed:'已選',pending:'待確認',dropped:'已退選',
   waitlist:'候補',withdrawn:'停修'
 };
+// 選課記錄 status 為 withdrawn 時：原因以「休學」「退學」開頭的，一律顯示休學／退學（休學是學籍狀態，不是停修）；其餘才是停修
+function enrStatusLabel(e) {
+  if (e.status === 'withdrawn') {
+    const r = e.withdraw_reason || '';
+    if (r.startsWith('休學')) return '休學';
+    if (r.startsWith('退學')) return '退學';
+  }
+  return STATUS_LABEL[e.status] || e.status;
+}
 const STATUS_BADGE = {
   confirmed:'badge-enrolled',pending:'badge-pending',dropped:'badge-dropped',
   waitlist:'badge-waitlist',withdrawn:'badge-withdrawn'
@@ -845,6 +854,12 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.46', date: '2026-10-23',
+    items: [
+      '休學、退學學期的課程，在「已選課程」「歷年已選課程」與選課頁的按鈕上改顯示「休學」「退學」，不再顯示「停修」或「停修 W」（休學是學籍狀態，與課程的停修不同）。判斷依據是選課記錄的原因欄開頭為「休學」或「退學」。',
+    ]
+  },
   {
     version: 'v3.45', date: '2026-10-12',
     items: [
@@ -3159,7 +3174,7 @@ async function loadAvailableCourses(showAllCohorts = false) {
           ? `<button class="btn-enroll enrolled" onclick="dropCourse('${c.offering_id}')">✅ 已選　退選</button>`
           : `<button class="btn-enroll disabled">✅ 已選</button>`;
       } else if (en.status==='withdrawn') {
-        btnHtml = `<button class="btn-enroll withdrawn">停修</button>`;
+        btnHtml = `<button class="btn-enroll withdrawn">${enrStatusLabel(en)}</button>`;
       } else if (en.status==='waitlist') {
         btnHtml = `<button class="btn-enroll disabled">候補中</button>`;
       } else {
@@ -3483,7 +3498,7 @@ async function renderEnrolled(list, canEnroll = CAN_ENROLL, canDrop = CAN_DROP) 
             <td style="font-size:12px;color:var(--ink3)">${c.time_raw||'待確認'}</td>
             <td style="font-size:12px;color:var(--ink3)">${c.classroom_name||'待確認'}</td>
             <td style="text-align:center">
-              <span class="badge ${STATUS_BADGE[e.status]||''}">${STATUS_LABEL[e.status]||e.status}</span>
+              <span class="badge ${STATUS_BADGE[e.status]||''}">${enrStatusLabel(e)}</span>
               ${e.over_credit_request?'<br><span style="font-size:10px;color:#B05010">超修中</span>':''}
             </td>
             ${canEnroll?`<td style="text-align:center">${dropBtn}</td>`:''}
@@ -3578,7 +3593,7 @@ async function loadHistory() {
   wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
 
   const { data:allEnr } = await sb.from('enrollments')
-    .select('offering_id, semester_id, status, final_grade, director_note')
+    .select('offering_id, semester_id, status, final_grade, director_note, withdraw_reason')
     .eq('student_id', ME.id)
     .not('semester_id', 'in', `(${[ACTIVE_SEM_ID, CURRENT_SEM_ID].filter(Boolean).join(',')})`)
     .in('status', ['confirmed','withdrawn'])
@@ -3633,7 +3648,7 @@ async function loadHistory() {
     if (!c) return;
     const term = c.semester_label || '未知';
     if (!byTerm[term]) byTerm[term] = [];
-    byTerm[term].push({...c, status: e.status, grade: e.final_grade});
+    byTerm[term].push({...c, status: e.status, grade: e.final_grade, reason: e.withdraw_reason||''});
   });
 
   window._histByTerm = byTerm;
@@ -3703,7 +3718,7 @@ function renderHistory() {
               <td style="text-align:center">${reqBadge}</td>
               <td style="text-align:center">${i.credits}</td>
               <td style="font-size:12px;color:var(--ink3)">${i.time_raw||'—'}</td>
-              <td style="text-align:center"><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${isW?'#FFF3E0':'#E8F5E9'};color:${isW?'#B05010':'#1A6A30'}">${STATUS_ZH[i.status]||i.status}</span></td>
+              <td style="text-align:center"><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${isW?'#FFF3E0':'#E8F5E9'};color:${isW?'#B05010':'#1A6A30'}">${(i.status==='withdrawn' && /^(休學|退學)/.test(i.reason||'')) ? i.reason.slice(0,2) : (STATUS_ZH[i.status]||i.status)}</span></td>
               <td style="text-align:center;font-size:13px;font-weight:500">${i.grade||'—'}</td>
             </tr>`;
           }).join('')}
