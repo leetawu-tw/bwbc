@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.66 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.67 2026-10-19 一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -3877,7 +3877,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
 });
 
 /* ════ GLOBAL STATE ════ */
-let OFFERINGS = [], TEACHERS = [], CLASSROOMS = [], TEACHERS_MAP = {}, SYLLABUS_MAP = {}, SYLLABUS_DETAIL = {}, ENROLL_COUNT_MAP = {};
+let OFFERINGS = [], TEACHERS = [], CLASSROOMS = [], TEACHERS_MAP = {}, SYLLABUS_MAP = {}, SYLLABUS_DETAIL = {}, ENROLL_COUNT_MAP = {}, ENROLL_CS_COUNT_MAP = {};
 
 /* ════ 共用：依日期判斷現在學期（不依賴 is_current，那個欄位只給排課可編輯範圍用） ════ */
 let _dateCurrentSemCache = null;
@@ -4067,10 +4067,14 @@ async function loadOfferings() {
   });
   renderOfferings(OFFERINGS, TEACHERS_MAP);
   // 選課人數：依offering_id分組計算已確認選課人數，供卡片顯示用
-  const { data: enr, error: enrErr } = await sb.from('enrollments').select('offering_id').in('offering_id', ids).eq('status','confirmed');
+  const { data: enr, error: enrErr } = await sb.from('enrollments').select('offering_id, students(student_type, status)').in('offering_id', ids).eq('status','confirmed');
   if (enrErr) console.error('讀取選課人數失敗', enrErr);
-  ENROLL_COUNT_MAP = {};
-  (enr||[]).forEach(e => { ENROLL_COUNT_MAP[e.offering_id] = (ENROLL_COUNT_MAP[e.offering_id]||0) + 1; });
+  ENROLL_COUNT_MAP = {}; ENROLL_CS_COUNT_MAP = {}; // 選課人數含學分班（佔教室座位）；學分班另計人數供加註
+  (enr||[]).forEach(e => {
+    if (['leave','withdrawn'].includes(e.students?.status)) return; // 休學/退學不算仍在修課（停修的選課記錄已由status=confirmed排除），與點名單「選課總人數」同一算法
+    ENROLL_COUNT_MAP[e.offering_id] = (ENROLL_COUNT_MAP[e.offering_id]||0) + 1;
+    if (e.students?.student_type && e.students.student_type !== 'regular') ENROLL_CS_COUNT_MAP[e.offering_id] = (ENROLL_CS_COUNT_MAP[e.offering_id]||0) + 1;
+  });
   renderOfferings(OFFERINGS, TEACHERS_MAP); // 人數查完後重新渲染一次補上badge
   // 統計列（排除停用課程的開課記錄）
   const activeOfferings=OFFERINGS.filter(o=>o.active!==false);  // v_course_schedule 有 courses.active
@@ -4194,7 +4198,7 @@ function renderOfferings(list, otMap) {
         <div class="oc-bot">
           <div style="display:flex;align-items:center;gap:10px">
             <span class="oc-cred">${o.credits} 學分</span>
-            <span class="oc-cred" style="color:${(ENROLL_COUNT_MAP[o.offering_id]||0)>0?'var(--navy)':'var(--ink3)'}">👥 已選 ${ENROLL_COUNT_MAP[o.offering_id]||0} 人</span>
+            <span class="oc-cred" style="color:${(ENROLL_COUNT_MAP[o.offering_id]||0)>0?'var(--navy)':'var(--ink3)'}">👥 已選 ${ENROLL_COUNT_MAP[o.offering_id]||0} 人${ENROLL_CS_COUNT_MAP[o.offering_id]?`<span style="font-weight:400;color:var(--ink3)">（含學分班 ${ENROLL_CS_COUNT_MAP[o.offering_id]} 人）</span>`:''}</span>
           </div>
           <div class="oc-actions">
             <button class="btn btn-edit btn-sm" onclick="editOffering('${o.offering_id}')">✏️ 編輯</button>
@@ -4231,7 +4235,7 @@ function renderOfferings(list, otMap) {
         <td style="text-align:center">${o.credits}<br>${reqTag}</td>
         <td><span style="font-size:10px;padding:1px 6px;border-radius:4px;background:${AX_BG[o.axis_code]||'#EEF2FA'};color:${AX_COLOR[o.axis_code]||'#1B3A6B'}">${o.axis_code||''}</span></td>
         <td>${cohortBadge}</td>
-        <td style="text-align:center;font-size:12.5px;font-weight:500;color:${(ENROLL_COUNT_MAP[o.offering_id]||0)>0?'var(--navy)':'var(--ink3)'}">${ENROLL_COUNT_MAP[o.offering_id]||0}</td>
+        <td style="text-align:center;font-size:12.5px;font-weight:500;color:${(ENROLL_COUNT_MAP[o.offering_id]||0)>0?'var(--navy)':'var(--ink3)'}">${ENROLL_COUNT_MAP[o.offering_id]||0}${ENROLL_CS_COUNT_MAP[o.offering_id]?`<div style="font-size:10.5px;font-weight:400;color:var(--ink3);white-space:nowrap">含學分班 ${ENROLL_CS_COUNT_MAP[o.offering_id]} 人</div>`:''}</td>
         <td style="font-size:12px;color:${hasPendingTime?'#CCC':'var(--ink2)'};white-space:nowrap">${o.time_raw||'待確認'}</td>
         <td style="font-size:12px">${o.classroom_name||'<span style="color:#CCC">待確認</span>'}</td>
         <td style="max-width:180px">${teachers||'<span style="color:#CCC;font-size:12px">待確認</span>'}</td>
@@ -4381,7 +4385,7 @@ async function updateDashboard() {
         const label = isRange
           ? `${sem.label} ${e.event_label}：${tlFmt(e.start_at)}－${tlFmt(e.end_at)}`
           : `${sem.label} ${e.event_label}`;
-        items.push({ date: d, label, useDT: !isRange && !!e.is_system, skipDateSuffix: isRange });
+        items.push({ date: d, label, useDT: !isRange && !!e.is_system, skipDateSuffix: isRange, startAt: isRange ? e.start_at : null });
       });
       return items;
     }
@@ -4396,6 +4400,9 @@ async function updateDashboard() {
       });
     }
     if (tlNext) tlSemItems(tlNext).forEach(it => tlSoon.push(it));
+    // 已開始、尚未結束的期間型事件（例如期中教學意見調查）歸到「本學期進行中」，不再放在「即將到來」
+    const tlOngoing = tlSoon.filter(it => it.startAt && new Date(it.startAt) <= now);
+    for (let i = tlSoon.length - 1; i >= 0; i--) { if (tlOngoing.includes(tlSoon[i])) tlSoon.splice(i, 1); }
     tlDone.sort((a, b) => new Date(a.date) - new Date(b.date));
     tlSoon.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -4412,7 +4419,13 @@ async function updateDashboard() {
     }
     if (tlCur) {
       tlHtml += `<div class="tl-section-label">── 本學期進行中 ──</div>`;
-      tlHtml += `<div class="tl-item tl-now">📍 ${tlCur.label} 學期進行中（結束：${tlFmt(tlCur.end_date)}，還有${tlDaysLeft(tlCur.end_date)}天）</div>`;
+      // 進行中的項目（含學期本身）依「剩餘天數」由少到多排列，最快結束的在最上面
+      const tlNowList = [
+        { date: tlCur.end_date, html: `<div class="tl-item tl-now">📍 ${tlCur.label} 學期進行中（結束：${tlFmt(tlCur.end_date)}，還有${tlDaysLeft(tlCur.end_date)}天）</div>` },
+        ...tlOngoing.map(it => ({ date: it.date, html: `<div class="tl-item tl-now">📍 ${tlRenderLine(it)}（還有${tlDaysLeft(it.date)}天結束）</div>` }))
+      ];
+      tlNowList.sort((x, y) => new Date(x.date) - new Date(y.date));
+      tlHtml += tlNowList.map(x => x.html).join('');
     }
     if (tlSoon.length) {
       tlHtml += `<div class="tl-section-label">── 即將到來 ──</div>`;
@@ -6171,23 +6184,24 @@ async function generateOneBlankGradeSheet(course) {
   const stuIds = (enr||[]).map(e=>e.student_id);
   let students = [];
   if (stuIds.length) {
-    const { data } = await sb.from('students').select('id, student_code, name_zh, status').in('id', stuIds);
+    const { data } = await sb.from('students').select('id, student_code, name_zh, status, student_type').in('id', stuIds);
     students = data || [];
   }
   const stuMap = {}; students.forEach(s => stuMap[s.id] = s);
 
-  // 依學號排序後重新編序號（不沿用畫面上原本順序）
+  // 排序規則與老師端成績登錄／點名單一致：一般生在前、學分班在後，組內依學號；序號重新連續編（含休學／退學／停修的同學）
+  const isCs = st => !!st && st.student_type && st.student_type !== 'regular';
   const rosterRows = (enr||[])
     .map(e => ({ ...e, student: stuMap[e.student_id] }))
     .filter(r => r.student)
-    .sort((a,b) => (a.student.student_code||'').localeCompare(b.student.student_code||''))
+    .sort((a,b) => (isCs(a.student) - isCs(b.student)) || (a.student.student_code||'').localeCompare(b.student.student_code||''))
     .map((r, idx) => {
-      const isWithdrawn = r.status === 'withdrawn';
-      const isSuspended  = r.student.status === 'leave';
-      const note = isWithdrawn ? '停修' : isSuspended ? '休學' : '';
-      const score = (isWithdrawn || isSuspended) ? '--' : '';
-      return [idx+1, r.student.student_code, r.student.name_zh, score, '', note];
+      // 學籍狀態優先：休學→退學，再看選課是否停修（學生改休學時選課常被一併標成停修，若先判斷選課狀態，休學的人會被誤寫成「停修」）
+      const note = r.student.status === 'leave' ? '休學' : r.student.status === 'withdrawn' ? '退學' : r.status === 'withdrawn' ? '停修' : '';
+      const score = note ? '--' : '';
+      return { off: !!note, row: [idx+1, r.student.student_code, r.student.name_zh, score, '', note] };
     });
+  const stuCount = rosterRows.filter(r => !r.off).length; // 修課學生數：不含休學／退學／停修（與老師端成績匯出一致）
 
   const wsData = [
     ['福智學校財團法人福智佛教學院','','','','',''],
@@ -6196,12 +6210,12 @@ async function generateOneBlankGradeSheet(course) {
     [`課程代號：${course.code}`,'','','','',''],
     [`課程名稱：${course.name_zh}`,'','','','',''],
     [`必選修：${reqLabel}`,'','',`學分數：${credits}`,'',''],
-    [`授課教師：${course.teacherNames||''}`,'','',`修課學生數：${rosterRows.length}`,'',''],
+    [`授課教師：${course.teacherNames||''}`,'','',`修課學生數：${stuCount}`,'',''],
     ['','','','','',''],
     ['序號','學號','姓名','成績','等第','備註'],
-    ...rosterRows,
+    ...rosterRows.map(r => r.row),
     ['','','','','',''],
-    [`修課學生數：${rosterRows.length}`,'','','','',''],
+    [`修課學生數：${stuCount}`,'','','','',''],
     ['註：滿70分為及格','','','','',''],
     ['','','','','',''],
     ['','','','','',''],
@@ -10812,7 +10826,7 @@ async function saLoadMissing() {
   if (staffMissing.length) {
     let studentOptions = STUDENTS_ALL.filter(s=>s.status==='active');
     if (!studentOptions || !studentOptions.length) {
-      const { data } = await sb.from('students').select('id,name_zh,student_code').eq('status','active').order('student_code');
+      const { data } = await sb.from('students').select('id,name_zh,student_code').eq('status','active').eq('student_type','regular').order('student_code');
       studentOptions = data || [];
     }
     const optHtml = '<option value="">選擇學生…</option>' + studentOptions.map(s=>`<option value="${s.id}">${esc(s.name_zh)}（${esc(s.student_code)}）</option>`).join('');
@@ -10990,6 +11004,22 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
       這裡每次忘記手動同步的bug已發生多次(v10.52這次又重演一次)，從此不用再記得這條規則
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.67', date: '2026-10-19',
+    items: [
+      '儀表板「重要時程提醒」：已開始、尚未結束的期間型事件（例如期中教學意見調查）改列在「本學期進行中」，並標示還有幾天結束，不再放在「即將到來」；「本學期進行中」依剩餘天數由少到多排列，最快結束的在最上面',
+      '空白評分表（匯出Excel）與老師端成績匯出同一套規則：一般生在前、學分班在後；備註以學籍狀態優先（休學／退學），再看停修，修正休學同學被寫成「停修」；修課學生數不含休學、退學、停修；這幾位成績欄寫「--」',
+      '課程點名單（列印與匯出Excel）新增「序號」欄：每位學生連續編號（含休學、退學、學分班）；休學、退學的同學照常列出並標示，不算在選課總人數；一般生在前、學分班在後。老師端「課堂點名」與點名記錄Excel已改用同一套規則',
+      '一般生畫面排除學分班（隨班附讀／學分專班）：選課統計分析、選課完成度總覽、推薦選課缺漏名單、成績彙總、操行成績（產生名單與非在學名單）、學生資料、工讀生簽到、發表會參加者、班級導師名單，只列一般生（student_type=regular）',
+      '學分班成績照常登錄：老師線上成績登錄、空白評分表、批次匯入成績、查看成績都保留學分班，成績存在系統，但不列入任何統計；教學意見調查、點名單也保留學分班',
+      '「開課記錄」選課人數仍含學分班（佔教室座位），有學分班時卡片與表格加註「含學分班 X 人」',
+      '課程點名單（列印與匯出Excel）：一般生在前、學分班在後（組內依學號）；「狀態」欄由「選課」改為顯示類別（一般生／隨班附讀／學分專班）；「選課總人數」有學分班時分開寫，例如「16 ＋ 學分班 5 人」，休學、退學、停修都不算',
+      '點名單的休學、退學同學照常列出，狀態欄與各週格子標示「休學」或「退學」（學籍狀態優先於停修），不算在選課總人數裡；仍在學但停修的同學標示「停修」',
+      '批次匯入成績：可讀取老師端匯出 CSV 的文字格式學號（="1142401007"）',
+      '「🎓 學分班學生」加選限制：加選視窗與新增學生時的課程下拉，只列開放隨班附讀（courses.is_audit）的課；Excel 匯入遇到非隨班附讀課程標為錯誤、不寫入',
+      '「開課記錄」的「已選 X 人」改為不計休學、退學的同學，與點名單的選課總人數一致',
+    ]
+  },
   {
     version: 'v10.66', date: '2026-10-18',
     items: [
@@ -12116,7 +12146,7 @@ async function loadEnrollStats() {
   // 1. 學期(依時間排序)，加入start_date/end_date供後面判斷「這學期是否已經開始」及「這學期當下的歷史狀態」用
   const { data: sems } = await sb.from('semesters').select('id,label,academic_year,semester_num,start_date,end_date').order('academic_year').order('semester_num');
   // 2. 全部學生(不限狀態，完整呈現歷年趨勢；已畢業/休學的人歷史資料仍要算進去)
-  const { data: students } = await sb.from('students').select('id,cohort,gender,status,student_code');
+  const { data: students } = await sb.from('students').select('id,cohort,gender,status,student_code').eq('student_type','regular');
   const studentMap = {}; (students||[]).forEach(s=>{ studentMap[s.id] = s; });
 
   // 2b. 學生狀態異動歷程，用來重建「某學期結束當下」每個學生的真實狀態(而不是只看現在狀態)
@@ -12735,7 +12765,7 @@ async function loadEnrollOverview() {
   }
 
   // 只列在學中的學生(status='active')，畢業/休學/退學的不算在"還沒選課"名單裡
-  const { data: students, error: studErr } = await sb.from('students').select('id,student_code,name_zh,cohort').eq('status','active').order('student_code');
+  const { data: students, error: studErr } = await sb.from('students').select('id,student_code,name_zh,cohort').eq('status','active').eq('student_type','regular').order('student_code');
   if (studErr) { showToast('讀取學生資料失敗：'+studErr.message,'error'); console.error(studErr); }
   console.log('[選課完成度總覽] 學期ID:', semId, '在學學生數:', students?.length);
 
@@ -13301,7 +13331,7 @@ async function openAdvisorStudentsModal(advisorId) {
   const a = _advisorsAll.find(x=>x.id===advisorId);
   if (!a) return;
 
-  const { data: students } = await sb.from('students').select('id,student_code,name_zh').eq('cohort', parseInt(a.cohort)).order('student_code');
+  const { data: students } = await sb.from('students').select('id,student_code,name_zh').eq('cohort', parseInt(a.cohort)).eq('student_type','regular').order('student_code');
   const { data: myAssigns } = await sb.from('class_advisor_students').select('student_id').eq('class_advisor_id', advisorId);
   const myIds = new Set((myAssigns||[]).map(x=>x.student_id));
 
@@ -13925,11 +13955,12 @@ async function csFillOfferings(semSelId, offSelId, withBlank) {
   const semId = document.getElementById(semSelId).value;
   const off = document.getElementById(offSelId);
   if (!semId) { off.innerHTML = '<option value="">（請先選學期）</option>'; return; }
-  const { data } = await sb.from('course_offerings').select('id, courses(code,name_zh)')
+  const { data } = await sb.from('course_offerings').select('id, courses(code,name_zh,is_audit)')
     .eq('semester_id', semId).eq('is_active', true).eq('is_cancelled', false);
-  const list = (data||[]).sort((a,b)=>(a.courses?.code||'').localeCompare(b.courses?.code||''));
+  const list = (data||[]).filter(o => o.courses?.is_audit === true) // 學分班只能加選開放隨班附讀的課（courses.is_audit）
+    .sort((a,b)=>(a.courses?.code||'').localeCompare(b.courses?.code||''));
   off.innerHTML = (withBlank ? '<option value="">（先不加選）</option>' : '') +
-    (list.map(o=>`<option value="${o.id}">${adEsc(o.courses?.code||'')} ${adEsc(o.courses?.name_zh||'')}</option>`).join('') || '<option value="">該學期沒有開課記錄</option>');
+    (list.map(o=>`<option value="${o.id}">${adEsc(o.courses?.code||'')} ${adEsc(o.courses?.name_zh||'')}</option>`).join('') || '<option value="">該學期沒有開放隨班附讀的課程</option>');
 }
 
 function csSemOptions(selId) {
@@ -14115,9 +14146,9 @@ async function csImportFile(input) {
     const semIds = [...new Set(rows.map(r => semByLabel[`${r.ay}-${r.sm}`]?.id).filter(Boolean))];
     const offMap = {};
     if (semIds.length) {
-      const { data: offs } = await sb.from('course_offerings').select('id,semester_id,courses(code,credits)')
+      const { data: offs } = await sb.from('course_offerings').select('id,semester_id,courses(code,credits,is_audit)')
         .in('semester_id', semIds).eq('is_active', true).eq('is_cancelled', false);
-      (offs||[]).forEach(o => { if (o.courses) offMap[`${o.semester_id}|${o.courses.code}`] = { id:o.id, credits:o.courses.credits }; });
+      (offs||[]).forEach(o => { if (o.courses) offMap[`${o.semester_id}|${o.courses.code}`] = { id:o.id, credits:o.courses.credits, is_audit:o.courses.is_audit === true }; });
     }
     const codes = [...new Set(rows.map(r=>r.code).filter(Boolean))];
     const stuByCode = {};
@@ -14142,6 +14173,7 @@ async function csImportFile(input) {
       if (!r.type) r.errors.push('課程類別需為「隨班附讀」或「學分專班」');
       const off = sem ? offMap[`${sem.id}|${r.course}`] : null;
       if (sem && !off) r.errors.push(`${sem.label} 沒有開 ${r.course || '(空白)'}（或已停開）`);
+      if (off && !off.is_audit) r.errors.push(`${r.course} 不是開放隨班附讀的課程`); // 與加選視窗的課程下拉同一規則
       r.sem = sem; r.off = off;
       if (off && r.credits && Number(r.credits) !== Number(off.credits)) r.warns.push(`學分數 ${r.credits} 與課程主檔 ${off.credits} 不同`);
       r.gender = r.genderZh === '男' || r.genderZh === 'M' ? 'M' : r.genderZh === '女' || r.genderZh === 'F' ? 'F' : r.genderZh === '其他' ? 'O' : null;
@@ -14287,7 +14319,7 @@ async function swInit() {
   const m = document.getElementById('sw-month');
   if (!m.value) { const d = new Date(); m.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
   if (!SW_STU.length) {
-    const { data } = await sb.from('students').select('id,student_code,name_zh,status').order('student_code');
+    const { data } = await sb.from('students').select('id,student_code,name_zh,status').eq('student_type','regular').order('student_code');
     SW_STU = data || [];
     document.getElementById('sw-code-list').innerHTML = SW_STU.map(x=>`<option value="${adEsc(x.student_code)}">${adEsc(x.name_zh)}</option>`).join('');
   }
@@ -15160,7 +15192,7 @@ async function generateConductRoster() {
 
   // 只抓在學學生：休學/退學的不需要操行成績，不幫他們建立正式評分記錄
   // （用另一套獨立顯示邏輯讓他們「看得到、標示狀態」，但不會出現在需要打分數的表格裡）
-  const { data: students, error: e1 } = await sb.from('students').select('id, cohort, enrolled_date').eq('status','active');
+  const { data: students, error: e1 } = await sb.from('students').select('id, cohort, enrolled_date').eq('status','active').eq('student_type','regular');
   if (e1) { showToast('載入學生失敗：'+e1.message,'error'); return; }
 
   // 只納入「這個學期開始時已經入學」的學生，避免下學期才入學的新生被提前拉進舊學期的名單
@@ -15219,7 +15251,7 @@ async function loadConductRoster() {
   // 非在學名單：「有記錄但不算分數」跟「從來沒有記錄」兩種情況合併顯示，畫面上一視同仁
   const existingNonActiveIds = new Set(nonActiveWithRow.map(r=>r.student_id));
   const { data: nonActiveStudentsNoRow } = await sb.from('students')
-    .select('id, student_code, name_zh, cohort, status').in('status', ['leave','withdrawn']);
+    .select('id, student_code, name_zh, cohort, status').in('status', ['leave','withdrawn']).eq('student_type','regular');
   const nonActiveList = [
     ...nonActiveWithRow.map(r => ({ id: r.student_id, student_code: r.students.student_code, name_zh: r.students.name_zh, cohort: r.students.cohort, status: r.students.status })),
     ...(nonActiveStudentsNoRow||[]).filter(s => !existingNonActiveIds.has(s.id)),
@@ -15624,7 +15656,7 @@ async function loadStudents() {
   try {
     if (!HOUSING_OPTIONS.length) await loadHousingOptions();
     const [{ data:students }, { data:advisors }, { data:teachers }] = await Promise.all([
-      sb.from('students').select('*').order('student_code'),
+      sb.from('students').select('*').eq('student_type','regular').order('student_code'), // 學分班在「🎓 學分班學生」頁管理
       sb.from('v_student_advisors').select('student_id, advisor_teacher_id, advisor_source'),
       sb.from('teachers').select('id, name_zh')
     ]);
@@ -15993,15 +16025,23 @@ async function buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital) {
   if (enrs?.length) {
     const stuIds = [...new Set(enrs.map(e => e.student_id))];
     const { data: stuList } = await sb.from('students')
-      .select('id, student_code, name_zh, status').in('id', stuIds).order('student_code');
+      .select('id, student_code, name_zh, status, student_type').in('id', stuIds).order('student_code');
     const enrMap = {};
     enrs.forEach(e => { enrMap[e.student_id] = e.status; });
-    students = (stuList || []).map(s => ({ ...s, enr_status: enrMap[s.id] || 'confirmed' }))
-      .filter(s => s.enr_status !== 'dropped'); // 加退選期間自己退選的，不列入點名單，等於沒選過；只有正式停修(withdrawn)才要保留顯示
+    students = (stuList || []).map(s => ({ ...s, enr_status: enrMap[s.id] || 'confirmed',
+        is_cs: !!s.student_type && s.student_type !== 'regular',
+        type_label: s.student_type && s.student_type !== 'regular' ? (CS_TYPE_LABEL[s.student_type] || s.student_type) : '一般生' })) // 狀態欄顯示類別（列印與Excel共用）
+      .filter(s => s.enr_status !== 'dropped') // 加退選期間自己退選的，不列入點名單，等於沒選過；只有正式停修(withdrawn)才要保留顯示
+      // 休學/退學的同學照常列出（狀態標示休學/退學，見attendanceStudentStatus），只是不算在選課總人數裡
+      .sort((a,b) => (a.is_cs - b.is_cs) || (a.student_code||'').localeCompare(b.student_code||'')); // 一般生在前、學分班在後，組內依學號
   }
-  const activeCount = students.filter(s => s.enr_status === 'confirmed' || s.enr_status === 'pending').length;
+  // 仍在修課人數：選課中(confirmed)且不是休學/退學/停修；跟「開課記錄」的「已選 X 人（含學分班 Y 人）」同一個算法
+  const stillIn = students.filter(s => s.enr_status === 'confirmed' && !attendanceStudentStatus(s, '').isDropped);
+  const activeCount = stillIn.filter(s => !s.is_cs).length;   // 一般生
+  const csActiveCount = stillIn.filter(s => s.is_cs).length;  // 學分班
+  const activeCountText = csActiveCount ? `${activeCount} ＋ 學分班 ${csActiveCount} 人` : activeCount;
 
-  return { o, teacherArr, reqLabel, ROLE_LABEL, semText, attendBox, students, activeCount, enrErr, angel, ta, av, isDigital };
+  return { o, teacherArr, reqLabel, ROLE_LABEL, semText, attendBox, students, activeCount, csActiveCount, activeCountText, enrErr, angel, ta, av, isDigital };
 }
 
 // 共用：單一學生的點名狀態顯示文字（enr_status是「這筆選課記錄」本身的狀態；status是「學生」整體學籍狀態，兩者不同表、不能混用同一個判斷結果）
@@ -16010,9 +16050,10 @@ function attendanceStudentStatus(s, normalLabel) {
   const isEnrDropped = s.enr_status === 'dropped'; // 加退選期間內學生自己退選，還不到停修（理論上不會出現在這裡，buildAttendanceSheetInfo已先濾掉）
   const isLeave = s.status === 'leave';
   const isStudentWithdrawn = s.status === 'withdrawn';
-  const isDropped = isEnrWithdrawn || isEnrDropped || isLeave || isStudentWithdrawn;
-  const dropLabel = isEnrWithdrawn ? '停修' : isEnrDropped ? '退選' : '';
-  const sl = dropLabel || (isLeave ? '休學' : isStudentWithdrawn ? '退學' : (normalLabel || ''));
+  // 學籍狀態優先：學生改休學/退學時，admin通常會一併把選課批次標成停修，若選課狀態先判斷，休學的人會被誤顯示成「停修」
+  const dropLabel = isLeave ? '休學' : isStudentWithdrawn ? '退學' : isEnrWithdrawn ? '停修' : isEnrDropped ? '退選' : '';
+  const isDropped = !!dropLabel;
+  const sl = dropLabel || normalLabel || '';
   return { isDropped, dropLabel, sl };
 }
 
@@ -16032,7 +16073,7 @@ async function printCourseAttendance() {
 
   const info = await buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital);
   if (!info) { showToast('找不到該課程', 'error'); if (win) win.close(); return; }
-  const { o, teacherArr, reqLabel, ROLE_LABEL, semText, attendBox, students, activeCount, enrErr } = info;
+  const { o, teacherArr, reqLabel, ROLE_LABEL, semText, attendBox, students, activeCountText, enrErr } = info;
 
   var wk = 5;
 
@@ -16040,24 +16081,25 @@ async function printCourseAttendance() {
   var teacherRows = teacherArr.map(function(t) {
     var rl = ROLE_LABEL[t.role] || t.role || '協同教授';
     return '<tr>' +
-      '<td style="padding:6px 10px;border:1px solid #999;font-size:13px;font-weight:500">' + t.name_zh + '</td>' +
+      '<td colspan="2" style="padding:6px 10px;border:1px solid #999;font-size:13px;font-weight:500">' + t.name_zh + '</td>' +
       '<td style="padding:6px 10px;border:1px solid #999;font-size:12px;color:#555">' + rl + '</td>' +
       Array(wk).fill('<td style="padding:6px 6px;border:1px solid #999;font-size:10.5px;text-align:center">' + attendBox + '</td>').join('') +
     '</tr>';
   }).join('');
 
   // 學生列（與教師共用同一 table，colspan=2 對齊教師的姓名+角色兩欄）
-  var stuRows = students.length ? students.map(function(s) {
-    var st = attendanceStudentStatus(s, '');
+  var stuRows = students.length ? students.map(function(s, idx) {
+    var st = attendanceStudentStatus(s, s.type_label);
     var bg = st.isDropped ? 'background:#f5f5f5;color:#999' : '';
     var cells = st.isDropped
-      ? Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999;text-align:center;font-size:11px;color:#999">' + (st.sl||'停修') + '</td>').join('')
+      ? Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999;text-align:center;font-size:11px;color:#999">' + st.dropLabel + '</td>').join('')
       : Array(wk).fill('<td style="padding:5px 6px;border:1px solid #999">&nbsp;</td>').join('');
     return '<tr style="' + bg + '">' +
+      '<td style="padding:5px 4px;border:1px solid #999;font-size:12px;text-align:center;width:34px">' + (idx+1) + '</td>' + // 序號：每位學生都編（含休學／退學／學分班），連續
       '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + (s.student_code||'') + (s.name_zh||'') + '</td>' +
       '<td style="padding:5px 10px;border:1px solid #999;font-size:12px">' + st.sl + '</td>' +
       cells + '</tr>';
-  }).join('') : '<tr><td colspan="' + (2+wk) + '" style="padding:15px;text-align:center;border:1px solid #999;color:#999">尚無選課學生' + (enrErr ? '（RLS 可能未設定）' : '') + '</td></tr>';
+  }).join('') : '<tr><td colspan="' + (3+wk) + '" style="padding:15px;text-align:center;border:1px solid #999;color:#999">尚無選課學生' + (enrErr ? '（RLS 可能未設定）' : '') + '</td></tr>';
 
   // 列印 HTML — 教師和學生在同一個 table（不二犯規則）
   var h = '<html><head><meta charset="UTF-8"><title>各科點名單</title>';
@@ -16083,7 +16125,7 @@ async function printCourseAttendance() {
   h +=   '<td>上課地點: ' + (o.classroom_name || '待確認') + '</td></tr>';
   h += '<tr><td><strong>學分數</strong></td><td>' + o.credits + '</td>';
   h +=   '<td>上課時間: ' + (o.time_raw || '待確認') + '</td></tr>';
-  h += '<tr><td><strong>選課總人數</strong></td><td>' + activeCount + '</td><td></td></tr>';
+  h += '<tr><td><strong>選課總人數</strong></td><td>' + activeCountText + '</td><td></td></tr>';
   h += '</table>';
 
   // ★ 教授 + 學生合併成同一個 table（欄位對齊）
@@ -16091,7 +16133,7 @@ async function printCourseAttendance() {
 
   // 教授區段標題
   h += '<tr>';
-  h += '<td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">教授姓名＼上課日期</td>';
+  h += '<td colspan="3" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">教授姓名＼上課日期</td>';
   for (var i=0; i<wk; i++) h += '<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0;text-align:center;font-size:12px">＿/＿</td>';
   h += '</tr>';
 
@@ -16100,7 +16142,9 @@ async function printCourseAttendance() {
 
   // 學生區段標題（同一 table 繼續）
   h += '<tr>';
-  h += '<td colspan="2" style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">學生姓名</td>';
+  h += '<td style="padding:7px 4px;border:1px solid #999;font-weight:bold;background:#f0f0f0;text-align:center">序號</td>';
+  h += '<td style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">學生姓名</td>';
+  h += '<td style="padding:7px 10px;border:1px solid #999;font-weight:bold;background:#f0f0f0">狀態</td>';
   for (var i=0; i<wk; i++) h += '<td style="padding:7px 6px;border:1px solid #999;background:#f0f0f0">&nbsp;</td>';
   h += '</tr>';
 
@@ -16145,7 +16189,7 @@ async function exportAttendanceExcel() {
   var info = await buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital);
   if (!info) { showToast('找不到該課程', 'error'); return; }
   var o = info.o, teacherArr = info.teacherArr, reqLabel = info.reqLabel, ROLE_LABEL = info.ROLE_LABEL,
-      semText = info.semText, attendLabel = info.attendBox, students = info.students, activeCount = info.activeCount;
+      semText = info.semText, attendLabel = info.attendBox, students = info.students, activeCountText = info.activeCountText;
 
   var wk = 5;
   var wsData = [];
@@ -16155,22 +16199,22 @@ async function exportAttendanceExcel() {
   wsData.push([]);
 
   // 課程資訊
-  wsData.push(['課程編號', o.code, '', angel ? '小天使: ' + angel : '']);
-  wsData.push(['課程名稱', o.name_zh, '', av ? '視聽: ' + av : '']);
-  wsData.push(['教師', teacherArr.map(function(t){return t.name_zh;}).join('、'), '', ta ? 'TA: ' + ta : '']);
-  wsData.push(['必選修', reqLabel, '', '上課地點: ' + (o.classroom_name || '待確認')]);
-  wsData.push(['學分數', o.credits, '', '上課時間: ' + (o.time_raw || '待確認')]);
-  wsData.push(['選課總人數', activeCount]);
+  wsData.push(['', '課程編號', o.code, '', angel ? '小天使: ' + angel : '']);
+  wsData.push(['', '課程名稱', o.name_zh, '', av ? '視聽: ' + av : '']);
+  wsData.push(['', '教師', teacherArr.map(function(t){return t.name_zh;}).join('、'), '', ta ? 'TA: ' + ta : '']);
+  wsData.push(['', '必選修', reqLabel, '', '上課地點: ' + (o.classroom_name || '待確認')]);
+  wsData.push(['', '學分數', o.credits, '', '上課時間: ' + (o.time_raw || '待確認')]);
+  wsData.push(['', '選課總人數', activeCountText]);
   wsData.push([]);
 
   // 教授出席標題列
-  var teacherHeader = ['教授姓名＼上課日期', '角色'];
+  var teacherHeader = ['', '教授姓名＼上課日期', '角色'];
   for (var i = 0; i < wk; i++) teacherHeader.push('＿/＿');
   wsData.push(teacherHeader);
 
   // 教授出席列
   teacherArr.forEach(function(t) {
-    var row = [t.name_zh, ROLE_LABEL[t.role] || t.role || '協同教授'];
+    var row = ['', t.name_zh, ROLE_LABEL[t.role] || t.role || '協同教授'];
     for (var i = 0; i < wk; i++) row.push(attendLabel);
     wsData.push(row);
   });
@@ -16178,21 +16222,22 @@ async function exportAttendanceExcel() {
   wsData.push([]);
 
   // 學生標題列
-  var stuHeader = ['學生姓名', '狀態'];
+  var stuHeader = ['序號', '學生姓名', '狀態'];
   for (var i = 0; i < wk; i++) stuHeader.push('');
   wsData.push(stuHeader);
 
   // 學生列
-  students.forEach(function(s) {
-    var st = attendanceStudentStatus(s, '選課');
-    var row = [(s.student_code || '') + (s.name_zh || ''), st.sl];
-    for (var i = 0; i < wk; i++) row.push(st.isDropped ? (st.dropLabel||'停修') : '');
+  students.forEach(function(s, idx) {
+    var st = attendanceStudentStatus(s, s.type_label);
+    var row = [idx + 1, (s.student_code || '') + (s.name_zh || ''), st.sl]; // 序號連續編號（含休學／退學／學分班）
+    for (var i = 0; i < wk; i++) row.push(st.isDropped ? st.dropLabel : '');
     wsData.push(row);
   });
 
   // 建立 Excel
   var ws = XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols'] = [
+    {wch: 6},  // 序號
     {wch: 18}, // 姓名/課程資訊
     {wch: 12}, // 角色/狀態
     {wch: 18}, // 週1
@@ -16202,7 +16247,7 @@ async function exportAttendanceExcel() {
     {wch: 18}, // 週5
   ];
   // 合併標題列
-  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:6}}];
+  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:7}}];
 
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '點名單');
@@ -18830,7 +18875,7 @@ async function presUploadAttachment(participantId, file) {
 }
 
 async function openAddParticipantsModal() {
-  const { data: students } = await sb.from('students').select('id,student_code,name_zh,cohort').order('student_code');
+  const { data: students } = await sb.from('students').select('id,student_code,name_zh,cohort').eq('student_type','regular').order('student_code');
   const { data: existing } = await sb.from('presentation_participants').select('student_id').eq('event_id', PRES_CUR_EVENT.id);
   const existingIds = new Set((existing||[]).map(e=>e.student_id));
   const cohorts = [...new Set((students||[]).map(s=>s.cohort))].filter(Boolean).sort((a,b)=>b-a);
@@ -21685,7 +21730,7 @@ let _gsumRows = [];      // 計算完成的彙總結果（含rank），供匯出
 
 async function loadGradeSummary() {
   // 年級下拉：從students表抓所有不重複的cohort
-  const { data: students } = await sb.from('students').select('cohort').not('cohort','is',null);
+  const { data: students } = await sb.from('students').select('cohort').not('cohort','is',null).eq('student_type','regular');
   const cohorts = [...new Set((students||[]).map(s=>s.cohort))].sort((a,b)=>b-a);
   const cohortSel = document.getElementById('gsum-cohort');
   cohortSel.innerHTML = cohorts.map(c=>`<option value="${c}">${c}級</option>`).join('');
@@ -21725,7 +21770,7 @@ async function loadGradeSummaryTable() {
   try {
     // 1) 該年級所有學生
     const { data: students } = await sb.from('students')
-      .select('id,student_code,name_zh').eq('cohort', parseInt(cohort)).order('student_code');
+      .select('id,student_code,name_zh').eq('cohort', parseInt(cohort)).eq('student_type','regular').order('student_code');
     _gsumStudents = students || [];
     if (!_gsumStudents.length) { wrap.innerHTML = '<div style="color:var(--ink3);padding:20px;font-size:13px">此年級查無學生</div>'; return; }
     const studentIds = _gsumStudents.map(s=>s.id);
@@ -22987,7 +23032,7 @@ async function handleGradeBatchImport(files) {
       // 資料列從表頭下一列開始，遇到空白列（該課學生資料跟後面備註區用空白列隔開）就停止
       for (let i = headerIdx + 1; i < rows.length; i++) {
         const r = rows[i];
-        const code = r[idCol] || '';
+        const code = String(r[idCol] || '').replace(/^="?|"$/g, ''); // 老師端匯出的CSV學號寫成 ="…"（避免Excel變成科學記號），解析後要去掉
         if (!code) break; // 空白列＝資料區結束
         const scoreRaw = r[scoreCol];
         const enr = byCode[code];
