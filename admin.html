@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.72 2026-10-24 側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.73 2026-10-24 「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -439,7 +439,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="open_courses" onclick="showPage('enroll-overview',this)"><span class="nav-icon">📝</span>選課完成度總覽</div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('enroll-stats',this)"><span class="nav-icon">📊</span>選課統計分析</div>
         <div class="nav-item" data-perm="surveys" onclick="showPage('survey',this)"><span class="nav-icon">📋</span>教學意見調查</div>
-        <div class="nav-item" data-perm="__admin_only" onclick="showPage('discussion',this)"><span class="nav-icon">💬</span>課程討論區（檢視）</div>
+        <div class="nav-item" data-perm="__admin_only" onclick="showPage('discussion',this)"><span class="nav-icon">💬</span>課程教學（檢視）</div>
       </div>
       <div class="nav-section">
         <div class="nav-label">成績與評量</div>
@@ -1783,11 +1783,11 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <!-- ▌操行成績管理 ▌-->
       <div id="page-discussion" style="display:none">
         <div class="page-hdr" style="flex-wrap:wrap">
-          <div class="page-title" style="flex:0 0 auto">💬 課程討論區（檢視）</div>
+          <div class="page-title" style="flex:0 0 auto">💬 課程教學（檢視）</div>
           <select id="ad-sem-sel" class="fselect" style="width:140px" onchange="adSwitchSem(this.value)"></select>
           <select id="ad-course-sel" class="fselect" style="width:280px" onchange="adSwitchCourse(this.value)"></select>
         </div>
-        <div class="dsc-hint" style="margin-bottom:10px">管理員只能檢視，不能在討論區發言、回覆或管理討論串。匿名發文的同學這裡看得到真名，請勿外傳。</div>
+        <div class="dsc-hint" style="margin-bottom:10px">管理員只能檢視課程教學內容，不能新增、修改，也不能在討論區發言、回覆或管理討論串。匿名發文的同學在「討論」分頁看得到真名，請勿外傳。</div>
         <div id="ad-tabs"></div>
         <div id="ad-main"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
@@ -11192,6 +11192,13 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.73', date: '2026-10-24',
+    items: [
+      '「課程教學（檢視）」進入時學期預設為本學期（依日期判斷），不再是最新一筆學期',
+      '「課程討論區（檢視）」擴充並改名為「💬 課程教學（檢視）」：選學期與課程後，分四個分頁——「單元」（單元標題、對應課綱週次、涵蓋的上課日期、教材／作業數）、「教材與作業」（依單元分「教材」「作業」兩塊，顯示發布狀態、截止時間、列入成績、已繳交／看完人數，教材的連結與檔案、影片可直接開啟）、「討論」「討論統計」（原有內容不變）。管理員只能檢視，沒有新增、修改或刪除功能',
+    ]
+  },
+  {
     version: 'v10.72', date: '2026-10-24',
     items: [
       '側邊欄依行政工作流程重新分組，共 9 組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理。主要變動：「學分班學生」與「學生資料」「班級導師管理」「工讀生簽到表」同在「學生」組，和「畢業與論文」分開；「遠距教學課程申請」移到「課程開設」；「課程討論區（檢視）」「教學意見調查」移到「選課與課程教學」；「帳號管理」移到「系統管理」；「兼課鐘點費核銷」「收據列印」併入「教師與資料庫」。',
@@ -13155,8 +13162,8 @@ const AD_ORIGIN = {
 };
 const AD_ROLE = { teacher:{t:'老師',c:'#1B3A6B'}, ta:{t:'助教',c:'#1F5C3A'}, student:{t:'同學',c:'#888888'} };
 const AD = {
-  offId:null, tab:'all', curId:null, filter:'all', staleDays:3,
-  units:[], assigns:[], threads:[], replies:[], reactions:[], reads:[], students:[],
+  offId:null, tab:'units', curId:null, filter:'all', staleDays:3,
+  units:[], unitSess:{}, sessions:[], subs:[], assigns:[], threads:[], replies:[], reactions:[], reads:[], students:[],
   idThread:{}, idReply:{}, nameById:{},
   open:false, sending:false, loadSeq:0,
   draft:{ who:'prompt', title:'', body:'', unit:'', assign:'', gate:false, one:false, staffOnly:false, due:'', lockDue:false }
@@ -13298,7 +13305,10 @@ async function loadAdSection(){
     AD.courses=data||[];
   }
   const sems=[...new Set(AD.courses.map(c=>c.semester_label))].sort().reverse();
-  if(!AD.sem||!sems.includes(AD.sem)) AD.sem=sems[0]||'';
+  if(!AD.sem||!sems.includes(AD.sem)){
+    const cur=await getCurrentSemesterByDate();   // v10.73 預設本學期(依日期)，不是最新一筆
+    AD.sem=(cur&&sems.includes(cur.label))?cur.label:(sems[0]||'');
+  }
   semSel.innerHTML=sems.map(s=>'<option value="'+adEsc(s)+'"'+(s===AD.sem?' selected':'')+'>'+adEsc(s)+'</option>').join('');
   adFillCourses();
   if(AD.offId) await adLoadCourse();
@@ -13309,21 +13319,35 @@ function adFillCourses(){
   document.getElementById('ad-course-sel').innerHTML=list.length?list.map(c=>'<option value="'+c.offering_id+'"'+(c.offering_id===AD.offId?' selected':'')+'>'+adEsc(c.name_zh)+'</option>').join(''):'<option value="">（這學期沒有課程）</option>';
   if(!AD.offId) document.getElementById('ad-main').innerHTML='<div class="dsc-empty">這學期沒有課程。</div>';
 }
-function adSwitchSem(v){ AD.sem=v; AD.offId=null; AD.tab='all'; AD.curId=null; adFillCourses(); if(AD.offId) adLoadCourse(); }
-function adSwitchCourse(v){ AD.offId=v; AD.tab='all'; AD.curId=null; AD.filter='all'; adLoadCourse(); }
+function adSwitchSem(v){ AD.sem=v; AD.offId=null; AD.tab='units'; AD.curId=null; adFillCourses(); if(AD.offId) adLoadCourse(); }
+function adSwitchCourse(v){ AD.offId=v; AD.tab='units'; AD.curId=null; AD.filter='all'; adLoadCourse(); }
 async function adLoadCourse(){
   const off=AD.offId, main=document.getElementById('ad-main');
   const seq=++AD.loadSeq;
   main.innerHTML='<div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div>';
-  const [a,th,rp,rc,rd,idn,en]=await Promise.all([
-    sb.from('assignments').select('id, title').eq('offering_id',off),
+  const [a,th,rp,rc,rd,idn,en,un,cs]=await Promise.all([
+    sb.from('assignments').select('*').eq('offering_id',off).order('created_at'),
     sb.from('discussion_threads').select('*').eq('offering_id',off).order('last_activity_at',{ascending:false}),
     sb.from('discussion_replies').select('*').eq('offering_id',off).order('created_at'),
     sb.from('discussion_reactions').select('*').eq('offering_id',off),
     sb.from('discussion_reads').select('thread_id, student_id, first_read_at, last_read_at').eq('offering_id',off),
     sb.from('discussion_identities').select('thread_id, reply_id, student_id').eq('offering_id',off),
-    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)').eq('offering_id',off).eq('status','confirmed')
+    sb.from('enrollments').select('student_id, students(id, student_code, name_zh)').eq('offering_id',off).eq('status','confirmed'),
+    sb.from('teaching_units').select('*').eq('offering_id',off).order('sort_order'),
+    sb.from('class_sessions').select('id, session_date, is_makeup, session_status').eq('offering_id',off).order('session_date')
   ]);
+  if(seq!==AD.loadSeq) return;
+  // v10.73 課程教學(檢視)：單元↔課次、繳交狀況(失敗只影響單元／教材分頁，不影響討論)
+  AD.units=un.data||[]; AD.sessions=cs.data||[]; AD.unitSess={}; AD.subs=[];
+  if(AD.units.length){
+    const us=await sb.from('unit_sessions').select('unit_id, session_id').in('unit_id',AD.units.map(u=>u.id));
+    (us.data||[]).forEach(r=>{ (AD.unitSess[r.unit_id] ||= []).push(r.session_id); });
+  }
+  const aIds=(a.data||[]).map(x=>x.id);
+  if(aIds.length){
+    const sb2=await sb.from('assignment_submissions').select('assignment_id, student_id, content').in('assignment_id',aIds);
+    AD.subs=sb2.data||[];
+  }
   if(seq!==AD.loadSeq) return;
   if(th.error){ main.innerHTML='<div style="color:#C04030;padding:20px;font-size:13px">載入失敗：'+adEsc(th.error.message)+'</div>'; return; }
   AD.assigns=a.data||[];
@@ -13338,11 +13362,90 @@ async function adLoadCourse(){
 function adRender(){
   const tabs=document.getElementById('ad-tabs');
   tabs.style.display=AD.tab==='detail'?'none':'';
-  tabs.innerHTML=[['all','全部討論'],['stats','統計']].map(x=>'<button class="dsc-tab'+(AD.tab===x[0]?' on':'')+'" onclick="adGoTab(\''+x[0]+'\')">'+x[1]+'</button>').join('');
+  tabs.innerHTML=[['units','單元'],['mat','教材與作業'],['all','討論'],['stats','討論統計']].map(x=>'<button class="dsc-tab'+(AD.tab===x[0]?' on':'')+'" onclick="adGoTab(\''+x[0]+'\')">'+x[1]+'</button>').join('');
   const main=document.getElementById('ad-main');
-  if(AD.tab==='all') main.innerHTML=adRenderAll();
+  if(AD.tab==='units') main.innerHTML=adRenderUnits();
+  else if(AD.tab==='mat') main.innerHTML=adRenderMaterials();
+  else if(AD.tab==='all') main.innerHTML=adRenderAll();
   else if(AD.tab==='stats') main.innerHTML=adRenderStats();
   else main.innerHTML=adRenderDetail();
+}
+// ===== v10.73 課程教學(檢視)：單元／教材與作業（唯讀）=====
+const AD_ATYPE = { checkin:'✅ 打卡回報', submission:'📎 檔案繳交', quiz:'📋 是非/選擇題', essay:'✍️ 問答/報告', material:'📄 教材', video:'📹 影片教材' };
+function adMD(d){ if(!d) return ''; const m=String(d).slice(0,10).split('-'); return m.length===3?(+m[1])+'/'+(+m[2]):d; }
+function adDT(iso){ if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return ''; const z=n=>String(n).padStart(2,'0'); return (d.getMonth()+1)+'/'+d.getDate()+' '+z(d.getHours())+':'+z(d.getMinutes()); }
+function adSubDone(a,sub){ if(a.type==='video') return !!(sub.content&&sub.content.completed===true); return true; }
+function adSubCount(a){
+  const seen=new Set(); AD.subs.forEach(s=>{ if(s.assignment_id===a.id && adSubDone(a,s)) seen.add(s.student_id); });
+  return seen.size;
+}
+function adRenderUnits(){
+  if(!AD.units.length) return '<div class="dsc-empty">這門課老師還沒有建立任何單元。</div>';
+  const cnt={}; AD.assigns.forEach(a=>{ cnt[a.unit_id]=(cnt[a.unit_id]||0)+1; });
+  const sessById={}; AD.sessions.forEach(x=>{ sessById[x.id]=x; });
+  let h='<div class="dsc-hint" style="margin-bottom:8px">共 '+AD.units.length+' 個單元（老師在教師端「我的課程 → 單元管理」建立）</div>';
+  h+=AD.units.map((u,i)=>{
+    const src=u.source_type==='syllabus'?'<span style="background:#E8EEF9;color:#1B3A6B;border-radius:10px;padding:1px 8px;font-size:11px">課綱第'+adEsc(u.syllabus_week_ref)+'週</span>':'<span style="background:#F0F0F0;color:#666;border-radius:10px;padding:1px 8px;font-size:11px">自訂</span>';
+    const ss=(AD.unitSess[u.id]||[]).map(id=>sessById[id]).filter(Boolean).sort((x,y)=>(x.session_date||'').localeCompare(y.session_date||''));
+    const dates=ss.length?ss.map(x=>adMD(x.session_date)+(x.session_status==='cancelled'?'（停課）':'')+(x.is_makeup?'（補課）':'')).join('、'):'<span style="color:#B05010">尚未勾選課次</span>';
+    return '<div style="border:1px solid var(--line,#E5E2DA);border-radius:10px;padding:12px 14px;margin-bottom:8px;background:#fff">'
+      +'<div style="font-weight:600;font-size:14px">'+(i+1)+'. '+src+' '+adEsc(u.title)+'</div>'
+      +(u.description?'<div style="font-size:12.5px;color:var(--ink3);margin-top:4px">'+adBody(u.description)+'</div>':'')
+      +'<div style="font-size:12.5px;margin-top:6px">📅 涵蓋 '+ss.length+' 堂課次：'+dates+'</div>'
+      +'<div style="font-size:12.5px;color:var(--ink3);margin-top:2px">'+((cnt[u.id]||0)?(cnt[u.id]+' 項教材／作業'):'尚無教材／作業')+'</div>'
+      +'</div>';
+  }).join('');
+  return h;
+}
+async function adOpenFile(bucket,path){
+  const { data, error } = await sb.storage.from(bucket).createSignedUrl(path,300);
+  if(error||!data?.signedUrl){ showToast('開啟檔案失敗：'+(error?.message||''),'error'); return; }
+  window.open(data.signedUrl,'_blank');
+}
+function adAssignRow(a){
+  const isMat=a.type==='material', isVid=a.type==='video';
+  const st=a.status==='published'?'<span style="color:#1F5C3A">✅ 已發布</span>':'<span style="color:#B05010">📝 草稿</span>';
+  const total=AD.students.length;
+  let right='';
+  if(isMat){
+    right='';
+  } else {
+    const n=adSubCount(a);
+    right='<span style="font-size:12px;color:var(--ink3)">'+(isVid?'看完 ':'已繳交 ')+n+' / '+total+'</span>';
+  }
+  const due=(!isMat&&a.due_at)?'<span style="font-size:12px;color:var(--ink3)">截止 '+adDT(a.due_at)+'</span>':'';
+  const grade=a.counts_as_grade?'<span style="font-size:11px;background:#FFF3E0;color:#B05010;border-radius:10px;padding:1px 8px">列入成績</span>':'';
+  let extra='';
+  if(isMat){
+    const parts=[];
+    if(a.material_link_url) parts.push('<a href="'+adEsc(a.material_link_url)+'" target="_blank" rel="noopener">🔗 連結</a>');
+    if(a.material_file_path) parts.push('<a href="#" onclick="adOpenFile(\'course-materials\',\''+adEsc(a.material_file_path)+'\');return false">📎 '+adEsc(a.material_file_name||'檔案')+'</a>');
+    if(parts.length) extra='<div style="font-size:12.5px;margin-top:4px">'+parts.join('　')+'</div>';
+  }
+  if(isVid && a.video_file_path) extra='<div style="font-size:12.5px;margin-top:4px"><a href="#" onclick="adOpenFile(\'course-videos\',\''+adEsc(a.video_file_path)+'\');return false">▶ '+adEsc(a.video_file_name||'影片')+'</a></div>';
+  const ins=a.instructions?'<div style="font-size:12.5px;color:var(--ink3);margin-top:4px;white-space:pre-wrap">'+adEsc(String(a.instructions).length>200?String(a.instructions).slice(0,200)+'…':a.instructions)+'</div>':'';
+  return '<div style="padding:8px 0;border-top:1px solid var(--line,#EEE)">'
+    +'<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span style="font-size:12px">'+(AD_ATYPE[a.type]||adEsc(a.type))+'</span>'
+    +'<span style="font-weight:600;font-size:13.5px">'+adEsc(a.title)+'</span>'+grade+'<span style="font-size:12px">'+st+'</span>'+due+'<span style="margin-left:auto">'+right+'</span></div>'
+    +extra+ins+'</div>';
+}
+function adRenderMaterials(){
+  if(!AD.assigns.length) return '<div class="dsc-empty">這門課老師還沒有建立教材或作業。</div>';
+  const mats=AD.assigns.filter(a=>a.type==='material'||a.type==='video').length;
+  let h='<div class="dsc-hint" style="margin-bottom:8px">共 '+mats+' 項教材、'+(AD.assigns.length-mats)+' 項作業；選課學生 '+AD.students.length+' 人。管理員只能檢視。</div>';
+  const groups=AD.units.map(u=>({title:u.title,items:AD.assigns.filter(a=>a.unit_id===u.id)}));
+  const known=new Set(AD.units.map(u=>u.id));
+  const orphan=AD.assigns.filter(a=>!known.has(a.unit_id));
+  if(orphan.length) groups.push({title:'（未分類單元）',items:orphan});
+  h+=groups.filter(g=>g.items.length).map(g=>{
+    const m=g.items.filter(a=>a.type==='material'||a.type==='video'), w=g.items.filter(a=>a.type!=='material'&&a.type!=='video');
+    return '<div style="border:1px solid var(--line,#E5E2DA);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff">'
+      +'<div style="font-weight:600;font-size:14px;margin-bottom:4px">🗂 '+adEsc(g.title)+'</div>'
+      +(m.length?'<div style="font-size:12px;color:var(--ink3);margin-top:6px">📖 教材（不批閱）</div>'+m.map(adAssignRow).join(''):'')
+      +(w.length?'<div style="font-size:12px;color:var(--ink3);margin-top:8px">✍️ 作業（批閱）</div>'+w.map(adAssignRow).join(''):'')
+      +'</div>';
+  }).join('');
+  return h;
 }
 function adGoTab(t){ AD.tab=t; AD.curId=null; adRender(); }
 function adReplyHtml(r,child){
