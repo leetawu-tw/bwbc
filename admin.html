@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.70 2026-10-23 成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.72 2026-10-24 側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -412,7 +412,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item on" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span>儀表板</div>
       </div>
       <div class="nav-section">
-        <div class="nav-label">課程管理</div>
+        <div class="nav-label">課程開設</div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('offerings',this)"><span class="nav-icon">📅</span>開課記錄</div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('ta-match',this)"><span class="nav-icon">🙋</span>TA配對 <span class="badge badge-warn" id="ta-pending-badge" style="margin-left:auto;display:none">0</span></div>
         <div class="nav-item" id="nav-schedules" data-perm="open_courses" onclick="toggleScheduleMenu()" style="justify-content:space-between">
@@ -431,37 +431,42 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           </div>
         </div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('conflicts',this)"><span class="nav-icon">⚠️</span>衝堂警示 <span class="badge badge-warn" id="conflict-badge" style="margin-left:auto;display:none">0</span></div>
+        <div class="nav-item" data-perm="courses" onclick="showPage('staff-arrange',this)"><span class="nav-icon">🗂</span>課程幹部安排</div>
+        <div class="nav-item" data-perm="courses" onclick="showPage('distance-apps',this)"><span class="nav-icon">💻</span>遠距教學課程申請</div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">選課與課程教學</div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('enroll-overview',this)"><span class="nav-icon">📝</span>選課完成度總覽</div>
         <div class="nav-item" data-perm="open_courses" onclick="showPage('enroll-stats',this)"><span class="nav-icon">📊</span>選課統計分析</div>
-        <div class="nav-item" data-perm="courses" onclick="showPage('staff-arrange',this)"><span class="nav-icon">🗂</span>課程幹部安排</div>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">資料管理</div>
-        <div class="nav-item" data-perm="courses" onclick="showPage('courses',this)"><span class="nav-icon">📚</span>課程管理</div>
-        <div class="nav-item" data-perm="courses" onclick="showPage('grad-req',this)"><span class="nav-icon">🎓</span>畢業學分規定</div>
-        <div class="nav-item" data-perm="teachers" onclick="showPage('teachers',this)"><span class="nav-icon">👤</span>教師管理</div>
-        <div class="nav-item" data-perm="teachers" onclick="showPage('payroll',this)"><span class="nav-icon">💰</span>兼課鐘點費核銷</div>
-        <div class="nav-item" data-perm="teachers" onclick="showPage('receipt',this)"><span class="nav-icon">🧾</span>收據列印（單次）</div>
-        <div class="nav-item" data-perm="students" onclick="showPage('workers',this)"><span class="nav-icon">🕘</span>工讀生簽到表</div>
-        <div class="nav-item" data-perm="courses" onclick="showPage('distance-apps',this)"><span class="nav-icon">💻</span>遠距教學課程申請</div>
-        <div class="nav-item" data-perm="teachers" onclick="showPage('advisors',this)"><span class="nav-icon">🎓</span>班級導師管理</div>
-        <div class="nav-item" data-perm="classrooms" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
-        <div class="nav-item" data-perm="students" onclick="showPage('students',this)"><span class="nav-icon">🧑‍🎓</span>學生資料</div>
-        <div class="nav-item" data-perm="students" onclick="showPage('credit-students',this)"><span class="nav-icon">🎓</span>學分班學生</div>
-        <div class="nav-item" data-perm="__admin_only" onclick="showPage('users',this)"><span class="nav-icon">👥</span>帳號管理</div>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">教學評量</div>
         <div class="nav-item" data-perm="surveys" onclick="showPage('survey',this)"><span class="nav-icon">📋</span>教學意見調查</div>
-        <div class="nav-item" data-perm="scholarship" onclick="showPage('scholarship',this)"><span class="nav-icon">🏆</span>獎學金推薦</div>
-        <div class="nav-item" data-perm="grades" onclick="showPage('grades',this)"><span class="nav-icon">📊</span>成績登錄</div>
-        <div class="nav-item" data-perm="grade-summary" onclick="showPage('grade-summary',this)"><span class="nav-icon">🏆</span>成績彙總</div>
-        <div class="nav-item" data-perm="grades" onclick="showPage('conduct',this)"><span class="nav-icon">🧭</span>操行成績管理</div>
         <div class="nav-item" data-perm="__admin_only" onclick="showPage('discussion',this)"><span class="nav-icon">💬</span>課程討論區（檢視）</div>
       </div>
       <div class="nav-section">
-        <div class="nav-label">論文管理</div>
+        <div class="nav-label">成績與評量</div>
+        <div class="nav-item" data-perm="grades" onclick="showPage('grades',this)"><span class="nav-icon">📊</span>成績登錄</div>
+        <div class="nav-item" data-perm="grade-summary" onclick="showPage('grade-summary',this)"><span class="nav-icon">🏆</span>成績彙總</div>
+        <div class="nav-item" data-perm="grades" onclick="showPage('conduct',this)"><span class="nav-icon">🧭</span>操行成績管理</div>
+        <div class="nav-item" data-perm="scholarship" onclick="showPage('scholarship',this)"><span class="nav-icon">🏆</span>獎學金推薦</div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">學生</div>
+        <div class="nav-item" data-perm="students" onclick="showPage('students',this)"><span class="nav-icon">🧑‍🎓</span>學生資料</div>
+        <div class="nav-item" data-perm="students" onclick="showPage('credit-students',this)"><span class="nav-icon">🎓</span>學分班學生</div>
+        <div class="nav-item" data-perm="teachers" onclick="showPage('advisors',this)"><span class="nav-icon">🎓</span>班級導師管理</div>
+        <div class="nav-item" data-perm="students" onclick="showPage('workers',this)"><span class="nav-icon">🕘</span>工讀生簽到表</div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">畢業與論文</div>
+        <div class="nav-item" data-perm="courses" onclick="showPage('grad-req',this)"><span class="nav-icon">🎓</span>畢業學分規定</div>
         <div class="nav-item" data-perm="thesis" onclick="showPage('thesis',this)"><span class="nav-icon">📝</span>畢業論文與發表會 <span class="badge badge-warn" id="thesis-pending-badge" style="margin-left:auto;display:none">0</span></div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">教師與資料庫</div>
+        <div class="nav-item" data-perm="teachers" onclick="showPage('teachers',this)"><span class="nav-icon">👤</span>教師管理</div>
+        <div class="nav-item" data-perm="teachers" onclick="showPage('payroll',this)"><span class="nav-icon">💰</span>兼課鐘點費核銷</div>
+        <div class="nav-item" data-perm="teachers" onclick="showPage('receipt',this)"><span class="nav-icon">🧾</span>收據列印（單次）</div>
+        <div class="nav-item" data-perm="courses" onclick="showPage('courses',this)"><span class="nav-icon">📚</span>課程資料庫</div>
+        <div class="nav-item" data-perm="classrooms" onclick="showPage('classrooms',this)"><span class="nav-icon">🏛</span>教室管理</div>
       </div>
       <div class="nav-section">
         <div class="nav-label">行政效能</div>
@@ -475,6 +480,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       </div>
       <div class="nav-section">
         <div class="nav-label">系統管理</div>
+        <div class="nav-item" data-perm="__admin_only" onclick="showPage('users',this)"><span class="nav-icon">👥</span>帳號管理</div>
         <div class="nav-item" data-perm="announcements" onclick="showPage('announcements',this)"><span class="nav-icon">📢</span>公佈欄 <span class="badge badge-warn" id="ann-badge" style="margin-left:auto;display:none">0</span></div>
         <div class="nav-item" data-perm="semesters" onclick="showPage('semesters',this)"><span class="nav-icon">📆</span>學期管理</div>
         <div class="nav-item" data-perm="logs" onclick="showPage('audit',this)"><span class="nav-icon">📋</span>操作記錄</div>
@@ -778,7 +784,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <!-- ▌課程管理 ▌-->
       <div id="page-courses" style="display:none">
         <div class="page-hdr">
-          <div class="page-title">📚 課程管理</div>
+          <div class="page-title">📚 課程資料庫</div>
           <div id="course-stats" style="font-size:13px;color:var(--ink3);display:flex;gap:12px;align-items:center"></div>
           <div style="margin-left:auto;display:flex;gap:6px">
             <button class="btn btn-sec" onclick="exportCoursesCSV()" title="匯出課程主檔 CSV">📤 匯出</button>
@@ -5580,7 +5586,182 @@ function surveyPrintReport() {
 
 /* 寄給主授教師 / AI 分析：佔位（S4b）*/
 function surveyMailTeachers(id) { showToast('寄送功能：需先設定寄信機制（後續實作）','error'); }
-function surveyAIAnalysis(id) { showToast('AI 分析：後續實作','error'); }
+
+/* ════ 🤖 AI 分析（教學意見調查）════
+   流程：前端整理「匿名」統計＋開放題文字 → 呼叫 Supabase Edge Function「survey-ai-analysis」(金鑰只在後端)
+         → 每門課各分析一次，最後再產生整份調查總覽。結果只給 admin 看，暫存在頁面記憶體(重新整理即清除)，可複製全文。
+   送出的資料：課程名稱、授課教師、題目、各選項人數/平均分、開放題文字；不含學生姓名/學號。 */
+let STAT_AI = null; // { surveyId, courses:{offering_id:{...}}, overall:{...}, failed:[...] }
+
+function surveyAiBuildCourseData(c, questions) {
+  // 一般題的選項是「非常同意…非常不同意」，遠距題是「非常滿意…非常不滿意」，兩組都支援（依選項文字計分）
+  const SCORE = {'非常同意':5,'同意':4,'普通':3,'不同意':2,'非常不同意':1,'非常滿意':5,'滿意':4,'尚可':3,'不滿意':2,'非常不滿意':1};
+  const scores = [], comments = [];
+  const handle = (q, tag) => {
+    const ans = c.answers[q.id] || [];
+    if (q.type === 'single') {
+      const cnt = {};
+      let sum = 0, valid = 0;
+      ans.forEach(a => { if (a in SCORE) { cnt[a] = (cnt[a]||0) + 1; sum += SCORE[a]; valid++; } });
+      if (valid) scores.push({ 題目: tag + q.question_text, 平均分: +(sum/valid).toFixed(2), 滿分: 5, 人數分布: cnt });
+    } else {
+      const texts = ans.map(a => String(a||'').trim()).filter(Boolean).map(t => t.slice(0, 400)).slice(0, 60);
+      if (texts.length) comments.push({ 題目: tag + q.question_text, 回饋: texts });
+    }
+  };
+  (questions||[]).forEach(q => handle(q, ''));
+  // 遠距教學題只出現在數位課程：該課有人填才帶入
+  (STAT_REMOTE_Q||[]).forEach(q => { if ((c.answers[q.id]||[]).length) handle(q, '【遠距教學】'); });
+  return {
+    課程: c.course, 課號: c.code, 授課教師: c.teacherNames.filter(Boolean).join('、') || '—',
+    修課人數: c.enrollCount || 0, 填答人數: c.respondents.size,
+    滿意度題目: scores, 開放題回饋: comments
+  };
+}
+
+async function surveyAiCall(mode, data) {
+  const { data: res, error } = await sb.functions.invoke('survey-ai-analysis', { body: { mode, data } });
+  if (error) {
+    let msg = error.message || String(error);
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (_) {}
+    throw new Error(msg);
+  }
+  if (res?.error) throw new Error(res.error);
+  return res.result;
+}
+
+function surveyAiRender(forDoc) {
+  const ai = STAT_AI; if (!ai) return '';
+  const L = arr => (arr && arr.length) ? '<ul style="margin:4px 0 0 18px;padding:0">' + arr.map(x => `<li style="margin:2px 0">${esc(x)}</li>`).join('') + '</ul>' : '<div style="color:var(--ink3);font-size:12px">（無）</div>';
+  const toneColor = { '正向':'#1A6A30', '普通':'#8A6A10', '需關注':'#B03020' };
+  let html = forDoc
+    ? `<div style="font-size:12px;color:#888;margin-bottom:12px">AI 產生的內容僅供行政參考，請對照原始統計與回饋確認。</div>`
+    : `<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="surveyAiCopy()">📋 複製全文</button>
+      <button class="btn btn-sm" onclick="surveyAiDownload()">⬇ 下載 Word</button>
+      <button class="btn btn-sm" onclick="surveyAiPrint()">🖨 列印／存成 PDF</button>
+      <button class="btn btn-sm btn-sec" onclick="surveyAiRun('${ai.surveyId}', true)">🔄 重新分析</button>
+      <span style="font-size:12px;color:var(--ink3);align-self:center">AI 產生的內容僅供行政參考，請對照原始統計與回饋確認。</span></div>`;
+  if (ai.overall) {
+    const o = ai.overall;
+    html += `<div style="border:1px solid var(--cr2);border-radius:10px;padding:14px;margin-bottom:14px;background:var(--navy3)">
+      <div style="font-weight:700;color:var(--navy);margin-bottom:6px">📊 整份調查總覽</div>
+      <div style="font-size:13px;line-height:1.7">${esc(o.overview||'')}</div>
+      <div style="margin-top:8px;font-size:13px"><b>共通優點</b>${L(o.common_strengths)}</div>
+      <div style="margin-top:8px;font-size:13px"><b>共通問題／建議</b>${L(o.common_issues)}</div>
+      <div style="margin-top:8px;font-size:13px"><b>建議行政追蹤</b>${(o.follow_up&&o.follow_up.length) ? '<ul style="margin:4px 0 0 18px;padding:0">' + o.follow_up.map(f => `<li style="margin:2px 0"><b>${esc(f.course||'')}</b>：${esc(f.reason||'')}</li>`).join('') + '</ul>' : '<div style="color:var(--ink3);font-size:12px">（無）</div>'}</div>
+      <div style="margin-top:8px;font-size:13px"><b>給行政單位的建議</b>${L(o.admin_suggestions)}</div></div>`;
+  }
+  Object.values(ai.courses).sort((a,b) => (a.meta.course||'').localeCompare(b.meta.course||'', 'zh')).forEach(x => {
+    const r = x.result, m = x.meta;
+    html += `<div style="border:1px solid var(--cr2);border-radius:10px;padding:14px;margin-bottom:12px;background:#fff">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+        <strong style="color:var(--navy)">${esc(m.course)}</strong>
+        <span style="font-size:12px;color:var(--ink3)">${esc(m.code)}　授課：${esc(m.teachers)}　填答 ${m.n}/${m.enroll} 人</span>
+        ${r.tone ? `<span style="font-size:11px;padding:1px 8px;border-radius:20px;border:1px solid ${toneColor[r.tone]||'#999'};color:${toneColor[r.tone]||'#999'}">${esc(r.tone)}</span>` : ''}</div>
+      <div style="font-size:13px;line-height:1.7">${esc(r.summary||'')}</div>
+      <div style="margin-top:6px;font-size:13px"><b>優點</b>${L(r.strengths)}</div>
+      <div style="margin-top:6px;font-size:13px"><b>學生建議</b>${L(r.suggestions)}</div>
+      ${(r.attention&&r.attention.length) ? `<div style="margin-top:6px;font-size:13px;color:#B03020"><b>⚠️ 需關注</b>${L(r.attention)}</div>` : ''}</div>`;
+  });
+  (ai.failed||[]).forEach(f => { html += `<div style="color:var(--red);font-size:12.5px;margin-bottom:6px">⚠️ ${esc(f.course)}：分析失敗（${esc(f.error)}）</div>`; });
+  return html;
+}
+
+// 下載／列印用的完整 HTML（Word 不支援 CSS 變數，先換成實際顏色）
+function surveyAiDocHtml() {
+  const ai = STAT_AI; const title = (STAT_DATA?.survey?.title || '教學意見調查') + ' AI 分析';
+  const COLORS = { '--cr2':'#E8E0D0', '--navy3':'#EAF0F8', '--navy':'#1B3A6B', '--ink3':'#888888', '--ink2':'#555555', '--red':'#B03020' };
+  const body = surveyAiRender(true).replace(/var\((--[a-z0-9]+)\)/g, (m, k) => COLORS[k] || '#333');
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(title) + '</title>'
+    + '<style>body{font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;font-size:13px;color:#1A1510;line-height:1.7;margin:24px}h1{font-size:18px;color:#1B3A6B;border-bottom:2px solid #1B3A6B;padding-bottom:6px}</style>'
+    + '</head><body><h1>' + esc(title) + '</h1><div style="font-size:12px;color:#888;margin-bottom:10px">產生日期：' + new Date().toLocaleDateString('zh-TW') + '</div>'
+    + body + '</bo' + 'dy></ht' + 'ml>';
+}
+function surveyAiDownload() {
+  if (!STAT_AI) return;
+  const name = ((STAT_DATA?.survey?.title || '教學意見調查') + '_AI分析').replace(/[\\/:*?"<>|]/g, '_') + '.doc';
+  const blob = new Blob(['﻿' + surveyAiDocHtml()], { type: 'application/msword;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function surveyAiPrint() {
+  if (!STAT_AI) return;
+  const w = window.open('', '_blank');
+  if (!w) { showToast('瀏覽器擋住了彈出視窗，請允許後再試', 'error'); return; }
+  w.document.write(surveyAiDocHtml());
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+function surveyAiCopy() {
+  const ai = STAT_AI; if (!ai) return;
+  const lines = [];
+  const L = (t, arr) => { if (arr && arr.length) { lines.push(t + '：'); arr.forEach(x => lines.push('  ‧ ' + x)); } };
+  if (ai.overall) {
+    const o = ai.overall;
+    lines.push('【整份調查總覽】', o.overview || '');
+    L('共通優點', o.common_strengths); L('共通問題／建議', o.common_issues);
+    if (o.follow_up?.length) { lines.push('建議行政追蹤：'); o.follow_up.forEach(f => lines.push(`  ‧ ${f.course}：${f.reason}`)); }
+    L('給行政單位的建議', o.admin_suggestions); lines.push('');
+  }
+  Object.values(ai.courses).sort((a,b) => (a.meta.course||'').localeCompare(b.meta.course||'', 'zh')).forEach(x => {
+    lines.push(`【${x.meta.course}】${x.meta.code}　授課：${x.meta.teachers}　填答 ${x.meta.n}/${x.meta.enroll} 人　${x.result.tone||''}`, x.result.summary || '');
+    L('優點', x.result.strengths); L('學生建議', x.result.suggestions); L('需關注', x.result.attention); lines.push('');
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('✅ 已複製 AI 分析全文'), () => showToast('複製失敗，請手動選取', 'error'));
+}
+
+async function surveyAiRun(surveyId, force) {
+  if (!STAT_DATA || STAT_DATA.survey?.id !== surveyId) { showToast('請先開啟這份調查的統計結果', 'error'); return; }
+  if (!force && STAT_AI && STAT_AI.surveyId === surveyId) { openThModal('🤖 AI 分析：' + STAT_DATA.survey.title, surveyAiRender()); return; }
+  const { questions, byCourse } = STAT_DATA;
+  const list = Object.values(byCourse).filter(c => c.respondents.size > 0).sort((a,b) => a.course.localeCompare(b.course, 'zh'));
+  const built = list.map(c => ({ c, data: surveyAiBuildCourseData(c, questions) }));
+  const nComments = built.reduce((s, x) => s + x.data.開放題回饋.reduce((t, q) => t + q.回饋.length, 0), 0);
+  if (!confirm(`即將把 ${built.length} 門課的統計與 ${nComments} 則開放題回饋（匿名，不含學生姓名／學號）送到 Anthropic 進行 AI 分析。\n每門課分析一次，最後再產生總覽，會產生 API 費用。\n\n要繼續嗎？`)) return;
+
+  STAT_AI = { surveyId, courses: {}, overall: null, failed: [] };
+  const title = '🤖 AI 分析：' + STAT_DATA.survey.title;
+  const prog = (done, total, msg) => {
+    const el = document.getElementById('th-modal-body');
+    if (el) el.innerHTML = `<div style="padding:30px;text-align:center;color:var(--ink2)">
+      <div style="font-size:14px;margin-bottom:10px">${esc(msg)}</div>
+      <div style="height:10px;background:var(--cr2);border-radius:6px;overflow:hidden;max-width:360px;margin:0 auto"><div style="height:100%;width:${total?Math.round(done/total*100):0}%;background:var(--navy)"></div></div>
+      <div style="font-size:12px;color:var(--ink3);margin-top:8px">${done} / ${total}　請勿關閉此視窗</div></div>`;
+  };
+  openThModal(title, '');
+  let done = 0; const total = built.length + 1;
+  prog(0, total, '分析各課程中…');
+  // 同時最多 3 門課一起分析
+  let next = 0;
+  const worker = async () => {
+    while (next < built.length) {
+      const { c, data } = built[next++];
+      try {
+        const result = await surveyAiCall('course', data);
+        STAT_AI.courses[c.offering_id] = { result, meta: { course: c.course, code: c.code, teachers: data.授課教師, n: data.填答人數, enroll: data.修課人數 } };
+      } catch (e) { STAT_AI.failed.push({ course: c.course, error: e.message }); }
+      done++; prog(done, total, '分析各課程中…');
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  const okList = Object.values(STAT_AI.courses);
+  if (okList.length) {
+    prog(done, total, '整理整份調查總覽…');
+    try {
+      STAT_AI.overall = await surveyAiCall('overall', {
+        調查: STAT_DATA.survey.title,
+        課程分析: okList.map(x => ({ 課程: x.meta.course, 授課教師: x.meta.teachers, 填答: `${x.meta.n}/${x.meta.enroll}`, ...x.result }))
+      });
+    } catch (e) { STAT_AI.failed.push({ course: '整份調查總覽', error: e.message }); }
+  }
+  done = total; prog(done, total, '完成');
+  openThModal(title, surveyAiRender());
+}
+function surveyAIAnalysis(id) { surveyAiRun(id, false); }
 
 
 /* ════ 會議管理 MEETINGS ════ */
@@ -11010,6 +11191,20 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
       這裡每次忘記手動同步的bug已發生多次(v10.52這次又重演一次)，從此不用再記得這條規則
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.72', date: '2026-10-24',
+    items: [
+      '側邊欄依行政工作流程重新分組，共 9 組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理。主要變動：「學分班學生」與「學生資料」「班級導師管理」「工讀生簽到表」同在「學生」組，和「畢業與論文」分開；「遠距教學課程申請」移到「課程開設」；「課程討論區（檢視）」「教學意見調查」移到「選課與課程教學」；「帳號管理」移到「系統管理」；「兼課鐘點費核銷」「收據列印」併入「教師與資料庫」。',
+      '「課程管理」改名為「課程資料庫」（側邊欄項目與頁面標題），避免和課程開設相關群組混淆。只搬動項目位置，每個項目的權限、功能、紅點數字都不變。'
+    ]
+  },
+  {
+    version: 'v10.71', date: '2026-10-24',
+    items: [
+      '教學意見調查統計畫面的「🤖 AI 分析」按鈕上線（原為佔位）：按下後先跳出確認（說明將送出幾門課、幾則匿名回饋，並會產生 API 費用），確認後每門課各分析一次（最多同時3門），最後再產生整份調查總覽。每門課輸出：整體印象、優點、學生建議、需關注事項、語氣（正向／普通／需關注）；總覽輸出：整體情況、共通優點、共通問題、建議行政追蹤的課程、給行政單位的建議。結果僅限 admin 在畫面查看(暫存於頁面，重新整理即清除)，可「📋 複製全文」、「⬇ 下載 Word」、「🖨 列印／存成 PDF」或「🔄 重新分析」。送出的資料不含學生姓名／學號。遠距教學題一併納入分析。',
+      '架構：admin 前端 → Supabase Edge Function「survey-ai-analysis」→ Anthropic API。API 金鑰只放在 Supabase Secrets(ANTHROPIC_API_KEY)，不在網頁裡；函式會檢查登入身分必須是 admin／director。部署方式見 schema/survey-ai-analysis 說明。尚未部署時按鈕會顯示錯誤訊息，不影響其他功能。'
+    ]
+  },
   {
     version: 'v10.70', date: '2026-10-23',
     items: [
@@ -22627,7 +22822,7 @@ async function downloadAllTranscriptsExcel() {
 
 function viewStudentTranscript(idx) {
   const r = _gsumRows[idx];
-  let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--ink3)">學號：${r.student.student_code||''}　加權平均：<b style="color:var(--ink)">${r.avg!=null?r.avg.toFixed(2):'尚無成績'}</b>　本學期修讀：${gsumCreditsBreakdown(r)}　及格${r.pass}科／不及格${r.fail}科</div>`;
+  let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--ink3)">學號：${r.student.student_code||''}　加權平均：<b style="color:var(--ink)">${r.avg!=null?r.avg.toFixed(2):'尚無成績'}</b>　${gsumTakenLabel()}：${gsumCreditsBreakdown(r)}　及格${r.pass}科／不及格${r.fail}科</div>`;
   if (!r.courses.length) {
     html += '<div style="color:var(--ink3);font-size:13px;padding:12px 0">目前範圍內查無已送出的成績</div>';
   } else {
