@@ -243,16 +243,26 @@ FROM teachers t WHERE t.name_zh IN ('姓名1','姓名2');
 
 **驗證**：頁面上「已產生連結：N 份」增加；「查看連結」找得到該同學；複製全部的欄位順序是姓名、課程、連結、Email、備註（學分班同學的 Email 是個人信箱、備註是課程類別）。
 
-## 症狀20：休學的同學在名單上被標成「停修」，或被算進選課人數
+## 症狀20：休學的同學在名單上被標成「停修」，或後來才休學的人過去的學期也被標成休學，或被算進選課人數
 
-**原因**：名單程式只看 `enrollments.status`，沒有先看 `students.status`；或查詢只抓 `status='confirmed'`，休學同學的選課記錄未被改動，於是被當成正常修課。
+**原因**（三種常見）：
+1. 名單程式沒有依「原因開頭」轉換：休學／退學時選課記錄是 `withdrawn` 且原因開頭「休學」「退學」，程式卻直接顯示「停修」。
+2. 拿 `students.status` 的**現在值**去套所有學期，後來才休學的人，過去正常修課的學期也被標成休學。
+3. 查詢只抓 `status='confirmed'`，休學者被算進人數，或看不到標記。
 
 **排查順序**：
-1. 用 SQL 對照該生：`SELECT s.student_code, s.name_zh, s.status AS 學籍, e.status AS 選課 FROM enrollments e JOIN students s ON s.id=e.student_id WHERE ...`。
-2. 學籍是 `leave` 但選課是 `withdrawn`／`confirmed` → 資料本身的慣例問題，修顯示規則（`conventions.md` 第 35 條），不要先改資料。
-3. 確認各處（點名單、空白評分表、老師端名單、開課記錄人數）都已套用「學籍優先」與「不計入人數」。
+1. 先查這位學生的歷程與選課：
+   ```sql
+   SELECT h.old_status, h.new_status, h.changed_at, h.is_applied FROM student_status_history h
+   JOIN students s ON s.id=h.student_id WHERE s.student_code='學號' ORDER BY h.changed_at;
+   SELECT sm.label, e.status, e.withdraw_reason FROM enrollments e
+   JOIN students s ON s.id=e.student_id JOIN semesters sm ON sm.id=e.semester_id WHERE s.student_code='學號' ORDER BY sm.label;
+   ```
+2. 對照 `conventions.md` 第 35 條：該學期結束當下的學籍是什麼？選課記錄的原因開頭是什麼？
+3. 老師端讀不到歷程屬正常（RLS），用「學期已結束只看標記」的折衷；學生端讀不到歷程 → 確認已建 `student_status_history_self_read` policy。
+4. 確認各處（第 35 條規則 9 的清單）都已套用同一套規則。
 
-**驗證**：休學同學出現在名單上，狀態寫「休學」，選課總人數不含他。
+**驗證**：休學同學在休學學期顯示「休學」、在正常學期仍是正常修課；選課總人數不含休學、退學、停修。
 
 ## 症狀21：Excel 開啟匯出檔，10 碼學號變成 1.14E+09，或學號被欄寬截斷
 
@@ -263,3 +273,30 @@ FROM teachers t WHERE t.name_zh IN ('姓名1','姓名2');
 ## 症狀22：改了程式，下載出來的 Excel／畫面還是舊格式
 
 **先做**：不要先改程式。請使用者在「更新紀錄」確認第一項是不是這次新增的內容；再確認本機檔案已覆蓋並 Ctrl+F5。2026-10-23 就發生一次：下載的點名記錄 Excel 欄位是舊版的「學號／姓名／類別」，原因是本機 `teacher.html` 還沒換成新版。與 SKILL.md 核心提醒第 0 條同一類。
+
+## 症狀23：休學學期在成績單或學生修課紀錄「整段不見」
+
+**原因**：休學學期可能完全沒有選課記錄（開學前就沒註冊），只靠選課記錄產生的清單自然沒有那一學期。
+
+**排查順序**：
+1. 確認該生有 `student_status_history` 記錄，且該學期結束日當下的狀態是 `leave`（`conventions.md` 第 35 條規則 5、7）。
+2. 學生端看不到：確認已執行 `student_status_history_self_read` policy。
+3. 成績單看不到：確認成績彙總的範圍包含該學期；累計成績單最下方會寫「休學學期：…」。
+4. 完全沒有歷程的人不會被推算，需先補登記錄。
+
+**驗證**：學生端「歷年已選課程」出現「本學期：休學」，並有「累計休學 N 學期」；成績單標示休學學期。
+
+## 症狀24：教學意見調查「🤖 AI 分析」出現錯誤
+
+| 錯誤訊息 | 原因與處理 |
+|---|---|
+| Failed to send a request to the Edge Function | 函式名稱不是 `survey-ai-analysis`、沒部署成功，或網路擋住；到 Supabase Edge Functions 確認列表有這個函式 |
+| 僅限管理者使用 | 登入帳號的 `users.role` 不是 admin／director |
+| 未登入 | session 失效，重新登入 |
+| 伺服器尚未設定 ANTHROPIC_API_KEY | Edge Functions → Secrets 沒有這一筆，或名稱拼錯 |
+| Anthropic API 錯誤：… | 金鑰錯誤／已到期、帳戶餘額不足、模型名稱不存在（可用 Secret `ANTHROPIC_MODEL` 改） |
+| 資料過長 | 單門課回饋太多，程式已限每題 60 則、每則 400 字，仍超過時再調低 |
+| AI 回傳格式無法解析 | 偶發，按「🔄 重新分析」；若某門課一直失敗，單獨檢查該課的回饋文字 |
+
+**驗證**：畫面出現「整份調查總覽」與各課程卡片，「⬇ 下載 Word」可開啟。
+
