@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.47 2026-10-24 「課程討論區」收進「我的教學」的課程小卡入口(新增「討論區」小卡，側邊欄不再有獨立項目)；課程卡片按鈕「教材/作業」改名「課程教學」。前次(v3.46) 右側內容區改為撐滿寬度(與學生端一致，不再限制1100px置中)。前次(v3.45) 側邊欄「我的課程」改名「我的教學」(只改顯示名稱，功能不變)。前次(v3.44) 首頁「重要時程提醒」：已開始、尚未結束的期間型事件改列在「本學期進行中」，與管理端一致。前次(v3.43) 休學/退學不再顯示成停修、已結束學期名單不受學生現在學籍影響；「選課學生名單」/成績登錄/點名表學分班同學姓名旁加註類別(隨班附讀/學分專班)，點名Excel新增「類別」欄，獎學金推薦排除學分班；名單/成績登錄/點名一般生在前學分班在後並分組標題，休學→退學→停修判斷，點名表/點名Excel休學退學照列並標示(不能點名、不計人數)。前次(v3.41) 2026-10-14 教學意見調查統計：數位課程最後多出「遠距教學課程 教學品質調查」區塊(受「老師可見」開關控制)。前次(v3.40) 教學意見調查統計只讀一般題，不含遠距教學題(kind=remote)。前次(v3.39) 「教材與作業」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，各自有「＋教材」「＋作業」，可切換回表格。前次(v3.38) 老師端影片教材列表新增「▶ 線上看」，老師預覽不設限(可快轉/後退，不記錄進度)。前次(v3.37) 影片教材/教材不需批閱，只看觀看狀況。 前次(v3.36) 新增作業/教材預帶的截止時間改為「上傳日（單元課程還沒上完則為最後一堂課日期）+7天」晚上8:00，不再預帶到已經過去的日期。前次(v3.35) 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
+<!-- BWBC Teacher v3.48 2026-10-24 單元管理可用滑鼠拖曳調整順序(▲▼保留)，並修正▲▼交換後排序值沒同步的問題。前次(v3.47) 「課程討論區」收進「我的教學」的課程小卡入口(新增「討論區」小卡，側邊欄不再有獨立項目)；課程卡片按鈕「教材/作業」改名「課程教學」。前次(v3.46) 右側內容區改為撐滿寬度(與學生端一致，不再限制1100px置中)。前次(v3.45) 側邊欄「我的課程」改名「我的教學」(只改顯示名稱，功能不變)。前次(v3.44) 首頁「重要時程提醒」：已開始、尚未結束的期間型事件改列在「本學期進行中」，與管理端一致。前次(v3.43) 休學/退學不再顯示成停修、已結束學期名單不受學生現在學籍影響；「選課學生名單」/成績登錄/點名表學分班同學姓名旁加註類別(隨班附讀/學分專班)，點名Excel新增「類別」欄，獎學金推薦排除學分班；名單/成績登錄/點名一般生在前學分班在後並分組標題，休學→退學→停修判斷，點名表/點名Excel休學退學照列並標示(不能點名、不計人數)。前次(v3.41) 2026-10-14 教學意見調查統計：數位課程最後多出「遠距教學課程 教學品質調查」區塊(受「老師可見」開關控制)。前次(v3.40) 教學意見調查統計只讀一般題，不含遠距教學題(kind=remote)。前次(v3.39) 「教材與作業」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，各自有「＋教材」「＋作業」，可切換回表格。前次(v3.38) 老師端影片教材列表新增「▶ 線上看」，老師預覽不設限(可快轉/後退，不記錄進度)。前次(v3.37) 影片教材/教材不需批閱，只看觀看狀況。 前次(v3.36) 新增作業/教材預帶的截止時間改為「上傳日（單元課程還沒上完則為最後一堂課日期）+7天」晚上8:00，不再預帶到已經過去的日期。前次(v3.35) 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -133,6 +133,12 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cr3);color:var(--ink
 /* ── 單元管理 ── */
 .unit-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:10px 14px;margin-bottom:8px}
 .unit-order-btns{display:flex;flex-direction:column;gap:1px}
+.drag-handle{cursor:grab;color:var(--ink3);font-size:18px;line-height:1;padding:4px 2px;user-select:none;touch-action:none}
+.drag-handle:hover{color:var(--navy)}
+.drag-handle:active{cursor:grabbing}
+.drag-ing{opacity:.4}
+.drag-over-top{box-shadow:0 -3px 0 var(--navy)}
+.drag-over-bottom{box-shadow:0 3px 0 var(--navy)}
 .unit-order-btns button{border:none;background:var(--cr3);width:20px;height:16px;font-size:9px;cursor:pointer;border-radius:2px;color:var(--ink3)}
 .unit-order-btns button:hover{background:var(--cr2)}
 .unit-src-badge{font-size:10px;padding:2px 7px;border-radius:10px;white-space:nowrap}
@@ -1766,13 +1772,14 @@ function renderUnits() {
     return;
   }
   const countMap = CUR_UNITS._assignCount || {};
-  wrap.innerHTML = CUR_UNITS.map((u, i) => {
+  wrap.innerHTML = '<div style="font-size:12px;color:var(--ink3);margin-bottom:8px">調整順序：按住左邊的 ⠿ 拖曳，或用 ▲▼ 按鈕</div>' + CUR_UNITS.map((u, i) => {
     const srcLabel = u.source_type === 'syllabus'
       ? '<span class="unit-src-badge unit-src-syllabus">課綱第'+u.syllabus_week_ref+'週</span>'
       : '<span class="unit-src-badge unit-src-custom">自訂</span>';
     const acount = countMap[u.id] || 0;
     const scount = (CUR_UNIT_SESSIONS[u.id] || []).length;
     return '<div class="unit-row">' +
+      '<span class="drag-handle" title="按住拖曳，調整順序">⠿</span>' +
       '<div class="unit-order-btns">' +
         '<button onclick="moveUnit('+i+',-1)" '+(i===0?'disabled style="opacity:.3"':'')+'>▲</button>' +
         '<button onclick="moveUnit('+i+',1)" '+(i===CUR_UNITS.length-1?'disabled style="opacity:.3"':'')+'>▼</button>' +
@@ -1787,20 +1794,65 @@ function renderUnits() {
       '<button class="btn-syl none" style="padding:5px 12px;font-size:12px;color:#C04030" onclick="deleteUnit(\''+u.id+'\')">🗑</button>' +
       '</div>';
   }).join('');
+  dragSortBind(wrap, '.unit-row', reorderUnits);
 }
 
+// 通用「滑鼠拖曳排序」(v3.48)：按住列左邊的 ⠿ 把手拖到想要的位置放開。
+// 原本的 ▲▼ 按鈕保留（只差一列、或觸控螢幕不能拖曳時好用）。之後凡是有順序的清單都用這一套。
+// wrap=容器、rowSel=列的選擇器、onMove(from,to)=放開後處理（to 是移除 from 之後要插入的位置）
+function dragSortBind(wrap, rowSel, onMove) {
+  let from = -1;
+  const rows = () => Array.from(wrap.querySelectorAll(rowSel));
+  const clear = () => rows().forEach(x => x.classList.remove('drag-over-top', 'drag-over-bottom'));
+  wrap.querySelectorAll('.drag-handle').forEach(h => {
+    h.addEventListener('mousedown', () => { h.closest(rowSel).draggable = true; });
+    h.addEventListener('mouseup', () => { h.closest(rowSel).draggable = false; });
+  });
+  rows().forEach((r, i) => {
+    r.addEventListener('dragstart', e => {
+      from = i; r.classList.add('drag-ing');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(i));
+    });
+    r.addEventListener('dragend', () => { r.draggable = false; r.classList.remove('drag-ing'); clear(); from = -1; });
+    r.addEventListener('dragover', e => {
+      if (from < 0) return;
+      e.preventDefault();
+      const rect = r.getBoundingClientRect();
+      clear();
+      r.classList.add(e.clientY > rect.top + rect.height / 2 ? 'drag-over-bottom' : 'drag-over-top');
+    });
+    r.addEventListener('drop', e => {
+      if (from < 0) return;
+      e.preventDefault();
+      const rect = r.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      let to = i + (after ? 1 : 0);
+      const f = from; from = -1; clear();
+      if (f < to) to--;
+      if (to !== f) onMove(f, to);
+    });
+  });
+}
+
+// 單元排序：把第 from 個移到 to，重新編號 0..n-1，只把有變動的寫回資料庫
+async function reorderUnits(from, to) {
+  if (from === to || from < 0 || to < 0 || from >= CUR_UNITS.length || to >= CUR_UNITS.length) return;
+  const [m] = CUR_UNITS.splice(from, 1);
+  CUR_UNITS.splice(to, 0, m);
+  const changed = [];
+  CUR_UNITS.forEach((u, i) => { if (u.sort_order !== i) { u.sort_order = i; changed.push(u); } });
+  renderUnits();   // 先更新畫面，再寫回 DB
+  const rs = await Promise.all(changed.map(u => sb.from('teaching_units').update({ sort_order: u.sort_order }).eq('id', u.id)));
+  if (rs.some(r => r.error)) {
+    showToast('排序儲存失敗，已重新載入目前順序', 'error');
+    await loadUnits();
+  }
+}
+
+// ▲▼ 按鈕：與拖曳共用同一個函式（順便修掉舊版交換後本機 sort_order 沒更新、或兩單元順序值相同時換不動的問題）
 async function moveUnit(index, dir) {
-  const other = index + dir;
-  if (other < 0 || other >= CUR_UNITS.length) return;
-  const a = CUR_UNITS[index], b = CUR_UNITS[other];
-  const aOrder = a.sort_order, bOrder = b.sort_order;
-  // 先本地互換再寫回DB，畫面立即反應
-  [CUR_UNITS[index], CUR_UNITS[other]] = [CUR_UNITS[other], CUR_UNITS[index]];
-  renderUnits();
-  await Promise.all([
-    sb.from('teaching_units').update({ sort_order: bOrder }).eq('id', a.id),
-    sb.from('teaching_units').update({ sort_order: aOrder }).eq('id', b.id)
-  ]);
+  await reorderUnits(index, index + dir);
 }
 
 function openUnitModal(unitId) {
@@ -6586,6 +6638,13 @@ async function lpSaveSet() {
       (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.48', date: '2026-10-24',
+    items: [
+      '單元管理可用滑鼠拖曳調整順序：按住每列左邊的「⠿」拖到想要的位置放開，拖曳時會顯示藍線提示放開的位置；原本的 ▲▼ 按鈕保留（只差一列或觸控螢幕時好用）',
+      '修正單元順序有時不正確的問題：舊版 ▲▼ 交換後，畫面上的順序值沒有同步更新，連續調整或兩個單元順序值相同時會換不動；現在調整後會重新編號並寫回',
+    ]
+  },
   {
     version: 'v3.47', date: '2026-10-24',
     items: [
