@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Teacher v3.46 2026-10-24 右側內容區改為撐滿寬度(與學生端一致，不再限制1100px置中)。前次(v3.45) 側邊欄「我的課程」改名「我的教學」(只改顯示名稱，功能不變)。前次(v3.44) 首頁「重要時程提醒」：已開始、尚未結束的期間型事件改列在「本學期進行中」，與管理端一致。前次(v3.43) 休學/退學不再顯示成停修、已結束學期名單不受學生現在學籍影響；「選課學生名單」/成績登錄/點名表學分班同學姓名旁加註類別(隨班附讀/學分專班)，點名Excel新增「類別」欄，獎學金推薦排除學分班；名單/成績登錄/點名一般生在前學分班在後並分組標題，休學→退學→停修判斷，點名表/點名Excel休學退學照列並標示(不能點名、不計人數)。前次(v3.41) 2026-10-14 教學意見調查統計：數位課程最後多出「遠距教學課程 教學品質調查」區塊(受「老師可見」開關控制)。前次(v3.40) 教學意見調查統計只讀一般題，不含遠距教學題(kind=remote)。前次(v3.39) 「教材與作業」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，各自有「＋教材」「＋作業」，可切換回表格。前次(v3.38) 老師端影片教材列表新增「▶ 線上看」，老師預覽不設限(可快轉/後退，不記錄進度)。前次(v3.37) 影片教材/教材不需批閱，只看觀看狀況。 前次(v3.36) 新增作業/教材預帶的截止時間改為「上傳日（單元課程還沒上完則為最後一堂課日期）+7天」晚上8:00，不再預帶到已經過去的日期。前次(v3.35) 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
+<!-- BWBC Teacher v3.47 2026-10-24 「課程討論區」收進「我的教學」的課程小卡入口(新增「討論區」小卡，側邊欄不再有獨立項目)；課程卡片按鈕「教材/作業」改名「課程教學」。前次(v3.46) 右側內容區改為撐滿寬度(與學生端一致，不再限制1100px置中)。前次(v3.45) 側邊欄「我的課程」改名「我的教學」(只改顯示名稱，功能不變)。前次(v3.44) 首頁「重要時程提醒」：已開始、尚未結束的期間型事件改列在「本學期進行中」，與管理端一致。前次(v3.43) 休學/退學不再顯示成停修、已結束學期名單不受學生現在學籍影響；「選課學生名單」/成績登錄/點名表學分班同學姓名旁加註類別(隨班附讀/學分專班)，點名Excel新增「類別」欄，獎學金推薦排除學分班；名單/成績登錄/點名一般生在前學分班在後並分組標題，休學→退學→停修判斷，點名表/點名Excel休學退學照列並標示(不能點名、不計人數)。前次(v3.41) 2026-10-14 教學意見調查統計：數位課程最後多出「遠距教學課程 教學品質調查」區塊(受「老師可見」開關控制)。前次(v3.40) 教學意見調查統計只讀一般題，不含遠距教學題(kind=remote)。前次(v3.39) 「教材與作業」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，各自有「＋教材」「＋作業」，可切換回表格。前次(v3.38) 老師端影片教材列表新增「▶ 線上看」，老師預覽不設限(可快轉/後退，不記錄進度)。前次(v3.37) 影片教材/教材不需批閱，只看觀看狀況。 前次(v3.36) 新增作業/教材預帶的截止時間改為「上傳日（單元課程還沒上完則為最後一堂課日期）+7天」晚上8:00，不再預帶到已經過去的日期。前次(v3.35) 修正影片教材「觀看中」(未達90%)的學生，在批閱面板按「查看進度」時視窗仍出現「儲存」按鈕、按下去會出錯的問題：這種情況現在只顯示進度，不給儲存前次(v3.34) 老師出題可設定選填的期限(過期仍可閱讀只顯示「已截止」,可選擇期限後鎖定回覆)，討論串內列出「還沒發表的同學」名單。前次(v3.33)新增「課程討論區」(老師端)：工作台(待處理的私下提問/問老師/無人回覆)、全部討論、出討論題(可設先發表才能看同學回覆、每人限發一則)、置頂/鎖定/標為已解決、認可同學的答案、「問得好」，以及統計儀表板(來源、師生與生生互動、第一個回覆者、回覆中位時間、參與情形含有閱讀沒發言)。前次(v3.32)配合影片觀看進度持久化：批閱面板/完成度總覽新增「觀看中」中間狀態，觀看中但未達90%完成門檻不會被誤判成已繳交，批閱表單也不會對還在觀看中的記錄顯示評分欄位。前次(v3.31)修正影片上傳卡死問題：上傳加上2分鐘逾時保護、失敗/逾時會顯示明確錯誤訊息、上傳中鎖住儲存按鈕避免重複送出。(v3.30)新增「影片教材」類型：學生需實際看完影片時長90%以上才自動記錄完成(防快轉跳過)，影片存至course-videos bucket，可列入正式成績/逾期政策/補交等正常繳交流程；批閱面板新增影片觀看進度顯示。(v3.29)新增「教材」類型 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -390,7 +390,6 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
         <div class="side-item" id="nav-ann"         onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
         <div class="side-item" id="nav-profile"     onclick="showSection('profile')"><span class="nav-icon">👤</span><span class="nav-txt">個人資料</span></div>
         <div class="side-item" id="nav-my-courses"  onclick="showSection('my-courses')"><span class="nav-icon">📚</span><span class="nav-txt">我的教學</span></div>
-        <div class="side-item" id="nav-discussion"  onclick="showSection('discussion')"><span class="nav-icon">💬</span><span class="nav-txt">課程討論區</span></div>
         <div class="side-item" id="nav-attendance"  onclick="showSection('attendance')"><span class="nav-icon">📋</span><span class="nav-txt">課堂點名</span></div>
         <div class="side-item" id="nav-all-courses" onclick="showSection('all-courses')"><span class="nav-icon">🗂</span><span class="nav-txt">所有課程</span></div>
         <div class="side-item" id="nav-live-poll"   onclick="showSection('live-poll')"><span class="nav-icon">🎯</span><span class="nav-txt">課堂調查即時秀</span></div>
@@ -482,6 +481,11 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
             <div class="hub-card-icon">📝</div>
             <div class="hub-card-title">教材與作業</div>
             <div class="hub-card-desc">建立作業/教材，設定繳交期限與批閱</div>
+          </div>
+          <div class="hub-card" onclick="openCourseDiscussion()">
+            <div class="hub-card-icon">💬</div>
+            <div class="hub-card-title">討論區</div>
+            <div class="hub-card-desc">出討論題、開話題，查看同學的發問與回覆</div>
           </div>
         </div>
       </div>
@@ -833,6 +837,13 @@ details:not([open]) > summary .survey-toggle-arrow{transform:rotate(-90deg)}
 
       <!-- ── 課程討論區 ── -->
       <div id="sec-discussion" class="t-section">
+        <div class="hub-breadcrumb">
+          <a onclick="showSection('my-courses')">我的教學</a>
+          <span class="sep">／</span>
+          <a onclick="tdBackToHub()" id="td-crumb-hub"></a>
+          <span class="sep">／</span>
+          <span class="cur">討論區</span>
+        </div>
         <div class="section-title">💬 課程討論區</div>
         <div id="td-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">目前沒有開課記錄</div>
         <select id="td-course-sel" class="finput" onchange="tdSwitchCourse(this.value)"></select>
@@ -1618,7 +1629,7 @@ function renderMyCourseCards(courses, sylMap) {
     const actionsHtml =
       '<button class="btn-syl none" onclick="viewCourseRoster(\''+c.offering_id+'\',\''+c.name_zh+'\')">👥 學生名單</button>' +
       '<button class="btn-syl '+btnClass+'" onclick="openSylModal(\''+c.offering_id+'\',\''+c.name_zh+'\')">'+btnText+'</button>' +
-      '<button class="btn-syl none" onclick="openCourseHub(\''+c.offering_id+'\',\''+c.name_zh.replace(/'/g,"\\'")+'\',\''+c.semester_label+'\')">📝 教材/作業</button>';
+      '<button class="btn-syl none" onclick="openCourseHub(\''+c.offering_id+'\',\''+c.name_zh.replace(/'/g,"\\'")+'\',\''+c.semester_label+'\')">📝 課程教學</button>';
     return renderHubCourseCard(c, actionsHtml);
   }).join('');
 }
@@ -5551,10 +5562,30 @@ async function loadTdSection(){
   sel.innerHTML=list.map(c=>'<option value="'+c.offering_id+'"'+(c.offering_id===TD.offId?' selected':'')+'>'+tdEsc(c.semester_label+'　'+c.name_zh)+'</option>').join('');
   if(!list.some(c=>c.offering_id===TD.offId)) TD.offId=list[0].offering_id;
   sel.value=TD.offId;
+  tdSyncHub();
   await tdLoadCourse();
 }
+// v3.47 討論區改從「我的教學 → 課程小卡入口 → 討論區」進入：麵包屑與 CUR_HUB 跟著目前課程走
+function tdSyncHub(){
+  const c=(MY_COURSES||[]).find(x=>x.offering_id===TD.offId);
+  const crumb=document.getElementById('td-crumb-hub');
+  if(!c){ if(crumb) crumb.textContent=''; return; }
+  CUR_HUB={ offeringId:c.offering_id, name:c.name_zh, semLabel:c.semester_label, course:c };
+  if(crumb) crumb.textContent=c.name_zh+'（'+c.semester_label+'）';
+}
+function tdBackToHub(){
+  if(CUR_HUB){ openCourseHub(CUR_HUB.offeringId, CUR_HUB.name, CUR_HUB.semLabel); } else showSection('my-courses');
+}
+async function openCourseDiscussion(){
+  if(!CUR_HUB){ showSection('my-courses'); return; }
+  if(TD.offId!==CUR_HUB.offeringId){
+    TD.offId=CUR_HUB.offeringId; TD.tab='bench'; TD.curId=null; TD.filter='all'; TD.open=false;
+    TD.draft={ who:'prompt', title:'', body:'', unit:'', assign:'', gate:false, one:false, staffOnly:false, due:'', lockDue:false };
+  }
+  showSection('discussion');
+}
 function tdSwitchCourse(id){
-  TD.offId=id; TD.tab='bench'; TD.curId=null; TD.filter='all'; TD.open=false;
+  TD.offId=id; tdSyncHub(); TD.tab='bench'; TD.curId=null; TD.filter='all'; TD.open=false;
   TD.draft={ who:'prompt', title:'', body:'', unit:'', assign:'', gate:false, one:false, staffOnly:false, due:'', lockDue:false };
   tdLoadCourse();
 }
@@ -5909,7 +5940,7 @@ function showSection(id) {
   document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
   const sec = document.getElementById('sec-' + id);
   // 教材/作業相關的子畫面沒有自己的側邊欄項目，掛在「我的課程」底下，維持該項反白
-  const navId = ['course-hub','course-units','course-assignments','quiz-builder','review-panel','completion-overview'].includes(id) ? 'my-courses' : id;
+  const navId = ['course-hub','course-units','course-assignments','quiz-builder','review-panel','completion-overview','discussion'].includes(id) ? 'my-courses' : id;
   const nav = document.getElementById('nav-' + navId);
   if (sec) sec.classList.add('on');
   if (nav) nav.classList.add('active');
@@ -6555,6 +6586,13 @@ async function lpSaveSet() {
       (admin.html同樣的手動同步步驟已經漏改好幾次才改成自動，這裡直接從一開始就做成自動，不要重演)
    從 v3.15 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_T = [
+  {
+    version: 'v3.47', date: '2026-10-24',
+    items: [
+      '「💬 課程討論區」收進「我的教學」：進入某門課的課程小卡入口後，與「🗂 單元管理」「📝 教材與作業」並列新增「💬 討論區」小卡；左側選單不再有獨立的「課程討論區」。討論區的功能與資料完全不變，畫面上方有麵包屑（我的教學／課名／討論區）可回上一層，仍可用下拉選單切換課程',
+      '課程卡片上的「📝 教材/作業」按鈕改名為「📝 課程教學」（入口裡現在有單元、教材與作業、討論區三項）',
+    ]
+  },
   {
     version: 'v3.46', date: '2026-10-24',
     items: [
