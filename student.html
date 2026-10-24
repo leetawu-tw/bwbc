@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Student v3.48 2026-10-24 首頁「重要時程提醒」：已開始、尚未結束的期間型事件(期中教學意見調查、停修截止期間等)改列在「本學期進行中」，與管理端一致。前次(v3.47) 休學學期在「歷年已選課程」顯示「本學期：休學」(即使沒有選課)並顯示累計休學學期數(需執行 student_status_history_self_read.sql)。前次(v3.46) 休學/退學學期的課改顯示「休學/退學」不再顯示停修；左側選單移除舊的「教材與作業」「課程討論區」(統一從「我的課程」進入，討論區由各單元的「前往討論區」進入)；「我的課程」新增「🗂 依單元／📋 全部清單」切換。前次(v3.44) TA課程管理「作業/教材列表」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，可切換回表格。前次(v3.43) 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
+<!-- BWBC Student v3.49 2026-10-24 側邊欄「選課」改名「加退選」、「我的課程」改名「我的選課」(只改顯示名稱，功能不變)。前次(v3.48) 首頁「重要時程提醒」：已開始、尚未結束的期間型事件(期中教學意見調查、停修截止期間等)改列在「本學期進行中」，與管理端一致。前次(v3.47) 休學學期在「歷年已選課程」顯示「本學期：休學」(即使沒有選課)並顯示累計休學學期數(需執行 student_status_history_self_read.sql)。前次(v3.46) 休學/退學學期的課改顯示「休學/退學」不再顯示停修；左側選單移除舊的「教材與作業」「課程討論區」(統一從「我的課程」進入，討論區由各單元的「前往討論區」進入)；「我的課程」新增「🗂 依單元／📋 全部清單」切換。前次(v3.44) TA課程管理「作業/教材列表」預設改為依單元分區：每個單元分📖教材(不批閱)與✍️作業(批閱)，可切換回表格。前次(v3.43) 新增「🎓 我的課程」：以一門課為中心，依單元整理教材(自己看)／作業(要繳交)／討論，顯示自己的進度與全班整體完成率；舊的「教材與作業」「課程討論區」並存。需執行 schema/class_completion.sql 才會顯示全班完成率。前次(v3.42) 課程討論區只列出本學期(例如115-1)的課程，往年課程與往年助教課程不再出現。前次(v3.41) TA端影片教材不批閱，並新增助教預覽教材/影片。 前次(v3.40) TA課程管理的教材/作業修正：類型欄補上「📄 教材」「📹 影片教材」（原本顯示英文 material、video）；教材不再出現批閱按鈕前次(v3.39) 討論區目前不開放匿名(發問與回覆的匿名選項隱藏，資料庫也會擋；之後由資料庫的匿名總開關一處開放)。前次(v3.38)老師出題的討論題支援選填期限：列表與討論串顯示「還有N天／已截止」，若老師設定期限後鎖定則過期後不再接受回覆(仍可閱讀)；助教在出題的討論串可看到「還沒發表的同學」名單。前次(v3.37)新增「課程討論區」(學生與助教端)：發問、老師出題、討論串、謝謝、匿名、私下問老師，以及只有本人看得到的「我的足跡」。前次(v3.36)已完成的影片教材重新打開時，一樣會接續到當時完成的那個位置(例如90%處)，不會從0:00重新開始。前次(v3.35)修正影片教材完成後無法重複觀看的問題：達到90%完成門檻後畫面不再整個重繪(避免播放中影片被拔掉)，並解除快轉/倒轉限制，可自由重複觀看整部影片。(v3.34)新增「觀看進度持久化」 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -378,8 +378,8 @@ input{font-family:inherit}
       <div class="side-nav-scroll">
       <div class="side-nav-label">功能選單</div>
       <div class="side-item" id="nav-ann"    onclick="showSection('ann')"><span class="nav-icon">📢</span><span class="nav-txt">公佈欄</span></div>
-      <div class="side-item" id="nav-select" onclick="showSection('select')"><span class="nav-icon">📚</span><span class="nav-txt">選課</span></div>
-      <div class="side-item" id="nav-mycourse" onclick="showSection('mycourse')"><span class="nav-icon">🎓</span><span class="nav-txt">我的課程</span></div>
+      <div class="side-item" id="nav-select" onclick="showSection('select')"><span class="nav-icon">📚</span><span class="nav-txt">加退選</span></div>
+      <div class="side-item" id="nav-mycourse" onclick="showSection('mycourse')"><span class="nav-icon">🎓</span><span class="nav-txt">我的選課</span></div>
       <div class="side-item" id="nav-assignments" onclick="showSection('assignments')" style="display:none"><span class="nav-icon">📝</span><span class="nav-txt">教材與作業</span></div>
       <div class="side-item" id="nav-discussion" onclick="showSection('discussion')" style="display:none"><span class="nav-icon">💬</span><span class="nav-txt">課程討論區</span></div>
       <div class="side-item" id="nav-ta-apply" onclick="showSection('ta-apply')"><span class="nav-icon">🙋</span><span class="nav-txt">TA申請</span></div>
@@ -609,7 +609,7 @@ input{font-family:inherit}
 
       <!-- ── 我的課程（本學期，依單元整理教材／作業／討論）── -->
       <div id="sec-mycourse" class="t-section">
-        <div class="section-title">🎓 我的課程</div>
+        <div class="section-title">🎓 我的選課</div>
         <div id="mc-empty" style="display:none;color:var(--ink3);padding:20px;font-size:13px">本學期還沒有已確認選課的課程</div>
         <div id="mc-list"><div style="color:var(--ink3);padding:20px;font-size:13px">載入中…</div></div>
       </div>
@@ -854,6 +854,12 @@ function resolveReqType(baseReqType, overrides, cohort) {
    2. 側邊欄 #app-version-label-s 顯示的文字
    從 v2.5 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG_S = [
+  {
+    version: 'v3.49', date: '2026-10-24',
+    items: [
+      '左側選單改名：「📚 選課」→「📚 加退選」（加選、退選、選課單列印、歷年已選課程等原有內容不變）；「🎓 我的課程」→「🎓 我的選課」（本學期每門課的單元、教材、作業、討論）。只改名稱，功能不變，與教師端「我的教學」、管理端「選課與課程教學」對應',
+    ]
+  },
   {
     version: 'v3.48', date: '2026-10-24',
     items: [
