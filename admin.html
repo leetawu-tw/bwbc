@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.73 2026-10-24 「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.74 2026-10-25 帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -193,6 +193,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .perm-row{display:grid;grid-template-columns:1.3fr 2fr;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--cr2)}
 .perm-row:last-child{border-bottom:none}
 .perm-row .perm-label{font-size:13px;color:var(--ink)}
+.perm-row .perm-items{font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.5}
 .perm-row .perm-levels{display:flex;gap:2px;background:#fff;border-radius:6px;padding:2px;border:1px solid var(--cr2)}
 .perm-row .perm-levels label{flex:1;text-align:center;padding:4px 8px;font-size:12px;cursor:pointer;border-radius:4px;transition:all .15s;color:var(--ink3);font-weight:500}
 .perm-row .perm-levels label.lv-none.on{background:#E0E0E0;color:#555}
@@ -404,6 +405,14 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <button class="tb-logout" onclick="logout()">登出</button>
   </div>
   <div class="layout">
+    <!-- v10.74 沒有任何模組權限時顯示的提示（平常隱藏） -->
+    <div id="no-access-panel" style="display:none;flex:1;align-items:center;justify-content:center;padding:24px">
+      <div style="max-width:420px;text-align:center;background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:32px 28px;box-shadow:0 2px 10px rgba(0,0,0,.06)">
+        <div style="font-size:34px;margin-bottom:10px">🔒</div>
+        <div style="font-size:16px;font-weight:600;color:var(--ink);margin-bottom:8px">尚未開通任何功能</div>
+        <div style="font-size:13px;color:var(--ink3);line-height:1.7">您的帳號目前沒有被授權使用任何功能，請聯絡系統管理員開通。<br>開通後請登出再重新登入。</div>
+      </div>
+    </div>
     <!-- Sidebar -->
     <nav class="sidebar">
       <div class="sidebar-nav-scroll">
@@ -1392,7 +1401,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
                   <th class="usr-th" onclick="usrSort('_display_name')">顯示名稱 <span class="sort-icon" id="usr-sort-_display_name">⇅</span></th>
                   <th class="usr-th" onclick="usrSort('role')" style="text-align:center">角色 <span class="sort-icon" id="usr-sort-role">⇅</span></th>
                   <th class="usr-th" onclick="usrSort('_irole_str')">院內職務 <span class="sort-icon" id="usr-sort-_irole_str">⇅</span></th>
-                  <th class="usr-th">權限 ({模組數})</th>
+                  <th class="usr-th">權限（模組數）</th>
                   <th class="usr-th" onclick="usrSort('created_at')" style="text-align:center">建立 <span class="sort-icon" id="usr-sort-created_at">⇅</span></th>
                   <th class="sticky-thead-th" style="padding:10px 14px;text-align:center;font-size:12.5px;font-weight:500">操作</th>
                 </tr>
@@ -2423,6 +2432,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <button onclick="setAllUsrPerm('admin')" style="padding:3px 8px;font-size:11px;border:1px solid var(--cr2);background:#fff;border-radius:4px;cursor:pointer">全</button>
         </div>
         <div id="usr-perm-grid" style="padding:8px 10px;background:var(--cr3);border-radius:6px"></div>
+        <div style="font-size:11.5px;color:var(--ink3);margin-top:6px;line-height:1.6">每個模組下方的小字，是這個開關實際控制的側邊欄項目。「帳號管理」「課程教學（檢視）」只有 admin 看得到，不在此設定。全部設為「無」的 staff，登入後不會顯示功能列。</div>
       </div>
     </div>
     <div style="padding:14px 20px;border-top:1px solid var(--cr2);display:flex;gap:8px;justify-content:flex-end">
@@ -4011,6 +4021,26 @@ function applyStaffPermissions() {
     const level = normalizePerm(perms[key]);
     el.style.display = (level === 'none') ? 'none' : '';
   });
+
+  // v10.74：群組標題——群組裡沒有任何可見項目時，標題一併隱藏
+  document.querySelectorAll('.sidebar .nav-section').forEach(sec => {
+    const items = Array.from(sec.querySelectorAll(':scope > .nav-item'));
+    const anyVisible = items.some(el => el.style.display !== 'none');
+    sec.style.display = anyVisible ? '' : 'none';
+  });
+
+  // v10.74：沒有任何模組權限（全部「無」）→ 不顯示功能列，主畫面顯示「尚未開通任何功能」
+  const anyAllowed = Array.from(document.querySelectorAll('.nav-item[data-perm]')).some(el => {
+    const k = el.dataset.perm;
+    return k !== '__admin_only' && normalizePerm(perms[k]) !== 'none';
+  });
+  const noAccess = !anyAllowed;
+  const sb_ = document.querySelector('.sidebar'), ct_ = document.querySelector('.content');
+  const tgl_ = document.getElementById('sidebar-toggle-btn'), pn_ = document.getElementById('no-access-panel');
+  if (sb_) sb_.style.display = noAccess ? 'none' : '';
+  if (ct_) ct_.style.display = noAccess ? 'none' : '';
+  if (tgl_) tgl_.style.display = noAccess ? 'none' : '';
+  if (pn_) pn_.style.display = noAccess ? 'flex' : 'none';
 
   // 提供全域查詢函式，方便各頁面內的按鈕（新增/編輯/刪除）自行判斷要不要 disable
   // 用法：hasPerm('students','write') → true/false
@@ -11192,6 +11222,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.74', date: '2026-10-25',
+    items: [
+      '帳號權限視窗與「角色權限預設值」：每個模組名稱下方用小字列出它實際控制的側邊欄項目（直接讀側邊欄，之後新增功能會自動出現）；「課程管理」改名「課程資料庫」，與側邊欄一致',
+      '帳號列表表頭「權限 ({模組數})」顯示錯誤，改為「權限（模組數）」',
+      'staff 帳號沒有任何模組權限（全部「無」）時，登入後不顯示左側功能列，主畫面顯示「尚未開通任何功能，請聯絡系統管理員」；有權限的 staff，整個群組都看不到時，群組標題也一併隱藏',
+    ]
+  },
+  {
     version: 'v10.73', date: '2026-10-24',
     items: [
       '「課程教學（檢視）」進入時學期預設為本學期（依日期判斷），不再是最新一筆學期',
@@ -17972,7 +18010,7 @@ const PERM_LABELS = {
   announcements: '📢 公佈欄',
   todos:         '✅ 待辦事務',
   meetings:      '🤝 會議管理',
-  courses:       '📚 課程管理',
+  courses:       '📚 課程資料庫',
   open_courses:  '📋 開課記錄',
   classrooms:    '🏛 教室管理',
   teachers:      '👤 教師管理',
@@ -18176,6 +18214,22 @@ function openUsrModal(id) {
   openModal('usr-modal');
 }
 
+/* v10.74：權限名稱下方列出「這個開關實際控制哪些側邊欄項目」（直接讀側邊欄，新增功能不用另外維護） */
+function permItemNames(key) {
+  const names = [];
+  document.querySelectorAll('.sidebar .nav-item[data-perm="' + key + '"]').forEach(el => {
+    const c = el.cloneNode(true);
+    c.querySelectorAll('.nav-icon,.badge,#sched-arrow').forEach(x => x.remove());
+    const t = c.textContent.replace(/\s+/g, ' ').trim();
+    if (t && !names.includes(t)) names.push(t);
+  });
+  return names;
+}
+function permLabelHtml(key) {
+  const names = permItemNames(key);
+  return (PERM_LABELS[key] || key) + (names.length ? '<div class="perm-items">' + names.map(n => esc(n)).join('、') + '</div>' : '');
+}
+
 /* 渲染 4 級 radio grid */
 function renderPermGrid(perms) {
   const grid = document.getElementById('usr-perm-grid');
@@ -18183,7 +18237,7 @@ function renderPermGrid(perms) {
   grid.innerHTML = PERM_KEYS.map(key => {
     const cur = normalizePerm(perms[key]);
     return `<div class="perm-row" data-key="${key}">
-      <div class="perm-label">${PERM_LABELS[key]||key}</div>
+      <div class="perm-label">${permLabelHtml(key)}</div>
       <div class="perm-levels">
         ${PERM_LEVELS.map(lv =>
           `<label class="lv-${lv} ${cur===lv?'on':''}" onclick="setPermLevel('${key}','${lv}')">${PERM_LEVEL_LABEL[lv]}</label>`
@@ -18269,7 +18323,7 @@ function renderPresetMgrGrid(key) {
     PERM_KEYS.map(k => {
       const cur = normalizePerm(perms[k]);
       return `<div class="perm-row" data-mgr-key="${k}">
-        <div class="perm-label">${PERM_LABELS[k]||k}</div>
+        <div class="perm-label">${permLabelHtml(k)}</div>
         <div class="perm-levels">
           ${PERM_LEVELS.map(lv =>
             `<label class="lv-${lv} ${cur===lv?'on':''}" onclick="setPresetMgrLevel('${k}','${lv}')">${PERM_LEVEL_LABEL[lv]}</label>`
