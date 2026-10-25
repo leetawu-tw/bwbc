@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.74 2026-10-25 帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.76 2026-10-25 新增權限範本「基本款（全體）」「Staff」、帳號角色改選 staff 時自動套用 Staff 範本(僅限尚無任何權限者)、儀表板卡片依權限顯示；v10.75：帳號列表新增搜尋(Email或姓名，多關鍵字、依角色篩選、Enter直接開啟編輯、Esc清除)；v10.74：帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -507,8 +507,9 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
       <!-- ▌Dashboard ▌-->
       <div id="page-dashboard">
         <div class="page-hdr"><div class="page-title">儀表板</div><div id="sem-label" style="font-size:12px;color:var(--ink3)"></div></div>
+        <div id="dc-welcome" style="display:none;background:#fff;border-radius:var(--r);padding:16px;border:1px solid var(--cr2);font-size:13px;color:var(--ink2);margin-bottom:12px">歡迎使用！請從左側功能列選擇要使用的功能。</div>
         <div class="stats-grid">
-          <div class="stat-card" style="border-top:3px solid var(--gold)">
+          <div class="stat-card" id="dc-courses" style="border-top:3px solid var(--gold)">
             <div class="stat-lbl" style="margin-bottom:4px" id="d-year-lbl">本學年開課</div>
             <div class="stat-num" id="d-courses">—</div>
             <div style="display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--cr2)">
@@ -531,7 +532,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               </div>
             </div>
           </div>
-          <div class="stat-card" style="border-top:3px solid var(--navy2)">
+          <div class="stat-card" id="dc-teachers" style="border-top:3px solid var(--navy2)">
             <div class="stat-lbl" style="margin-bottom:4px">教師人數</div>
             <div class="stat-num" id="d-teachers">—</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--cr2)">
@@ -541,14 +542,14 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <div style="text-align:center"><div style="font-size:16px;font-weight:600;color:var(--ink)" id="d-t-guest">—</div><div style="font-size:10px;color:var(--ink3)">來賓</div></div>
             </div>
           </div>
-          <div class="stat-card" style="border-top:3px solid var(--green)">
+          <div class="stat-card" id="dc-classrooms" style="border-top:3px solid var(--green)">
             <div class="stat-lbl" style="margin-bottom:4px">教室</div>
             <div class="stat-num" id="d-classrooms">—</div>
             <div style="font-size:11px;color:var(--ink3);margin-top:4px">使用 <span id="d-cl-used" style="font-weight:600;color:var(--ink)">—</span> / 共 <span id="d-cl-total" style="font-weight:600;color:var(--ink)">—</span> 間</div>
           </div>
-          <div class="stat-card"><div class="stat-num" id="d-conflicts" style="color:var(--red)">—</div><div class="stat-lbl">待解決衝堂</div></div>
+          <div class="stat-card" id="dc-conflicts"><div class="stat-num" id="d-conflicts" style="color:var(--red)">—</div><div class="stat-lbl">待解決衝堂</div></div>
         </div>
-        <div style="background:#fff;border-radius:var(--r);padding:16px;border:1px solid var(--cr2);font-size:13px;color:var(--ink3)">
+        <div id="dc-timeline" style="background:#fff;border-radius:var(--r);padding:16px;border:1px solid var(--cr2);font-size:13px;color:var(--ink3)">
           <div style="font-weight:500;color:var(--ink);margin-bottom:8px">⏰ 重要時程提醒</div>
           <div id="d-timeline" style="display:flex;flex-direction:column;gap:5px">
             <div style="color:var(--ink3)">載入中…</div>
@@ -1392,6 +1393,19 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         </div>
 
         <div id="usr-view-list" style="display:flex;flex-direction:column;gap:12px">
+          <div class="toolbar" style="margin-bottom:0">
+            <input class="search" id="usr-search" placeholder="🔍 搜尋 Email 或姓名（可輸入多個關鍵字）…" style="width:300px"
+              oninput="renderUsers()" onkeydown="usrSearchKey(event)" autocomplete="off">
+            <select class="fselect" id="usr-role-filter" style="width:130px" onchange="renderUsers()">
+              <option value="">全部角色</option>
+              <option value="admin">admin</option>
+              <option value="staff">staff</option>
+              <option value="teacher">teacher</option>
+              <option value="student">student</option>
+              <option value="viewer">viewer</option>
+            </select>
+            <span style="font-size:11.5px;color:var(--ink3)">只剩一位時按 Enter 直接開啟編輯；按 Esc 清除搜尋</span>
+          </div>
           <div id="usr-stats" style="font-size:12px;color:var(--ink3);padding:0 4px"></div>
           <div style="background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow:auto;max-height:calc(100vh - 260px)">
             <table style="border-collapse:collapse;min-width:1000px;width:max-content">
@@ -2377,7 +2391,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="frow"><label class="flabel">顯示名稱</label>
           <input class="finput" id="usr-mod-display" placeholder="留空使用關聯姓名"></div>
         <div class="frow"><label class="flabel">角色</label>
-          <select class="finput" id="usr-mod-role" onchange="toggleUsrPermVisibility()">
+          <select class="finput" id="usr-mod-role" onchange="onUsrRoleChange()">
             <option value="admin">admin（系統管理者）</option>
             <option value="staff">staff（行政人員）</option>
             <option value="teacher">teacher（教師）</option>
@@ -2416,6 +2430,10 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             style="padding:4px 12px;font-size:11.5px;border:1px solid #1A6A30;background:#E8F5E9;color:#1A6A30;border-radius:5px;cursor:pointer;font-weight:500">🎓 老師兼行政</button>
           <button onclick="applyPresetTemplate('viewer')" title="主管唯讀:全部模組「讀」"
             style="padding:4px 12px;font-size:11.5px;border:1px solid #6A1B9A;background:#F3E5F5;color:#6A1B9A;border-radius:5px;cursor:pointer;font-weight:500">👁 主管唯讀</button>
+          <button onclick="applyPresetTemplate('basic_all')" title="基本款(全體):公佈欄、常用表單、相關法規查詢 = 讀"
+            style="padding:4px 12px;font-size:11.5px;border:1px solid #E65100;background:#FFF3E0;color:#E65100;border-radius:5px;cursor:pointer;font-weight:500">📋 基本款（全體）</button>
+          <button onclick="applyPresetTemplate('staff_default')" title="Staff:基本款 + 待辦事務(寫) + 會議管理(讀),其餘無"
+            style="padding:4px 12px;font-size:11.5px;border:1px solid #00695C;background:#E0F2F1;color:#00695C;border-radius:5px;cursor:pointer;font-weight:500">🧑‍💻 Staff</button>
           <button onclick="applyPresetTemplate('staff_empty')" title="從零開始:全部「無」,逐項手動勾選"
             style="padding:4px 12px;font-size:11.5px;border:1px solid #1565C0;background:#E3F2FD;color:#1565C0;border-radius:5px;cursor:pointer;font-weight:500">🧑‍💼 從零開始</button>
         </div>
@@ -4001,6 +4019,7 @@ function applyStaffPermissions() {
   if (role === 'admin') {
     document.querySelectorAll('.nav-item[data-perm]').forEach(el => { el.style.display=''; });
     window.hasPerm = () => true; // admin 在任何模組都視為 admin 級權限
+    applyDashboardPermissions();
     return;
   }
 
@@ -4049,6 +4068,25 @@ function applyStaffPermissions() {
     const level = normalizePerm(perms[key]);
     return order[level] >= order[minLevel];
   };
+  applyDashboardPermissions();
+}
+
+/* v10.76 儀表板卡片依權限顯示（開課/衝堂＝開課記錄；教師＝教師資料；教室＝教室資料；時程＝學期設定） */
+function applyDashboardPermissions() {
+  const can = (k) => (window.ADMIN_ROLE === 'admin') || (typeof window.hasPerm === 'function' && window.hasPerm(k, 'read'));
+  const map = { 'dc-courses':'open_courses', 'dc-teachers':'teachers', 'dc-classrooms':'classrooms', 'dc-conflicts':'open_courses', 'dc-timeline':'semesters' };
+  let shown = 0;
+  Object.keys(map).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const ok = can(map[id]);
+    el.style.display = ok ? '' : 'none';
+    if (ok) shown++;
+  });
+  const g = document.querySelector('#page-dashboard .stats-grid');
+  if (g) g.style.display = ['dc-courses','dc-teachers','dc-classrooms','dc-conflicts'].some(id => document.getElementById(id)?.style.display !== 'none') ? '' : 'none';
+  const w = document.getElementById('dc-welcome');
+  if (w) w.style.display = shown ? 'none' : '';
 }
 
 async function writeAuditLog(category, action, tableName, recordId, targetName, detail) {
@@ -11222,6 +11260,19 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.76', date: '2026-10-25',
+    items: [
+      '權限範本新增「基本款（全體）」（公佈欄、常用表單、相關法規查詢＝讀）與「Staff」（基本款＋待辦事務＝寫、會議管理＝讀，其餘無）；帳號角色改選 staff 且尚未設定任何權限時，自動套用 Staff 範本',
+      '儀表板依權限顯示：開課、教師人數、教室、待解決衝堂、重要時程提醒各需對應模組權限，沒有權限的卡片不顯示',
+    ]
+  },
+  {
+    version: 'v10.75', date: '2026-10-25',
+    items: [
+      '帳號管理「帳號列表」新增搜尋：輸入 Email 或姓名立即篩選（可輸入多個關鍵字，用空白分隔）；可再用「角色」下拉選單篩選；只剩一位時按 Enter 直接開啟編輯、按 Esc 清除搜尋；統計列會顯示「符合 N 個／共 M 個」',
+    ]
+  },
+  {
     version: 'v10.74', date: '2026-10-25',
     items: [
       '帳號權限視窗與「角色權限預設值」：每個模組名稱下方用小字列出它實際控制的側邊欄項目（直接讀側邊欄，之後新增功能會自動出現）；「課程管理」改名「課程資料庫」，與側邊欄一致',
@@ -18065,12 +18116,18 @@ const DEFAULT_PERM_PRESETS = {
   },
   viewer: Object.fromEntries(PERM_KEYS.map(k => [k, 'read'])),
   staff_empty: Object.fromEntries(PERM_KEYS.map(k => [k, 'none'])),
+  // v10.76 基本款（全體）：公佈欄、常用表單、相關法規查詢＝讀
+  basic_all: Object.fromEntries(PERM_KEYS.map(k => [k, ['announcements','forms','regulations'].includes(k) ? 'read' : 'none'])),
+  // v10.76 Staff（新增 staff 帳號預設）：基本款＋待辦事務＝寫、會議管理＝讀
+  staff_default: Object.fromEntries(PERM_KEYS.map(k => [k, ['announcements','forms','regulations','meetings'].includes(k) ? 'read' : (k==='todos' ? 'write' : 'none')])),
 };
 const PRESET_NAMES = {
   admin:'admin 預設（全部全權）',
   teacher_staff:'老師兼行政（讀+部分寫）',
   viewer:'主管唯讀（全部讀）',
   staff_empty:'從零開始（全部無）',
+  basic_all:'基本款（全體）',
+  staff_default:'Staff',
 };
 // runtime版本：頁面載入時會嘗試從 permission_presets 表覆蓋，admin可從「⚙️ 角色權限預設值」畫面調整並存回DB
 let PERM_PRESETS = JSON.parse(JSON.stringify(DEFAULT_PERM_PRESETS));
@@ -18124,8 +18181,31 @@ async function loadUsers() {
   }
 }
 
+// v10.75 帳號搜尋：Email 或姓名（含顯示名稱），多個關鍵字用空白分隔、全部都要符合；可再依角色篩選
+function usrFilteredList() {
+  const q = (document.getElementById('usr-search')?.value || '').trim().toLowerCase();
+  const role = document.getElementById('usr-role-filter')?.value || '';
+  const words = q ? q.split(/\s+/) : [];
+  return _allUsers.filter(u => {
+    if (role && u.role !== role) return false;
+    if (!words.length) return true;
+    const hay = ((u.email || '') + ' ' + (u._display_name || '')).toLowerCase();
+    return words.every(w => hay.includes(w));
+  });
+}
+function usrSearchKey(ev) {
+  if (ev.key === 'Escape') {
+    ev.target.value = ''; renderUsers();
+  } else if (ev.key === 'Enter') {
+    const list = usrFilteredList();
+    if (list.length === 1) openUsrModal(list[0].id);
+    else if (list.length === 0) showToast('找不到符合的帳號', 'error');
+    else showToast('符合的帳號有 ' + list.length + ' 位，請再輸入更多關鍵字', 'error');
+  }
+}
+
 function renderUsers() {
-  const list = [..._allUsers].sort((a,b)=>{
+  const list = usrFilteredList().sort((a,b)=>{
     let va = a[_usrSort.field], vb = b[_usrSort.field];
     if (va == null) va = '';
     if (vb == null) vb = '';
@@ -18142,11 +18222,12 @@ function renderUsers() {
   const roleCount = {};
   _allUsers.forEach(u => { roleCount[u.role||'?'] = (roleCount[u.role||'?']||0)+1; });
   const statTxt = Object.entries(roleCount).map(([k,v])=>`${k} ${v}`).join('　·　');
-  document.getElementById('usr-stats').textContent = `共 ${_allUsers.length} 個帳號　·　${statTxt}`;
+  const filtering = list.length !== _allUsers.length;
+  document.getElementById('usr-stats').textContent = (filtering ? `符合 ${list.length} 個　／　` : '') + `共 ${_allUsers.length} 個帳號　·　${statTxt}`;
 
   const tbody = document.getElementById('usr-tbody');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--ink3)">尚無帳號</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--ink3)">' + (_allUsers.length ? '找不到符合的帳號，請換個關鍵字或清除角色篩選' : '尚無帳號') + '</td></tr>';
     return;
   }
 
@@ -18260,6 +18341,23 @@ function toggleUsrPermVisibility() {
   const sect = document.getElementById('usr-perm-section');
   sect.style.opacity = (role==='staff') ? '1' : '0.4';
   sect.style.pointerEvents = (role==='staff') ? 'auto' : 'none';
+}
+
+/* v10.76 角色改選 staff：若目前所有權限都是「無」（新帳號或尚未設定），自動套用 Staff 範本；已有權限者不覆蓋 */
+function onUsrRoleChange() {
+  toggleUsrPermVisibility();
+  const role = document.getElementById('usr-mod-role').value;
+  if (role !== 'staff') return;
+  const rows = document.querySelectorAll('#usr-perm-grid .perm-row');
+  const isEmpty = rows.length && Array.from(rows).every(r => {
+    const on = r.querySelector('.perm-levels label.on');
+    return !on || on.classList.contains('lv-none');
+  });
+  const preset = PERM_PRESETS.staff_default;
+  if (isEmpty && preset) {
+    PERM_KEYS.forEach(key => setPermLevel(key, preset[key] || 'none'));
+    showToast('已自動套用「' + (PRESET_NAMES.staff_default || 'Staff') + '」權限範本，可再手動調整');
+  }
 }
 
 function setAllUsrPerm(level) {
