@@ -335,3 +335,27 @@ FROM teachers t WHERE t.name_zh IN ('姓名1','姓名2');
 **修法**：改成「整批重新編號、只寫回有變動的列」，見 conventions 規則 47 第 7 點；單元管理已在 teacher v3.48 修正（拖曳＋▲▼共用 `reorderUnits`）。
 **仍有此缺陷的地方**：教師端出題的題目順序（`moveQuestion`），之後要改。
 **臨時補救**：在 Supabase 對該課程的 `teaching_units` 依希望的順序手動重設 `sort_order`（0、1、2…）。
+
+---
+
+## 症狀29：校庫填報的數字和預期對不上
+
+**先不要改程式**，依表別照下列順序查：
+
+| 表 | 先看哪裡 | 常見原因 |
+|---|---|---|
+| 學14 | 畫面「① 合計核對」的在學人數與進表人數 | 缺生日／性別（明細黃底）；基準日之後才休學、畢業的人仍算在學（明細會註明）；學號不是 8 碼或 `student_type` 不是 regular |
+| 學14 | 看錯欄 | 一列 57 欄、大多是 0，用逗號分隔的結果很難對欄；用 Python 或畫面的預覽表逐欄列出非 0 值再核對（2026-10-28 就是看錯欄位） |
+| 校14 | 「開課明細」灰底列 | 被當成暑修或 0 學分排除；課程修別設錯（`go` 算選修）；停開的課本來就不列 |
+| 校15 | 畫面上的「適用 XXX 級」 | `graduation_requirements` 的 `cohort_from`／`cohort_to` 範圍沒涵蓋該學年度 |
+| 教12 | 編輯視窗「依課表估算明細」 | 老師沒有掛在 `offering_teachers`；角色不是「主講」；大綱「授課教師」寫法跟系統姓名不同；職級未設定所以基本時數空白 |
+
+**驗證用 SQL（學14 單人）**：
+```sql
+SELECT student_code, name_zh, student_type, status, cohort, left(student_code,3) AS code_year,
+       gender, birth_date, date_part('year', age(DATE '2026-10-15', birth_date))::int AS age_at_base
+FROM students WHERE student_code IN ('學號1','學號2') LIMIT 10;
+```
+
+**補充說明存不進去**：toast 出現「請確認已執行 udb_report_notes.sql」→ 表或 GRANT 沒建（規則43）。教12「載入失敗」→ 還沒執行 `schema/udb_teacher_load.sql`。
+

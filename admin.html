@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.76 2026-10-25 新增權限範本「基本款（全體）」「Staff」、帳號角色改選 staff 時自動套用 Staff 範本(僅限尚無任何權限者)、儀表板卡片依權限顯示；v10.75：帳號列表新增搜尋(Email或姓名，多關鍵字、依角色篩選、Enter直接開啟編輯、Esc清除)；v10.74：帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.78 2026-10-28 校庫填報新增教12 專任教師授課時數、職級費率設定新增每週基本授課時數；v10.77 2026-10-28 新增「📊 校庫填報」頁（學14 學生年齡、校14 實際開設學分、校15 畢業學分結構；教12 待加入）；v10.76 2026-10-25 新增權限範本「基本款（全體）」「Staff」、帳號角色改選 staff 時自動套用 Staff 範本(僅限尚無任何權限者)、儀表板卡片依權限顯示；v10.75：帳號列表新增搜尋(Email或姓名，多關鍵字、依角色篩選、Enter直接開啟編輯、Esc清除)；v10.74：帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -486,6 +486,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="committees" onclick="showPage('committees',this)"><span class="nav-icon">🏛️</span>委員會管理</div>
         <div class="nav-item" data-perm="meetings" onclick="showPage('meetings',this)"><span class="nav-icon">📅</span>會議管理</div>
         <div class="nav-item" data-perm="todos" onclick="showPage('todos',this)"><span class="nav-icon">✅</span>待辦事務 <span class="badge badge-warn" id="todo-badge" style="margin-left:auto;display:none">0</span></div>
+        <div class="nav-item" data-perm="__admin_only" onclick="showPage('udb',this)"><span class="nav-icon">📊</span>校庫填報</div>
       </div>
       <div class="nav-section">
         <div class="nav-label">系統管理</div>
@@ -908,6 +909,25 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div id="cs-summary" style="margin-bottom:6px"></div>
         <div id="cs-stats" style="font-size:12px;color:var(--ink3);padding:0 4px 6px"></div>
         <div id="cs-wrap" class="tbl-wrap" style="max-height:calc(100vh - 230px)"></div>
+      </div>
+
+      <!-- ▌校庫填報 ▌ v10.77 -->
+      <div id="page-udb" style="display:none">
+        <div class="page-hdr"><div class="page-title">📊 校庫填報</div></div>
+        <!-- 分頁順序規則：依表別「學 → 教 → 校」，同表別再依編號由小到大；新增子表時照此插入 -->
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:10px">大專校院校務資料庫每學期填報（上學期 10 月、下學期 3 月）。學期預設為本學期，可自行切換；匯出的 Excel 欄位名稱與順序和校庫範本相同，可直接匯入。</div>
+        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap" id="udb-tabs">
+          <button class="btn btn-pri" data-tab="stu14" onclick="udbSwitchTab('stu14')">學14 學生年齡</button>
+          <button class="btn btn-sec" data-tab="tea12" onclick="udbSwitchTab('tea12')">教12 專任教師授課時數</button>
+          <button class="btn btn-sec" data-tab="sch14" onclick="udbSwitchTab('sch14')">校14 實際開設學分</button>
+          <button class="btn btn-sec" data-tab="sch15" onclick="udbSwitchTab('sch15')">校15 畢業學分結構</button>
+        </div>
+        <div class="toolbar">
+          <label class="flabel" style="margin:0;white-space:nowrap">學期</label>
+          <select class="fselect" id="udb-semester" style="width:130px" onchange="udbOnSemesterChange()"></select>
+          <span id="udb-tab-tools" style="display:contents"></span>
+        </div>
+        <div id="udb-main"><div style="text-align:center;padding:30px;color:var(--ink3)">載入中…</div></div>
       </div>
 
       <div id="page-receipt" style="display:none">
@@ -3048,6 +3068,21 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 
 <!-- ══ 班級導師指派 Modal ══ -->
 <!-- ══ 職級費率設定 Modal ══ -->
+<!-- 校庫填報 教12 編輯 v10.78 -->
+<div class="modal-bg" id="udb12-modal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="udb12-title">授課時數</div>
+      <button class="modal-close" onclick="closeModal('udb12-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="udb12-body" style="max-height:70vh;overflow:auto"></div>
+    <div class="modal-footer">
+      <button class="btn btn-sec" onclick="closeModal('udb12-modal')">取消</button>
+      <button class="btn btn-save" onclick="udbTea12Save()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="pay-rates-modal">
   <div class="modal" style="max-width:420px">
     <div class="modal-hdr">
@@ -11260,6 +11295,25 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.78', date: '2026-10-28',
+    items: [
+      '校庫填報新增「教12 專任教師授課時數」：列出專任且啟用的老師，每列前方 ✏️ 編輯，可填職級、所屬單位（7504 佛法應用研究所／3163 佛法與科學研究中心）、8 項減授時數、其他原因、補充說明；資料依學期分開儲存，新學期沿用上一學期的職級與單位（需先執行 schema/udb_teacher_load.sql）',
+      '教12 每週基本規定授課時數依職級帶入，職級從職稱判斷（職稱沒有職級時在編輯視窗選）；實際授課時數預設依課表估算（主講＝學分數；共同授課／週次講師／來賓＝學分數 × 課程大綱寫到他的週數比例，沒寫到預估 0.5；不含暑修），可改成手動值；低於基本時數的列標黃；表頭可排序；📥 匯出 Excel 欄位與校庫範本相同（實際授課時數不匯出）',
+      '「⚙️ 職級費率設定」新增「每週基本授課時數」欄位（教授 8、副教授 9、助理教授 9），供教12 使用',
+      '校庫填報分頁依表別「學 → 教 → 校」、同表別依編號排序：學14、教12、校14、校15（之後新增的表照此規則插入）',
+    ]
+  },
+  {
+    version: 'v10.77', date: '2026-10-28',
+    items: [
+      '新增「行政效能 → 📊 校庫填報」（僅管理員）：分頁「學14／教12／校14／校15」，學期預設本學期、可切換；本版完成學14、校14、校15',
+      '校14 系所專業必、選修實際開設學分數：本學期開課記錄（排除停開、停用）學分加總，二選一算選修，暑修與 0 學分課不列入；附開課明細（可排序，不列入的課灰底並註明原因）',
+      '校15 畢業學分結構：帶入「畢業學分要求」中適用該學年度入學新生的規定；必修／選修填專業兩欄、論文學分填「其他畢業學分數」、通識與實習填 0；補充說明預設「論文學分數不包含在學科學分裡。」',
+      '各表「補充說明」自動儲存（依表＋學期各一筆，需先執行 schema/udb_report_notes.sql），匯出時帶入',
+      '學14 學生數－依年齡及性別：一般生（8 碼學號，不含學分班）、統計基準日當天學籍為在學（依學籍異動記錄回推；預設上學期 10/15、下學期 3/15，可修改）；年級＝學年度－學號前 3 碼＋1；年齡為基準日實足年齡。畫面有「合計核對」「校庫格式預覽」「明細（可排序，缺生日或性別標黃）」，📥 匯出 Excel 欄位與校庫範本相同',
+    ]
+  },
+  {
     version: 'v10.76', date: '2026-10-25',
     items: [
       '權限範本新增「基本款（全體）」（公佈欄、常用表單、相關法規查詢＝讀）與「Staff」（基本款＋待辦事務＝寫、會議管理＝讀，其餘無）；帳號角色改選 staff 且尚未設定任何權限時，自動套用 Staff 範本',
@@ -13618,6 +13672,630 @@ function showPage(page, btn) {
   if (page==='distance-apps') initDistanceApps();
   if (page==='regulations') regLoadAll();
   if (page==='staff-arrange') saInit();
+  if (page==='udb') udbInit();
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 📊 校庫填報（v10.77）
+ *   學14 學生數－依年齡及性別（碩士班）
+ *   校14／校15／教12 之後逐步加入
+ * ════════════════════════════════════════════════════════════════════ */
+// 校庫固定代碼（各表共用，改這裡即可）
+const UDB_CONST = {
+  schoolCode: 16493,                    // 校14／校15「代碼」
+  collegeCode: 874, collegeName: '福智佛教學院',
+  unitCode: 7504, unitName: '佛法應用研究所',
+  degreeCode: 'm1', degreeName: '碩士班',
+};
+// 學14 年齡組（標題與校庫範本一致）
+const UDB_AGE_GROUPS = [['15歲及以下', null, 15]]
+  .concat([16,17,18,19,20,21,22,23,24,25,26,27,28,29].map(a => [a + '歲', a, a]))
+  .concat([30,35,40,45,50,55,60,65,70,75].map(a => [a + '至' + (a+4) + '歲', a, a+4]))
+  .concat([['80歲及以上', 80, null]]);
+
+let UDB = { tab:'stu14', sems:[], semId:'', stu14:null, stu14Sort:{ field:'grade', dir:1 } };
+
+async function udbInit() {
+  const sel = document.getElementById('udb-semester');
+  if (!sel.options.length) {
+    const { data: sems, error } = await sb.from('semesters')
+      .select('id,label,academic_year,semester_num,start_date,end_date').order('label', { ascending:false });
+    if (error) { document.getElementById('udb-main').innerHTML = `<div style="padding:20px;color:#C0392B">學期載入失敗：${adEsc(error.message)}</div>`; return; }
+    UDB.sems = sems || [];
+    sel.innerHTML = UDB.sems.map(x => `<option value="${x.id}">${adEsc(x.label)}</option>`).join('');
+    const cur = await getCurrentSemesterByDate();
+    UDB.semId = (cur && UDB.sems.find(x => x.id === cur.id)) ? cur.id : (UDB.sems[0]?.id || '');
+    sel.value = UDB.semId;
+  }
+  udbSwitchTab(UDB.tab);
+}
+
+function udbSem() { return UDB.sems.find(x => x.id === UDB.semId) || null; }
+
+function udbOnSemesterChange() {
+  UDB.semId = document.getElementById('udb-semester').value;
+  UDB.stu14 = null; UDB.sch14 = null; UDB.sch15 = null; UDB.tea12 = null;
+  udbSwitchTab(UDB.tab);
+}
+
+function udbSwitchTab(tab) {
+  UDB.tab = tab;
+  document.querySelectorAll('#udb-tabs button').forEach(b => {
+    b.className = 'btn ' + (b.dataset.tab === tab ? 'btn-pri' : 'btn-sec');
+  });
+  const tools = document.getElementById('udb-tab-tools');
+  const main = document.getElementById('udb-main');
+  if (tab === 'stu14') { udbStu14Tools(); udbStu14Load(); return; }
+  if (tab === 'sch14') { tools.innerHTML = udbNoteInput('sch14') + udbExportBtn('udbSch14Export()'); udbSch14Load(); return; }
+  if (tab === 'sch15') { tools.innerHTML = udbNoteInput('sch15') + udbExportBtn('udbSch15Export()'); udbSch15Load(); return; }
+  if (tab === 'tea12') { tools.innerHTML = udbNoteInputHint() + udbExportBtn('udbTea12Export()'); udbTea12Load(); return; }
+  tools.innerHTML = '';
+  main.innerHTML = '';
+}
+
+async function udbLoadXlsx() {
+  if (typeof XLSX !== 'undefined') return;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = res; s.onerror = rej; document.head.appendChild(s);
+  });
+}
+
+// 日期字串一律當字串處理（規則37）
+function udbAge(birth, base) {
+  if (!birth) return null;
+  const [by, bm, bd] = birth.slice(0,10).split('-').map(Number);
+  const [y, m, d] = base.split('-').map(Number);
+  let age = y - by;
+  if (m < bm || (m === bm && d < bd)) age--;
+  return age;
+}
+
+function udbAgeGroup(age) {
+  if (age == null) return '';
+  const g = UDB_AGE_GROUPS.find(([, lo, hi]) => (lo == null || age >= lo) && (hi == null || age <= hi));
+  return g ? g[0] : '';
+}
+
+// 預設基準日：上學期 10/15、下學期 3/15（可在畫面上修改）
+function udbDefaultBaseDate(sem) {
+  if (!sem) return '';
+  const y = sem.academic_year + 1911;
+  return sem.semester_num === 1 ? `${y}-10-15` : `${y+1}-03-15`;
+}
+
+const UDB_STATUS_ZH = { active:'在學', leave:'休學', withdrawn:'退學', graduated:'畢業' };
+
+/* ─── 學14 ─── */
+function udbStu14Tools() {
+  const sem = udbSem();
+  const base = (UDB.stu14 && UDB.stu14.semId === UDB.semId) ? UDB.stu14.base : udbDefaultBaseDate(sem);
+  document.getElementById('udb-tab-tools').innerHTML = `
+    <label class="flabel" style="margin:0 0 0 8px;white-space:nowrap">統計基準日</label>
+    <input type="date" class="finput" id="udb-stu14-base" style="width:150px" value="${base}" autocomplete="off" onchange="udbStu14Load()">
+    ${udbNoteInput('stu14')}${udbExportBtn('udbStu14Export()')}`;
+}
+
+async function udbStu14Load() {
+  const main = document.getElementById('udb-main');
+  const sem = udbSem();
+  const base = document.getElementById('udb-stu14-base')?.value || udbDefaultBaseDate(sem);
+  if (!sem || !base) { main.innerHTML = '<div style="padding:20px;color:var(--ink3)">請選擇學期與基準日</div>'; return; }
+  main.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">計算中…</div>';
+  await udbLoadNote('stu14');
+  try {
+    const [r1, r2] = await Promise.all([
+      sb.from('students').select('id,student_code,name_zh,gender,birth_date,status,student_type').eq('student_type','regular'),
+      sb.from('student_status_history').select('*')
+    ]);
+    if (r1.error) throw r1.error;
+    if (r2.error) throw r2.error;
+    const cutoff = new Date(base + 'T23:59:59.999+08:00').getTime();
+    const hisBy = {};
+    (r2.data || []).filter(h => h.is_applied !== false).forEach(h => { (hisBy[h.student_id] = hisBy[h.student_id] || []).push(h); });
+    const ay = sem.academic_year;
+    const rows = [];
+    (r1.data || []).forEach(s => {
+      const code = String(s.student_code || '').trim();
+      if (!/^\d{8}$/.test(code)) return;                 // 一般生 8 碼
+      const codeYear = parseInt(code.slice(0,3), 10);
+      if (codeYear > ay) return;                          // 尚未入學
+      // 基準日當天的學籍（規則35：歷程優先，沒有歷程用現在狀態）
+      const hs = (hisBy[s.id] || []).slice().sort((a,b) => new Date(a.changed_at) - new Date(b.changed_at));
+      let st = s.status;
+      if (hs.length) {
+        const before = hs.filter(h => new Date(h.changed_at).getTime() <= cutoff);
+        st = before.length ? before[before.length-1].new_status : (hs[0].old_status || s.status);
+      }
+      if (st !== 'active' && s.status !== 'active') return;
+      const age = udbAge(s.birth_date, base);
+      const grade = ay - codeYear + 1;
+      const notes = [];
+      if (!s.birth_date) notes.push('缺出生日期');
+      if (s.gender !== 'M' && s.gender !== 'F') notes.push('性別未填/其他');
+      if (grade >= 4) notes.push(`第${grade}年（延修）`);
+      if (st !== s.status) notes.push(`基準日後學籍異動（現為${UDB_STATUS_ZH[s.status]||s.status}）`);
+      rows.push({ code, name:s.name_zh||'', grade, gender:s.gender, birth:(s.birth_date||'').slice(0,10), age,
+        group: udbAgeGroup(age), stBase: st, counted: st === 'active' && age != null && (s.gender==='M'||s.gender==='F'),
+        note: notes.join('；') });
+    });
+    UDB.stu14 = { semId: UDB.semId, base, rows, ay };
+    udbStu14Render();
+  } catch (e) {
+    main.innerHTML = `<div style="padding:20px;color:#C0392B">計算失敗：${adEsc(e.message||e)}</div>`;
+  }
+}
+
+// 校庫格式：每個年級一列
+function udbStu14Matrix() {
+  const d = UDB.stu14;
+  const active = d.rows.filter(r => r.stBase === 'active');
+  const maxG = Math.max(3, ...active.map(r => r.grade));
+  const headers = ['學年度','學制代碼','學制班別','年級'];
+  UDB_AGE_GROUPS.forEach(([g]) => { headers.push(g + '男', g + '女'); });
+  headers.push('補充說明');
+  const note = udbNote('stu14');
+  const out = [];
+  for (let gr = 1; gr <= maxG; gr++) {
+    const row = [d.ay, UDB_CONST.degreeCode, UDB_CONST.degreeName, gr];
+    UDB_AGE_GROUPS.forEach(([g]) => {
+      ['M','F'].forEach(sx => row.push(d.rows.filter(r => r.counted && r.grade === gr && r.gender === sx && r.group === g).length));
+    });
+    row.push(gr === 1 ? note : '');
+    out.push(row);
+  }
+  return { headers, rows: out };
+}
+
+function udbStu14Render() {
+  const d = UDB.stu14;
+  const main = document.getElementById('udb-main');
+  const m = udbStu14Matrix();
+  const active = d.rows.filter(r => r.stBase === 'active');
+  const grades = [...new Set(active.map(r => r.grade))].sort((a,b)=>a-b);
+  const warnCount = active.filter(r => !r.counted).length;
+
+  // ① 合計核對
+  const sumRows = grades.map(g => {
+    const a = active.filter(r => r.grade === g), c = a.filter(r => r.counted);
+    return `<tr><td style="text-align:center">${g}</td><td style="text-align:center">${d.ay - g + 1}級</td><td style="text-align:center">${a.length}</td>
+      <td style="text-align:center;${c.length!==a.length?'color:#C0392B;font-weight:600':''}">${c.length}</td>
+      <td style="text-align:center">${c.filter(r=>r.gender==='M').length}</td><td style="text-align:center">${c.filter(r=>r.gender==='F').length}</td>
+      <td style="text-align:center">${a.filter(r=>!r.birth).length}</td><td style="text-align:center">${a.filter(r=>r.gender!=='M'&&r.gender!=='F').length}</td></tr>`;
+  }).join('');
+  const tot = active.filter(r => r.counted);
+  const sumHtml = `<table style="border-collapse:separate;border-spacing:0;font-size:13px;min-width:620px">
+    <thead><tr style="background:var(--navy);color:#fff">${['年級','屆別','在學人數','進表人數','男','女','缺出生日期','性別未填/其他'].map(h=>`<th class="stu-th" style="cursor:default;text-align:center">${h}</th>`).join('')}</tr></thead>
+    <tbody>${sumRows}<tr style="font-weight:600;background:var(--cr)"><td style="text-align:center">合計</td><td></td><td style="text-align:center">${active.length}</td><td style="text-align:center">${tot.length}</td>
+      <td style="text-align:center">${tot.filter(r=>r.gender==='M').length}</td><td style="text-align:center">${tot.filter(r=>r.gender==='F').length}</td>
+      <td style="text-align:center">${active.filter(r=>!r.birth).length}</td><td style="text-align:center">${active.filter(r=>r.gender!=='M'&&r.gender!=='F').length}</td></tr></tbody></table>`;
+
+  // ② 校庫格式預覽（0 顯示淡色）
+  const pv = `<table style="border-collapse:separate;border-spacing:0;font-size:12px">
+    <thead style="position:sticky;top:0;z-index:2"><tr style="background:var(--navy);color:#fff">${m.headers.map(h=>`<th class="stu-th" style="cursor:default;white-space:nowrap;text-align:center">${adEsc(h)}</th>`).join('')}</tr></thead>
+    <tbody>${m.rows.map(r => `<tr>${r.map((v,i) => `<td style="text-align:center;white-space:nowrap;${(i>=4 && i<r.length-1 && v===0)?'color:#C8C8C8':''}${(i>=4 && i<r.length-1 && v>0)?'font-weight:600;color:var(--navy)':''}">${adEsc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+
+  // ③ 明細（可排序）
+  const sf = UDB.stu14Sort;
+  const list = d.rows.slice().sort((a,b) => {
+    let va = a[sf.field], vb = b[sf.field];
+    if (va == null) va = ''; if (vb == null) vb = '';
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * sf.dir || a.code.localeCompare(b.code);
+    return String(va).localeCompare(String(vb), 'zh') * sf.dir || a.code.localeCompare(b.code);
+  });
+  const th = (f, label) => `<th class="stu-th" onclick="udbStu14Sort('${f}')">${label} <span class="sort-icon">${sf.field===f ? (sf.dir===1?'↑':'↓') : '⇅'}</span></th>`;
+  const gz = { M:'男', F:'女', O:'其他' };
+  const det = `<table style="border-collapse:separate;border-spacing:0;font-size:13px;min-width:900px;width:100%">
+    <thead style="position:sticky;top:0;z-index:2"><tr>${th('code','學號')}${th('name','姓名')}${th('grade','年級')}${th('gender','性別')}${th('birth','出生日期')}${th('age','年齡')}${th('group','年齡組')}${th('stBase','基準日學籍')}${th('note','需注意')}</tr></thead>
+    <tbody>${list.map(r => `<tr style="${r.stBase!=='active'?'background:#F5F5F5;color:var(--ink3)':(!r.counted?'background:#FFF8E1':'')}">
+      <td>${adEsc(r.code)}</td><td style="font-weight:600">${adEsc(r.name)}</td><td style="text-align:center">${r.grade}</td>
+      <td style="text-align:center">${adEsc(gz[r.gender]||'（未填）')}</td><td>${adEsc(r.birth||'')}</td><td style="text-align:center">${r.age==null?'':r.age}</td>
+      <td>${adEsc(r.group)}</td><td>${adEsc(UDB_STATUS_ZH[r.stBase]||r.stBase)}</td><td style="font-size:12px;color:#B05010">${adEsc(r.note)}</td></tr>`).join('')}</tbody></table>`;
+
+  const sec = t => `<div style="font-weight:600;color:var(--navy);margin:16px 0 6px;font-size:14px">${t}</div>`;
+  main.innerHTML = `
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:4px">
+      統計口徑：一般生（8 碼學號，不含學分班）；基準日 ${adEsc(d.base)} 當天學籍為「在學」；年級＝${d.ay} − 學號前 3 碼 ＋ 1；年齡為基準日的實足年齡。
+    </div>
+    ${warnCount ? `<div style="background:#FFF8E1;border:1px solid #F0C36D;border-radius:6px;padding:8px 12px;font-size:13px;margin:8px 0">⚠️ 有 ${warnCount} 位在學同學因缺出生日期或性別沒有進表，請到「學生資料」補齊後再匯出（明細黃底列）。</div>` : ''}
+    ${sec('① 合計核對')}<div class="tbl-wrap" style="max-width:760px">${sumHtml}</div>
+    ${sec('② 校庫格式預覽（匯出內容）')}<div class="tbl-wrap" style="max-height:260px;overflow:auto">${pv}</div>
+    ${sec(`③ 明細（共 ${d.rows.length} 人，灰底為基準日不在學、目前在學者）`)}<div class="tbl-wrap" style="max-height:calc(100vh - 260px);overflow:auto">${det}</div>`;
+}
+
+function udbStu14Sort(field) {
+  const sf = UDB.stu14Sort;
+  if (sf.field === field) sf.dir *= -1; else { sf.field = field; sf.dir = 1; }
+  udbStu14Render();
+}
+
+async function udbStu14Export() {
+  if (!UDB.stu14) { showToast('資料尚未計算完成', 'error'); return; }
+  const warn = UDB.stu14.rows.filter(r => r.stBase === 'active' && !r.counted).length;
+  if (warn && !confirm(`有 ${warn} 位在學同學缺出生日期或性別，沒有算進表裡。仍要匯出嗎？`)) return;
+  const m = udbStu14Matrix();
+  udbWriteXlsx('學14', m.headers, m.rows, '校庫學14_學生年齡統計', m.headers.map((h, i) => (i < 4 ? 10 : (i === m.headers.length-1 ? 20 : 11))));
+}
+
+/* ─── 共用：補充說明（存 udb_report_notes，依「表＋學期」各一筆）、匯出 ─── */
+const UDB_NOTE_DEFAULT = { sch15: '論文學分數不包含在學科學分裡。' };
+UDB.notes = {};
+function udbNoteKey(tab) { return tab + '|' + (udbSem()?.label || ''); }
+function udbNote(tab) {
+  const k = udbNoteKey(tab);
+  return (k in UDB.notes) ? (UDB.notes[k] || '') : (UDB_NOTE_DEFAULT[tab] || '');
+}
+function udbNoteInput(tab) {
+  return `<input class="finput" id="udb-note" style="width:260px" placeholder="補充說明（自動儲存，匯出時帶入）" autocomplete="off"
+    value="${adEsc(udbNote(tab))}" onchange="udbSaveNote('${tab}')" oninput="udbNoteLive('${tab}')">
+    <span id="udb-note-msg" style="font-size:11px;color:var(--ink3)"></span>`;
+}
+function udbNoteInputHint() { return '<span style="font-size:12px;color:var(--ink3)">補充說明與減授時數請按各列「✏️ 編輯」填寫</span>'; }
+function udbExportBtn(fn) { return `<button class="btn btn-pri btn-sm" onclick="${fn}">📥 匯出 Excel</button>`; }
+async function udbLoadNote(tab) {
+  const k = udbNoteKey(tab);
+  if (k in UDB.notes) return;
+  const sem = udbSem(); if (!sem) return;
+  const { data, error } = await sb.from('udb_report_notes').select('note').eq('report_code', tab).eq('period', sem.label).maybeSingle();
+  if (error) { console.warn('udb_report_notes', error.message); return; }   // 尚未建表時只是不能存，不影響統計
+  if (data) UDB.notes[k] = data.note || '';
+  const el = document.getElementById('udb-note');
+  if (el && UDB.tab === tab) el.value = udbNote(tab);
+}
+function udbNoteLive(tab) {
+  UDB.notes[udbNoteKey(tab)] = document.getElementById('udb-note').value;
+  if (tab === 'stu14' && UDB.stu14) udbStu14Render();
+  if (tab === 'sch14' && UDB.sch14) udbSch14Render();
+  if (tab === 'sch15' && UDB.sch15) udbSch15Render();
+}
+async function udbSaveNote(tab) {
+  const sem = udbSem(); if (!sem) return;
+  const note = document.getElementById('udb-note').value.trim();
+  UDB.notes[udbNoteKey(tab)] = note;
+  const msg = document.getElementById('udb-note-msg');
+  const { error } = await sb.from('udb_report_notes')
+    .upsert({ report_code: tab, period: sem.label, note, updated_at: new Date().toISOString() }, { onConflict: 'report_code,period' });
+  if (msg) msg.textContent = error ? '⚠️ 未儲存' : '✓ 已儲存';
+  if (error) showToast('補充說明儲存失敗：' + error.message + '（請確認已執行 udb_report_notes.sql）', 'error');
+}
+async function udbWriteXlsx(sheet, headers, rows, title, widths) {
+  try { await udbLoadXlsx(); } catch (e) { showToast('Excel 元件載入失敗', 'error'); return; }
+  const ws = XLSX.utils.aoa_to_sheet([headers].concat(rows));
+  ws['!cols'] = headers.map((h, i) => ({ wch: widths ? widths[i] : Math.max(10, String(h).length * 2 + 2) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheet);
+  const sem = udbSem();
+  XLSX.writeFile(wb, `${sem.academic_year}學年度第${sem.semester_num}學期_${title}.xlsx`);
+  showToast('✅ 已匯出' + sheet);
+}
+function udbPreviewTable(headers, rows) {
+  return `<table style="border-collapse:separate;border-spacing:0;font-size:12px">
+    <thead><tr>${headers.map(h=>`<th class="stu-th" style="cursor:default;white-space:nowrap;text-align:center">${adEsc(h)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${r.map(v => `<td style="text-align:center;white-space:nowrap">${adEsc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+const udbSec = t => `<div style="font-weight:600;color:var(--navy);margin:16px 0 6px;font-size:14px">${t}</div>`;
+
+/* ─── 校14 系所專業必、選修實際開設學分數 ─── */
+const UDB_REQ_ZH = { req:'必修', sel:'選修', go:'二選一' };
+UDB.sch14Sort = { field:'code', dir:1 };
+async function udbSch14Load() {
+  const main = document.getElementById('udb-main');
+  const sem = udbSem(); if (!sem) return;
+  main.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">計算中…</div>';
+  await udbLoadNote('sch14');
+  const { data, error } = await sb.from('course_offerings')
+    .select('id,is_summer,courses(code,name_zh,credits,req_type)')
+    .eq('semester_id', sem.id).eq('is_active', true).eq('is_cancelled', false);   // 規則34：排除停開／停用
+  if (error) { main.innerHTML = `<div style="padding:20px;color:#C0392B">載入失敗：${adEsc(error.message)}</div>`; return; }
+  const rows = (data || []).map(o => {
+    const c = o.courses || {};
+    const credits = Number(c.credits) || 0;
+    let excl = '';
+    if (o.is_summer) excl = '暑修課';
+    else if (credits <= 0) excl = '0 學分';
+    return { code: c.code || '', name: c.name_zh || '', credits, reqType: c.req_type || '',
+      kind: c.req_type === 'req' ? '必修' : '選修', excl };
+  });
+  UDB.sch14 = { semId: sem.id, rows };
+  udbSch14Render();
+}
+function udbSch14Calc() {
+  const inc = UDB.sch14.rows.filter(r => !r.excl);
+  const req = inc.filter(r => r.kind === '必修'), sel = inc.filter(r => r.kind === '選修');
+  const sum = a => a.reduce((t, r) => t + r.credits, 0);
+  return { req, sel, reqSum: sum(req), selSum: sum(sel) };
+}
+function udbSch14Matrix() {
+  const sem = udbSem(), c = udbSch14Calc();
+  const headers = ['代碼','學年度','學期','學院代碼','學院','單位代碼','單位名稱','學制代碼','學制班別','學期專業必修學分實際開設學分數','學期專業選修學分實際開設學分數','補充說明'];
+  const rows = [[UDB_CONST.schoolCode, sem.academic_year, sem.semester_num, UDB_CONST.collegeCode, UDB_CONST.collegeName,
+    UDB_CONST.unitCode, UDB_CONST.unitName, UDB_CONST.degreeCode, UDB_CONST.degreeName, c.reqSum, c.selSum, udbNote('sch14')]];
+  return { headers, rows };
+}
+function udbSch14Render() {
+  const main = document.getElementById('udb-main');
+  const c = udbSch14Calc(), m = udbSch14Matrix();
+  const sf = UDB.sch14Sort;
+  const list = UDB.sch14.rows.slice().sort((a,b) => {
+    let va = a[sf.field], vb = b[sf.field];
+    if (typeof va === 'number') return (va - vb) * sf.dir || a.code.localeCompare(b.code);
+    return String(va||'').localeCompare(String(vb||''), 'zh') * sf.dir || a.code.localeCompare(b.code);
+  });
+  const th = (f, label) => `<th class="stu-th" onclick="udbSch14SortBy('${f}')">${label} <span class="sort-icon">${sf.field===f ? (sf.dir===1?'↑':'↓') : '⇅'}</span></th>`;
+  const card = (label, n, cnt, color) => `<div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:10px 18px;min-width:170px">
+    <div style="font-size:12px;color:var(--ink3)">${label}</div><div style="font-size:24px;font-weight:700;color:${color}">${n} <span style="font-size:13px;font-weight:400">學分</span></div>
+    <div style="font-size:12px;color:var(--ink3)">${cnt} 門課</div></div>`;
+  const excl = UDB.sch14.rows.filter(r => r.excl);
+  main.innerHTML = `
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">計算方式：本學期開課記錄（排除停開、停用）各課學分加總；「二選一」算選修；暑修課與 0 學分的課不列入。</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${card('專業必修', c.reqSum, c.req.length, 'var(--navy)')}${card('專業選修', c.selSum, c.sel.length, 'var(--green)')}
+      ${excl.length ? `<div style="align-self:center;font-size:12px;color:var(--ink3)">不列入 ${excl.length} 門（灰底）</div>` : ''}</div>
+    ${udbSec('① 校庫格式預覽（匯出內容）')}<div class="tbl-wrap" style="overflow:auto">${udbPreviewTable(m.headers, m.rows)}</div>
+    ${udbSec(`② 開課明細（共 ${UDB.sch14.rows.length} 門）`)}
+    <div class="tbl-wrap" style="max-height:calc(100vh - 380px);overflow:auto"><table style="border-collapse:separate;border-spacing:0;font-size:13px;min-width:700px;width:100%">
+      <thead style="position:sticky;top:0;z-index:2"><tr>${th('code','課號')}${th('name','課程名稱')}${th('credits','學分')}${th('reqType','課程修別')}${th('kind','校庫歸類')}${th('excl','不列入原因')}</tr></thead>
+      <tbody>${list.map(r => `<tr style="${r.excl?'background:#F5F5F5;color:var(--ink3)':''}"><td>${adEsc(r.code)}</td><td style="font-weight:600">${adEsc(r.name)}</td>
+        <td style="text-align:center">${r.credits}</td><td>${adEsc(UDB_REQ_ZH[r.reqType]||r.reqType)}</td><td>${r.excl?'—':adEsc(r.kind)}</td><td>${adEsc(r.excl)}</td></tr>`).join('')
+        || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink3)">本學期沒有開課記錄</td></tr>'}</tbody></table></div>`;
+}
+function udbSch14SortBy(f) { const sf = UDB.sch14Sort; if (sf.field === f) sf.dir *= -1; else { sf.field = f; sf.dir = 1; } udbSch14Render(); }
+function udbSch14Export() {
+  if (!UDB.sch14) { showToast('資料尚未計算完成', 'error'); return; }
+  const m = udbSch14Matrix();
+  udbWriteXlsx('校14', m.headers, m.rows, '校庫校14_實際開設學分數', [8,8,6,10,14,10,16,10,10,30,30,30]);
+}
+
+/* ─── 校15 畢業學分結構 ─── */
+async function udbSch15Load() {
+  const main = document.getElementById('udb-main');
+  const sem = udbSem(); if (!sem) return;
+  main.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">載入中…</div>';
+  await udbLoadNote('sch15');
+  const { data, error } = await sb.from('graduation_requirements').select('*').order('cohort_from');
+  if (error) { main.innerHTML = `<div style="padding:20px;color:#C0392B">載入失敗：${adEsc(error.message)}</div>`; return; }
+  const ay = sem.academic_year;
+  // 該學年度入學新生適用的畢業學分規定
+  const req = (data || []).filter(r => ay >= r.cohort_from && (r.cohort_to == null || ay <= r.cohort_to))
+    .sort((a,b) => b.cohort_from - a.cohort_from)[0] || null;
+  UDB.sch15 = { semId: sem.id, req, all: data || [] };
+  udbSch15Render();
+}
+function udbSch15Matrix() {
+  const sem = udbSem(), r = UDB.sch15.req;
+  const headers = ['代碼','學年度','學院代碼','學院','單位代碼','單位','學制代碼','學制班別','畢業專業學分數必修','畢業專業學分數選修',
+    '畢業通識共同學分數必修','畢業通識共同學分數選修','畢業實習學分數校內必修','畢業實習學分數校內選修','畢業實習學分數校外必修','畢業實習學分數校外選修','其他畢業學分數','補充說明'];
+  const rows = [[UDB_CONST.schoolCode, sem.academic_year, UDB_CONST.collegeCode, UDB_CONST.collegeName, UDB_CONST.unitCode, UDB_CONST.unitName,
+    UDB_CONST.degreeCode, UDB_CONST.degreeName, r ? r.req_credits : '', r ? r.sel_credits : '', 0, 0, 0, 0, 0, 0,
+    r ? (r.thesis_credits ?? 0) : '', udbNote('sch15')]];
+  return { headers, rows };
+}
+function udbSch15Render() {
+  const main = document.getElementById('udb-main');
+  const r = UDB.sch15.req, ay = udbSem().academic_year, m = udbSch15Matrix();
+  const range = r ? (r.cohort_to ? `${r.cohort_from}～${r.cohort_to} 級` : `${r.cohort_from} 級以後`) : '';
+  const sum = r ? (r.req_credits + r.sel_credits + (r.thesis_credits || 0)) : 0;
+  main.innerHTML = `
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">資料來源：「畢業學分要求」中適用 ${ay} 級入學新生的規定。必修、選修填「專業」兩欄；論文學分填「其他畢業學分數」；通識與實習填 0。</div>
+    ${r ? `<div style="background:#fff;border:1px solid var(--cr2);border-radius:8px;padding:10px 16px;font-size:13px;display:inline-block">
+        適用 <b>${adEsc(range)}</b>：必修 <b>${r.req_credits}</b>　選修 <b>${r.sel_credits}</b>　論文 <b>${r.thesis_credits ?? 0}</b>　＝ 合計 <b>${sum}</b> 學分
+        ${r.total_min != null && r.total_min !== sum ? `<span style="color:#B05010">（設定的最低總學分為 ${r.total_min}，請確認）</span>` : ''}
+        ${r.notes ? `<div style="font-size:12px;color:var(--ink3);margin-top:4px">備註：${adEsc(r.notes)}</div>` : ''}</div>`
+      : `<div style="background:#FFF8E1;border:1px solid #F0C36D;border-radius:6px;padding:8px 12px;font-size:13px">⚠️ 找不到適用 ${ay} 級的畢業學分規定，請先到「畢業學分要求」設定。</div>`}
+    ${udbSec('① 校庫格式預覽（匯出內容）')}<div class="tbl-wrap" style="overflow:auto">${udbPreviewTable(m.headers, m.rows)}</div>`;
+}
+function udbSch15Export() {
+  if (!UDB.sch15) { showToast('資料尚未載入完成', 'error'); return; }
+  if (!UDB.sch15.req) { showToast('找不到適用的畢業學分規定', 'error'); return; }
+  const m = udbSch15Matrix();
+  udbWriteXlsx('校15', m.headers, m.rows, '校庫校15_畢業學分結構', m.headers.map((h,i) => i < 8 ? 10 : (i === m.headers.length-1 ? 32 : 14)));
+}
+
+/* ─── 教12 專任教師實際授課時數低於規定職級之基本授課時數資料 ─── */
+const UDB_UNITS = [
+  { typeCode:'B', typeName:'系所', code:7504, name:'佛法應用研究所' },
+  { typeCode:'C', typeName:'行政單位及各類中心', code:3163, name:'佛法與科學研究中心' },
+];
+const UDB_RANKS = ['教授','副教授','助理教授'];
+// 8 個減授欄位（key＝資料庫欄位，label＝校庫欄位名稱）
+const UDB_T12_FIELDS = [
+  ['admin_hours','兼任行政職或執行專案計畫'], ['thesis_hours','論文指導教授'],
+  ['merit_hours','教學、研究、服務績效卓著者'], ['new_hours','新進或擔任客、講座'],
+  ['course_hours','課程安排因素'], ['leave_hours','申請休假、進修或研究等'],
+  ['secondment_hours','借調或合聘教師'], ['other_hours','其他'],
+];
+UDB.tea12Sort = { field:'name', dir:1 };
+
+function udbRankFromTitle(title) {
+  const t = title || '';
+  if (t.includes('助理教授')) return '助理教授';     // 先比對較長的名稱
+  if (t.includes('副教授')) return '副教授';
+  if (t.includes('教授')) return '教授';
+  return '';
+}
+function udbNum(v) { return (v === null || v === undefined || v === '') ? null : Number(v); }
+function udbFmt(v) { return v == null ? '' : (Math.round((v + Number.EPSILON) * 10) / 10); }
+
+async function udbTea12Load() {
+  const main = document.getElementById('udb-main');
+  const sem = udbSem(); if (!sem) return;
+  main.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">載入中…</div>';
+  await udbLoadNote('tea12');
+  try {
+    const [rT, rR, rL, rO] = await Promise.all([
+      sb.from('teachers').select('id,name_zh,title,teacher_type,active').eq('teacher_type','full_time').eq('active', true),
+      sb.from('adjunct_pay_rates').select('*'),
+      sb.from('udb_teacher_load').select('*, semesters(label)'),
+      sb.from('course_offerings').select('id,is_summer,courses(code,name_zh,credits)')
+        .eq('semester_id', sem.id).eq('is_active', true).eq('is_cancelled', false),   // 規則34
+    ]);
+    for (const r of [rT, rR, rL, rO]) if (r.error) throw r.error;
+    const offs = (rO.data || []).filter(o => !o.is_summer);
+    const offIds = offs.map(o => o.id);
+    let ots = [], syls = [];
+    if (offIds.length) {
+      const [r1, r2] = await Promise.all([
+        sb.from('offering_teachers').select('offering_id,teacher_id,role').in('offering_id', offIds),
+        sb.from('syllabi').select('offering_id,weeks').in('offering_id', offIds),
+      ]);
+      if (r1.error) throw r1.error;
+      if (r2.error) throw r2.error;
+      ots = r1.data || []; syls = r2.data || [];
+    }
+    const baseByRank = {};
+    (rR.data || []).forEach(r => { baseByRank[r.rank_name] = udbNum(r.weekly_base_hours); });
+    const sylBy = {}; syls.forEach(x => { sylBy[x.offering_id] = x.weeks || []; });
+    const offBy = {}; offs.forEach(o => { offBy[o.id] = o; });
+    const loads = rL.data || [];
+
+    const teachers = (rT.data || []).map(t => {
+      const rec = loads.find(l => l.teacher_id === t.id && l.semester_id === sem.id) || null;
+      // 新學期沿用上一筆的職級與單位
+      const prev = loads.filter(l => l.teacher_id === t.id && l.semester_id !== sem.id && (l.semesters?.label || '') < sem.label)
+        .sort((a,b) => (b.semesters?.label || '').localeCompare(a.semesters?.label || ''))[0] || null;
+      const rank = rec?.rank_name || prev?.rank_name || udbRankFromTitle(t.title);
+      const unitCode = rec?.unit_code || prev?.unit_code || (t.name_zh === '關婉玲' ? 3163 : 7504);
+      // 依課表估算實際授課時數
+      const detail = ots.filter(x => x.teacher_id === t.id && offBy[x.offering_id]).map(x => {
+        const o = offBy[x.offering_id], c = o.courses || {};
+        const credits = Number(c.credits) || 0;
+        let hours, how;
+        if (x.role === '主講') { hours = credits; how = '主講，學分全計'; }
+        else {
+          const weeks = (sylBy[x.offering_id] || []).filter(w => (w.title || '').trim() || (w.content || '').trim());
+          const mine = weeks.filter(w => (w.teacher || '').includes(t.name_zh)).length;
+          if (weeks.length && mine) { hours = Math.round(credits * mine / weeks.length * 10) / 10; how = `${x.role}，大綱 ${mine}/${weeks.length} 週`; }
+          else { hours = 0.5; how = `${x.role}，大綱未寫到，預估 0.5`; }
+        }
+        return { code: c.code || '', name: c.name_zh || '', credits, role: x.role || '', hours, how };
+      }).sort((a,b) => a.code.localeCompare(b.code));
+      const autoHours = Math.round(detail.reduce((s, d) => s + d.hours, 0) * 10) / 10;
+      const manual = udbNum(rec?.actual_hours);
+      const row = { id: t.id, name: t.name_zh, title: t.title || '', rank, unitCode, base: rank ? (baseByRank[rank] ?? null) : null,
+        autoHours, actual: manual != null ? manual : autoHours, manual: manual != null, detail, rec,
+        other_reason: rec?.other_reason || '', note: rec?.note || '' };
+      UDB_T12_FIELDS.forEach(([k]) => { row[k] = udbNum(rec?.[k]); });
+      row.reduceSum = UDB_T12_FIELDS.reduce((s, [k]) => s + (row[k] || 0), 0);
+      row.unit = UDB_UNITS.find(u => u.code === row.unitCode) || UDB_UNITS[0];
+      row.unitName = row.unit.name;
+      row.low = row.base != null && row.actual < row.base;
+      return row;
+    });
+    UDB.tea12 = { semId: sem.id, rows: teachers, baseByRank, hasBase: Object.values(baseByRank).some(v => v != null) };
+    udbTea12Render();
+  } catch (e) {
+    main.innerHTML = `<div style="padding:20px;color:#C0392B">載入失敗：${adEsc(e.message||e)}（請確認已執行 schema/udb_teacher_load.sql）</div>`;
+  }
+}
+
+function udbTea12Matrix() {
+  const sem = udbSem();
+  const headers = ['學年度','學期','單位名稱類別代碼','單位名稱類別','單位名稱代碼','單位名稱','教師姓名','每週基本規定授課時數']
+    .concat(UDB_T12_FIELDS.map(f => f[1])).concat(['其他原因','補充說明']);
+  const rows = UDB.tea12.rows.slice().sort((a,b) => a.unitCode - b.unitCode || a.name.localeCompare(b.name, 'zh')).map(r =>
+    [sem.academic_year, sem.semester_num, r.unit.typeCode, r.unit.typeName, r.unit.code, r.unit.name, r.name, r.base ?? '']
+      .concat(UDB_T12_FIELDS.map(([k]) => r[k] ?? '')).concat([r.other_reason, r.note]));
+  return { headers, rows };
+}
+
+function udbTea12Render() {
+  const main = document.getElementById('udb-main');
+  const d = UDB.tea12, sf = UDB.tea12Sort;
+  const list = d.rows.slice().sort((a,b) => {
+    let va = a[sf.field], vb = b[sf.field];
+    if (va == null) va = (typeof vb === 'number') ? -1 : ''; if (vb == null) vb = (typeof va === 'number') ? -1 : '';
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * sf.dir || a.name.localeCompare(b.name, 'zh');
+    return String(va).localeCompare(String(vb), 'zh') * sf.dir || a.name.localeCompare(b.name, 'zh');
+  });
+  const th = (f, label, w) => `<th class="stu-th" onclick="udbTea12SortBy('${f}')" style="white-space:nowrap;${w?'min-width:'+w+'px':''}">${label} <span class="sort-icon">${sf.field===f ? (sf.dir===1?'↑':'↓') : '⇅'}</span></th>`;
+  const lowCnt = d.rows.filter(r => r.low).length, noRank = d.rows.filter(r => !r.rank).length;
+  main.innerHTML = `
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:6px">列出教師管理中「專任」且啟用的老師。每週基本時數依職級，到「教師與資料庫 → 兼課鐘點費核銷 → ⚙️ 職級費率設定」修改。
+      實際授課時數預設依本學期課表估算（主講＝學分數；共同授課／週次講師／來賓＝學分數 × 大綱寫到他的週數比例，沒寫到預估 0.5；不含暑修），可在編輯視窗改成手動值。實際授課時數只供核對，不會匯出。</div>
+    ${!d.hasBase ? `<div style="background:#FFF8E1;border:1px solid #F0C36D;border-radius:6px;padding:8px 12px;font-size:13px;margin:6px 0">⚠️ 職級費率設定還沒有「每週基本授課時數」，請先執行 schema/udb_teacher_load.sql。</div>` : ''}
+    ${noRank ? `<div style="background:#FFF8E1;border:1px solid #F0C36D;border-radius:6px;padding:8px 12px;font-size:13px;margin:6px 0">⚠️ 有 ${noRank} 位老師的職稱沒有職級，請按 ✏️ 編輯選擇職級。</div>` : ''}
+    <div style="font-size:13px;margin:6px 0">共 ${d.rows.length} 位　·　<span style="background:#FFF3E0;color:#B05010;padding:1px 8px;border-radius:10px">實際授課低於基本時數 ${lowCnt} 位</span></div>
+    <div class="tbl-wrap" style="max-height:calc(100vh - 330px);overflow:auto"><table style="border-collapse:separate;border-spacing:0;font-size:13px;min-width:1500px">
+      <thead style="position:sticky;top:0;z-index:2"><tr>
+        <th class="stu-th" style="cursor:default">操作</th>${th('name','教師姓名',90)}${th('title','職稱')}${th('rank','職級')}${th('unitName','單位')}${th('base','基本時數')}${th('actual','實際授課')}
+        ${UDB_T12_FIELDS.map(([k,l]) => th(k, l)).join('')}${th('reduceSum','減授合計')}${th('other_reason','其他原因')}${th('note','補充說明')}
+      </tr></thead>
+      <tbody>${list.map(r => `<tr style="${r.low?'background:#FFF8E1':''}">
+        <td><button class="btn btn-sec btn-sm" onclick="udbTea12Edit('${r.id}')">✏️ 編輯</button></td>
+        <td style="font-weight:600;white-space:nowrap">${adEsc(r.name)}</td><td style="font-size:12px;white-space:nowrap">${adEsc(r.title)}</td>
+        <td style="white-space:nowrap">${r.rank ? adEsc(r.rank) : '<span style="color:#C0392B">未設定</span>'}</td>
+        <td style="font-size:12px;white-space:nowrap">${adEsc(r.unit.code)} ${adEsc(r.unit.name)}</td>
+        <td style="text-align:center">${udbFmt(r.base)}</td>
+        <td style="text-align:center;white-space:nowrap;${r.low?'color:#B05010;font-weight:600':''}">${udbFmt(r.actual)}${r.manual?' <span title="手動輸入" style="font-size:10px;color:var(--ink3)">手動</span>':''}</td>
+        ${UDB_T12_FIELDS.map(([k]) => `<td style="text-align:center">${udbFmt(r[k])}</td>`).join('')}
+        <td style="text-align:center;font-weight:600">${r.reduceSum ? udbFmt(r.reduceSum) : ''}</td>
+        <td style="font-size:12px">${adEsc(r.other_reason)}</td><td style="font-size:12px">${adEsc(r.note)}</td></tr>`).join('')
+        || '<tr><td colspan="19" style="text-align:center;padding:20px;color:var(--ink3)">沒有專任老師</td></tr>'}</tbody></table></div>`;
+}
+function udbTea12SortBy(f) { const sf = UDB.tea12Sort; if (sf.field === f) sf.dir *= -1; else { sf.field = f; sf.dir = 1; } udbTea12Render(); }
+
+function udbTea12Edit(id) {
+  const r = UDB.tea12.rows.find(x => x.id === id); if (!r) return;
+  UDB.tea12Editing = id;
+  document.getElementById('udb12-title').textContent = `✏️ ${r.name}　${udbSem().label} 授課時數`;
+  const num = (k, v) => `<input type="number" step="0.5" min="0" class="finput" id="udb12-${k}" value="${v ?? ''}" autocomplete="off">`;
+  document.getElementById('udb12-body').innerHTML = `
+    <div class="frow-2">
+      <div><label class="flabel">職級（職稱：${adEsc(r.title || '—')}）</label>
+        <select class="fselect" id="udb12-rank" onchange="udbTea12BasePreview()"><option value="">（未設定）</option>${UDB_RANKS.map(k => `<option ${k===r.rank?'selected':''}>${k}</option>`).join('')}</select></div>
+      <div><label class="flabel">所屬單位</label>
+        <select class="fselect" id="udb12-unit">${UDB_UNITS.map(u => `<option value="${u.code}" ${u.code===r.unitCode?'selected':''}>${u.typeCode} ${u.code} ${u.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="frow-2">
+      <div><label class="flabel">每週基本規定授課時數（依職級）</label><div id="udb12-base" style="padding:8px 0;font-weight:600">${udbFmt(r.base) || '—'}</div></div>
+      <div><label class="flabel">實際每週授課時數（空白＝依課表自動 ${udbFmt(r.autoHours)}）</label>${num('actual', r.manual ? r.actual : '')}</div>
+    </div>
+    <div style="font-size:12px;background:var(--cr);border-radius:6px;padding:8px 10px;margin-bottom:12px">
+      <div style="font-weight:600;margin-bottom:4px">依課表估算明細（${udbFmt(r.autoHours)} 小時）</div>
+      ${r.detail.length ? r.detail.map(x => `<div>${adEsc(x.code)} ${adEsc(x.name)}（${x.credits} 學分）— ${adEsc(x.how)}：<b>${udbFmt(x.hours)}</b></div>`).join('') : '<div style="color:var(--ink3)">本學期沒有授課</div>'}
+    </div>
+    <div style="font-weight:600;color:var(--navy);margin:4px 0 8px">減授時數（小時／週，沒有就留空白）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px">
+      ${UDB_T12_FIELDS.map(([k,l]) => `<div><label class="flabel">${l}</label>${num(k, r[k])}</div>`).join('')}
+    </div>
+    <div class="frow" style="margin-top:10px"><label class="flabel">其他原因</label><input class="finput" id="udb12-other_reason" value="${adEsc(r.other_reason)}" autocomplete="off"></div>
+    <div class="frow"><label class="flabel">補充說明</label><input class="finput" id="udb12-note" value="${adEsc(r.note)}" autocomplete="off"></div>`;
+  openModal('udb12-modal');
+}
+function udbTea12BasePreview() {
+  const rk = document.getElementById('udb12-rank').value;
+  document.getElementById('udb12-base').textContent = rk ? (udbFmt(UDB.tea12.baseByRank[rk]) || '（職級費率設定未填）') : '—';
+}
+async function udbTea12Save() {
+  const id = UDB.tea12Editing, sem = udbSem();
+  const val = k => { const v = document.getElementById('udb12-' + k).value.trim(); return v === '' ? null : Number(v); };   // 空白不轉成 0
+  const payload = {
+    semester_id: sem.id, teacher_id: id,
+    rank_name: document.getElementById('udb12-rank').value || null,
+    unit_code: Number(document.getElementById('udb12-unit').value),
+    actual_hours: val('actual'),
+    other_reason: document.getElementById('udb12-other_reason').value.trim() || null,
+    note: document.getElementById('udb12-note').value.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  for (const [k, l] of UDB_T12_FIELDS) {
+    const v = val(k);
+    if (v != null && (isNaN(v) || v < 0)) { showToast(`「${l}」請輸入 0 以上的數字`, 'error'); return; }
+    payload[k] = v;
+  }
+  if (payload.actual_hours != null && (isNaN(payload.actual_hours) || payload.actual_hours < 0)) { showToast('實際授課時數請輸入 0 以上的數字', 'error'); return; }
+  const { data, error } = await sb.from('udb_teacher_load').upsert(payload, { onConflict: 'semester_id,teacher_id' }).select();
+  if (error || !data?.length) { showToast('儲存失敗：' + (error?.message || '沒有寫入任何資料'), 'error'); return; }
+  closeModal('udb12-modal');
+  showToast('✅ 已儲存');
+  udbTea12Load();
+}
+function udbTea12Export() {
+  if (!UDB.tea12) { showToast('資料尚未載入完成', 'error'); return; }
+  const noRank = UDB.tea12.rows.filter(r => !r.rank).map(r => r.name);
+  if (noRank.length && !confirm(`${noRank.join('、')} 尚未設定職級，「每週基本規定授課時數」會是空白。仍要匯出嗎？`)) return;
+  const m = udbTea12Matrix();
+  udbWriteXlsx('教12', m.headers, m.rows, '校庫教12_專任教師授課時數', m.headers.map((h,i) => i < 2 ? 8 : (i === 3 ? 18 : (i === 5 ? 18 : (i === 6 ? 12 : Math.max(10, h.length * 2))))));
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -15395,11 +16073,15 @@ function openPayRatesModal() {
 function closePayRatesModal() { document.getElementById('pay-rates-modal').classList.remove('show'); }
 
 function renderPayRatesBody() {
-  document.getElementById('pay-rates-body').innerHTML = _payRates.map(r => `
-    <div class="frow-2" style="align-items:center;margin-bottom:10px">
+  const hasBase = _payRates.some(r => 'weekly_base_hours' in r);
+  document.getElementById('pay-rates-body').innerHTML =
+    `<div style="display:grid;grid-template-columns:90px 1fr ${hasBase?'1fr':''};gap:6px 10px;font-size:11px;color:var(--ink3);margin-bottom:4px"><span>職級</span><span>鐘點費（元／時）</span>${hasBase?'<span>每週基本授課時數</span>':''}</div>` +
+    _payRates.map(r => `
+    <div style="display:grid;grid-template-columns:90px 1fr ${hasBase?'1fr':''};gap:6px 10px;align-items:center;margin-bottom:10px">
       <label class="flabel" style="margin:0">${r.rank_name}</label>
       <input type="number" class="finput" value="${r.hourly_rate}" onchange="updatePayRate('${r.id}',this.value)">
-    </div>`).join('') + '<div style="font-size:11px;color:var(--ink3);margin-top:8px">調整費率不會影響已建立的歷史月份核銷記錄（每筆核銷會保留當時的費率快照）。</div>';
+      ${hasBase ? `<input type="number" step="0.5" min="0" class="finput" value="${r.weekly_base_hours ?? ''}" onchange="updatePayBaseHours('${r.id}',this.value)">` : ''}
+    </div>`).join('') + '<div style="font-size:11px;color:var(--ink3);margin-top:8px">調整費率不會影響已建立的歷史月份核銷記錄（每筆核銷會保留當時的費率快照）。' + (hasBase ? '每週基本授課時數用於「校庫填報 → 教12」。' : '') + '</div>';
 }
 
 async function updatePayRate(id, value) {
@@ -15410,6 +16092,17 @@ async function updatePayRate(id, value) {
   const r = _payRates.find(x=>x.id===id);
   if (r) r.hourly_rate = rate;
   showToast('✅ 費率已更新');
+}
+
+async function updatePayBaseHours(id, value) {
+  const v = value === '' ? null : Number(value);
+  if (v != null && (isNaN(v) || v < 0)) { showToast('請輸入有效數字','error'); return; }
+  const { data, error } = await sb.from('adjunct_pay_rates').update({ weekly_base_hours: v, updated_at: new Date().toISOString() }).eq('id', id).select();
+  if (error || !data?.length) { showToast('儲存失敗：'+(error?.message||'沒有更新任何資料'),'error'); return; }
+  const r = _payRates.find(x=>x.id===id);
+  if (r) r.weekly_base_hours = v;
+  UDB.tea12 = null;
+  showToast('✅ 每週基本授課時數已更新');
 }
 
 /* ── 匯出Excel報表 ── */
