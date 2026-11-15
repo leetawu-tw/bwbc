@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.78 2026-10-28 校庫填報新增教12 專任教師授課時數、職級費率設定新增每週基本授課時數；v10.77 2026-10-28 新增「📊 校庫填報」頁（學14 學生年齡、校14 實際開設學分、校15 畢業學分結構；教12 待加入）；v10.76 2026-10-25 新增權限範本「基本款（全體）」「Staff」、帳號角色改選 staff 時自動套用 Staff 範本(僅限尚無任何權限者)、儀表板卡片依權限顯示；v10.75：帳號列表新增搜尋(Email或姓名，多關鍵字、依角色篩選、Enter直接開啟編輯、Esc清除)；v10.74：帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.80 2026-11-14 數位課程「教學方法」改由系統依每週型態自動產生（六、教學方式／七、每週時數）；v10.79：2026-11-14 數位課程每週新增「OH」標記（該週有教師線上辦公室時間），數位報部大綱進度表時數後面加註 OH；v10.78： 2026-10-28 校庫填報新增教12 專任教師授課時數、職級費率設定新增每週基本授課時數；v10.77 2026-10-28 新增「📊 校庫填報」頁（學14 學生年齡、校14 實際開設學分、校15 畢業學分結構；教12 待加入）；v10.76 2026-10-25 新增權限範本「基本款（全體）」「Staff」、帳號角色改選 staff 時自動套用 Staff 範本(僅限尚無任何權限者)、儀表板卡片依權限顯示；v10.75：帳號列表新增搜尋(Email或姓名，多關鍵字、依角色篩選、Enter直接開啟編輯、Esc清除)；v10.74：帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -3274,7 +3274,16 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     </div>
     <div class="sy-section">
       <div class="sy-section-hdr" onclick="toggleSection('mth')"><span class="sy-section-title">🔧 教學方法</span><span id="mth-arrow">▼</span></div>
-      <div class="sy-section-body" id="mth-body"><div id="sy-mth-list"></div><button class="sy-add-btn" onclick="addMth()">＋ 新增教學方法</button></div>
+      <div class="sy-section-body" id="mth-body">
+        <div id="sy-mth-free"><div id="sy-mth-list"></div><button class="sy-add-btn" onclick="addMth()">＋ 新增教學方法</button></div>
+        <div id="sy-mth-digital" style="display:none">
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">數位課程的教學方式依學校公版固定格式，由系統依「教學進度」每週的教學型態自動產生（次數、時數不用手動填）。</div>
+          <label style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:13px"><input type="checkbox" id="sy-d-tm-material" checked onchange="updateWeekModeSummary()"> 1. 提供線上課程主要及補充教材</label>
+          <label style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:13px"><input type="checkbox" id="sy-d-tm-assistant" checked onchange="updateWeekModeSummary()"> 2. 有線上教師與線上助教</label>
+          <div id="sy-tm-auto" style="background:#F3F3F1;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.8;margin:8px 0"></div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px"><span>6. 其它，請說明：</span><input class="finput" id="sy-d-tm-other" placeholder="（選填，有填才會勾選）" style="flex:1" oninput="updateWeekModeSummary()"></div>
+        </div>
+      </div>
     </div>
     <div class="sy-section">
       <div class="sy-section-hdr" onclick="toggleSection('asmnt')">
@@ -3396,7 +3405,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;font-size:12.5px">
             <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-admin-personal" checked>個人資料</label>
             <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-admin-course" checked>課程資訊</label>
-            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-admin-other" checked>其他相關資料管理</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="sy-d-lms-admin-other" checked>其他相關資料管理功能</label>
           </div>
           <div style="font-size:11.5px;color:var(--ink3);margin-bottom:6px">教師(助教)、學生功能</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12.5px">
@@ -6753,6 +6762,7 @@ async function generateBlankSyllabusDocs() {
       // 一般課程跟數位課程現在共用同一份「標準輸入範本」（數位專屬區塊老師自己依需要填，一般課程留空即可）
       const templateBuf = await fetchSyllabusTemplate('standard_input');
       const zip = await JSZip.loadAsync(templateBuf);
+      await fixTemplateFonts(zip);
       let xml = await zip.file('word/document.xml').async('string');
 
       const replacements = {
@@ -6952,6 +6962,7 @@ async function buildFilledSyllabusBlob(offeringId) {
   if (sErr || !signed) { return { error: '找不到輸出範本，請確認已上傳 '+templateFile+' 到 syllabus-templates' }; }
   const templateBuf = await (await fetch(signed.signedUrl, { cache: 'no-store' })).arrayBuffer();
   const zip = await JSZip.loadAsync(templateBuf);
+  await fixTemplateFonts(zip);
   const xmlStr = await zip.file('word/document.xml').async('string');
   const xmlDoc = new DOMParser().parseFromString(xmlStr, 'application/xml');
 
@@ -7018,7 +7029,10 @@ async function buildFilledSyllabusBlob(offeringId) {
   const joinBr = (items) => items.map(escapeXml).join('</w:t></w:r><w:r><w:br/></w:r><w:r><w:t xml:space="preserve">');
 
   const objectives = joinBr((d.objectives||[]).map((o,i)=>`${i+1}. ${stripLeadingNumber(o.text||o)}`));
-  const methods = joinBr((d.methods||[]).map((m,i)=>`${i+1}. ${stripLeadingNumber(m.text||m)}`));
+  // 數位課程的教學方法完全由系統依每週型態自動產生(不讀 d.methods)，一般課程維持原本自由清單
+  const methods = joinBr(isDigital
+    ? buildDigitalTeachingModes(d.weeks, hoursPerWeek, (d.digital_info||{}).teaching_modes).lines.map((t,i)=>`${i+1}. ${t}`)
+    : (d.methods||[]).map((m,i)=>`${i+1}. ${stripLeadingNumber(m.text||m)}`));
   // 過濾掉空白項目(例如老師點了「+新增參考書目」但沒實際打字)，避免出現「參考 / 2.」這種後面沒內容的空白編號
   const bibReqList = (d.bibliography?.required||[]).filter(b=>(b||'').trim());
   const bibOptList = (d.bibliography?.optional||[]).filter(b=>(b||'').trim());
@@ -7137,6 +7151,15 @@ async function exportFilledSyllabus(offeringId) {
 }
 
 // ── 數位報部大綱（官方遠距教學課程申請書格式）──
+// 範本字型保險：部分範本的 Normal / 表格 / 字元樣式把中文字型指定成「新細明體」，會蓋過 docDefaults 的標楷體，
+// 沒有明確指定字型的文字(例如程式代入的內容)就會變成細明體。匯出前統一改成標楷體
+async function fixTemplateFonts(zip) {
+  const f = zip.file('word/styles.xml');
+  if (!f) return;
+  let st = await f.async('string');
+  const fixed = st.replace(/新細明體|細明體|PMingLiU|MingLiU/g, '標楷體');
+  if (fixed !== st) zip.file('word/styles.xml', fixed);
+}
 async function buildDigitalReportBlob(offeringId) {
   const o = OFFERINGS.find(x=>x.offering_id===offeringId);
   if (!o) return null;
@@ -7158,6 +7181,7 @@ async function buildDigitalReportBlob(offeringId) {
   if (sErr || !signed) { return { error: '找不到數位報部大綱範本，請確認已上傳 digital_report_output.docx 到 syllabus-templates' }; }
   const templateBuf = await (await fetch(signed.signedUrl, { cache:'no-store' })).arrayBuffer();
   const zip = await JSZip.loadAsync(templateBuf);
+  await fixTemplateFonts(zip);
   const xmlDoc = new DOMParser().parseFromString(await zip.file('word/document.xml').async('string'), 'application/xml');
 
   const weeksWithData = (d.weeks||[]).filter(w=>w.title||w.content);
@@ -7173,10 +7197,11 @@ async function buildDigitalReportBlob(offeringId) {
     // 授課內容欄：主題(title)優先，內容說明(content)只在沒有主題時當備援。
     // 原本寫成 content優先、title備援，但實務上「內容說明」常常只是老師/admin先打「請說明」這種提示文字等之後補，
     // 一旦內容說明有填任何字(包含這種提示文字)，就會蓋掉真正有意義的週次主題，導致大部分週次顯示「請說明」而不是實際主題
-    String(w.week), w.title || w.content || '', w.activity || '',
-    w.mode==='inperson' ? hoursPerWeek : '',
-    w.mode==='async' ? hoursPerWeek : '',
-    w.mode==='sync' ? hoursPerWeek : ''
+    String(w.week), ((w.content||'').trim() && (w.content||'').trim()!=='請說明' ? w.content.trim() : (w.title || '')), w.activity || '',
+    // v10.79：該週勾了OH(教師線上辦公室時間)，時數後面加註「OH」，例如「3OH」
+    w.mode==='inperson' ? hoursPerWeek + (w.oh?'OH':'') : '',
+    w.mode==='async' ? hoursPerWeek + (w.oh?'OH':'') : '',
+    w.mode==='sync' ? hoursPerWeek + (w.oh?'OH':'') : ''
   ]);
 
   let xml = new XMLSerializer().serializeToString(xmlDoc);
@@ -7242,6 +7267,7 @@ async function buildDigitalReportBlob(offeringId) {
     '{{SYNC_TEAMS_BOX}}': buildCheckboxSquare(di.sync_platform==='teams',''), '{{SYNC_MEET_BOX}}': buildCheckboxSquare(di.sync_platform==='meet',''),
     '{{SYNC_OTHER_BOX}}': buildCheckboxSquare(di.sync_platform==='other',''), '{{SYNC_OTHER_TEXT}}': escapeXml(di.sync_platform_other||''), '{{SYNC_NONE_BOX}}': buildCheckboxSquare(!di.sync_platform,''),
     '{{PLAN_OTHER_BOX}}': buildCheckboxSquare(false,''),
+    '{{PLAN_FILE_URL}}': escapeXml(di.plan_file_url||''),
     '{{TA_YES_BOX}}': buildCheckboxSquare(finalTA,''), '{{TA_NO_BOX}}': buildCheckboxSquare(!finalTA,''),
 
     // 一、課程概述
@@ -7256,12 +7282,13 @@ async function buildDigitalReportBlob(offeringId) {
     '{{HOURS_INPERSON_HOURS}}': escapeXml(hb.inperson_hours?String(hb.inperson_hours):'0'),
     '{{HOURS_ASYNC_HOURS}}': escapeXml(hb.async_hours?String(hb.async_hours):'0'),
     '{{HOURS_SYNC_HOURS}}': escapeXml(hb.sync_hours?String(hb.sync_hours):'0'),
+    '{{HOURS_TOTAL}}': escapeXml(String((hb.inperson_hours||0)+(hb.async_hours||0)+(hb.sync_hours||0))),
 
     // 六、教學方式：1/2/4固定打勾（描述Moodle平台既有能力），3/5用週次表統計出的面授/同步次數與時數，6其他固定不勾
-    '{{TM_MATERIAL_BOX}}': buildCheckboxSquare(true,''), '{{TM_ASSISTANT_BOX}}': buildCheckboxSquare(true,''), '{{TM_ASYNC_BOX}}': buildCheckboxSquare(true,''),
+    '{{TM_MATERIAL_BOX}}': buildCheckboxSquare(((di.teaching_modes||{}).material)!==false,''), '{{TM_ASSISTANT_BOX}}': buildCheckboxSquare(((di.teaching_modes||{}).assistant)!==false,''), '{{TM_ASYNC_BOX}}': buildCheckboxSquare(true,''),
     '{{TM_INPERSON_BOX}}': buildCheckboxSquare((hb.inperson_weeks||0)>0,''), '{{TM_INPERSON_COUNT}}': escapeXml(hb.inperson_weeks?String(hb.inperson_weeks):''), '{{TM_HOURS_A}}': escapeXml(hb.inperson_hours?String(hb.inperson_hours):''),
     '{{TM_SYNC_BOX}}': buildCheckboxSquare((hb.sync_weeks||0)>0,''), '{{TM_SYNC_COUNT}}': escapeXml(hb.sync_weeks?String(hb.sync_weeks):''), '{{TM_HOURS_B}}': escapeXml(hb.sync_hours?String(hb.sync_hours):''),
-    '{{TM_OTHER_BOX}}': buildCheckboxSquare(false,''), '{{TM_OTHER_TEXT}}': '',
+    '{{TM_OTHER_BOX}}': buildCheckboxSquare(!!((di.teaching_modes||{}).other_text||'').trim(),''), '{{TM_OTHER_TEXT}}': escapeXml(((di.teaching_modes||{}).other_text||'').trim()),
 
     // 七、每週時數 = (A+B)÷18週
     '{{WEEKLY_HOURS}}': escapeXml(String(weeklyHours)),
@@ -8158,6 +8185,10 @@ function renderDigitalInfo() {
   const hb = di.hours_breakdown || {};
   // 教學時數拆分已改成自動統計（見 updateWeekModeSummary），這裡不再讀取/填入手動欄位
   document.getElementById('sy-d-notes-supp').value = di.notes_supplement || '';
+  const _tm = di.teaching_modes || {};
+  document.getElementById('sy-d-tm-material').checked = _tm.material !== false;
+  document.getElementById('sy-d-tm-assistant').checked = _tm.assistant !== false;
+  document.getElementById('sy-d-tm-other').value = _tm.other_text || '';
 }
 
 function collectDigitalInfo() {
@@ -8208,7 +8239,12 @@ function collectDigitalInfo() {
     hours_breakdown: {
     // hours_breakdown 不再從手動欄位收集，匯出時會自動依教學進度的每週型態統計計算
     },
-    notes_supplement: document.getElementById('sy-d-notes-supp').value
+    notes_supplement: document.getElementById('sy-d-notes-supp').value,
+    teaching_modes: {
+      material: document.getElementById('sy-d-tm-material').checked,
+      assistant: document.getElementById('sy-d-tm-assistant').checked,
+      other_text: document.getElementById('sy-d-tm-other').value
+    }
   };
 }
 function renderObjs() {
@@ -8220,6 +8256,9 @@ function renderObjs() {
 }
 function addObj() { SY.data.objectives.push({text:''}); renderObjs(); }
 function renderMths() {
+  const _free=document.getElementById('sy-mth-free'), _dig=document.getElementById('sy-mth-digital');
+  if(_free) _free.style.display = SY.is_digital ? 'none' : '';
+  if(_dig) _dig.style.display = SY.is_digital ? '' : 'none';
   document.getElementById('sy-mth-list').innerHTML=(SY.data.methods||[]).map((m,i)=>
     `<div class="sy-row sy-row-2" style="margin-bottom:6px">
       <div style="width:32px;height:34px;display:flex;align-items:center;justify-content:center;font-size:14px">▸</div>
@@ -8243,6 +8282,22 @@ function updatePctTotal() {
   el.textContent=total+'%'; el.style.background=total===100?'#E8F5E9':'#FFEBEE'; el.style.color=total===100?'#1B5E20':'#B71C1C';
 }
 const WEEK_MODE_LABEL = {inperson:'實體', async:'非同步', sync:'同步'};
+// 數位課程「六、教學方式」(1~6項)與「七、每週時數」：由每週教學型態自動計算，畫面預覽/校內大綱/報部大綱共用
+function buildDigitalTeachingModes(weeks, hoursPerWeek, tm){
+  tm = tm || {};
+  const c = {inperson:0, async:0, sync:0};
+  (weeks||[]).forEach(w=>{ if(w.mode && c[w.mode]!==undefined) c[w.mode]++; });
+  const A = c.inperson*hoursPerWeek, B = c.sync*hoursPerWeek;
+  const weekly = Math.round(((A+B)/18 + Number.EPSILON)*100)/100;
+  const lines = [];
+  if (tm.material!==false) lines.push('提供線上課程主要及補充教材');
+  if (tm.assistant!==false) lines.push('有線上教師與線上助教');
+  if (c.inperson>0) lines.push('採用面授教學，次數：'+c.inperson+'次，總時數：A= '+A+'小時');
+  lines.push('採用線上非同步教學，即採用本校Moodle遠距教學平台進行線上教學');
+  if (c.sync>0) lines.push('提供線上同步教學，即同一時間透過網路視訊連線進行教學次數：'+c.sync+'次，總時數：B= '+B+'小時');
+  if ((tm.other_text||'').trim()) lines.push('其它：'+tm.other_text.trim());
+  return {counts:c, A, B, weekly, lines};
+}
 function renderWeeks() {
   const isDig = SY.is_digital;
   document.getElementById('sy-wk-list').innerHTML=(SY.data.weeks||[]).map((w,i)=>
@@ -8264,6 +8319,7 @@ function renderWeeks() {
         <textarea class="finput" rows="2" placeholder="本週內容說明…" style="width:100%;font-size:12.5px;resize:vertical" oninput="SY.data.weeks[${i}].content=this.value">${(w.content||'')}</textarea>
         <div style="font-size:11px;font-weight:600;color:#8A5A00;margin-top:8px">🟡 教學活動（數位課程必填，一般課程選填，跟上面「內容說明」是不同欄位）</div>
         <input class="finput" value="${(w.activity||'').replace(/"/g,'&quot;')}" placeholder="例：設計線上議題討論活動、安排線上作業繳交" style="width:100%;font-size:12.5px;background:#FFF9E6;border-color:#E8C468" oninput="SY.data.weeks[${i}].activity=this.value">
+        ${isDig ? `<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;color:var(--ink2);cursor:pointer"><input type="checkbox" ${w.oh?'checked':''} onchange="SY.data.weeks[${i}].oh=this.checked"> <b>OH</b>：這一週有教師線上辦公室時間（報部大綱進度表的時數後面會加註 OH）</label>` : ''}
       </div>
     </div>`).join('');
   if (isDig) updateWeekModeSummary();
@@ -8286,6 +8342,16 @@ function updateWeekModeSummary() {
   if (summaryEl) summaryEl.textContent = label;
   const dEl = document.getElementById('sy-d-mode-auto');
   if (dEl) dEl.textContent = autoMode ? WEEK_MODE_LABEL[autoMode] : '（尚未統計出結果）';
+  const tmEl = document.getElementById('sy-tm-auto');
+  if (tmEl) {
+    const _cr = (document.getElementById('sy-credits')?.textContent||'').match(/\d+/);
+    const _hpw = _cr ? parseInt(_cr[0]) : 0;
+    const _r = buildDigitalTeachingModes(weeks, _hpw, {});
+    tmEl.innerHTML = `3. 採用<b>面授教學</b>，次數：<b>${_r.counts.inperson}</b> 次，總時數：A= <b>${_r.A}</b> 小時`+(_r.counts.inperson?'':'　<span style="color:var(--ink3)">（0週，匯出時不勾選）</span>')+'<br>'+
+      `4. 採用<b>線上非同步教學</b>（Moodle 遠距教學平台）　共 ${_r.counts.async} 週<br>`+
+      `5. 提供<b>線上同步教學</b>，次數：<b>${_r.counts.sync}</b> 次，總時數：B= <b>${_r.B}</b> 小時`+(_r.counts.sync?'':'　<span style="color:var(--ink3)">（0週，匯出時不勾選）</span>')+'<br>'+
+      `<span style="color:var(--ink3)">七、每週時數 ＝ (A＋B)÷18 ＝ <b style="color:var(--ink)">${_r.weekly}</b> 小時／週</span>`;
+  }
   const hoursEl = document.getElementById('sy-d-hours-auto');
   if (hoursEl) {
     const creditsTxt = (document.getElementById('sy-credits')?.textContent||'').match(/\d+/);
@@ -11294,6 +11360,23 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
       這裡每次忘記手動同步的bug已發生多次(v10.52這次又重演一次)，從此不用再記得這條規則
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.80', date: '2026-11-14',
+    items: [
+      '數位課程的「教學方法」改成學校公版六、教學方式的固定6項：1、2項可勾選(預設勾選)，3~5項的次數與時數(A、B)由教學進度每週型態自動算出，第6項「其它」填了才勾選；七、每週時數＝(A＋B)÷18自動算。舊的自由文字教學方法不刪除，只是數位課程不再讀取',
+      '校內大綱與報部大綱匯出時，數位課程的教學方式一律用自動產生的內容；一般課程維持原本自由清單，完全不變',
+      '學習管理系統功能「其他相關資料管理」補上「功能」兩字，與學校公版一致',
+      '修正匯出Word部分文字變成新細明體的問題：範本的Normal/表格樣式把中文字型指定成新細明體，蓋過標楷體設定，匯出前統一改回標楷體(校內大綱與報部大綱皆適用)',
+      '數位報部大綱進度表「授課內容」改以公版範例為準：有填「本週內容說明」就印內容說明，沒填(或只寫「請說明」)才印週次主題；「各類別總時數」後面補印三類時數加總(例如54)',
+      '數位報部大綱「課程教學計畫檔案連結網址」補印教學計畫連結(原本範本缺網址欄位，網址填了也印不出來)'
+    ]
+  },
+  {
+    version: 'v10.79', date: '2026-11-14',
+    items: [
+      '數位課程教學進度：每週展開後新增「OH」勾選（該週有教師線上辦公室時間）；匯出數位報部大綱時，進度表該週的時數後面會加註 OH（例如「3OH」），跟學校範例格式一致',
+    ]
+  },
   {
     version: 'v10.78', date: '2026-10-28',
     items: [
