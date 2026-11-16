@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.80 2026-11-14 數位課程「教學方法」改由系統依每週型態自動產生（六、教學方式／七、每週時數）；v10.79：2026-11-14 數位課程每週新增「OH」標記（該週有教師線上辦公室時間），數位報部大綱進度表時數後面加註 OH；v10.78： 2026-10-28 校庫填報新增教12 專任教師授課時數、職級費率設定新增每週基本授課時數；v10.77 2026-10-28 新增「📊 校庫填報」頁（學14 學生年齡、校14 實際開設學分、校15 畢業學分結構；教12 待加入）；v10.76 2026-10-25 新增權限範本「基本款（全體）」「Staff」、帳號角色改選 staff 時自動套用 Staff 範本(僅限尚無任何權限者)、儀表板卡片依權限顯示；v10.75：帳號列表新增搜尋(Email或姓名，多關鍵字、依角色篩選、Enter直接開啟編輯、Esc清除)；v10.74：帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.81 2026-11-17 學籍狀態新增「註銷學籍（身故）」；v10.80：2026-11-14 數位課程「教學方法」改由系統依每週型態自動產生（六、教學方式／七、每週時數）；v10.79：2026-11-14 數位課程每週新增「OH」標記（該週有教師線上辦公室時間），數位報部大綱進度表時數後面加註 OH；v10.78： 2026-10-28 校庫填報新增教12 專任教師授課時數、職級費率設定新增每週基本授課時數；v10.77 2026-10-28 新增「📊 校庫填報」頁（學14 學生年齡、校14 實際開設學分、校15 畢業學分結構；教12 待加入）；v10.76 2026-10-25 新增權限範本「基本款（全體）」「Staff」、帳號角色改選 staff 時自動套用 Staff 範本(僅限尚無任何權限者)、儀表板卡片依權限顯示；v10.75：帳號列表新增搜尋(Email或姓名，多關鍵字、依角色篩選、Enter直接開啟編輯、Esc清除)；v10.74：帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -210,6 +210,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
 .stu-status-leave{background:#FFF3E0;color:#B05010}
 .stu-status-graduated{background:#E3F2FD;color:#1565C0}
 .stu-status-withdrawn{background:#FCE4EC;color:#C2185B}
+.stu-status-deceased{background:#ECEFF1;color:#455A64}
 .stu-status-deferred{background:#ECEFF1;color:#455A64}
 
 /* Toast */
@@ -1361,6 +1362,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
               <option value="leave">休學</option>
               <option value="graduated">已畢業</option>
               <option value="withdrawn">退學</option>
+              <option value="deceased">註銷學籍（身故）</option>
               <option value="deferred">保留入學資格</option>
             </select>
             <button class="btn" onclick="exportClassRoster()">📋 學生資料列表</button>
@@ -2065,6 +2067,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
             <option value="leave">休學</option>
             <option value="graduated">已畢業</option>
             <option value="withdrawn">退學</option>
+            <option value="deceased">註銷學籍（身故）</option>
             <option value="deferred">保留入學資格</option>
           </select>
           <div id="stu-status-note" style="display:none;margin-top:6px;padding:8px 10px;background:#FFF3E0;border:1px solid #F0C080;border-radius:6px;font-size:12px;color:#8A4A10;line-height:1.6"></div>
@@ -2265,7 +2268,7 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
     <div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow-y:auto">
       <div style="padding:10px 14px;background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;font-size:12.5px;color:#6D4C00;line-height:1.7">
         <strong>📌 規則：</strong>依「學號」比對 — 學號存在則<strong style="color:#1A6A30">更新</strong>、學號不存在則<strong style="color:#1565C0">新增</strong><br>
-        <strong>📄 欄位（按下載範本為準）：</strong>學號(必填)、中文姓名、英文姓名、性別(M/F/O)、出生日期、入學年、狀態(pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格)、學校email、個人email、電話、通訊地址、緊急聯絡人、關係、緊急電話、入學日期、學歷、畢業學校、廣論班級、住宿(填目前有效選項名稱，見「⚙️ 住宿選項管理」)、住宿地址、備註
+        <strong>📄 欄位（按下載範本為準）：</strong>學號(必填)、中文姓名、英文姓名、性別(M/F/O)、出生日期、入學年、狀態(pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格/deceased註銷學籍(身故))、學校email、個人email、電話、通訊地址、緊急聯絡人、關係、緊急電話、入學日期、學歷、畢業學校、廣論班級、住宿(填目前有效選項名稱，見「⚙️ 住宿選項管理」)、住宿地址、備註
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="file" id="stu-update-file" accept=".xlsx,.xls,.csv" onchange="onStudentUpdateFile(event)" style="font-size:13px">
@@ -4194,7 +4197,7 @@ async function loadOfferings() {
   const _countAsOf = await getStudentStatusAsOf([...new Map((enr||[]).map(e => [e.student_id, { id: e.student_id, status: e.students?.status }])).values()], _semRow?.end_date);
   ENROLL_COUNT_MAP = {}; ENROLL_CS_COUNT_MAP = {}; // 選課人數含學分班（佔教室座位）；學分班另計人數供加註
   (enr||[]).forEach(e => {
-    if (['leave','withdrawn'].includes(_countAsOf[e.student_id] ?? e.students?.status)) return; // 休學/退學不算仍在修課（停修的選課記錄已由status=confirmed排除），與點名單「選課總人數」同一算法
+    if (['leave','withdrawn','deceased'].includes(_countAsOf[e.student_id] ?? e.students?.status)) return; // 休學/退學不算仍在修課（停修的選課記錄已由status=confirmed排除），與點名單「選課總人數」同一算法
     ENROLL_COUNT_MAP[e.offering_id] = (ENROLL_COUNT_MAP[e.offering_id]||0) + 1;
     if (e.students?.student_type && e.students.student_type !== 'regular') ENROLL_CS_COUNT_MAP[e.offering_id] = (ENROLL_CS_COUNT_MAP[e.offering_id]||0) + 1;
   });
@@ -5212,7 +5215,7 @@ async function genSurveyTokens(surveyId) {
 
     if (!enrollsAll?.length) { showToast('此學期沒有確認的修課記錄','error'); return; }
     // 休學(leave)、退學(withdrawn)的學生不需要填教學意見調查
-    const enrolls = enrollsAll.filter(e => !['leave','withdrawn'].includes(e.students?.status));
+    const enrolls = enrollsAll.filter(e => !['leave','withdrawn','deceased'].includes(e.students?.status));
     const skippedLeave = enrollsAll.length - enrolls.length;
 
     // 取各 offering 的主授教師
@@ -11361,6 +11364,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
   {
+    version: 'v10.81', date: '2026-11-17',
+    items: [
+      '學籍狀態新增「註銷學籍（身故）」(deceased)：學生過世時用，不適用「退學」(懲處/學業原因)。學生編輯與新增、狀態篩選、狀態異動歷程(預約變更)的下拉選單、狀態徽章顏色、各狀態名稱對照表、批次匯入說明都已加上',
+      '新狀態的處理方式與休學/退學一致：不計入選課人數與有效人數、教學意見調查略過、點名單與名單顯示「註銷學籍」；改為此狀態時，同樣會跳出本學期選課記錄處理視窗(原因開頭固定為「註銷學籍」)。歷史選課與成績紀錄都保留不動',
+      '⚠️ 需先在資料庫執行SQL，把students_status_check限制加入 deceased，否則儲存會失敗'
+    ]
+  },
+  {
     version: 'v10.80', date: '2026-11-14',
     items: [
       '數位課程的「教學方法」改成學校公版六、教學方式的固定6項：1、2項可勾選(預設勾選)，3~5項的次數與時數(A、B)由教學進度每週型態自動算出，第6項「其它」填了才勾選；七、每週時數＝(A＋B)÷18自動算。舊的自由文字教學方法不刪除，只是數位課程不再讀取',
@@ -12708,7 +12719,7 @@ async function loadEnrollStats() {
   const cohortActiveGenderPopBySem = {}; // key: semester_id|cohort|gender
   // 逐學期「有登記在這個屆別、但這個學期沒被算進有效人數」的名單+原因，取代人工在Excel上用紅字手動註記——
   // 每次 statusAsOf() 判斷不是active/graduated，就記一筆，方便對照「總人數」跟「有效人數」的差額具體是哪些人
-  const STATUS_LABEL_ZH = { leave:'休學', withdrawn:'退學', deferred:'保留入學資格', graduated:'已畢業', active:'在學' };
+  const STATUS_LABEL_ZH = { leave:'休學', withdrawn:'退學', deceased:'註銷學籍', deferred:'保留入學資格', graduated:'已畢業', active:'在學' };
   const excludedBySem = {}; // key: semester_id|cohort -> [{code, status, label}, ...]
   const activeStudentIdsBySem = {}; // key: semester_id|cohort -> Set(student_id)，給後面比對「誰未選課」用
   (sems||[]).forEach(sem => {
@@ -13848,7 +13859,7 @@ function udbDefaultBaseDate(sem) {
   return sem.semester_num === 1 ? `${y}-10-15` : `${y+1}-03-15`;
 }
 
-const UDB_STATUS_ZH = { active:'在學', leave:'休學', withdrawn:'退學', graduated:'畢業' };
+const UDB_STATUS_ZH = { active:'在學', leave:'休學', withdrawn:'退學', deceased:'註銷學籍', graduated:'畢業' };
 
 /* ─── 學14 ─── */
 function udbStu14Tools() {
@@ -16443,7 +16454,7 @@ async function loadConductRoster() {
   // 非在學名單：「有記錄但不算分數」跟「從來沒有記錄」兩種情況合併顯示，畫面上一視同仁
   const existingNonActiveIds = new Set(nonActiveWithRow.map(r=>r.student_id));
   const { data: nonActiveStudentsNoRow } = await sb.from('students')
-    .select('id, student_code, name_zh, cohort, status').in('status', ['leave','withdrawn']).eq('student_type','regular');
+    .select('id, student_code, name_zh, cohort, status').in('status', ['leave','withdrawn','deceased']).eq('student_type','regular');
   const nonActiveList = [
     ...nonActiveWithRow.map(r => ({ id: r.student_id, student_code: r.students.student_code, name_zh: r.students.name_zh, cohort: r.students.cohort, status: r.students.status })),
     ...(nonActiveStudentsNoRow||[]).filter(s => !existingNonActiveIds.has(s.id)),
@@ -16731,7 +16742,7 @@ let _conductSort = { field:'student_code', dir:1 };
 let _stuPhotoFile = null;  // 暫存待上傳的大頭照
 let _stuImportData = null; // 暫存匯入解析結果
 
-const STU_STATUS_LABEL = { pending:'新生未報到', active:'在學', leave:'休學', graduated:'已畢業', withdrawn:'退學', deferred:'保留入學資格' };
+const STU_STATUS_LABEL = { pending:'新生未報到', active:'在學', leave:'休學', graduated:'已畢業', withdrawn:'退學', deceased:'註銷學籍（身故）', deferred:'保留入學資格' };
 
 /* ════════════════════════════════════════
    住宿選項（2026-09-28：改成admin可自訂清單，取代寫死的5個固定值）
@@ -17243,10 +17254,12 @@ async function buildAttendanceSheetInfo(offeringId, angel, ta, av, isDigital) {
 function enrOffLabel(stuStatus, enrStatus, reason) {
   if (stuStatus === 'leave') return '休學';
   if (stuStatus === 'withdrawn') return '退學';
+  if (stuStatus === 'deceased') return '註銷學籍';
   if (enrStatus === 'withdrawn') {
     const r = reason || '';
     if (r.startsWith('休學')) return '休學';
     if (r.startsWith('退學')) return '退學';
+    if (r.startsWith('註銷學籍')) return '註銷學籍';
     return '停修';
   }
   return '';
@@ -17290,7 +17303,7 @@ function attendanceStudentStatus(s, normalLabel) {
   const isEnrWithdrawn = s.enr_status === 'withdrawn'; // admin正式辦理停修
   const isEnrDropped = s.enr_status === 'dropped'; // 加退選期間內學生自己退選，還不到停修（理論上不會出現在這裡，buildAttendanceSheetInfo已先濾掉）
   const isLeave = s.status === 'leave';
-  const isStudentWithdrawn = s.status === 'withdrawn';
+  const isStudentWithdrawn = s.status === 'withdrawn' || s.status === 'deceased';
   // 學籍狀態優先：學生改休學/退學時，admin通常會一併把選課批次標成停修，若選課狀態先判斷，休學的人會被誤顯示成「停修」
   const dropLabel = (isLeave || isStudentWithdrawn || isEnrWithdrawn) ? enrOffLabel(s.status, s.enr_status, s.enr_reason) : isEnrDropped ? '退選' : '';
   const isDropped = !!dropLabel;
@@ -17585,6 +17598,7 @@ function openAddStatusHistoryForm() {
         <option value="leave">休學</option>
         <option value="graduated">已畢業</option>
         <option value="withdrawn">退學</option>
+        <option value="deceased">註銷學籍（身故）</option>
       </select></div>
     <div class="frow"><label class="flabel">變更後狀態 *</label>
       <select class="finput" id="hist-new-status">
@@ -17592,6 +17606,7 @@ function openAddStatusHistoryForm() {
         <option value="leave">休學</option>
         <option value="graduated">已畢業</option>
         <option value="withdrawn">退學</option>
+        <option value="deceased">註銷學籍（身故）</option>
       </select></div>
     <div class="frow"><label class="flabel">實際發生時間 *</label>
       <input type="datetime-local" class="finput" id="hist-changed-at"></div>
@@ -17653,6 +17668,7 @@ function openScheduleStatusForm() {
         <option value="active">在學（復學）</option>
         <option value="graduated">已畢業</option>
         <option value="withdrawn">退學</option>
+        <option value="deceased">註銷學籍（身故）</option>
       </select></div>
     <div class="frow"><label class="flabel">生效日期 *</label>
       <input type="date" class="finput" id="sched-effective-date"></div>
@@ -17683,7 +17699,7 @@ async function submitScheduleStatusChange(studentId) {
 async function applyScheduledStatusChange(historyId, studentId) {
   const { data: hist } = await sb.from('student_status_history').select('new_status').eq('id', historyId).maybeSingle();
   if (!hist) return;
-  const _isLeaveLike = hist.new_status === 'leave' || hist.new_status === 'withdrawn';
+  const _isLeaveLike = hist.new_status === 'leave' || hist.new_status === 'withdrawn' || hist.new_status === 'deceased';
   if (!confirm(`確定要套用這筆預約，把狀態正式改為「${STU_STATUS_LABEL[hist.new_status]||hist.new_status}」嗎？` + (_isLeaveLike ? `\n\n套用後，該生本學期目前選修中的課程會被標記為「${STU_STATUS_LABEL[hist.new_status]}」（接著會列出課程請你確認）。` : ''))) return;
   try {
     const { error: e1 } = await sb.from('students').update({ status: hist.new_status }).eq('id', studentId);
@@ -17694,7 +17710,7 @@ async function applyScheduledStatusChange(historyId, studentId) {
     loadStudentStatusHistory(studentId);
     loadScheduledStatusChanges(studentId);
     loadStudents();
-    if (hist.new_status === 'leave' || hist.new_status === 'withdrawn') {
+    if (hist.new_status === 'leave' || hist.new_status === 'withdrawn' || hist.new_status === 'deceased') {
       const { data: stuInfo } = await sb.from('students').select('name_zh').eq('id', studentId).maybeSingle();
       await promptWithdrawEnrollmentsForStatusChange(studentId, stuInfo?.name_zh||'', hist.new_status);
     }
@@ -17823,8 +17839,8 @@ function onStuStatusChange() {
   const id = document.getElementById('stu-id').value;
   const oldStatus = id ? (STUDENTS_ALL.find(s => s.id === id)?.status || null) : null;
   const v = document.getElementById('stu-status').value;
-  if (id && v !== oldStatus && (v === 'leave' || v === 'withdrawn')) {
-    const label = v === 'withdrawn' ? '退學' : '休學';
+  if (id && v !== oldStatus && (v === 'leave' || v === 'withdrawn' || v === 'deceased')) {
+    const label = v === 'deceased' ? '註銷學籍' : v === 'withdrawn' ? '退學' : '休學';
     note.innerHTML = `⚠️ 改為「${label}」後，該生<b>本學期目前選修中的課程</b>會被標記為「<b>${label}</b>」：各名單、成績單與統計都會顯示「${label}」，不計入選課人數與成績。<br>按「儲存」後會列出這些課程，請你再確認一次。`;
     note.style.display = '';
   } else {
@@ -18053,7 +18069,7 @@ async function saveStudent() {
     loadStudents();
 
     // 狀態從其他狀態變成「休學」或「退學」時，選課記錄不會自動連動，主動跳出處理視窗
-    if (id && oldStatus !== newStatus && (newStatus === 'leave' || newStatus === 'withdrawn')) {
+    if (id && oldStatus !== newStatus && (newStatus === 'leave' || newStatus === 'withdrawn' || newStatus === 'deceased')) {
       await promptWithdrawEnrollmentsForStatusChange(savedId, name_zh, newStatus);
     }
   } catch(e) {
@@ -18086,7 +18102,7 @@ async function promptWithdrawEnrollmentsForStatusChange(studentId, studentName, 
   const courseMap = {}; (courses||[]).forEach(c=>courseMap[c.id]=c.name_zh);
   const offMap = {}; (offs||[]).forEach(o=>offMap[o.id]=courseMap[o.course_id]);
 
-  const label = newStatus === 'withdrawn' ? '退學' : '休學';
+  const label = newStatus === 'deceased' ? '註銷學籍' : newStatus === 'withdrawn' ? '退學' : '休學';
   _leaveMarkCtx = { ids: enrolls.map(e => e.id), label };
   const html = `
     <div style="font-size:13px;color:var(--ink3);margin-bottom:12px">
@@ -18648,7 +18664,7 @@ async function downloadUpdateTemplate() {
   var housingLabels = (HOUSING_OPTIONS||[]).filter(function(h){return h.active;}).map(function(h){return h.label;}).join('/') || '請先到「⚙️ 住宿選項管理」設定選項';
   var headers = ['學號','姓名','英文名','性別','狀態','學校email','個人email','電話','地址','緊急聯絡人','關係','緊急電話','廣論班級','住宿','住宿地址','備註','學歷','畢業學校','入學日期(YYYY-MM-DD)','出生日期(YYYY-MM-DD)'];
   var example = ['11421101','盧瑞萱','Lu Jui-Hsuan','F','active','11421101@bwbc.edu.tw','xxx@gmail.com','0912345678','台北市...','王小明','父','0911111111','北17秋01', (HOUSING_OPTIONS[0]&&HOUSING_OPTIONS[0].label||''), '', '','學士','國立台灣大學','2025-09-01','1998-05-20'];
-  var note = ['# 必填8碼','# 必填','','# M男/F女/O其他','# pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格','','','','','','','','','# 請填目前有效選項名稱：'+housingLabels+'（拼字需完全一致）','','','','# YYYY-MM-DD','# YYYY-MM-DD'];
+  var note = ['# 必填8碼','# 必填','','# M男/F女/O其他','# pending新生未報到/active在學/leave休學/graduated已畢業/withdrawn退學/deferred保留入學資格/deceased註銷學籍(身故)','','','','','','','','','# 請填目前有效選項名稱：'+housingLabels+'（拼字需完全一致）','','','','# YYYY-MM-DD','# YYYY-MM-DD'];
   var ws = XLSX.utils.aoa_to_sheet([headers, example, note]);
   ws['!cols'] = headers.map(function(){ return {wch:14}; });
   var wb = XLSX.utils.book_new();
@@ -24437,7 +24453,7 @@ async function handleGradeBatchImport(files) {
         .select('student_id, status, students(student_code, name_zh)')
         .eq('offering_id', gstRow.offering_id);
       const byCode = {}; (enrolls||[]).forEach(e => { if (e.students?.student_code) byCode[e.students.student_code] = e; });
-      const NON_NUMERIC_STATUS_WORDS = ['停修','休學','退學','退選','缺考'];
+      const NON_NUMERIC_STATUS_WORDS = ['停修','休學','退學','註銷學籍','退選','缺考'];
 
       const parsed = [], errors = [], skipped = [];
       // 資料列從表頭下一列開始，遇到空白列（該課學生資料跟後面備註區用空白列隔開）就停止
