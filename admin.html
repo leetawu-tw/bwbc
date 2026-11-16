@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admin v10.81 2026-11-17 學籍狀態新增「註銷學籍（身故）」；v10.80：2026-11-14 數位課程「教學方法」改由系統依每週型態自動產生（六、教學方式／七、每週時數）；v10.79：2026-11-14 數位課程每週新增「OH」標記（該週有教師線上辦公室時間），數位報部大綱進度表時數後面加註 OH；v10.78： 2026-10-28 校庫填報新增教12 專任教師授課時數、職級費率設定新增每週基本授課時數；v10.77 2026-10-28 新增「📊 校庫填報」頁（學14 學生年齡、校14 實際開設學分、校15 畢業學分結構；教12 待加入）；v10.76 2026-10-25 新增權限範本「基本款（全體）」「Staff」、帳號角色改選 staff 時自動套用 Staff 範本(僅限尚無任何權限者)、儀表板卡片依權限顯示；v10.75：帳號列表新增搜尋(Email或姓名，多關鍵字、依角色篩選、Enter直接開啟編輯、Esc清除)；v10.74：帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
+<!-- BWBC Admin v10.82 2026-11-17 數位報部大綱：十一成績評量改「■ 名稱：％（細項）＋□其他」格式、預計總修課人數加「人」；v10.81：2026-11-17 學籍狀態新增「註銷學籍（身故）」；v10.80：2026-11-14 數位課程「教學方法」改由系統依每週型態自動產生（六、教學方式／七、每週時數）；v10.79：2026-11-14 數位課程每週新增「OH」標記（該週有教師線上辦公室時間），數位報部大綱進度表時數後面加註 OH；v10.78： 2026-10-28 校庫填報新增教12 專任教師授課時數、職級費率設定新增每週基本授課時數；v10.77 2026-10-28 新增「📊 校庫填報」頁（學14 學生年齡、校14 實際開設學分、校15 畢業學分結構；教12 待加入）；v10.76 2026-10-25 新增權限範本「基本款（全體）」「Staff」、帳號角色改選 staff 時自動套用 Staff 範本(僅限尚無任何權限者)、儀表板卡片依權限顯示；v10.75：帳號列表新增搜尋(Email或姓名，多關鍵字、依角色篩選、Enter直接開啟編輯、Esc清除)；v10.74：帳號權限畫面：權限名稱與側邊欄一致並在小字列出控制的項目、表頭「權限（模組數）」修正、沒有任何權限的staff登入後不顯示功能列只顯示「尚未開通任何功能」、整組都看不到的群組標題隱藏；v10.73：「課程討論區（檢視）」擴充為「課程教學（檢視）」：選學期與課程後有「單元／教材與作業／討論／討論統計」四個分頁，管理員只能檢視；v10.72：側邊欄依工作流程重新分組(9組：總覽／課程開設／選課與課程教學／成績與評量／學生／畢業與論文／教師與資料庫／行政效能／系統管理)，「課程管理」改名「課程資料庫」，只搬動項目位置，權限與功能不變；v10.71：教學意見調查「🤖 AI 分析」上線(Supabase Edge Function survey-ai-analysis，每門課摘要＋整份總覽)；v10.70：成績單(PDF/Excel/總成績單)標註休學學期、成績彙總名單標「休學」、學生資料視窗顯示累計休學學期數；v10.69：名單／評分表／查看成績的停修依原因改顯示休學／退學；v10.68：休學／退學不再標成停修：改為「確認後一次記為休學／退學」（原因欄開頭固定）；一般生畫面排除學分班：選課統計/選課完成度/成績彙總/操行/學生資料/推薦選課缺漏/工讀生/發表會/班級導師只撈student_type=regular；學分班成績照常登錄（老師線上登錄、空白評分表、批次匯入、查看成績都保留），只是不列入統計；教學意見調查、點名單保留學分班；開課記錄選課人數加註「含學分班X人」，已選人數不計休學/退學；點名單（列印/Excel）一般生在前學分班在後、狀態欄顯示類別、選課總人數分開寫「16 ＋ 學分班 5 人」、休學/退學照列並標示但不計人數；學分班加選與匯入只限開放隨班附讀(is_audit)的課。前次(v10.66) 2026-10-18 新增「學分班學生」頁面(列表/新增編輯/加選退選/Excel匯入預覽)。前次(v10.65) 2026-10-17 兼課鐘點費核銷新增自動提示：本學期有授課但不在兼課清單的教師(未勾兼課/已停用)黃色提示+一鍵編輯，卡片標示授課課程或『無開課(因有核銷記錄而顯示)』。前次(v10.64) 教學意見調查統計：數位課程的報表最後多出「遠距教學課程 教學品質調查」區塊(滿意度五級量表+第8題建議列表)，單科下載/ZIP也包含。前次(v10.63) 教學意見調查統計只讀「一般題」，不含遠距教學題(kind=remote)；遠距題由填答頁依數位課程帶出。前次(v10.62) 工讀生簽到表新增「📄 匯出Word（每人一檔）」：檔名「學號姓名_115年10月.docx」，一位同學有幾個用人單位（×每單位頁數）就有幾頁；多位同學打包成zip。前次(v10.61) 工讀生簽到表單位名稱範例「SEL」改為「社會情緒計畫」。前次(v10.60) 工讀生簽到表列印：@page邊界改0，移除瀏覽器自動印在頁首頁尾的小字(日期/標題/網址/頁碼)。前次(v10.59) 新增側邊欄「🕘 工讀生簽到表」：每學期工讀生名單(學號選取顯示姓名＋用人單位)，A4直式每人每單位一頁簽到退紀錄表。需先執行 schema/student_workers.sql。前次(v10.58) 新增側邊欄「🧾 收據列印（單次）」：不綁定月份核銷資料，直接輸入姓名/身分證字號/戶籍與聯絡地址/學期/項目/金額/日期，列印或下載Word（講師費、交通費兩款），沒填的欄位留空白手寫。前次(v10.57) 修正兼課鐘費核銷「📅 依課表帶入」重複按會一直累加同日期的bug：帶入前先比對清單中已存在的「日期＋課程」，已存在的自動略過。前次(v10.56) 新增「課程討論區（檢視）」：管理員只能檢視各課的討論串、回覆與統計，沒有任何發言/回覆/管理功能。前次(v10.55)修正教室使用總覽週表誤判「調課」的bug：classroom_id為null(沒有調課覆寫)的場次不應顯示🔄調課徽章，只有真正設定了classroom_id才算調課。前次(v10.54)新增調課/停課跟教室借用系統串接：class_sessions新增is_cancelled/classroom_id/booking_id欄位，查詢空教室、送出/複製/編輯教室借用申請、教室使用總覽週表統一改用共用函式rbCheckRoomConflict判斷衝突 -->
 <html lang="zh-TW">
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -7232,6 +7232,13 @@ async function buildDigitalReportBlob(offeringId) {
   if (bibReqList.length) { bibLines.push('必讀'); bibReqList.forEach((b,i)=>bibLines.push(`${i+1}. ${stripLeadingNumber(b)}`)); }
   if (bibOptList.length) { bibLines.push('參考'); bibOptList.forEach((b,i)=>bibLines.push(`${bibReqList.length+i+1}. ${stripLeadingNumber(b)}`)); } // 編號接續必讀繼續往下算，不重新從1開始
   const assessmentItems = (d.assessment||[]).map(a=>`${a.name||''}（${a.pct!=null?a.pct:0}%）${a.desc?'　'+a.desc:''}`);
+  // 報部大綱十一：比照0902新表單「■ 名稱：50％（細項）」，最後固定一行「□其他（　）：」
+  const assessmentReportLines = (d.assessment||[]).map(a=>{
+    const dsc=(a.desc||'').trim();
+    const dscTxt=!dsc?'':(/^[（(]/.test(dsc)?dsc:'（'+dsc+'）');
+    return `■${a.name||''}：${a.pct!=null?a.pct:0}％${dscTxt}`;
+  });
+  assessmentReportLines.push('□其他（　　　　　　）：');
 
   // 六、七：面授/線上同步的次數跟時數，直接沿用上面已經算好的hb(週次模式統計)，不用重新算一次
   const lms = di.lms || {};
@@ -7263,7 +7270,7 @@ async function buildDigitalReportBlob(offeringId) {
     // 科目類別：固定專業科目
     '{{CAT_COMMON_BOX}}': buildCheckboxSquare(false,''), '{{CAT_GE_BOX}}': buildCheckboxSquare(false,''), '{{CAT_PRO_BOX}}': buildCheckboxSquare(true,''), '{{CAT_OTHER_BOX}}': buildCheckboxSquare(false,''),
     '{{CLASS_COUNT}}': escapeXml(app?.class_count!=null?String(app.class_count):''),
-    '{{EXPECTED_HEADCOUNT}}': escapeXml(app?.expected_headcount!=null?String(app.expected_headcount):''),
+    '{{EXPECTED_HEADCOUNT}}': escapeXml(app?.expected_headcount!=null?String(app.expected_headcount)+' 人':''),
     '{{ENG_YES_BOX}}': buildCheckboxSquare(!!di.full_english,''), '{{ENG_NO_BOX}}': buildCheckboxSquare(!di.full_english,''),
     // 非同步平台網址／教學計畫連結：全校統一固定值
     '{{ASYNC_PLATFORM_URL}}': escapeXml(di.async_platform_url||''),
@@ -7323,8 +7330,8 @@ async function buildDigitalReportBlob(offeringId) {
     '{{AM_UPLOAD_BOX}}': buildCheckboxSquare(!!am.file_upload,''), '{{AM_REPORT_BOX}}': buildCheckboxSquare(!!am.report,''), '{{AM_QUIZ_BOX}}': buildCheckboxSquare(!!am.online_quiz,''),
     '{{AM_GRADE_BOX}}': buildCheckboxSquare(!!am.grade_query,''), '{{AM_OTHER_BOX}}': buildCheckboxSquare(!!am.other,''), '{{AM_OTHER_TEXT}}': escapeXml(am.other||''),
 
-    // 十一、學期成績評量方式：沿用既有ASSESSMENT邏輯不變
-    '{{ASSESSMENT}}': joinBr(assessmentItems),
+    // 十一、學期成績評量方式：報部大綱用新格式（■ 名稱：％（細項）＋□其他）
+    '{{ASSESSMENT}}': joinBr(assessmentReportLines),
     // 十三、修課注意事項或其他補充
     '{{NOTES}}': joinBr((di.notes_supplement||'').split('\n').filter(Boolean)),
     // 十四、上課注意事項（新增欄位）
@@ -11363,6 +11370,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
       這裡每次忘記手動同步的bug已發生多次(v10.52這次又重演一次)，從此不用再記得這條規則
    從 v7.3 開始才有結構化紀錄，之前版本沒有回溯補登。 */
 const APP_CHANGELOG = [
+  {
+    version: 'v10.82', date: '2026-11-17',
+    items: [
+      '數位報部大綱 Word：「十一、學期成績評量方式」改成學校新表單格式，每項一行「■ 名稱：50％（細項說明）」，最後固定一行「□其他（　）：」；校內大綱不變',
+      '數位報部大綱 Word：「預計總修課人數」後面加「人」（沒填人數時維持空白）',
+      '⚠️ 需同步更換 Storage 的 digital_report_output.docx 範本（拿掉「否（依實際需要勾選）」的括號文字）'
+    ]
+  },
   {
     version: 'v10.81', date: '2026-11-17',
     items: [
