@@ -459,6 +459,10 @@ th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
         <div class="nav-item" data-perm="scholarship" onclick="showPage('scholarship',this)"><span class="nav-icon">🏆</span>獎學金推薦</div>
       </div>
       <div class="nav-section">
+        <div class="nav-label">招生</div>
+        <div class="nav-item" data-perm="admission" onclick="location.href='admission.html'"><span class="nav-icon">🎓</span>招生作業</div>
+      </div>
+      <div class="nav-section">
         <div class="nav-label">學生</div>
         <div class="nav-item" data-perm="students" onclick="showPage('students',this)"><span class="nav-icon">🧑‍🎓</span>學生資料</div>
         <div class="nav-item" data-perm="students" onclick="showPage('credit-students',this)"><span class="nav-icon">🎓</span>學分班學生</div>
@@ -18862,7 +18866,7 @@ let _allUsers = [];
 let _usrSort = { field:'email', dir:1 };
 
 const PERM_KEYS = ['announcements','todos','meetings','courses','open_courses',
-                   'classrooms','teachers','thesis','scholarship','students','semesters','surveys','grades','grade-summary','forms','logs','lending','committees','regulations'];
+                   'classrooms','teachers','thesis','scholarship','admission','students','semesters','surveys','grades','grade-summary','forms','logs','lending','committees','regulations'];
 
 const PERM_LABELS = {
   announcements: '📢 公佈欄',
@@ -18874,6 +18878,7 @@ const PERM_LABELS = {
   teachers:      '👤 教師管理',
   thesis:        '📝 畢業論文',
   scholarship:   '🏆 獎學金推薦',
+  admission:     '🎓 招生作業',
   forms:         '📄 常用表單',
   students:      '🧑‍🎓 學生資料',
   semesters:     '📆 學期管理',

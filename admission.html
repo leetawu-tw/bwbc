@@ -1,0 +1,2245 @@
+<!DOCTYPE html>
+<!-- BWBC Admission v0.4 2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>招生作業 · 福智佛教學院</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+/* ════ 以下 CSS 複製自 admin.html（第 13–382 行），維持兩頁外觀一致；admin.html 改樣式時請同步 ════ */
+:root{
+  --navy:#1B3A6B;--navy2:#2B5FA0;--navy3:#EEF2FA;
+  --gold:#B8892A;--gold2:#D4A84B;
+  --ink:#1A1510;--ink2:#3A3020;--ink3:#6A5F4A;
+  --cr:#F5F5F5;--cr2:#E8E8E8;--cr3:#F0F0F0;
+  --green:#1A6A30;--red:#C04030;--orange:#B05010;
+  --r:8px;--sh:0 2px 8px rgba(0,0,0,.08);--sh2:0 8px 24px rgba(0,0,0,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cr);color:var(--ink);height:100vh;overflow:hidden;font-size:14px}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit;font-size:14px}
+
+/* ── LOGIN ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0F2045,#1B3A6B)}
+.login-box{background:#fff;border-radius:16px;padding:40px;width:360px;box-shadow:var(--sh2)}
+.login-logo{font-family:'Noto Serif TC',serif;font-size:20px;font-weight:600;color:var(--navy);text-align:center;margin-bottom:6px}
+.login-sub{font-size:12px;color:var(--ink3);text-align:center;margin-bottom:28px}
+.login-label{display:block;font-size:12px;font-weight:500;color:var(--ink3);margin-bottom:5px}
+.login-input{width:100%;border:1.5px solid var(--cr2);border-radius:var(--r);padding:10px 12px;font-size:14px;transition:border-color .15s}
+.login-input:focus{outline:none;border-color:var(--navy2)}
+.login-btn{width:100%;margin-top:12px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:11px;font-size:14px;font-weight:500;transition:background .15s}
+.login-btn:hover{background:var(--navy2)}
+
+/* ── LAYOUT ── */
+.app{display:none;height:100vh;flex-direction:column;overflow:hidden}
+.app.show{display:flex}
+.topbar{background:var(--navy);padding:0 24px;height:52px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+.tb-logo{font-family:'Noto Serif TC',serif;font-size:14px;color:rgba(255,255,255,.8);flex:1}
+.tb-user{font-size:12px;color:rgba(255,255,255,.6)}
+.tb-logout{font-size:12px;padding:4px 12px;border:1px solid rgba(255,255,255,.25);border-radius:4px;background:transparent;color:rgba(255,255,255,.7)}
+.tb-logout:hover{background:rgba(255,255,255,.1)}
+.sidebar-toggle-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.sidebar-toggle-btn:hover{background:rgba(255,255,255,.15)}
+
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:200px;background:#fff;border-right:1px solid var(--cr2);flex-shrink:0;height:100%;display:flex;flex-direction:column;overflow:hidden;transition:width .18s ease}
+.sidebar-nav-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 0}
+.sidebar-footer{flex-shrink:0;padding:10px 14px;border-top:1px solid var(--cr2);font-size:11px;color:var(--ink3);cursor:pointer;text-align:center;line-height:1.7}
+.sidebar-footer:hover{background:var(--cr3)}
+.nav-section{margin-bottom:16px}
+.nav-label{font-size:10px;font-weight:500;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;padding:0 16px;margin-bottom:4px;white-space:nowrap}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;color:var(--ink2);cursor:pointer;transition:all .15s;border-left:3px solid transparent;overflow:hidden;white-space:nowrap}
+.nav-item:hover{background:var(--cr3);color:var(--ink)}
+.nav-item.on{background:var(--navy3);color:var(--navy);border-left-color:var(--gold);font-weight:500}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+/* 側邊欄收合：文字用font-size:0藏起來(而非只靠overflow裁切，避免文字露出一小截)，圖示在.nav-icon上另外指定字級蓋回來 */
+.sidebar.collapsed{width:56px}
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .sidebar-footer,
+.sidebar.collapsed .badge,
+.sidebar.collapsed #sched-arrow{display:none}
+.sidebar.collapsed .nav-item{justify-content:center !important;padding:9px 0;font-size:0}
+.sidebar.collapsed .nav-item .nav-icon{font-size:16px}
+.sidebar.collapsed #schedule-submenu{display:none !important}
+
+.content{flex:1;overflow-y:auto;padding:20px 24px;min-width:0;height:100%}
+
+/* ── CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:#fff;border-radius:var(--r);padding:14px 16px;border:1px solid var(--cr2);box-shadow:var(--sh)}
+.tl-section-label{font-size:11px;color:var(--ink3);font-weight:600;letter-spacing:.05em;margin:10px 0 6px;border-bottom:1px solid var(--cr2);padding-bottom:4px}
+.tl-section-label:first-child{margin-top:0}
+.tl-item{padding:4px 0;font-size:13px;line-height:1.5}
+.tl-done{color:var(--ink3)}
+.tl-done strong{color:var(--ink2);font-weight:500}
+.tl-now{background:var(--navy3);color:var(--navy);font-weight:600;padding:8px 10px;border-radius:6px;margin:2px 0}
+.tl-soon{color:var(--orange)}
+.tl-soon strong{color:var(--ink);font-weight:600}
+.tl-done-wrap summary::-webkit-details-marker{display:none}
+.tl-done-wrap summary{list-style:none}
+.tl-done-wrap[open] summary{margin-bottom:2px}
+.payroll-toggle-summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--navy);list-style:none;user-select:none;display:flex;align-items:center;gap:6px}
+.payroll-toggle-summary::-webkit-details-marker{display:none}
+.payroll-toggle-arrow{display:inline-block;transition:transform .15s}
+details:not([open]) .payroll-toggle-arrow{transform:rotate(-90deg)}
+.payroll-card-summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;user-select:none}
+.payroll-card-summary::-webkit-details-marker{display:none}
+.viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
+.viewer-box{background:#fff;border-radius:10px;width:100%;max-width:960px;height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.viewer-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--navy);color:#fff;font-size:13px}
+.viewer-hdr button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+.viewer-frame{flex:1;border:none;width:100%}
+.stat-num{font-family:'Noto Serif TC',serif;font-size:28px;font-weight:600;color:var(--navy)}
+.stat-lbl{font-size:11.5px;color:var(--ink3);margin-top:2px}
+
+/* ── PAGE HEADER ── */
+.page-hdr{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.page-title{font-family:'Noto Serif TC',serif;font-size:18px;font-weight:600;flex:1}
+.badge{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:500}
+.badge-warn{background:#FFF3E0;color:#B05010;border:1px solid #F0C080}
+.badge-ok{background:#E8F5E9;color:#1A6A30;border:1px solid #90D090}
+
+/* ── TABLE ── */
+.tbl-wrap{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);overflow:auto;max-height:calc(100vh - 160px);box-shadow:var(--sh)}
+table{border-collapse:collapse;width:100%;min-width:700px;font-size:13px}
+thead{position:sticky;top:0;z-index:2}
+thead tr{background:var(--navy)}
+th{padding:9px 12px;text-align:left;font-weight:500;color:#fff;font-size:11.5px;letter-spacing:.04em;white-space:nowrap;background:var(--navy)}
+tbody tr{border-bottom:1px solid var(--cr2);transition:background .15s}
+tbody tr:hover{background:var(--cr3)}
+td{padding:8px 10px;color:var(--ink2);vertical-align:middle}
+td.mono{font-family:monospace;font-size:12px;color:var(--ink3)}
+
+/* ── BUTTONS ── */
+.btn{padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:500;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.btn-pri{background:var(--navy);color:#fff}.btn-pri:hover{background:var(--navy2)}
+.btn-sm{padding:4px 10px;font-size:11.5px}
+.btn-edit{background:var(--navy3);color:var(--navy);border:1px solid rgba(43,95,160,.2)}.btn-edit:hover{background:var(--navy);color:#fff}
+.btn-del{background:#FEE;color:var(--red);border:1px solid #FCC}.btn-del:hover{background:var(--red);color:#fff}
+.btn-save{background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12.5px;font-weight:500;cursor:pointer}.btn-save:hover{opacity:.85}
+.btn-cancel{background:var(--cr2);color:var(--ink2);border:none;border-radius:6px;padding:6px 14px;font-size:12.5px;cursor:pointer}.btn-cancel:hover{background:var(--cr)}
+.btn-sec{background:var(--cr2);color:var(--ink2)}.btn-sec:hover{background:var(--cr)}
+.btn-gold{background:var(--gold);color:#fff}.btn-gold:hover{background:var(--gold2)}
+.btn-copy{background:#E8F5E9;color:var(--green);border:1px solid #90D090}.btn-copy:hover{background:var(--green);color:#fff}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+input.search{padding:7px 12px;border:1.5px solid var(--cr2);border-radius:6px;font-size:13px;width:220px}
+input.search:focus{outline:none;border-color:var(--navy2)}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:60px 16px;overflow-y:auto}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:600px;box-shadow:var(--sh2)}
+.modal-hdr{padding:18px 22px 14px;border-bottom:1px solid var(--cr2);display:flex;align-items:center}
+.modal-title{font-family:'Noto Serif TC',serif;font-size:16px;font-weight:600;flex:1}
+.modal-close{font-size:20px;background:none;border:none;color:var(--ink3);padding:4px 8px;border-radius:6px}
+.modal-close:hover{background:var(--cr2)}
+.modal-body{padding:20px 22px}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--cr2);display:flex;justify-content:flex-end;gap:8px}
+
+/* ── FORM ── */
+.frow{margin-bottom:14px}
+.frow-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.flabel{display:block;font-size:12px;font-weight:500;color:var(--ink3);margin-bottom:4px}
+.finput,.fselect{width:100%;border:1.5px solid var(--cr2);border-radius:6px;padding:8px 10px;font-size:13px;background:#fff;transition:border-color .15s}
+.finput:focus,.fselect:focus{outline:none;border-color:var(--navy2)}
+.fro{color:var(--ink3);background:var(--cr3);cursor:default}
+
+/* Teacher chips in modal */
+.teacher-chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1.5px solid var(--cr2);border-radius:6px;min-height:42px;background:#fff}
+.tchip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:var(--navy3);color:var(--navy);font-size:12px;border:1px solid rgba(43,95,160,.2)}
+.tchip-del{font-size:14px;cursor:pointer;opacity:.5;background:none;border:none;color:inherit;padding:0;line-height:1}
+.tchip-del:hover{opacity:1}
+.teacher-add-row{display:flex;gap:6px;margin-top:8px}
+.teacher-add-row select{flex:1}
+.teacher-role-badge{font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(43,95,160,.1);color:var(--navy);margin-left:2px}
+
+/* ── SYLLABUS ── */
+.sy-modal{position:fixed;inset:0;z-index:150;background:#F5F5F3;overflow-y:auto;display:none}
+.sy-topbar{position:sticky;top:0;background:var(--navy);color:#fff;padding:11px 24px;display:flex;align-items:center;gap:12px;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.sy-body{max-width:900px;margin:0 auto;padding:20px 24px 60px}
+.sy-section{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);margin-bottom:16px;overflow:hidden}
+.sy-section-hdr{padding:12px 18px;border-bottom:1px solid var(--cr2);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.sy-section-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600;flex:1}
+.sy-section-body{padding:16px 18px}
+.sy-row{display:grid;gap:8px;margin-bottom:8px;align-items:start}
+.sy-row-3{grid-template-columns:1fr 80px 1fr 32px}
+.sy-row-2{grid-template-columns:32px 1fr 32px}
+.sy-row-week{grid-template-columns:48px 1fr 1fr 28px}
+.sy-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sy-info-item{font-size:13px;color:var(--ink3)}.sy-info-val{color:var(--ink);font-weight:500}
+.sy-add-btn{width:100%;padding:7px;border:1.5px dashed var(--cr2);border-radius:var(--r);background:transparent;color:var(--ink3);font-size:12.5px;cursor:pointer;margin-top:4px;transition:all .15s}
+.sy-add-btn:hover{border-color:var(--navy2);color:var(--navy)}
+.week-row{border-bottom:1px solid var(--cr2);padding:8px 0}
+.week-row:last-child{border-bottom:none}
+.week-expand{background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink3);padding:2px 6px;transition:transform .2s}
+.week-detail{display:block;padding-top:8px}
+
+/* Sortable headers */
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{background:var(--navy2)}
+.sort-icon{font-size:11px;opacity:.5;margin-left:3px}
+th.sort-asc .sort-icon{opacity:1;color:var(--gold2)}
+th.sort-desc .sort-icon{opacity:1;color:var(--gold2)}
+.stu-th{padding:8px 10px;text-align:left;font-size:12px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff;background:var(--navy)}
+.usr-th{padding:10px 14px;text-align:left;font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;transition:background .15s;color:#fff}
+.sticky-thead th, .sticky-thead-th{position:sticky;top:0;background:var(--navy);z-index:2}
+.usr-th:hover{background:var(--navy2)}
+
+/* 4 級權限 radio group */
+.perm-row{display:grid;grid-template-columns:1.3fr 2fr;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--cr2)}
+.perm-row:last-child{border-bottom:none}
+.perm-row .perm-label{font-size:13px;color:var(--ink)}
+.perm-row .perm-items{font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.5}
+.perm-row .perm-levels{display:flex;gap:2px;background:#fff;border-radius:6px;padding:2px;border:1px solid var(--cr2)}
+.perm-row .perm-levels label{flex:1;text-align:center;padding:4px 8px;font-size:12px;cursor:pointer;border-radius:4px;transition:all .15s;color:var(--ink3);font-weight:500}
+.perm-row .perm-levels label.lv-none.on{background:#E0E0E0;color:#555}
+.perm-row .perm-levels label.lv-read.on{background:#E3F2FD;color:#1565C0}
+.perm-row .perm-levels label.lv-write.on{background:#E8F5E9;color:#1A6A30}
+.perm-row .perm-levels label.lv-admin.on{background:#FFF3E0;color:#B05010}
+.perm-row .perm-levels label:hover{background:rgba(0,0,0,.04)}
+.perm-row .perm-levels label.on:hover{background:none}
+.stu-th:hover{background:var(--navy2)}
+.stu-avatar{width:36px;height:36px;border-radius:50%;background:var(--cr3);object-fit:cover;display:block;text-align:center;line-height:36px;font-size:11px;color:var(--ink3);font-weight:500}
+.stu-status-badge{display:inline-block;font-size:11px;padding:2px 10px;border-radius:12px;font-weight:500}
+.stu-status-active{background:#E8F5E9;color:#1A6A30}
+.stu-status-pending{background:#F3E5F5;color:#7B1FA2}
+.stu-status-leave{background:#FFF3E0;color:#B05010}
+.stu-status-graduated{background:#E3F2FD;color:#1565C0}
+.stu-status-withdrawn{background:#FCE4EC;color:#C2185B}
+.stu-status-deceased{background:#ECEFF1;color:#455A64}
+.stu-status-deferred{background:#ECEFF1;color:#455A64}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:200;display:none;align-items:center;gap:8px;box-shadow:var(--sh2);animation:slideIn .3s ease}
+.toast.show{display:flex}
+.toast.success{background:#1A6A30;color:#fff}
+.toast.error{background:var(--red);color:#fff}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TIMETABLE ── */
+.tt-wrap{overflow-x:auto}
+.tt-grid{border:1px solid var(--cr2);border-radius:var(--r);overflow:hidden;min-width:640px}
+.tt-header{display:grid;grid-template-columns:52px repeat(5,1fr);background:var(--navy)}
+.tt-header-cell{padding:8px 4px;text-align:center;font-size:12px;font-weight:500;color:#fff;border-right:1px solid rgba(255,255,255,.1)}
+.tt-header-cell:last-child{border-right:none}
+.tt-body{display:grid;grid-template-columns:52px repeat(5,1fr)}
+.tt-time-col{border-right:1px solid var(--cr2);background:var(--cr3)}
+.tt-time-cell{height:30px;display:flex;align-items:flex-start;padding:2px 5px 0;font-size:9.5px;color:var(--ink3);border-bottom:1px solid rgba(0,0,0,.04)}
+.tt-time-cell.hr{border-bottom:1px solid var(--cr2)}
+.tt-day-col{position:relative;border-right:1px solid var(--cr2)}
+.tt-day-col:last-child{border-right:none}
+.tt-slot{height:30px;border-bottom:1px solid rgba(0,0,0,.04)}
+.tt-slot.hr{border-bottom:1px solid var(--cr2)}
+.tt-block{position:absolute;left:2px;right:2px;border-radius:5px;padding:4px 6px;overflow:hidden;font-size:11px;line-height:1.3;z-index:2;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.1);transition:filter .1s}
+.tt-block:hover{filter:brightness(.93)}
+#tt-popup{pointer-events:auto}
+.tt-block-hdr{display:flex;align-items:flex-start;gap:2px;margin-bottom:1px}
+.tt-block-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt-block-credit{font-size:9px;padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.10);white-space:nowrap;margin-left:2px;flex-shrink:0;line-height:1.6;align-self:flex-start}
+.tt-block-sub{font-size:10px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt-block-room{font-size:9.5px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.tt-week-tag{font-size:9px;padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.12);white-space:nowrap;flex-shrink:0;margin-right:2px;line-height:1.6}
+.tt-badge{display:inline-flex;align-items:center;font-size:9px;flex-shrink:0}
+.tt-badge-dig{color:#1B3A6B}
+.tt-badge-aud{color:#1F5C3A}
+.tt-legend{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;background:var(--cr3);border:1px solid var(--cr2);border-radius:var(--r);flex-wrap:wrap}
+.tt-legend-title{font-size:11px;font-weight:600;color:var(--ink3);margin-right:4px;white-space:nowrap}
+.tt-legend-items{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tt-legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--ink3);white-space:nowrap}
+.tt-legend-color{display:inline-block;width:12px;height:12px;border-radius:2px;border-left:3px solid;flex-shrink:0}
+.tt-legend-sep{width:1px;height:14px;background:var(--cr2);flex-shrink:0}
+.tt-pending{background:var(--cr3);border:1px solid var(--cr2);border-radius:var(--r);padding:12px 16px;font-size:12.5px}
+.tt-block-teachers{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.tt-tchip{font-size:9.5px;padding:1px 6px;border-radius:10px;background:rgba(255,255,255,.35);cursor:pointer;white-space:nowrap;border:none;font-family:inherit;line-height:1.4;transition:background .15s;color:inherit}
+.tt-tchip:hover{background:rgba(255,255,255,.65)}
+
+/* ── OFFERING CARDS ── */
+.offering-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.oc{background:#fff;border-radius:var(--r);border:1px solid var(--cr2);box-shadow:var(--sh);overflow:hidden;transition:box-shadow .15s;display:flex;flex-direction:column}
+.oc:hover{box-shadow:var(--sh2)}
+.oc-top{padding:12px 14px 10px;border-bottom:1px solid var(--cr2);flex:1}
+.oc-meta{display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap}
+.oc-code{font-family:monospace;font-size:11px;color:var(--ink3)}
+.oc-name{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;line-height:1.3}
+.oc-en{font-size:11px;color:var(--ink3);font-style:italic;margin-bottom:7px}
+.oc-info{font-size:12px;color:var(--ink3);display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.oc-teachers{display:flex;flex-wrap:wrap;gap:4px;min-height:20px}
+.oc-bot{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;background:var(--cr3)}
+.oc-cred{font-size:12.5px;font-weight:500;color:var(--ink);white-space:nowrap}
+.oc-actions{display:flex;gap:4px}
+.syimp-card{background:#fff;border:1.5px solid var(--cr2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12.5px;cursor:grab;line-height:1.5;white-space:pre-wrap;max-height:140px;overflow-y:auto}
+.syimp-card.dragging{opacity:.4}
+.syimp-card.hint-obj{border-left:4px solid #FFB300}
+.syimp-card.hint-mth{border-left:4px solid #29B6F6}
+.syimp-card.hint-asmnt{border-left:4px solid #66BB6A}
+.syimp-card.hint-week{border-left:4px solid #AB47BC}
+.syimp-card.hint-bib{border-left:4px solid #8D6E63}
+.syimp-card.hint-overview{border-left:4px solid #FF7043}
+.syimp-card.hint-cohort{border-left:4px solid #26A69A}
+.syimp-card.hint-table{background:#FFF8E1}
+.syimp-target{border:2px dashed var(--cr2);border-radius:8px;padding:8px;margin-bottom:10px;min-height:46px}
+.syimp-target.dragover{border-color:var(--navy);background:var(--navy3)}
+.syimp-target-label{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px}
+.syimp-target .syimp-card{cursor:default;background:var(--navy3)}
+.admin-dd{position:relative;display:inline-block}
+.admin-dd-menu{display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:1px solid var(--cr2);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15);min-width:220px;z-index:80;overflow:hidden}
+.admin-dd-menu.show{display:block}
+.admin-dd-menu div{padding:11px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.admin-dd-menu div:hover{background:var(--navy3)}
+.admin-dd-menu div:not(:last-child){border-bottom:1px solid var(--cr2)}
+@media(max-width:600px){
+  .admin-dd-menu{position:fixed;left:12px;right:12px;top:auto;min-width:auto;width:auto}
+  .admin-dd-menu div{padding:14px 16px;font-size:14.5px}
+}
+.sydiff-row{border:1px solid var(--cr2);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.sydiff-label{background:var(--navy3);padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--navy)}
+.sydiff-cols{display:grid;grid-template-columns:1fr 1fr}
+.sydiff-col{padding:10px 12px;font-size:12.5px;white-space:pre-wrap;border-right:1px solid var(--cr2);cursor:pointer;min-height:40px}
+.sydiff-col:last-child{border-right:none}
+.sydiff-col.picked{background:#E8F5E9;box-shadow:inset 0 0 0 2px #66BB6A}
+.sydiff-col-hdr{font-size:11px;color:var(--ink3);margin-bottom:4px;font-weight:600}
+.sydiff-same .sydiff-cols{opacity:.55}
+/* ── 課程討論區 ── */
+.dsc-coursename{font-weight:600;color:var(--navy);margin-bottom:10px;font-size:14px}
+#dsc-courses{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.dsc-course{padding:6px 12px;border:1.5px solid var(--cr2);background:#fff;border-radius:16px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2)}
+.dsc-course.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dsc-chip-ta{font-size:11px;background:#E3F1E9;color:#1F5C3A;border-radius:8px;padding:1px 6px}
+#dsc-tabs{display:flex;gap:4px;border-bottom:1px solid var(--cr2);margin-bottom:12px}
+.dsc-tab{padding:8px 16px;border:none;background:none;font-size:14px;cursor:pointer;font-family:inherit;color:var(--ink3);border-bottom:2px solid transparent}
+.dsc-tab.on{color:var(--navy);border-bottom-color:var(--navy);font-weight:600}
+.dsc-composer{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;margin-bottom:12px;box-shadow:var(--sh)}
+.dsc-composer-title{font-size:13px;color:var(--ink3);margin-bottom:6px}
+.dsc-more{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+.dsc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dsc-row select{flex:1;min-width:140px;padding:8px;border:1.5px solid var(--cr2);border-radius:8px;font-size:13px;background:#fff;font-family:inherit}
+.dsc-hint{font-size:12px;color:var(--ink3)}
+.dsc-seg{display:flex;flex-wrap:wrap;gap:4px}
+.dsc-seg button{padding:6px 12px;border:1.5px solid var(--cr2);background:#fff;border-radius:16px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2)}
+.dsc-seg button.on{background:var(--navy3);border-color:var(--navy2);color:var(--navy);font-weight:600}
+.dsc-chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer}
+.dsc-chk input{margin-top:3px}
+.dsc-similar{background:#FFF8E5;border:1px solid #F0DFA8;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+.dsc-similar a{color:var(--navy2);cursor:pointer;text-decoration:underline}
+.dsc-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
+.dsc-fchip{flex:none;padding:6px 12px;border:1.5px solid var(--cr2);background:#fff;border-radius:16px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2)}
+.dsc-fchip em{font-style:normal;font-size:11px;color:var(--ink3);margin-left:5px}
+.dsc-fchip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dsc-fchip.on em{color:#cfd8ea}
+.dsc-list{display:flex;flex-direction:column;gap:8px}
+.dsc-card{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;cursor:pointer;font-family:inherit;transition:box-shadow .15s,transform .15s}
+.dsc-card:hover{box-shadow:var(--sh);transform:translateY(-1px)}
+.dsc-card.pinned{border-left:4px solid #C4960A}
+.dsc-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.dsc-badge{font-size:11px;padding:2px 8px;border-radius:10px;color:var(--c);background:#fff;border:1px solid var(--c)}
+.dsc-card-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.dsc-stateline{display:flex;gap:12px;align-items:center;font-size:12.5px;margin-bottom:4px}
+.dsc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.dsc-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink3)}
+.dsc-empty{color:var(--ink3);font-size:13px;padding:24px 8px;text-align:center}
+.dsc-back{border:none;background:none;color:var(--navy2);font-size:13px;cursor:pointer;padding:4px 0;margin-bottom:8px;font-family:inherit}
+.dsc-post{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px}
+.dsc-post-title{font-size:18px;font-weight:700;color:var(--navy)}
+.dsc-rtext{font-size:14px;line-height:1.7;color:var(--ink);word-break:break-word}
+.dsc-replies{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.dsc-reply{display:flex;gap:10px;background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:10px}
+.dsc-reply.child{margin-left:28px;background:var(--cr3)}
+.dsc-reply.endorsed{border:2px solid #C4960A;background:#FFFBEA}
+.dsc-avatar{flex:none;width:30px;height:30px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.dsc-rbody{flex:1;min-width:0}
+.dsc-rhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;margin-bottom:3px}
+.dsc-ractions{display:flex;gap:12px;margin-top:6px}
+.dsc-ractions button{border:none;background:none;color:var(--ink3);font-size:12.5px;cursor:pointer;padding:2px 0;font-family:inherit}
+.dsc-ractions button:hover,.dsc-ractions button.on{color:var(--navy2);font-weight:600}
+.dsc-replybox{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.dsc-gate{background:var(--navy3);border:1px dashed var(--navy2);border-radius:var(--r);padding:14px;margin-top:12px;font-size:13.5px;line-height:1.6}
+.dsc-hello{background:linear-gradient(135deg,var(--navy3),#fff);border:1px solid var(--cr2);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.dsc-hello-t{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.dsc-hello p{font-size:13.5px;color:var(--ink2);line-height:1.6;margin:0}
+.dsc-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.dsc-tile{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;text-align:center}
+.dsc-tile .n{font-size:26px;font-weight:700;color:var(--navy)}
+.dsc-tile .l{font-size:12px;color:var(--ink3)}
+.dsc-up{font-size:11.5px;color:#1F5C3A;margin-top:3px}
+.dsc-section{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.dsc-sec-t{font-weight:600;color:var(--navy);margin-bottom:8px;font-size:14px}
+.dsc-cmp{display:grid;grid-template-columns:64px 1fr 28px;gap:8px;align-items:center;font-size:12.5px;margin-bottom:6px}
+.dsc-bar{background:var(--cr3);border-radius:6px;height:10px;overflow:hidden}
+.dsc-bar i{display:block;height:100%;background:var(--navy2);border-radius:6px;transition:width .6s}
+.dsc-bar i.last{background:#B8C4DA}
+.dsc-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:8px}
+.dsc-medal{text-align:center;padding:10px 6px;border-radius:var(--r);background:var(--cr3);opacity:.55}
+.dsc-medal.got{opacity:1;background:#FFFBEA;border:1px solid #E8D48A}
+.dsc-medal .ring{width:42px;height:42px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;background:#ddd;color:#fff}
+.dsc-medal.got .ring{background:#C4960A}
+.dsc-medal b{display:block;font-size:12.5px}
+.dsc-medal small{font-size:11px;color:var(--ink3)}
+@media(max-width:600px){.dsc-reply.child{margin-left:14px}}
+#ad-tabs{display:flex;gap:4px;border-bottom:1px solid var(--cr2);margin-bottom:12px}
+
+/* ════ admission.html 專用 ════ */
+.adm-card{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:16px}
+.adm-card-hdr{padding:12px 18px;border-bottom:1px solid var(--cr2);display:flex;align-items:center;gap:8px}
+.adm-card-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:600;flex:1}
+.adm-card-body{padding:16px 18px}
+.adm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.adm-grid .frow{margin-bottom:0}
+.adm-hint{font-size:11.5px;color:var(--ink3);margin-top:4px;line-height:1.6}
+.adm-warn{font-size:12px;color:var(--orange);background:#FFF3E0;border:1px solid #F0C080;border-radius:6px;padding:8px 12px;margin-bottom:10px}
+.adm-ok{color:var(--green);font-weight:500}
+.adm-bad{color:var(--red);font-weight:500}
+.adm-mini th{font-size:11.5px;padding:7px 10px}
+.adm-mini td{padding:5px 8px}
+.adm-mini table{min-width:0}
+.adm-mini .tbl-wrap{max-height:none}
+.adm-mini input.finput,.adm-mini select.fselect{padding:5px 8px}
+.adm-counties{display:grid;grid-template-columns:repeat(6,1fr);gap:6px 12px;font-size:13px}
+.adm-counties label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.adm-tie{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.adm-tie .tchip{gap:6px}
+.adm-iconbtn{background:none;border:1px solid var(--cr2);border-radius:4px;padding:2px 7px;font-size:12px;color:var(--ink2)}
+.adm-iconbtn:hover{background:var(--cr3)}
+.adm-iconbtn:disabled{opacity:.35;cursor:default}
+.adm-roundbar{display:flex;align-items:center;gap:8px;margin-left:8px}
+.adm-roundbar select{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 8px;font-size:13px}
+.adm-roundbar select option{color:#000}
+.adm-back{font-size:12px;color:rgba(255,255,255,.7);text-decoration:none;border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:4px 10px}
+.adm-back:hover{background:rgba(255,255,255,.1)}
+.adm-lock{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:2px 9px;border-radius:20px;border:1px solid var(--cr2);color:var(--ink3);background:var(--cr3)}
+.adm-lock.on{background:#FEE;color:var(--red);border-color:#FCC}
+.adm-soon{opacity:.5}
+.adm-placeholder{background:#fff;border:1px dashed var(--cr2);border-radius:var(--r);padding:40px;text-align:center;color:var(--ink3)}
+.adm-savebar{position:sticky;bottom:0;background:rgba(245,245,245,.95);border-top:1px solid var(--cr2);padding:10px 0;display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.adm-dirty{font-size:12px;color:var(--orange);margin-right:auto}
+body.adm-ro .adm-write{display:none !important}
+.adm-drag{cursor:grab;color:var(--ink3);font-size:15px;padding:0 6px 0 2px;user-select:none}
+.adm-drag:active{cursor:grabbing}
+.adm-dragging{opacity:.4}
+tr.adm-dropover td{box-shadow:inset 0 2px 0 var(--gold)}
+.tchip .adm-drag{cursor:grab}
+.tchip.adm-dropover{outline:2px solid var(--gold)}
+.modal.adm-wide{max-width:1040px}
+.adm-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.adm-stat{background:#fff;border:1px solid var(--cr2);border-radius:var(--r);padding:8px 14px;font-size:12.5px;color:var(--ink3)}
+.adm-stat b{font-size:16px;color:var(--navy);margin-right:4px;font-family:'Noto Serif TC',serif}
+.adm-tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;border:1px solid var(--cr2);color:var(--ink3);background:var(--cr3);white-space:nowrap}
+.adm-tag.near{background:#E8F5E9;color:var(--green);border-color:#90D090}
+.adm-tag.far{background:#FFF3E0;color:var(--orange);border-color:#F0C080}
+.adm-tag.new{background:#E3F2FD;color:#1565C0;border-color:#90CAF9}
+.adm-tag.err{background:#FEE;color:var(--red);border-color:#FCC}
+.adm-imp-sum{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.adm-imp-sum span{font-size:12.5px;padding:4px 10px;border-radius:6px;background:var(--cr3);border:1px solid var(--cr2)}
+.adm-imp-sum span b{color:var(--navy)}
+.adm-drop{border:2px dashed var(--cr2);border-radius:var(--r);padding:28px;text-align:center;color:var(--ink3);cursor:pointer;background:#fff}
+.adm-drop:hover,.adm-drop.over{border-color:var(--navy2);color:var(--navy);background:var(--navy3)}
+details.adm-skip summary{cursor:pointer;font-size:12.5px;color:var(--ink3);margin:6px 0}
+tr.adm-click{cursor:pointer}
+th.adm-rs{position:relative}
+.adm-rs-h{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:3}
+.adm-rs-h:hover,.adm-rs-h.on{background:rgba(212,168,75,.6)}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div class="login-wrap" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">福智佛教學院</div>
+    <div class="login-sub">招生作業 · 行政人員登入</div>
+    <label class="login-label">Email</label>
+    <input class="login-input" id="login-email" type="email" placeholder="your@bwbc.edu.tw">
+    <button class="login-btn" id="login-btn" onclick="sendMagicLink()">傳送登入連結</button>
+    <div id="login-feedback" style="margin-top:12px;font-size:13px;text-align:center;padding:10px;border-radius:8px;display:none"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="tb-logo">福智佛教學院 · 招生作業</div>
+    <div class="adm-roundbar">
+      <span style="font-size:12px;color:rgba(255,255,255,.7)">招考梯次</span>
+      <select id="round-sel" onchange="selectRound(this.value)"></select>
+    </div>
+    <a class="adm-back" href="admin.html">← 課程管理後台</a>
+    <div class="tb-user" id="tb-user"></div>
+    <button class="tb-logout" onclick="logout()">登出</button>
+  </div>
+  <div class="layout">
+    <div id="no-access-panel" style="display:none;flex:1;align-items:center;justify-content:center;padding:24px">
+      <div style="max-width:420px;text-align:center;background:#fff;border:1px solid var(--cr2);border-radius:12px;padding:32px 28px;box-shadow:0 2px 10px rgba(0,0,0,.06)">
+        <div style="font-size:34px;margin-bottom:10px">🔒</div>
+        <div style="font-size:16px;font-weight:600;color:var(--ink);margin-bottom:8px">沒有招生作業權限</div>
+        <div style="font-size:13px;color:var(--ink3);line-height:1.7">您的帳號沒有被授權使用「招生作業」，請聯絡系統管理員在帳號管理中開通。<br><a href="admin.html">回課程管理後台</a></div>
+      </div>
+    </div>
+    <nav class="sidebar" id="adm-sidebar">
+      <div class="sidebar-nav-scroll">
+        <div class="nav-section">
+          <div class="nav-label">設定</div>
+          <div class="nav-item on" data-page="rounds" onclick="showPage('rounds',this)"><span class="nav-icon">⚙️</span>梯次設定</div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-label">第一階段 書審</div>
+          <div class="nav-item" data-page="applicants" onclick="showPage('applicants',this)"><span class="nav-icon">🧾</span>考生資料</div>
+          <div class="nav-item" data-page="review-forms" onclick="showPage('review-forms',this)"><span class="nav-icon">🖨</span>評分表與範本</div>
+          <div class="nav-item adm-soon" data-page="review-scores" onclick="showPage('review-scores',this)"><span class="nav-icon">✍️</span>書審評分</div>
+          <div class="nav-item adm-soon" data-page="review-summary" onclick="showPage('review-summary',this)"><span class="nav-icon">📊</span>書審彙整</div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-label">第二階段 面試</div>
+          <div class="nav-item adm-soon" data-page="sessions" onclick="showPage('sessions',this)"><span class="nav-icon">🗓</span>面試分組</div>
+          <div class="nav-item adm-soon" data-page="interview-scores" onclick="showPage('interview-scores',this)"><span class="nav-icon">🎤</span>面試評分</div>
+          <div class="nav-item adm-soon" data-page="admission" onclick="showPage('admission',this)"><span class="nav-icon">🏅</span>錄取名單</div>
+        </div>
+      </div>
+      <div class="sidebar-footer">admission v0.4（第 4 批＋規範修正）</div>
+    </nav>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+
+<!-- 新增梯次 -->
+<div class="modal-bg" id="new-round-modal">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">新增招考梯次</div><button class="modal-close" onclick="closeModal('new-round-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="frow-2">
+        <div><label class="flabel">梯次代碼（入學學年度-學期）</label><input class="finput" id="nr-code" placeholder="例如 116-2" oninput="previewNewRound()"></div>
+        <div><label class="flabel">名稱（自動）</label><input class="finput fro" id="nr-name" readonly></div>
+      </div>
+      <div class="frow">
+        <label class="flabel">複製自</label>
+        <select class="fselect" id="nr-from"></select>
+        <div class="adm-hint">複製錄取規則、門檻、權重、名額等設定；日期與鎖定狀態不複製。</div>
+      </div>
+      <div class="frow" style="display:flex;gap:18px;font-size:13px">
+        <label><input type="checkbox" id="nr-copy-criteria" checked> 複製評分項目</label>
+        <label><input type="checkbox" id="nr-copy-reviewers" checked> 複製委員</label>
+      </div>
+      <div id="nr-msg" class="adm-hint"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('new-round-modal')">取消</button>
+      <button class="btn-save" id="nr-btn" onclick="createRound()">建立</button>
+    </div>
+  </div>
+</div>
+
+<!-- 匯入考生資料 -->
+<div class="modal-bg" id="imp-modal">
+  <div class="modal adm-wide">
+    <div class="modal-hdr"><div class="modal-title">匯入報名系統考生資料</div><button class="modal-close" onclick="closeModal('imp-modal')">×</button></div>
+    <div class="modal-body" id="imp-body"></div>
+    <div class="modal-footer">
+      <span class="adm-hint" id="imp-foot-msg" style="margin-right:auto"></span>
+      <button class="btn-cancel" onclick="closeModal('imp-modal')">取消</button>
+      <button class="btn-save" id="imp-btn" onclick="confirmImport()" disabled>確認匯入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯考生 -->
+<div class="modal-bg" id="app-modal">
+  <div class="modal adm-wide" style="max-width:820px">
+    <div class="modal-hdr"><div class="modal-title" id="app-modal-title">考生資料</div><button class="modal-close" onclick="closeModal('app-modal')">×</button></div>
+    <div class="modal-body" id="app-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-del adm-write" id="app-del-btn" style="margin-right:auto" onclick="deleteApplicant()">刪除這位考生</button>
+      <button class="btn-cancel" onclick="closeModal('app-modal')">取消</button>
+      <button class="btn-save adm-write" id="app-save-btn" onclick="saveApplicant()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════ SUPABASE CONFIG（與 admin.html 相同；storageKey 相同 → 共用登入狀態） ════ */
+const SUPABASE_URL  = 'https://pjyjpcumakxevxuxwcyx.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_Hxw2qfgBO5BTkX4wG4xeTQ_tEsPG3pc';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'bwbc-admin-auth' }
+});
+
+/* ════ 常數 ════ */
+const TRACK_BY_TERM = { 1: '甄試入學', 2: '考試入學' };
+const STAGE_ZH = { review: '書審', interview: '面試' };
+const COUNTIES = ['基隆市','臺北市','新北市','桃園市','新竹市','新竹縣','苗栗縣','臺中市','彰化縣','南投縣','雲林縣',
+                  '嘉義市','嘉義縣','臺南市','高雄市','屏東縣','宜蘭縣','花蓮縣','臺東縣','澎湖縣','金門縣','連江縣'];
+const KEY_DATES = [
+  ['apply_deadline', '報名截止日'], ['interview_list', '公告面試名單'],
+  ['interview_1', '面試日（第一天）'], ['interview_2', '面試日（第二天，可空白）'],
+  ['score_notice', '成績通知'], ['review_from', '複查開始'], ['review_to', '複查截止'],
+  ['announce', '放榜'], ['enroll_from', '報到開始'], ['enroll_to', '報到截止'], ['waitlist_from', '備取遞補開始'],
+];
+const SS_ROUND = 'adm-current-round';   // 使用者自己切換的梯次只記在本次瀏覽（sessionStorage），下次開啟再依日期預設
+
+/* ════ 狀態 ════ */
+const ME = { id: null, email: '', name: '', level: 'none' };
+let ROUNDS = [];        // adm_rounds
+let TEACHERS = [];      // teachers（委員選單）
+let CUR = null;         // 目前梯次（含 criteria / reviewers / 統計）
+let DRAFT = null;       // 梯次設定頁的編輯中副本
+let DIRTY = false;
+let CUR_PAGE = 'rounds';
+
+/* ════ 共用小工具（與 admin.html 同名同行為） ════ */
+function esc(str) {
+  return String(str==null?'':str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg, type='success') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+async function writeAuditLog(category, action, tableName, recordId, targetName, detail) {
+  try {
+    await sb.from('audit_log').insert({
+      user_id: ME.id, user_email: ME.email || '', user_name: ME.name || '',
+      category, action, table_name: tableName, record_id: recordId || null,
+      target_name: targetName || '', detail: detail || '',
+    });
+  } catch(e) { console.warn('audit log 寫入失敗：', e); }
+}
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e) { return null; } }
+function ssGet(k){ try { return sessionStorage.getItem(k); } catch(e) { return null; } }
+function ssSet(k,v){ try { sessionStorage.setItem(k,v); } catch(e) {} }
+// 今天（本地時間）的 yyyy-mm-dd，手動拼字串，不經過 toISOString（規則 37）
+function todayStr(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+// 依日期判斷「目前進行中」的梯次（規則 46 的梯次版）：今天落在梯次重要日程的最早～最晚之間；都不在就取最接近的一個；沒有日程的梯次不參與
+function getCurrentRoundByDate(rounds) {
+  const today = todayStr(), toDay = s => Date.parse(s) / 864e5, t = toDay(today);
+  let best = null, bestDist = Infinity;
+  (rounds || []).forEach(r => {
+    const ds = Object.values(normalizeKeyDates(r.key_dates)).filter(v => /^\d{4}-\d{2}-\d{2}$/.test(v || '')).sort();
+    if (!ds.length) return;
+    const lo = ds[0], hi = ds[ds.length - 1];
+    const dist = (today >= lo && today <= hi) ? 0 : Math.min(Math.abs(toDay(lo) - t), Math.abs(toDay(hi) - t));
+    if (dist < bestDist) { best = r; bestDist = dist; }
+  });
+  return best;
+}
+function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e) {} }
+// 刪除／更新後檢查實際影響筆數（troubleshooting 症狀 13）：RLS 擋住或條件對不上時 Supabase 不會報錯，只會回 0 筆
+function assertRows(res, expect, what) {
+  if (res.error) throw res.error;
+  const n = (res.data || []).length;
+  if (n < expect) throw new Error(`${what}：預期 ${expect} 筆，實際只影響 ${n} 筆（可能沒有權限，請重新整理後再試）`);
+  return n;
+}
+function canWrite(){ return ME.level === 'write' || ME.level === 'admin'; }
+function numOrNull(v){ if (v === '' || v == null) return null; const n = Number(v); return Number.isFinite(n) ? n : null; }
+function fmtTime(ts){ if (!ts) return ''; const d = new Date(ts); return d.toLocaleString('zh-TW', { hour12:false }); }
+function parseRoundCode(code){
+  const m = /^(\d{3})-([12])$/.exec(String(code||'').trim());
+  if (!m) return null;
+  const year = Number(m[1]), term = Number(m[2]);
+  return { year, term, track: TRACK_BY_TERM[term], name: `${year} 學年度${TRACK_BY_TERM[term]}` };
+}
+
+/* ════ AUTH（沿用 admin.html 的流程） ════ */
+async function sendMagicLink() {
+  const email = document.getElementById('login-email').value.trim();
+  const btn = document.getElementById('login-btn');
+  const fb = document.getElementById('login-feedback');
+  if (!email) { fb.style.display='block';fb.style.background='#FEE';fb.style.color='#C04030';fb.textContent='❌ 請輸入 Email';return; }
+  btn.disabled=true; btn.textContent='傳送中…'; fb.style.display='none';
+  const { error } = await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.origin + window.location.pathname } });
+  btn.disabled=false; btn.textContent='傳送登入連結'; fb.style.display='block';
+  if (error) { fb.style.background='#FEE';fb.style.color='#C04030';fb.textContent='❌ '+error.message; }
+  else { fb.style.background='#E8F5E9';fb.style.color='#1A6A30';fb.innerHTML='✅ 登入連結已寄出！<br><small>請查收 '+esc(email)+' 的信件</small>'; }
+}
+async function logout() { await sb.auth.signOut(); location.reload(); }
+
+// 與 SQL 函式 adm_perm_level() 相同的判斷（前端只負責顯示，真正的把關在 RLS）
+function admissionLevel(u) {
+  if (!u) return 'none';
+  if (u.role === 'admin') return 'admin';
+  if (u.role !== 'staff') return 'none';
+  const v = (u.permissions || {}).admission;
+  if (v === true) return 'admin';
+  if (v === false || v == null) return 'none';
+  return ['none','read','write','admin'].includes(v) ? v : 'none';
+}
+
+let _entered = false;
+async function tryEnterApp(user) {
+  if (_entered) return;
+  _entered = true;
+  ME.id = user.id; ME.email = user.email;
+  let u = null;
+  try {
+    const res = await sb.from('users').select('role,permissions,teacher_id').eq('id', user.id).maybeSingle();
+    u = res.data;
+  } catch(e) { console.warn('查詢使用者角色失敗:', e); }
+
+  ME.level = admissionLevel(u);
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  document.getElementById('tb-user').textContent = user.email;
+
+  if (ME.level === 'none') {
+    // 不 signOut：登入狀態與 admin.html 共用，登出會連後台一起登出
+    document.getElementById('adm-sidebar').style.display = 'none';
+    document.getElementById('content').style.display = 'none';
+    document.querySelector('.adm-roundbar').style.display = 'none';
+    document.getElementById('no-access-panel').style.display = 'flex';
+    return;
+  }
+  if (!canWrite()) document.body.classList.add('adm-ro');
+
+  if (u?.teacher_id) {
+    const { data:t } = await sb.from('teachers').select('name_zh').eq('id', u.teacher_id).maybeSingle();
+    if (t?.name_zh) ME.name = t.name_zh;
+  }
+  if (!ME.name) ME.name = ME.email || '';
+  document.getElementById('tb-user').textContent = ME.name + (canWrite() ? '' : '（唯讀）');
+
+  await loadBase();
+}
+async function checkAuth() {
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session) await tryEnterApp(session.user);
+}
+sb.auth.onAuthStateChange((event, session) => {
+  if (session && event === 'SIGNED_IN') tryEnterApp(session.user);
+});
+
+/* ════ 載入資料 ════ */
+async function loadBase() {
+  const [{ data: rounds, error: e1 }, { data: teachers, error: e2 }] = await Promise.all([
+    sb.from('adm_rounds').select('*').order('code', { ascending: false }),
+    sb.from('teachers').select('id,name_zh,active,teacher_type').order('name_zh'),
+  ]);
+  if (e1) { showToast('讀取梯次失敗：' + e1.message, 'error'); return; }
+  if (e2) console.warn('讀取教師失敗', e2);
+  ROUNDS = rounds || [];
+  TEACHERS = teachers || [];
+  renderRoundSelect();
+  const saved = ssGet(SS_ROUND);
+  const pick = ROUNDS.find(r => r.id === saved) || getCurrentRoundByDate(ROUNDS) || ROUNDS[0];
+  if (pick) await selectRound(pick.id, true);
+  else { CUR = null; renderPage(); }
+}
+
+function renderRoundSelect() {
+  const sel = document.getElementById('round-sel');
+  sel.innerHTML = ROUNDS.length
+    ? ROUNDS.map(r => `<option value="${r.id}">${esc(r.code)} · ${esc(r.name)}</option>`).join('')
+    : '<option value="">（尚無梯次）</option>';
+  if (CUR) sel.value = CUR.id;
+}
+
+async function selectRound(id, silent) {
+  if (!id) return;
+  if (DIRTY && !silent && !confirm('梯次設定有尚未儲存的修改，確定要切換梯次嗎？')) {
+    document.getElementById('round-sel').value = CUR?.id || '';
+    return;
+  }
+  await loadRound(id);
+  ssSet(SS_ROUND, id);
+  document.getElementById('round-sel').value = id;
+  renderPage();
+}
+
+async function loadRound(id) {
+  const round = ROUNDS.find(r => r.id === id);
+  if (!round) return;
+  const [cr, rv, sc, ap] = await Promise.all([
+    sb.from('adm_criteria').select('*').eq('round_id', id).order('stage').order('sort_order'),
+    sb.from('adm_reviewers').select('*').eq('round_id', id).order('stage').order('sort_order'),
+    sb.from('adm_scores').select('reviewer_id,criterion_id,applicant_id').eq('round_id', id).limit(10000),
+    sb.from('adm_applicants').select('id', { count: 'exact', head: true }).eq('round_id', id),
+  ]);
+  if (cr.error || rv.error || sc.error) {
+    showToast('讀取梯次資料失敗：' + (cr.error || rv.error || sc.error).message, 'error');
+  }
+  const criteria = cr.data || [];
+  const stageOf = Object.fromEntries(criteria.map(c => [c.id, c.stage]));
+  const scoresByStage = { review: 0, interview: 0 };
+  const scoresByReviewer = {};
+  const scoresByApplicant = {};
+  (sc.data || []).forEach(s => {
+    const st = stageOf[s.criterion_id];
+    if (st) scoresByStage[st]++;
+    scoresByReviewer[s.reviewer_id] = (scoresByReviewer[s.reviewer_id] || 0) + 1;
+    scoresByApplicant[s.applicant_id] = (scoresByApplicant[s.applicant_id] || 0) + 1;
+  });
+  CUR = {
+    ...round,
+    criteria,
+    reviewers: rv.data || [],
+    scoresByStage, scoresByReviewer, scoresByApplicant,
+    applicantCount: ap.count || 0,
+  };
+  DRAFT = null; DIRTY = false;
+}
+
+/* ════ 頁面切換 ════ */
+function showPage(page, el) {
+  if (page !== CUR_PAGE && DIRTY && !confirm('梯次設定有尚未儲存的修改，確定要離開嗎？')) return;
+  if (page !== CUR_PAGE) { DIRTY = false; DRAFT = null; }
+  CUR_PAGE = page;
+  document.querySelectorAll('#adm-sidebar .nav-item').forEach(n => n.classList.toggle('on', n.dataset.page === page));
+  renderPage();
+}
+function renderPage() {
+  const c = document.getElementById('content');
+  if (CUR_PAGE === 'rounds') { renderRoundsPage(); return; }
+  if (CUR_PAGE === 'applicants') { renderApplicantsPage(); return; }
+  if (CUR_PAGE === 'review-forms') { renderReviewFormsPage(); return; }
+  const title = document.querySelector(`#adm-sidebar .nav-item[data-page="${CUR_PAGE}"]`)?.textContent.trim() || '';
+  c.innerHTML = `<div class="page-hdr"><div class="page-title">${esc(title)}</div></div>
+    <div class="adm-placeholder">這個功能將在後續批次完成。</div>`;
+}
+window.addEventListener('beforeunload', e => { if (DIRTY) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ════════════════════════════════════════════════════════════════
+   梯次設定
+   ════════════════════════════════════════════════════════════════ */
+
+// key_dates 相容：seed 用 {interview:[d1,d2], review_period:[a,b], enroll:[a,b]}，畫面用扁平欄位
+function normalizeKeyDates(k) {
+  const o = { ...(k || {}) };
+  if (Array.isArray(o.interview))     { o.interview_1 = o.interview[0] || ''; o.interview_2 = o.interview[1] || ''; delete o.interview; }
+  if (Array.isArray(o.review_period)) { o.review_from = o.review_period[0] || ''; o.review_to = o.review_period[1] || ''; delete o.review_period; }
+  if (Array.isArray(o.enroll))        { o.enroll_from = o.enroll[0] || ''; o.enroll_to = o.enroll[1] || ''; delete o.enroll; }
+  return o;
+}
+
+function makeDraft() {
+  const r = CUR;
+  const d = {
+    id: r.id, code: r.code, academic_year: r.academic_year, term: r.term, track: r.track, name: r.name,
+    pass_threshold: r.pass_threshold, weight_review: r.weight_review, weight_interview: r.weight_interview,
+    admit_quota: r.admit_quota, waitlist_max: r.waitlist_max, waitlist_min_score: r.waitlist_min_score,
+    decimals: r.decimals, age_base_date: r.age_base_date || '', spread_alert: r.spread_alert,
+    roster_mask_mode: r.roster_mask_mode, near_counties: [...(r.near_counties || [])],
+    key_dates: normalizeKeyDates(r.key_dates),
+    tie_breakers: Array.isArray(r.tie_breakers) ? [...r.tie_breakers] : [],
+    criteria: r.criteria.map(c => ({ ...c })),
+    reviewers: r.reviewers.map(v => ({ ...v })),
+    _tieAutofilled: false,
+  };
+  // 尚未設定同分比序 → 預設依面試項目順序（簡章：學習動機 → 學習潛力），儲存後生效
+  if (!d.tie_breakers.length) {
+    const iv = d.criteria.filter(c => c.stage === 'interview' && c.id).sort((a,b) => a.sort_order - b.sort_order);
+    if (iv.length) { d.tie_breakers = iv.map(c => 'criterion:' + c.id); d._tieAutofilled = true; }
+  }
+  return d;
+}
+
+/* ── 滑鼠拖拉排序（通用）：抓 .adm-drag 把手（或整個項目）拖到另一個項目上放開 ── */
+function bindDrag(container, itemSel, onMove) {
+  if (!container) return;
+  let from = null;
+  container.querySelectorAll(itemSel).forEach(el => {
+    const handle = el.querySelector('.adm-drag') || el;
+    handle.addEventListener('mousedown', () => { el.draggable = true; });
+    el.addEventListener('dragstart', e => {
+      from = Number(el.dataset.i);
+      el.classList.add('adm-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', String(from)); } catch (_) {}
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('adm-dragging');
+      if (handle !== el) el.draggable = false;
+      container.querySelectorAll('.adm-dropover').forEach(x => x.classList.remove('adm-dropover'));
+      from = null;
+    });
+    el.addEventListener('dragover', e => { if (from === null) return; e.preventDefault(); el.classList.add('adm-dropover'); });
+    el.addEventListener('dragleave', () => el.classList.remove('adm-dropover'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('adm-dropover');
+      const to = Number(el.dataset.i);
+      if (from !== null && from !== to) onMove(from, to);
+      from = null;
+    });
+  });
+}
+function moveItem(arr, from, to) { const [x] = arr.splice(from, 1); arr.splice(to, 0, x); return arr; }
+
+function markDirty() {
+  DIRTY = true;
+  const el = document.getElementById('adm-dirty');
+  if (el) el.textContent = '有尚未儲存的修改';
+}
+
+function renderRoundsPage() {
+  const c = document.getElementById('content');
+  if (!CUR) {
+    c.innerHTML = `<div class="page-hdr"><div class="page-title">梯次設定</div>
+      <button class="btn btn-pri adm-write" onclick="openNewRound()">＋ 新增梯次</button></div>
+      <div class="adm-placeholder">尚未建立任何招考梯次。</div>`;
+    return;
+  }
+  if (!DRAFT) DRAFT = makeDraft();
+  const d = DRAFT, ro = !canWrite();
+  const dis = ro ? 'disabled' : '';
+  const reviewLocked = !!CUR.review_locked_at, admLocked = !!CUR.admission_locked_at;
+
+  c.innerHTML = `
+  <div class="page-hdr">
+    <div class="page-title">梯次設定 <span style="font-size:14px;color:var(--ink3)">${esc(d.code)} · ${esc(d.name)}</span></div>
+    <span class="adm-lock ${reviewLocked?'on':''}">${reviewLocked ? '🔒 書審已鎖定 ' + esc(fmtTime(CUR.review_locked_at)) : '書審未鎖定'}</span>
+    <span class="adm-lock ${admLocked?'on':''}">${admLocked ? '🔒 錄取名單已鎖定 ' + esc(fmtTime(CUR.admission_locked_at)) : '錄取名單未鎖定'}</span>
+    <button class="btn btn-pri adm-write" onclick="openNewRound()">＋ 新增梯次</button>
+    <button class="btn btn-del adm-write" onclick="deleteRound()">刪除此梯次</button>
+  </div>
+
+  <div class="adm-card">
+    <div class="adm-card-hdr"><div class="adm-card-title">基本資料</div><span class="adm-hint">考生 ${CUR.applicantCount} 人</span></div>
+    <div class="adm-card-body adm-grid">
+      <div class="frow"><label class="flabel">梯次代碼</label><input class="finput fro" value="${esc(d.code)}" readonly></div>
+      <div class="frow"><label class="flabel">入學學年度</label><input class="finput fro" value="${esc(d.academic_year)}" readonly></div>
+      <div class="frow"><label class="flabel">入學管道</label><input class="finput fro" value="${esc(d.track)}" readonly></div>
+      <div class="frow"><label class="flabel">名稱（報表標題用）</label><input class="finput" ${dis} value="${esc(d.name)}" oninput="setD('name',this.value)"></div>
+    </div>
+  </div>
+
+  <div class="adm-card">
+    <div class="adm-card-hdr"><div class="adm-card-title">錄取規則</div></div>
+    <div class="adm-card-body">
+      <div class="adm-grid">
+        <div class="frow"><label class="flabel">進入面試門檻（書審 ≥）</label><input class="finput" type="number" step="0.01" ${dis} value="${esc(d.pass_threshold ?? '')}" oninput="setD('pass_threshold',numOrNull(this.value))"><div class="adm-hint">空白＝不設門檻</div></div>
+        <div class="frow"><label class="flabel">總成績：書審 a%</label><input class="finput" type="number" step="0.01" min="0" max="100" ${dis} value="${esc(d.weight_review)}" oninput="setWeight('review',this.value)"></div>
+        <div class="frow"><label class="flabel">總成績：面試 b%</label><input class="finput" type="number" step="0.01" min="0" max="100" ${dis} value="${esc(d.weight_interview)}" oninput="setWeight('interview',this.value)"><div class="adm-hint" id="w-sum"></div></div>
+        <div class="frow"><label class="flabel">小數位數</label><input class="finput" type="number" min="0" max="4" ${dis} value="${esc(d.decimals)}" oninput="setD('decimals',numOrNull(this.value))"></div>
+        <div class="frow"><label class="flabel">正取名額</label><input class="finput" type="number" min="0" ${dis} value="${esc(d.admit_quota)}" oninput="setD('admit_quota',numOrNull(this.value))"></div>
+        <div class="frow"><label class="flabel">備取名額上限</label><input class="finput" type="number" min="0" ${dis} value="${esc(d.waitlist_max ?? '')}" oninput="setD('waitlist_max',numOrNull(this.value))"><div class="adm-hint">空白＝不限</div></div>
+        <div class="frow"><label class="flabel">備取最低分數</label><input class="finput" type="number" step="0.01" ${dis} value="${esc(d.waitlist_min_score ?? '')}" oninput="setD('waitlist_min_score',numOrNull(this.value))"><div class="adm-hint">空白＝不限</div></div>
+        <div class="frow"><label class="flabel">委員給分差距提示（分）</label><input class="finput" type="number" step="0.01" min="0" ${dis} value="${esc(d.spread_alert)}" oninput="setD('spread_alert',numOrNull(this.value))"></div>
+      </div>
+      <div class="frow" style="margin-top:14px;margin-bottom:0">
+        <label class="flabel">同分比序（依序比較）</label>
+        <div id="tie-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="adm-card">
+    <div class="adm-card-hdr"><div class="adm-card-title">重要日程</div><span class="adm-hint">印在報表上；年齡依「年齡計算基準日」計算</span></div>
+    <div class="adm-card-body adm-grid">
+      <div class="frow"><label class="flabel">年齡計算基準日</label><input class="finput" type="date" ${dis} value="${esc(d.age_base_date)}" oninput="setD('age_base_date',this.value)"><div class="adm-hint">預設＝報名截止日</div></div>
+      ${KEY_DATES.map(([k, label]) => `<div class="frow"><label class="flabel">${esc(label)}</label><input class="finput" type="date" ${dis} value="${esc(d.key_dates[k] || '')}" oninput="setKeyDate('${k}',this.value)"></div>`).join('')}
+    </div>
+  </div>
+
+  <div class="adm-card">
+    <div class="adm-card-hdr"><div class="adm-card-title">「雲林附近」縣市</div><span class="adm-hint">勾選的縣市算雲林附近，其餘為遠地；面試分組時使用</span></div>
+    <div class="adm-card-body"><div class="adm-counties">
+      ${COUNTIES.map(n => `<label><input type="checkbox" ${dis} ${d.near_counties.includes(n)?'checked':''} onchange="toggleCounty('${n}',this.checked)"> ${esc(n)}</label>`).join('')}
+    </div></div>
+  </div>
+
+  <div class="adm-card">
+    <div class="adm-card-hdr"><div class="adm-card-title">榜單顯示方式</div></div>
+    <div class="adm-card-body" style="display:flex;gap:24px;font-size:13px">
+      <label><input type="radio" name="mask" ${dis} ${d.roster_mask_mode==='id_only'?'checked':''} onchange="setD('roster_mask_mode','id_only')"> 只顯示考生編號（現行做法）</label>
+      <label><input type="radio" name="mask" ${dis} ${d.roster_mask_mode==='id_masked_name'?'checked':''} onchange="setD('roster_mask_mode','id_masked_name')"> 考生編號＋遮蔽姓名（王○明／王○）</label>
+    </div>
+  </div>
+
+  ${['review','interview'].map(st => `
+  <div class="adm-card">
+    <div class="adm-card-hdr"><div class="adm-card-title">${STAGE_ZH[st]}評分項目</div><span class="adm-hint" id="crit-sum-${st}"></span></div>
+    <div class="adm-card-body adm-mini" id="crit-${st}"></div>
+  </div>`).join('')}
+
+  ${['review','interview'].map(st => `
+  <div class="adm-card">
+    <div class="adm-card-hdr"><div class="adm-card-title">${STAGE_ZH[st]}委員</div>
+      ${st==='interview' ? '<button class="btn btn-sm btn-sec adm-write" onclick="copyReviewersToInterview()">面試委員同書審委員</button>' : ''}
+    </div>
+    <div class="adm-card-body adm-mini" id="rev-${st}"></div>
+  </div>`).join('')}
+
+  <div class="adm-savebar adm-write">
+    <span class="adm-dirty" id="adm-dirty">${DIRTY ? '有尚未儲存的修改' : ''}</span>
+    <button class="btn-cancel" onclick="discardDraft()">放棄修改</button>
+    <button class="btn-save" id="save-btn" onclick="saveRound()">儲存梯次設定</button>
+  </div>`;
+
+  renderWeightSum();
+  renderTieBreakers();
+  ['review','interview'].forEach(st => { renderCriteria(st); renderReviewers(st); });
+  if (d._tieAutofilled && canWrite()) markDirty();
+}
+
+/* ── 欄位更新 ── */
+function setD(k, v) { DRAFT[k] = v; markDirty(); }
+function setKeyDate(k, v) { DRAFT.key_dates[k] = v; markDirty(); }
+function toggleCounty(n, on) {
+  const s = new Set(DRAFT.near_counties);
+  on ? s.add(n) : s.delete(n);
+  DRAFT.near_counties = COUNTIES.filter(x => s.has(x));
+  markDirty();
+}
+function setWeight(stage, v) {
+  const n = numOrNull(v);
+  DRAFT[stage === 'review' ? 'weight_review' : 'weight_interview'] = n;
+  markDirty(); renderWeightSum();
+}
+function renderWeightSum() {
+  const el = document.getElementById('w-sum'); if (!el) return;
+  const s = Number(DRAFT.weight_review || 0) + Number(DRAFT.weight_interview || 0);
+  el.innerHTML = s === 100 ? '<span class="adm-ok">a＋b＝100% ✓</span>' : `<span class="adm-bad">a＋b＝${s}%，必須是 100%</span>`;
+}
+
+/* ── 同分比序 ── */
+function tieLabel(key) {
+  if (key === 'interview_total') return '面試總成績';
+  if (key === 'review_total') return '書審總成績';
+  if (key === 'total') return '總成績';
+  if (key.startsWith('criterion:')) {
+    const c = DRAFT.criteria.find(x => x.id === key.slice(10));
+    return c ? `${STAGE_ZH[c.stage]}・${c.name}` : '（已刪除的項目）';
+  }
+  return key;
+}
+function tieOptions() {
+  const opts = ['interview_total', 'review_total'];
+  DRAFT.criteria.filter(c => c.id).sort((a,b) => (a.stage===b.stage ? a.sort_order-b.sort_order : (a.stage==='interview'?-1:1)))
+    .forEach(c => opts.push('criterion:' + c.id));
+  return opts.filter(o => !DRAFT.tie_breakers.includes(o));
+}
+function renderTieBreakers() {
+  const box = document.getElementById('tie-box'); if (!box) return;
+  const ro = !canWrite(), t = DRAFT.tie_breakers;
+  const chips = t.map((k, i) => `<span class="tchip" data-i="${i}">${ro ? '' : '<span class="adm-drag" style="font-size:13px" title="按住拖拉調整順序">⠿</span>'}${i+1}. ${esc(tieLabel(k))}
+      ${ro ? '' : `<button class="tchip-del" title="移除" onclick="removeTie(${i})">×</button>`}</span>`).join('<span style="color:var(--ink3)">→</span>');
+  const opts = tieOptions();
+  box.innerHTML = `<div class="adm-tie">${chips || '<span class="adm-hint">尚未設定</span>'}
+    ${ro || !opts.length ? '' : `<select class="fselect" style="width:auto" onchange="if(this.value){addTie(this.value)}">
+      <option value="">＋ 加入比序項目</option>${opts.map(o => `<option value="${esc(o)}">${esc(tieLabel(o))}</option>`).join('')}</select>`}
+  </div>
+  <div class="adm-hint">錄取依總成績排序；總成績相同時依上列順序比較。${ro ? '' : '按住 ⠿ 拖拉可調整先後。'}新增的評分項目要先儲存，才會出現在選單中。${DRAFT._tieAutofilled ? '<br>目前顯示的是依面試項目順序預填的建議，按「儲存梯次設定」後生效。' : ''}</div>`;
+  if (!ro) bindDrag(box.querySelector('.adm-tie'), '.tchip[data-i]', reorderTie);
+}
+function addTie(k) { DRAFT.tie_breakers.push(k); DRAFT._tieAutofilled = false; markDirty(); renderTieBreakers(); }
+function removeTie(i) { DRAFT.tie_breakers.splice(i, 1); DRAFT._tieAutofilled = false; markDirty(); renderTieBreakers(); }
+function reorderTie(from, to) { moveItem(DRAFT.tie_breakers, from, to); DRAFT._tieAutofilled = false; markDirty(); renderTieBreakers(); }
+
+/* ── 評分項目 ── */
+function stageHasScores(st) { return (CUR.scoresByStage[st] || 0) > 0; }
+function renderCriteria(st) {
+  const box = document.getElementById('crit-' + st); if (!box) return;
+  const locked = stageHasScores(st), ro = !canWrite() || locked;
+  const dis = ro ? 'disabled' : '';
+  const list = DRAFT.criteria.filter(c => c.stage === st).sort((a,b) => a.sort_order - b.sort_order);
+  box.innerHTML = `
+    ${locked ? `<div class="adm-warn">已有 ${CUR.scoresByStage[st]} 筆${STAGE_ZH[st]}分數，評分項目與權重不能再修改。</div>` : ''}
+    <div class="tbl-wrap"><table>
+      <thead><tr><th style="width:70px">順序</th><th>項目名稱（依當年度簡章）</th><th style="width:140px">權重 %</th><th style="width:70px"></th></tr></thead>
+      <tbody>${list.map((c, i) => {
+        const idx = DRAFT.criteria.indexOf(c);
+        return `<tr data-i="${i}">
+          <td>${ro ? '' : '<span class="adm-drag" title="拖拉調整順序">⠿</span>'}${i+1}</td>
+          <td><input class="finput" ${dis} value="${esc(c.name)}" oninput="setCrit(${idx},'name',this.value)"></td>
+          <td><input class="finput" type="number" step="0.01" min="0" max="100" ${dis} value="${esc(c.weight)}" oninput="setCrit(${idx},'weight',numOrNull(this.value))"></td>
+          <td>${ro ? '' : `<button class="btn btn-sm btn-del" onclick="removeCrit(${idx})">刪除</button>`}</td>
+        </tr>`; }).join('') || '<tr><td colspan="4" style="color:var(--ink3)">尚未設定</td></tr>'}</tbody>
+    </table></div>
+    ${ro ? '' : `<button class="sy-add-btn" onclick="addCrit('${st}')">＋ 新增評分項目</button>
+    <div class="adm-hint">按住左邊 ⠿ 拖拉可調整順序；順序就是評分表與總表的欄位順序。</div>`}`;
+  renderCritSum(st);
+  if (!ro) bindDrag(box.querySelector('tbody'), 'tr[data-i]', (from, to) => reorderCrit(st, from, to));
+}
+function renderCritSum(st) {
+  const el = document.getElementById('crit-sum-' + st); if (!el) return;
+  const s = DRAFT.criteria.filter(c => c.stage === st).reduce((a, c) => a + Number(c.weight || 0), 0);
+  el.innerHTML = s === 100 ? '<span class="adm-ok">權重合計 100% ✓</span>' : `<span class="adm-bad">權重合計 ${s}%，必須是 100%</span>`;
+}
+function setCrit(idx, k, v) { DRAFT.criteria[idx][k] = v; markDirty(); if (k === 'weight') renderCritSum(DRAFT.criteria[idx].stage); }
+function addCrit(st) {
+  const list = DRAFT.criteria.filter(c => c.stage === st);
+  DRAFT.criteria.push({ stage: st, name: '', weight: 0, sort_order: list.length ? Math.max(...list.map(c => c.sort_order)) + 1 : 1 });
+  markDirty(); renderCriteria(st);
+}
+function removeCrit(idx) {
+  const c = DRAFT.criteria[idx];
+  DRAFT.criteria.splice(idx, 1);
+  if (c.id) DRAFT.tie_breakers = DRAFT.tie_breakers.filter(k => k !== 'criterion:' + c.id);
+  markDirty(); renderCriteria(c.stage); renderTieBreakers();
+}
+function reorderCrit(st, from, to) {
+  const list = DRAFT.criteria.filter(c => c.stage === st).sort((a,b) => a.sort_order - b.sort_order);
+  moveItem(list, from, to).forEach((c, k) => { c.sort_order = k + 1; });
+  markDirty(); renderCriteria(st);
+}
+
+/* ── 委員 ── */
+function reviewerName(v) {
+  if (v.teacher_id) return TEACHERS.find(t => t.id === v.teacher_id)?.name_zh || '（找不到教師）';
+  return v.external_name || '';
+}
+function renderReviewers(st) {
+  const box = document.getElementById('rev-' + st); if (!box) return;
+  const ro = !canWrite(), dis = ro ? 'disabled' : '';
+  const list = DRAFT.reviewers.filter(v => v.stage === st).sort((a,b) => a.sort_order - b.sort_order);
+  const teacherOpts = (cur) => {
+    const used = new Set(list.map(v => v.teacher_id).filter(Boolean));
+    return '<option value="">（外聘委員，請填姓名）</option>' + TEACHERS
+      .filter(t => t.id === cur || (t.active !== false && !used.has(t.id)))
+      .map(t => `<option value="${t.id}" ${t.id===cur?'selected':''}>${esc(t.name_zh)}</option>`).join('');
+  };
+  box.innerHTML = `
+    <div class="tbl-wrap"><table>
+      <thead><tr><th style="width:70px">順序</th><th style="width:70px">代號</th><th>委員（教師管理）</th><th>外聘委員姓名</th><th style="width:110px">已有分數</th><th style="width:60px"></th></tr></thead>
+      <tbody>${list.map((v, i) => {
+        const idx = DRAFT.reviewers.indexOf(v);
+        const n = v.id ? (CUR.scoresByReviewer[v.id] || 0) : 0;
+        return `<tr data-i="${i}">
+          <td>${ro ? '' : '<span class="adm-drag" title="拖拉調整順序">⠿</span>'}${i+1}</td>
+          <td><input class="finput" ${dis} value="${esc(v.code || '')}" oninput="setRev(${idx},'code',this.value.trim())"></td>
+          <td><select class="fselect" ${dis || (n ? 'disabled' : '')} onchange="setRevTeacher(${idx},this.value)">${teacherOpts(v.teacher_id)}</select></td>
+          <td><input class="finput" ${(dis || v.teacher_id || n) ? 'disabled' : ''} value="${esc(v.external_name || '')}" oninput="setRev(${idx},'external_name',this.value)"></td>
+          <td>${n ? `${n} 筆` : '—'}</td>
+          <td>${ro || n ? '' : `<button class="btn btn-sm btn-del" onclick="removeRev(${idx})">刪除</button>`}</td>
+        </tr>`; }).join('') || '<tr><td colspan="6" style="color:var(--ink3)">尚未設定</td></tr>'}</tbody>
+    </table></div>
+    ${ro ? '' : `<button class="sy-add-btn" onclick="addRev('${st}')">＋ 新增委員</button>`}
+    <div class="adm-hint">${ro ? '' : '按住左邊 ⠿ 拖拉可調整順序。'}代號用於面試成績總表的表頭（委員A～D）。已有分數的委員不能刪除或更換。</div>`;
+  if (!ro) bindDrag(box.querySelector('tbody'), 'tr[data-i]', (from, to) => reorderRev(st, from, to));
+}
+function setRev(idx, k, v) { DRAFT.reviewers[idx][k] = v; markDirty(); }
+function setRevTeacher(idx, tid) {
+  const v = DRAFT.reviewers[idx];
+  v.teacher_id = tid || null;
+  if (tid) v.external_name = null;
+  markDirty(); renderReviewers(v.stage);
+}
+function nextCode(list) {
+  const used = new Set(list.map(v => v.code));
+  for (let i = 0; i < 26; i++) { const ch = String.fromCharCode(65 + i); if (!used.has(ch)) return ch; }
+  return '';
+}
+function addRev(st) {
+  const list = DRAFT.reviewers.filter(v => v.stage === st);
+  DRAFT.reviewers.push({ stage: st, teacher_id: null, external_name: '', code: nextCode(list),
+    sort_order: list.length ? Math.max(...list.map(v => v.sort_order)) + 1 : 1 });
+  markDirty(); renderReviewers(st);
+}
+function removeRev(idx) { const st = DRAFT.reviewers[idx].stage; DRAFT.reviewers.splice(idx, 1); markDirty(); renderReviewers(st); }
+function reorderRev(st, from, to) {
+  const list = DRAFT.reviewers.filter(v => v.stage === st).sort((a,b) => a.sort_order - b.sort_order);
+  moveItem(list, from, to).forEach((v, k) => { v.sort_order = k + 1; });
+  markDirty(); renderReviewers(st);
+}
+function copyReviewersToInterview() {
+  const iv = DRAFT.reviewers.filter(v => v.stage === 'interview');
+  if (iv.some(v => v.id && CUR.scoresByReviewer[v.id])) { showToast('面試委員已有分數，不能整批更換', 'error'); return; }
+  if (iv.length && !confirm('會以書審委員取代目前的面試委員名單，確定嗎？')) return;
+  DRAFT.reviewers = DRAFT.reviewers.filter(v => v.stage !== 'interview');
+  DRAFT.reviewers.filter(v => v.stage === 'review').sort((a,b) => a.sort_order - b.sort_order).forEach((v, k) => {
+    DRAFT.reviewers.push({ stage: 'interview', teacher_id: v.teacher_id, external_name: v.external_name, code: v.code, sort_order: k + 1 });
+  });
+  markDirty(); renderReviewers('interview');
+}
+
+function discardDraft() {
+  if (DIRTY && !confirm('確定放棄所有未儲存的修改？')) return;
+  DRAFT = null; DIRTY = false; renderRoundsPage();
+}
+
+/* ── 驗證與儲存 ── */
+function validateDraft() {
+  const d = DRAFT, errs = [];
+  if (!String(d.name || '').trim()) errs.push('名稱不可空白');
+  if (Number(d.weight_review || 0) + Number(d.weight_interview || 0) !== 100) errs.push('總成績 a＋b 必須是 100%');
+  if (d.pass_threshold != null && (d.pass_threshold < 0 || d.pass_threshold > 100)) errs.push('門檻必須在 0～100');
+  if (d.admit_quota == null || d.admit_quota < 0) errs.push('正取名額必須是 0 以上的整數');
+  if (d.decimals == null || d.decimals < 0 || d.decimals > 4) errs.push('小數位數必須在 0～4');
+  ['review','interview'].forEach(st => {
+    const list = d.criteria.filter(c => c.stage === st);
+    if (!list.length) errs.push(`${STAGE_ZH[st]}至少要有一個評分項目`);
+    const sum = list.reduce((a, c) => a + Number(c.weight || 0), 0);
+    if (list.length && Math.abs(sum - 100) > 0.001) errs.push(`${STAGE_ZH[st]}評分項目權重合計必須是 100%（目前 ${sum}%）`);
+    const names = list.map(c => String(c.name || '').trim());
+    if (names.some(n => !n)) errs.push(`${STAGE_ZH[st]}評分項目名稱不可空白`);
+    if (new Set(names).size !== names.length) errs.push(`${STAGE_ZH[st]}評分項目名稱重複`);
+    const revs = d.reviewers.filter(v => v.stage === st);
+    if (revs.some(v => !v.teacher_id && !String(v.external_name || '').trim())) errs.push(`${STAGE_ZH[st]}委員有一列沒有選教師也沒有填姓名`);
+    const tids = revs.map(v => v.teacher_id).filter(Boolean);
+    if (new Set(tids).size !== tids.length) errs.push(`${STAGE_ZH[st]}委員重複`);
+    const codes = revs.map(v => v.code).filter(Boolean);
+    if (new Set(codes).size !== codes.length) errs.push(`${STAGE_ZH[st]}委員代號重複`);
+  });
+  return errs;
+}
+
+async function saveRound() {
+  if (!canWrite()) return;
+  const errs = validateDraft();
+  if (errs.length) { alert('無法儲存：\n\n・' + errs.join('\n・')); return; }
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = '儲存中…';
+  const d = DRAFT, id = CUR.id, changes = [];
+  try {
+    // 1. 梯次
+    const roundRow = {
+      name: d.name.trim(), pass_threshold: d.pass_threshold, weight_review: d.weight_review, weight_interview: d.weight_interview,
+      admit_quota: d.admit_quota, waitlist_max: d.waitlist_max, waitlist_min_score: d.waitlist_min_score,
+      decimals: d.decimals, age_base_date: d.age_base_date || null, spread_alert: d.spread_alert ?? 15,
+      roster_mask_mode: d.roster_mask_mode, near_counties: d.near_counties,
+      key_dates: Object.fromEntries(Object.entries(d.key_dates).filter(([, v]) => v)),
+      tie_breakers: d.tie_breakers,
+    };
+    Object.keys(roundRow).forEach(k => {
+      if (JSON.stringify(roundRow[k]) !== JSON.stringify(k === 'key_dates' ? normalizeKeyDates(CUR[k]) : CUR[k])) changes.push(k);
+    });
+    assertRows(await sb.from('adm_rounds').update(roundRow).eq('id', id).select('id'), 1, '更新梯次');
+
+    // 2. 評分項目（有分數的階段不動）
+    for (const st of ['review','interview']) {
+      if (stageHasScores(st)) continue;
+      const before = CUR.criteria.filter(c => c.stage === st);
+      const after = d.criteria.filter(c => c.stage === st);
+      const removed = before.filter(b => !after.some(a => a.id === b.id));
+      if (removed.length) {
+        assertRows(await sb.from('adm_criteria').delete().in('id', removed.map(c => c.id)).select('id'), removed.length, '刪除評分項目');
+        changes.push(`刪除${STAGE_ZH[st]}項目：${removed.map(c => c.name).join('、')}`);
+      }
+      for (const c of after) {
+        const row = { name: c.name.trim(), weight: c.weight, sort_order: c.sort_order, import_label: (c.import_label || '').trim() || null };
+        if (c.id) {
+          const old = before.find(b => b.id === c.id);
+          if (old && (old.name !== row.name || Number(old.weight) !== Number(row.weight) || old.sort_order !== row.sort_order || (old.import_label || null) !== row.import_label)) {
+            assertRows(await sb.from('adm_criteria').update(row).eq('id', c.id).select('id'), 1, '更新評分項目');
+            changes.push(`修改${STAGE_ZH[st]}項目：${row.name}`);
+          }
+        } else {
+          assertRows(await sb.from('adm_criteria').insert({ ...row, round_id: id, stage: st }).select('id'), 1, '新增評分項目');
+          changes.push(`新增${STAGE_ZH[st]}項目：${row.name}`);
+        }
+      }
+    }
+
+    // 3. 委員（已有分數的委員不刪）
+    const beforeR = CUR.reviewers, afterR = d.reviewers;
+    const removedR = beforeR.filter(b => !afterR.some(a => a.id === b.id) && !CUR.scoresByReviewer[b.id]);
+    if (removedR.length) {
+      assertRows(await sb.from('adm_reviewers').delete().in('id', removedR.map(v => v.id)).select('id'), removedR.length, '刪除委員');
+      changes.push(`刪除委員：${removedR.map(reviewerName).join('、')}`);
+    }
+    for (const v of afterR) {
+      const row = { teacher_id: v.teacher_id || null, external_name: v.teacher_id ? null : (v.external_name || '').trim(),
+                    code: (v.code || '').trim() || null, sort_order: v.sort_order };
+      if (v.id) {
+        const old = beforeR.find(b => b.id === v.id);
+        if (old && (old.teacher_id !== row.teacher_id || (old.external_name || null) !== (row.external_name || null) || (old.code || null) !== row.code || old.sort_order !== row.sort_order)) {
+          assertRows(await sb.from('adm_reviewers').update(row).eq('id', v.id).select('id'), 1, '更新委員');
+          changes.push(`修改${STAGE_ZH[v.stage]}委員：${reviewerName({ ...v, ...row })}`);
+        }
+      } else {
+        assertRows(await sb.from('adm_reviewers').insert({ ...row, round_id: id, stage: v.stage }).select('id'), 1, '新增委員');
+        changes.push(`新增${STAGE_ZH[v.stage]}委員：${reviewerName({ ...v, ...row })}`);
+      }
+    }
+
+    await writeAuditLog('招生', '修改梯次設定', 'adm_rounds', id, CUR.code, changes.join('；') || '（無變更）');
+    showToast('✅ 梯次設定已儲存');
+    DIRTY = false;
+    const { data: fresh } = await sb.from('adm_rounds').select('*').eq('id', id).maybeSingle();
+    if (fresh) ROUNDS = ROUNDS.map(r => r.id === id ? fresh : r);
+    renderRoundSelect();
+    await loadRound(id);
+    renderRoundsPage();
+  } catch (e) {
+    console.error(e);
+    showToast('儲存失敗：' + (e.message || e), 'error');
+    btn.disabled = false; btn.textContent = '儲存梯次設定';
+  }
+}
+
+/* ── 新增 / 刪除梯次 ── */
+function openNewRound() {
+  if (DIRTY && !confirm('梯次設定有尚未儲存的修改，確定要放棄並新增梯次嗎？')) return;
+  document.getElementById('nr-code').value = '';
+  document.getElementById('nr-name').value = '';
+  document.getElementById('nr-msg').textContent = '';
+  const sel = document.getElementById('nr-from');
+  sel.innerHTML = '<option value="">（不複製，使用預設值）</option>' +
+    ROUNDS.map(r => `<option value="${r.id}">${esc(r.code)} · ${esc(r.name)}</option>`).join('');
+  sel.value = ROUNDS[0]?.id || '';
+  openModal('new-round-modal');
+  setTimeout(() => document.getElementById('nr-code').focus(), 50);
+}
+function previewNewRound() {
+  const p = parseRoundCode(document.getElementById('nr-code').value);
+  const msg = document.getElementById('nr-msg');
+  document.getElementById('nr-name').value = p ? p.name : '';
+  if (!p) { msg.innerHTML = '<span class="adm-bad">格式：三位數學年度-學期，例如 116-2（-1＝甄試入學，-2＝考試入學）</span>'; return; }
+  if (ROUNDS.some(r => r.code === document.getElementById('nr-code').value.trim())) { msg.innerHTML = '<span class="adm-bad">這個梯次已經存在</span>'; return; }
+  const same = ROUNDS.find(r => r.term === p.term);
+  if (same) document.getElementById('nr-from').value = same.id;
+  msg.textContent = '';
+}
+async function createRound() {
+  const code = document.getElementById('nr-code').value.trim();
+  const p = parseRoundCode(code);
+  if (!p) { previewNewRound(); return; }
+  if (ROUNDS.some(r => r.code === code)) { previewNewRound(); return; }
+  const fromId = document.getElementById('nr-from').value;
+  const copyCrit = document.getElementById('nr-copy-criteria').checked;
+  const copyRev = document.getElementById('nr-copy-reviewers').checked;
+  const btn = document.getElementById('nr-btn');
+  btn.disabled = true; btn.textContent = '建立中…';
+  try {
+    const src = ROUNDS.find(r => r.id === fromId);
+    const row = { code, academic_year: p.year, term: p.term, track: p.track, name: p.name };
+    if (src) Object.assign(row, {
+      pass_threshold: src.pass_threshold, weight_review: src.weight_review, weight_interview: src.weight_interview,
+      admit_quota: src.admit_quota, waitlist_max: src.waitlist_max, waitlist_min_score: src.waitlist_min_score,
+      decimals: src.decimals, spread_alert: src.spread_alert, near_counties: src.near_counties,
+      interview_settings: src.interview_settings, roster_mask_mode: src.roster_mask_mode,
+    });
+    const ins = await sb.from('adm_rounds').insert(row).select().single();
+    if (ins.error) throw ins.error;
+    const nr = ins.data;
+
+    let tie = [];
+    if (src && copyCrit) {
+      const { data: crits, error } = await sb.from('adm_criteria').select('*').eq('round_id', src.id);
+      if (error) throw error;
+      if (crits?.length) {
+        const r = await sb.from('adm_criteria').insert(crits.map(c => ({
+          round_id: nr.id, stage: c.stage, name: c.name, weight: c.weight, max_score: c.max_score, sort_order: c.sort_order, import_label: c.import_label,
+        }))).select();
+        if (r.error) throw r.error;
+        // 同分比序的項目 id 換成新梯次的 id（依階段＋名稱對應）
+        const map = {};
+        crits.forEach(o => { const n = r.data.find(x => x.stage === o.stage && x.name === o.name); if (n) map[o.id] = n.id; });
+        tie = (src.tie_breakers || []).map(k => k.startsWith('criterion:') ? (map[k.slice(10)] ? 'criterion:' + map[k.slice(10)] : null) : k).filter(Boolean);
+        if (tie.length) assertRows(await sb.from('adm_rounds').update({ tie_breakers: tie }).eq('id', nr.id).select('id'), 1, '複製同分比序');
+      }
+    }
+    if (src && copyRev) {
+      const { data: revs, error } = await sb.from('adm_reviewers').select('*').eq('round_id', src.id);
+      if (error) throw error;
+      if (revs?.length) {
+        assertRows(await sb.from('adm_reviewers').insert(revs.map(v => ({
+          round_id: nr.id, stage: v.stage, teacher_id: v.teacher_id, external_name: v.external_name, code: v.code, sort_order: v.sort_order,
+        }))).select('id'), revs.length, '複製委員');
+      }
+    }
+    await writeAuditLog('招生', '新增梯次', 'adm_rounds', nr.id, code, src ? `複製自 ${src.code}（評分項目：${copyCrit?'是':'否'}；委員：${copyRev?'是':'否'}）` : '使用預設值');
+    closeModal('new-round-modal');
+    showToast('✅ 已建立梯次 ' + code);
+    const { data: rounds } = await sb.from('adm_rounds').select('*').order('code', { ascending: false });
+    ROUNDS = rounds || [];
+    renderRoundSelect();
+    DIRTY = false;
+    await selectRound(nr.id, true);
+  } catch (e) {
+    console.error(e);
+    showToast('建立失敗：' + (e.message || e), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '建立';
+  }
+}
+
+async function deleteRound() {
+  if (!CUR || !canWrite()) return;
+  if (CUR.applicantCount > 0) { alert(`這個梯次已有 ${CUR.applicantCount} 位考生資料，不能刪除。`); return; }
+  if (CUR.review_locked_at || CUR.admission_locked_at) { alert('這個梯次已鎖定，不能刪除。'); return; }
+  if (!confirm(`確定刪除梯次 ${CUR.code}（${CUR.name}）？\n評分項目與委員設定會一併刪除。`)) return;
+  try { assertRows(await sb.from('adm_rounds').delete().eq('id', CUR.id).select('id'), 1, '刪除梯次'); }
+  catch (e) { showToast('刪除失敗：' + (e.message || e), 'error'); return; }
+  ROUNDS = ROUNDS.filter(r => r.id !== CUR.id);
+  await writeAuditLog('招生', '刪除梯次', 'adm_rounds', CUR.id, CUR.code, CUR.name);
+  showToast('已刪除梯次 ' + CUR.code);
+  CUR = null; DRAFT = null; DIRTY = false;
+  await loadBase();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   考生資料（第 3 批）
+   ════════════════════════════════════════════════════════════════ */
+
+// 報名系統欄名 → adm_applicants 欄位（欄名比對前會去掉空白、統一全半形括號）
+const APP_FIELD_MAP = {
+  '報名序號': 'reg_no', '考生編號': 'exam_no', '身分證性別': 'gender', '性別': 'gender', '出生年月日': 'birth_date',
+  '註冊信箱': 'email', '聯絡電話': 'phone', '手機號碼': 'mobile',
+  '通訊地址_郵遞區號': 'mail_zip', '通訊地址_詳細地址': 'mail_address',
+  '緊急聯絡人姓名': 'emergency_name', '與聯絡人關係': 'emergency_relation', '緊急聯絡人電話': 'emergency_phone',
+  '報考身份別': 'applicant_identity', '報考身分別': 'applicant_identity', '報考學歷': 'edu_qualification',
+  '教育程度': 'edu_level', '畢業年度': 'grad_year', '畢業月份': 'grad_month',
+  '學校名稱': 'school_name', '系所名稱': 'dept_name', '同等學歷(力)內容': 'equivalent_note',
+};
+const APP_META_MAP = { '姓': '_last', '名': '_first', '姓名': '_full', '考試狀態': '_exam_status', '繳費狀態': '_pay_status' };
+// 每次匯入會更新的欄位（研究類型、備註、手動修改的縣市與學校簡稱、到考與錄取結果都不會被覆蓋）
+const APP_IMPORT_COLS = ['reg_no','exam_no','name','gender','birth_date','email','phone','mobile','mail_zip','mail_address',
+  'emergency_name','emergency_relation','emergency_phone','applicant_identity','edu_qualification','edu_level',
+  'grad_year','grad_month','school_name','dept_name','equivalent_note'];
+const APP_COL_ZH = {
+  reg_no:'報名序號', exam_no:'考生編號', name:'姓名', gender:'性別', birth_date:'出生年月日', email:'註冊信箱', phone:'聯絡電話',
+  mobile:'手機號碼', mail_zip:'郵遞區號', mail_address:'通訊地址', emergency_name:'緊急聯絡人', emergency_relation:'關係',
+  emergency_phone:'緊急聯絡人電話', applicant_identity:'報考身份別', edu_qualification:'報考學歷', edu_level:'教育程度',
+  grad_year:'畢業年度', grad_month:'畢業月份', school_name:'學校名稱', school_short:'學校簡稱', dept_name:'系所名稱',
+  equivalent_note:'同等學歷（力）內容', county:'縣市', township:'鄉鎮市區', research_tag:'研究類型', review_note:'書審備註',
+  interview_note:'面試備註', background_override:'基本背景（手動）',
+};
+
+let APPS = [];          // 本梯次考生
+let APP_Q = '';         // 搜尋字
+let IMP = null;         // 匯入預覽
+let APP_EDIT = null;    // 編輯中的考生
+
+async function ensureXLSX() {
+  if (window.XLSX) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = res; s.onerror = () => rej(new Error('Excel 元件載入失敗，請確認網路'));
+    document.head.appendChild(s);
+  });
+}
+
+/* ── 小工具 ── */
+// 去掉空白與零寬字元（報名系統的「書面審查成績」欄名夾帶 U+200B），統一全半形括號
+function normHdr(h) { return String(h == null ? '' : h).replace(/[\s\u200B-\u200D\uFEFF]+/g, '').replace(/（/g, '(').replace(/）/g, ')'); }
+function cellStr(v) {
+  if (v == null) return '';
+  if (v instanceof Date) return toISODate(v);
+  return String(v).trim();
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
+function toISODate(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+// 出生年月日：Excel 日期、Excel 序號、1980/1/2、1980-01-02、19800102、民國 69/1/2、69.01.02
+function parseDateCell(v) {
+  if (v == null || v === '') return null;
+  if (v instanceof Date && !isNaN(v)) return toISODate(new Date(v.getTime() + 12 * 3600 * 1000)); // 避開時區造成的前一天
+  if (typeof v === 'number') {
+    if (v > 19000000 && v < 21001231) { const s = String(v); return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`; }
+    if (v > 1000 && v < 80000) { const d = new Date(Date.UTC(1899, 11, 30) + v * 864e5); return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`; }
+    return null;
+  }
+  const s = String(v).trim().replace(/[年月]/g, '/').replace(/日/g, '').replace(/[.\-]/g, '/');
+  let m = /^(\d{2,4})\/(\d{1,2})\/(\d{1,2})$/.exec(s);
+  if (!m && /^\d{8}$/.test(s)) m = [s, s.slice(0,4), s.slice(4,6), s.slice(6,8)];
+  if (!m && /^\d{7}$/.test(s)) m = [s, s.slice(0,3), s.slice(3,5), s.slice(5,7)];
+  if (!m) return null;
+  let y = Number(m[1]); if (y < 1911) y += 1911;
+  const mo = Number(m[2]), d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return `${y}-${pad2(mo)}-${pad2(d)}`;
+}
+// 電話：報名系統手機是 886912345678 / +886912345678 格式 → 0912345678；Excel 吃掉開頭 0 的也補回
+function phoneStr(v, mobile) {
+  if (v == null || v === '') return '';
+  let s = typeof v === 'number' ? String(Math.round(v)) : String(v).trim();
+  const digits = s.replace(/[^\d]/g, '');
+  if (/^886\d{8,9}$/.test(digits) && (s.startsWith('+') || s.startsWith('886') || typeof v === 'number')) s = '0' + digits.slice(3);
+  if (mobile && /^9\d{8}$/.test(s)) s = '0' + s;
+  return s;
+}
+function normGender(g) {
+  const s = String(g || '').trim();
+  if (/^(男|M|m|1)/.test(s)) return '男';
+  if (/^(女|F|f|2)/.test(s)) return '女';
+  return s;
+}
+function intOrNull(v) { const n = parseInt(String(v).replace(/[^\d]/g, ''), 10); return Number.isFinite(n) ? n : null; }
+
+// 郵遞區號前 3 碼 → 縣市（地址沒寫縣市時用，例如「西區…」「彰化市…」）
+const ZIP_COUNTY = [
+  [100,118,'臺北市'],[200,206,'基隆市'],[207,208,'新北市'],[209,212,'連江縣'],[220,253,'新北市'],[260,272,'宜蘭縣'],
+  [300,300,'新竹市'],[302,315,'新竹縣'],[320,338,'桃園市'],[350,369,'苗栗縣'],[400,439,'臺中市'],[500,530,'彰化縣'],
+  [540,558,'南投縣'],[600,600,'嘉義市'],[602,625,'嘉義縣'],[630,655,'雲林縣'],[700,745,'臺南市'],[800,852,'高雄市'],
+  [880,885,'澎湖縣'],[890,896,'金門縣'],[900,947,'屏東縣'],[950,966,'臺東縣'],[970,983,'花蓮縣'],
+];
+function countyFromZip(zip) {
+  const z = parseInt(String(zip || '').replace(/[^\d]/g, '').slice(0, 3), 10);
+  if (!Number.isFinite(z)) return null;
+  const hit = ZIP_COUNTY.find(([a, b]) => z >= a && z <= b);
+  return hit ? hit[2] : null;
+}
+// 通訊地址（＋郵遞區號）→ 縣市、鄉鎮市區
+function splitAddress(addr, zip) {
+  const a = String(addr || '').replace(/^\s*\d{3,6}\s*/, '').replace(/^台/, '臺').replace(/台(北|中|南|東)/g, '臺$1');
+  let county = COUNTIES.find(c => a.startsWith(c)) || null;
+  let rest = county ? a.slice(county.length) : a;
+  if (!county) county = countyFromZip(zip) || COUNTIES.find(c => a.slice(0, 8).includes(c)) || null;
+  if (county && !rest.length) rest = a;
+  let township = null;
+  const m = /^(.{1,3}?[鄉鎮市區])/.exec(rest);
+  if (m && county) township = m[1];
+  if (String(zip || '').startsWith('646')) township = '古坑鄉';   // 學校所在地
+  return { county, township };
+}
+function ageOf(app) {
+  const base = CUR.age_base_date || normalizeKeyDates(CUR.key_dates).apply_deadline;
+  if (!app.birth_date || !base) return null;
+  const days = (Date.parse(base) - Date.parse(app.birth_date)) / 864e5;
+  return Math.round(days / 365.25 * 10) / 10;
+}
+function autoBackground(app) {
+  const age = ageOf(app);
+  const school = app.school_short || app.school_name || '';
+  const dept = app.dept_name || '';
+  return `${normGender(app.gender)}(${age == null ? '?' : age})${app.edu_level || ''} ${school}${dept ? '-' + dept : ''}`.trim();
+}
+function backgroundOf(app) { return (app.background_override || '').trim() || autoBackground(app); }
+function placeOf(app) {
+  if (!app.county) return { cls: '', text: '未知' };
+  const gukeng = app.county === '雲林縣' && app.township === '古坑鄉';
+  if ((CUR.near_counties || []).includes(app.county)) return { cls: 'near', text: app.county + (gukeng ? '（古坑）' : '') };
+  return { cls: 'far', text: app.county + (gukeng ? '（古坑）' : '') };
+}
+function isEquivalent(app) { return /同等/.test(app.edu_qualification || ''); }
+
+/* ── 欄位排序（通用）：點表頭排序，再點一次反向；數字依大小、文字依中文筆順／編號自然排序 ──
+   用法：makeSortable(table, key) 在畫出表頭後呼叫；tbody 重畫後呼叫 applySort(table, key) */
+const SORT_STATE = {};
+function sortCellValue(td) {
+  if (!td) return '';
+  const v = td.dataset.sort != null ? td.dataset.sort : td.textContent.trim();
+  return v;
+}
+function applySort(table, key) {
+  const st = SORT_STATE[key]; if (!table) return;
+  const ths = [...table.querySelectorAll('thead th')];
+  ths.forEach((th, i) => {
+    if (!th.classList.contains('sortable')) return;
+    th.classList.toggle('sort-asc', !!st && st.i === i && st.dir === 1);
+    th.classList.toggle('sort-desc', !!st && st.i === i && st.dir === -1);
+    const ic = th.querySelector('.sort-icon'); if (ic) ic.textContent = (st && st.i === i) ? (st.dir === 1 ? '▲' : '▼') : '⇅';
+  });
+  if (!st) return;
+  const tb = table.querySelector('tbody'); if (!tb) return;
+  const rows = [...tb.querySelectorAll(':scope > tr')].filter(tr => tr.children.length > 1);
+  const num = v => (v !== '' && !isNaN(Number(v))) ? Number(v) : null;
+  rows.sort((a, b) => {
+    const x = sortCellValue(a.children[st.i]), y = sortCellValue(b.children[st.i]);
+    if (x === '' && y !== '') return 1;            // 空白永遠排最後
+    if (y === '' && x !== '') return -1;
+    const nx = num(x), ny = num(y);
+    const r = (nx != null && ny != null) ? nx - ny : String(x).localeCompare(String(y), 'zh-Hant-TW', { numeric: true });
+    return r * st.dir;
+  });
+  rows.forEach(tr => tb.appendChild(tr));
+}
+function makeSortable(table, key, skipCols) {
+  if (!table) return;
+  const skip = new Set(skipCols || []);
+  table.querySelectorAll('thead th').forEach((th, i) => {
+    if (skip.has(i) || !th.textContent.trim()) return;
+    th.classList.add('sortable');
+    if (!th.querySelector('.sort-icon')) th.insertAdjacentHTML('beforeend', ' <span class="sort-icon">⇅</span>');
+    th.addEventListener('click', () => {
+      const st = SORT_STATE[key];
+      SORT_STATE[key] = (st && st.i === i) ? { i, dir: -st.dir } : { i, dir: 1 };
+      applySort(table, key);
+    });
+  });
+  applySort(table, key);
+}
+
+/* ── 可拖拉欄寬（通用）：拖表頭右邊緣調整，雙擊恢復預設；寬度記在這台電腦的瀏覽器 ── */
+function makeResizable(table, key) {
+  if (!table) return;
+  let saved = {};
+  try { saved = JSON.parse(lsGet('adm-colw-' + key) || '{}') || {}; } catch (_) {}
+  const ths = [...table.querySelectorAll('thead th')];
+  const setW = (th, w) => { th.style.width = w + 'px'; th.style.minWidth = w + 'px'; };
+  ths.forEach((th, i) => {
+    th.classList.add('adm-rs');
+    if (saved[i]) setW(th, saved[i]);
+    const h = document.createElement('div');
+    h.className = 'adm-rs-h'; h.title = '拖拉調整欄寬，雙擊恢復';
+    h.addEventListener('click', e => e.stopPropagation());
+    h.addEventListener('dblclick', e => {
+      e.stopPropagation(); th.style.width = ''; th.style.minWidth = '';
+      delete saved[i]; lsSet('adm-colw-' + key, JSON.stringify(saved));
+    });
+    h.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      const x0 = e.clientX, w0 = th.getBoundingClientRect().width;
+      h.classList.add('on');
+      const move = ev => setW(th, Math.max(40, Math.round(w0 + ev.clientX - x0)));
+      const up = () => {
+        document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+        h.classList.remove('on');
+        saved[i] = Math.round(th.getBoundingClientRect().width);
+        lsSet('adm-colw-' + key, JSON.stringify(saved));
+      };
+      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+    });
+    th.appendChild(h);
+  });
+}
+
+/* ── 載入與列表 ── */
+async function loadApplicants() {
+  const { data, error } = await sb.from('adm_applicants').select('*').eq('round_id', CUR.id).order('exam_no');
+  if (error) { showToast('讀取考生失敗：' + error.message, 'error'); APPS = []; return; }
+  APPS = data || [];
+}
+
+async function renderApplicantsPage() {
+  const c = document.getElementById('content');
+  if (!CUR) { c.innerHTML = '<div class="adm-placeholder">請先在「梯次設定」建立梯次。</div>'; return; }
+  c.innerHTML = '<div class="adm-placeholder">讀取中…</div>';
+  await loadApplicants();
+  drawApplicants();
+}
+
+function drawApplicants() {
+  const c = document.getElementById('content');
+  const q = APP_Q.trim().toLowerCase();
+  const list = APPS.filter(a => !q || [a.exam_no, a.name, a.school_name, a.dept_name, a.county, a.research_tag, a.mobile]
+    .some(x => String(x || '').toLowerCase().includes(q)));
+  const n = APPS.length;
+  const cnt = (f) => APPS.filter(f).length;
+  const edu = {}; APPS.forEach(a => { const k = a.edu_level || '未填'; edu[k] = (edu[k] || 0) + 1; });
+  const near = cnt(a => placeOf(a).cls === 'near'), far = cnt(a => placeOf(a).cls === 'far');
+  c.innerHTML = `
+  <div class="page-hdr">
+    <div class="page-title">考生資料 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
+    <button class="btn btn-pri adm-write" onclick="openImport()">⬆ 匯入報名系統 Excel</button>
+    <button class="btn btn-sec" onclick="exportApplicants()" ${n ? '' : 'disabled'}>⬇ 匯出 Excel</button>
+  </div>
+  <div class="adm-stats">
+    <div class="adm-stat"><b>${n}</b>位考生</div>
+    <div class="adm-stat"><b>${cnt(a => normGender(a.gender) === '男')}</b>男 <b>${cnt(a => normGender(a.gender) === '女')}</b>女</div>
+    <div class="adm-stat">${Object.entries(edu).map(([k, v]) => `<b>${v}</b>${esc(k)}`).join(' ') || '—'}</div>
+    <div class="adm-stat"><b>${near}</b>雲林附近 <b>${far}</b>遠地${n - near - far ? ` <b>${n - near - far}</b>未知` : ''}</div>
+    <div class="adm-stat"><b>${cnt(isEquivalent)}</b>同等學力</div>
+  </div>
+  <div class="toolbar">
+    <input class="search" placeholder="搜尋編號、姓名、學校、縣市、研究類型…" value="${esc(APP_Q)}" oninput="APP_Q=this.value;drawApplicantRows()">
+    <span class="adm-hint" id="app-count"></span>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>考生編號</th><th>姓名</th><th>性別</th><th>年齡</th><th>書審備註（基本背景）</th><th>居住地</th><th>研究類型</th><th>手機</th><th>Email</th></tr></thead>
+    <tbody id="app-rows"></tbody>
+  </table></div>
+  ${n ? '' : '<div class="adm-placeholder" style="margin-top:12px">尚未匯入考生資料。請按「匯入報名系統 Excel」。</div>'}
+  <div class="adm-hint" style="margin-top:6px">點表頭可以排序（再點一次反向）；拖拉表頭欄位的右邊緣可以調整欄寬，雙擊邊緣恢復預設。</div>`;
+  makeResizable(c.querySelector('.tbl-wrap table'), 'applicants');
+  makeSortable(c.querySelector('.tbl-wrap table'), 'applicants');
+  drawApplicantRows();
+}
+function drawApplicantRows() {
+  const tb = document.getElementById('app-rows'); if (!tb) return;
+  const q = APP_Q.trim().toLowerCase();
+  const list = APPS.filter(a => !q || [a.exam_no, a.name, a.school_name, a.dept_name, a.county, a.research_tag, a.mobile]
+    .some(x => String(x || '').toLowerCase().includes(q)));
+  tb.innerHTML = list.map(a => {
+    const p = placeOf(a);
+    return `<tr class="adm-click" onclick="openApplicant('${a.id}')">
+      <td class="mono" style="white-space:nowrap">${esc(a.exam_no)}</td><td style="white-space:nowrap;min-width:72px">${esc(a.name)}</td><td style="white-space:nowrap">${esc(normGender(a.gender))}</td>
+      <td style="white-space:nowrap" data-sort="${ageOf(a) ?? ''}">${ageOf(a) ?? ''}</td>
+      <td>${esc(backgroundOf(a))}${isEquivalent(a) ? ' <span class="adm-tag far">同等學力</span>' : ''}${a.background_override ? ' <span class="adm-tag">手動</span>' : ''}</td>
+      <td data-sort="${esc(p.text)}"><span class="adm-tag ${p.cls}">${esc(p.text)}</span></td>
+      <td>${esc(a.research_tag || '')}</td><td style="white-space:nowrap">${esc(a.mobile || '')}</td><td style="font-size:12px">${esc(a.email || '')}</td>
+    </tr>`;
+  }).join('');
+  applySort(tb.closest('table'), 'applicants');
+  const el = document.getElementById('app-count');
+  if (el) el.textContent = q ? `符合 ${list.length} / ${APPS.length} 位` : '';
+}
+
+/* ── 匯入 ── */
+function openImport() {
+  if (!canWrite()) return;
+  IMP = null;
+  document.getElementById('imp-btn').disabled = true;
+  document.getElementById('imp-foot-msg').textContent = '';
+  document.getElementById('imp-body').innerHTML = `
+    <div class="adm-drop" id="imp-drop" onclick="document.getElementById('imp-file').click()">
+      <div style="font-size:28px">📄</div>
+      <div style="margin-top:6px">點這裡選擇檔案，或把報名系統匯出的 Excel 拖進來</div>
+      <div class="adm-hint">只會匯入「提交報名表＋已繳書審費」的考生；只取號、暫存報名表會自動略過。身分證字號、戶籍地址不會讀取。</div>
+    </div>
+    <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="if(this.files[0])parseImportFile(this.files[0])">
+    <div id="imp-preview"></div>`;
+  const drop = document.getElementById('imp-drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) parseImportFile(f); });
+  openModal('imp-modal');
+}
+
+function findHeaderRow(rows) {
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    if ((rows[i] || []).some(h => normHdr(h) === '考生編號')) return i;
+  }
+  return -1;
+}
+
+// 把工作表的列轉成考生資料，並分類（純函式，方便測試）
+function classifyImportRows(rows) {
+  const hi = findHeaderRow(rows);
+  if (hi < 0) return { fatal: '找不到「考生編號」欄位，請確認是報名系統匯出的檔案。' };
+  const hdr = rows[hi].map(normHdr);
+  const col = {}, meta = {}, unknown = [];
+  hdr.forEach((h, i) => {
+    if (!h) return;
+    if (APP_FIELD_MAP[h] && col[APP_FIELD_MAP[h]] == null) col[APP_FIELD_MAP[h]] = i;
+    else if (APP_META_MAP[h] && meta[APP_META_MAP[h]] == null) meta[APP_META_MAP[h]] = i;
+    else unknown.push(h);
+  });
+  if (meta._last == null && meta._first == null && meta._full == null) return { fatal: '找不到「姓」「名」或「姓名」欄位。' };
+  const out = { ok: [], pending: [], take_no: [], draft: [], error: [], unknown, headerRow: hi + 1 };
+  const seen = {};
+  for (let r = hi + 1; r < rows.length; r++) {
+    const row = rows[r] || [];
+    if (!row.some(v => cellStr(v) !== '')) continue;
+    const get = k => (col[k] == null ? '' : row[col[k]]);
+    const name = meta._full != null ? cellStr(row[meta._full])
+      : (cellStr(meta._last != null ? row[meta._last] : '') + cellStr(meta._first != null ? row[meta._first] : ''));
+    const rec = {
+      reg_no: cellStr(get('reg_no')) || null,
+      exam_no: cellStr(get('exam_no')).toUpperCase() || null,
+      name,
+      gender: normGender(cellStr(get('gender'))) || null,
+      birth_date: parseDateCell(get('birth_date')),
+      email: cellStr(get('email')) || null,
+      phone: phoneStr(get('phone'), false) || null,
+      mobile: phoneStr(get('mobile'), true) || null,
+      mail_zip: cellStr(get('mail_zip')) || null,
+      mail_address: cellStr(get('mail_address')) || null,
+      emergency_name: cellStr(get('emergency_name')) || null,
+      emergency_relation: cellStr(get('emergency_relation')) || null,
+      emergency_phone: phoneStr(get('emergency_phone'), true) || null,
+      applicant_identity: cellStr(get('applicant_identity')) || null,
+      edu_qualification: cellStr(get('edu_qualification')) || null,
+      edu_level: cellStr(get('edu_level')) || null,
+      grad_year: intOrNull(get('grad_year')),
+      grad_month: intOrNull(get('grad_month')),
+      school_name: cellStr(get('school_name')) || null,
+      dept_name: cellStr(get('dept_name')) || null,
+      equivalent_note: cellStr(get('equivalent_note')) || null,
+    };
+    const exam = meta._exam_status != null ? cellStr(row[meta._exam_status]) : '';
+    const pay = meta._pay_status != null ? cellStr(row[meta._pay_status]) : '';
+    const item = { row: r + 1, rec, exam, pay, problems: [] };
+    if (!rec.reg_no && !rec.exam_no) { out.take_no.push(item); continue; }
+    if (exam === '暫存報名表' && !pay) { out.draft.push(item); continue; }
+    if (!rec.exam_no) { item.problems.push('沒有考生編號'); out.error.push(item); continue; }
+    if (!rec.name) { item.problems.push('沒有姓名'); out.error.push(item); continue; }
+    if (seen[rec.exam_no]) { item.problems.push(`考生編號與第 ${seen[rec.exam_no]} 列重複`); out.error.push(item); continue; }
+    seen[rec.exam_no] = r + 1;
+    if (get('birth_date') !== '' && !rec.birth_date) item.problems.push('出生年月日無法辨識');
+    if (exam === '提交報名表' && pay === '已繳書審費') out.ok.push(item);
+    else out.pending.push(item);
+  }
+  return out;
+}
+
+async function parseImportFile(file) {
+  const box = document.getElementById('imp-preview');
+  box.innerHTML = '<div class="adm-hint" style="margin-top:12px">讀取中…</div>';
+  try {
+    await ensureXLSX();
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    let res = null, sheetName = '';
+    for (const sn of wb.SheetNames) {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: '' });
+      if (findHeaderRow(rows) >= 0) { res = classifyImportRows(rows); sheetName = sn; break; }
+    }
+    if (!res) res = { fatal: '檔案裡找不到「考生編號」欄位，請確認是報名系統匯出的檔案。' };
+    if (res.fatal) { box.innerHTML = `<div class="adm-warn" style="margin-top:12px">${esc(res.fatal)}</div>`; return; }
+
+    await loadApplicants();
+    const byNo = Object.fromEntries(APPS.map(a => [a.exam_no, a]));
+    [...res.ok, ...res.pending].forEach(it => {
+      const old = byNo[it.rec.exam_no];
+      if (!old) { it.action = 'new'; return; }
+      it.changed = APP_IMPORT_COLS.filter(k => String(old[k] ?? '') !== String(it.rec[k] ?? ''));
+      it.diff = it.changed.map(k => ({ k, from: old[k] ?? '', to: it.rec[k] ?? '' }));
+      it.pick = Object.fromEntries(it.changed.map(k => [k, true]));   // 每欄預設用新值
+      it.action = it.changed.length ? 'update' : 'same';
+    });
+    const cand = [...res.ok, ...res.pending];
+    const inFile = new Set(cand.map(it => it.rec.exam_no));
+    res.missing = APPS.filter(a => !inFile.has(a.exam_no));
+    res.file = file.name; res.sheet = sheetName;
+    // 可能是同一人：姓名＋出生年月日相同、考生編號不同（檔案內或系統內）。同年同日生也有可能，只提醒不阻擋
+    const keyOf = (name, birth) => (name && birth) ? String(name).replace(/\s+/g, '') + '|' + birth : null;
+    const pool = {};
+    APPS.forEach(a => { const k = keyOf(a.name, a.birth_date); if (k) (pool[k] = pool[k] || []).push({ exam_no: a.exam_no, where: '系統內' }); });
+    cand.forEach(it => { const k = keyOf(it.rec.name, it.rec.birth_date); if (k) (pool[k] = pool[k] || []).push({ exam_no: it.rec.exam_no, where: '檔案內' }); });
+    cand.forEach(it => {
+      const k = keyOf(it.rec.name, it.rec.birth_date);
+      const others = k ? pool[k].filter(o => o.exam_no !== it.rec.exam_no) : [];
+      it.dupWith = [...new Map(others.map(o => [o.exam_no, o])).values()];
+    });
+    // 預設勾選：新增且沒有重複疑慮 → 勾；更新 → 由承辦人看過差異再勾；狀態待確認 → 不勾
+    res.ok.forEach(it => { it.checked = it.action === 'new' && !it.dupWith.length; });
+    res.pending.forEach(it => { it.checked = false; });
+    IMP = res;
+    drawImportPreview();
+  } catch (e) {
+    console.error(e);
+    box.innerHTML = `<div class="adm-warn" style="margin-top:12px">讀取失敗：${esc(e.message || e)}</div>`;
+  }
+}
+
+function drawImportPreview() {
+  const r = IMP, box = document.getElementById('imp-preview');
+  const cand = [...r.ok, ...r.pending];
+  const actTag = it => it.action === 'new' ? '<span class="adm-tag new">新增</span>'
+    : it.action === 'update' ? `<span class="adm-tag far" title="${esc(it.changed.map(k => APP_COL_ZH[k]).join('、'))}">更新 ${it.changed.length} 欄</span>`
+    : '<span class="adm-tag">無變更</span>';
+  const row = (it, i, pending) => `<tr>
+      <td><input type="checkbox" ${it.checked ? 'checked' : ''} ${it.action === 'same' ? 'disabled' : ''} onchange="IMP.${pending ? 'pending' : 'ok'}[${i}].checked=this.checked;drawImportPreview()"></td>
+      <td class="mono">${esc(it.rec.exam_no)}</td><td>${esc(it.rec.name)}</td>
+      <td>${esc(it.exam || '—')}</td><td>${esc(it.pay || '—')}</td>
+      <td>${actTag(it)}${it.action === 'update' ? `<div class="adm-hint" style="${it.checked ? '' : 'opacity:.55'}">${it.diff.map(x => `<label style="display:block;cursor:pointer">
+          <input type="checkbox" ${it.pick[x.k] ? 'checked' : ''} ${it.checked ? '' : 'disabled'} onchange="IMP.${pending ? 'pending' : 'ok'}[${i}].pick['${x.k}']=this.checked;drawImportPreview()">
+          ${esc(APP_COL_ZH[x.k])}：<s>${esc(x.from) || '（空白）'}</s> → <b>${esc(x.to) || '（空白）'}</b>
+          <span style="color:${it.pick[x.k] ? 'var(--green)' : 'var(--ink3)'}">${it.pick[x.k] ? '用新值' : '保留舊值'}</span></label>`).join('')}</div>` : ''}</td>
+      <td>${it.problems.length ? `<span class="adm-tag err">${esc(it.problems.join('；'))}</span> ` : ''}${it.dupWith.length ? `<span class="adm-tag err">可能重複</span><div class="adm-hint">與 ${it.dupWith.map(o => esc(o.exam_no) + '（' + o.where + '）').join('、')} 姓名、生日相同，請確認是否同一人</div>` : ''}</td>
+    </tr>`;
+  const skipList = (arr, title) => arr.length ? `<details class="adm-skip"><summary>${title}（${arr.length} 列）</summary>
+      <div class="adm-hint">${arr.map(it => `第 ${it.row} 列 ${esc(it.rec.exam_no || it.rec.reg_no || '')} ${esc(it.rec.name || '')}${it.problems.length ? '：' + esc(it.problems.join('；')) : ''}`).join('<br>')}</div></details>` : '';
+  box.innerHTML = `
+    <div class="adm-hint" style="margin-top:10px">檔案：${esc(r.file)} 工作表：${esc(r.sheet)} 標題在第 ${r.headerRow} 列</div>
+    <div class="adm-imp-sum">
+      <span>可匯入 <b>${r.ok.length}</b></span>
+      <span>新增 <b>${cand.filter(i => i.action === 'new').length}</b></span>
+      <span>更新 <b>${cand.filter(i => i.action === 'update').length}</b></span>
+      <span>無變更 <b>${cand.filter(i => i.action === 'same').length}</b></span>
+      <span>狀態待確認 <b>${r.pending.length}</b></span>
+      ${cand.some(i => i.dupWith.length) ? `<span style="background:#FEE;border-color:#FCC">可能重複 <b style="color:var(--red)">${cand.filter(i => i.dupWith.length).length}</b></span>` : ''}
+      <span>略過：只取號 <b>${r.take_no.length}</b>、暫存報名表 <b>${r.draft.length}</b></span>
+      ${r.error.length ? `<span style="background:#FEE;border-color:#FCC">有問題 <b style="color:var(--red)">${r.error.length}</b></span>` : ''}
+    </div>
+    ${cand.some(i => i.action === 'update') ? `<div class="adm-warn">有 ${cand.filter(i => i.action === 'update').length} 位已匯入的考生資料不同，預設不更新。勾選考生後，可再逐欄決定「用新值」或「保留舊值」（預設用新值）。
+      <button class="btn btn-sm btn-sec" style="margin-left:8px" onclick="checkAllUpdates(true)">勾選全部更新</button>
+      <button class="btn btn-sm btn-sec" onclick="checkAllUpdates(false)">取消全部更新</button></div>` : ''}
+    ${cand.some(i => i.dupWith.length) ? '<div class="adm-warn">標示「可能重複」的考生，姓名與出生年月日和另一個考生編號相同，可能是同一人重複報名，也可能只是同名同生日。預設不勾選，請確認後再決定。</div>' : ''}
+    ${r.pending.length ? '<div class="adm-warn">「狀態待確認」的考生不是「提交報名表＋已繳書審費」，預設不匯入；確認可以匯入的請自行勾選。</div>' : ''}
+    <div class="tbl-wrap adm-mini" style="max-height:46vh"><table>
+      <thead><tr><th style="width:36px"></th><th>考生編號</th><th>姓名</th><th>考試狀態</th><th>繳費狀態</th><th>動作</th><th>提醒</th></tr></thead>
+      <tbody>
+        ${r.ok.map((it, i) => row(it, i, false)).join('')}
+        ${r.pending.length ? `<tr><td colspan="7" style="background:var(--cr3);font-weight:500">狀態待確認</td></tr>` + r.pending.map((it, i) => row(it, i, true)).join('') : ''}
+      </tbody>
+    </table></div>
+    ${skipList(r.error, '有問題、不會匯入')}
+    ${skipList(r.take_no, '只取號，略過')}
+    ${skipList(r.draft, '暫存報名表，略過')}
+    ${r.missing.length ? `<details class="adm-skip"><summary>系統裡有、但這次檔案沒有的考生（${r.missing.length} 位，不會刪除）</summary>
+      <div class="adm-hint">${r.missing.map(a => esc(a.exam_no + ' ' + a.name)).join('、')}</div></details>` : ''}
+    ${r.unknown.length ? `<details class="adm-skip"><summary>不讀取的欄位（${r.unknown.length} 個）</summary><div class="adm-hint">${r.unknown.map(esc).join('、')}</div></details>` : ''}`;
+  makeSortable(box.querySelector('.tbl-wrap table'), 'import', [0]);
+  updateImportFoot();
+}
+function checkAllUpdates(on) {
+  [...IMP.ok, ...IMP.pending].forEach(it => { if (it.action === 'update') it.checked = on; });
+  drawImportPreview();
+}
+function importSelection() {
+  return IMP ? [...IMP.ok, ...IMP.pending].filter(it => it.checked && it.action !== 'same'
+    && (it.action !== 'update' || Object.values(it.pick).some(Boolean))) : [];
+}
+function updateImportFoot() {
+  const sel = importSelection();
+  document.getElementById('imp-btn').disabled = !sel.length;
+  document.getElementById('imp-foot-msg').textContent = sel.length ? `將寫入 ${sel.length} 位考生（新增 ${sel.filter(i => i.action === 'new').length}、更新 ${sel.filter(i => i.action === 'update').length}）` : '沒有需要寫入的資料';
+}
+
+async function confirmImport() {
+  const sel = importSelection();
+  if (!sel.length || !canWrite()) return;
+  const btn = document.getElementById('imp-btn');
+  btn.disabled = true; btn.textContent = '匯入中…';
+  try {
+    const byNo = Object.fromEntries(APPS.map(a => [a.exam_no, a]));
+    const now = new Date().toISOString();
+    const payload = sel.map(it => {
+      const old = byNo[it.rec.exam_no] || {};
+      const addr = splitAddress(it.rec.mail_address, it.rec.mail_zip);
+      const rec = { ...it.rec };
+      if (it.action === 'update') it.changed.forEach(k => { if (!it.pick[k]) rec[k] = old[k] ?? null; });   // 逐欄保留舊值
+      return {
+        round_id: CUR.id, ...rec,
+        // 縣市、鄉鎮：已有值（可能手動改過）就保留，沒有才用地址判斷
+        county: old.county || addr.county, township: old.township || addr.township,
+        imported_at: now,
+      };
+    });
+    for (let i = 0; i < payload.length; i += 200) {
+      const chunk = payload.slice(i, i + 200);
+      assertRows(await sb.from('adm_applicants').upsert(chunk, { onConflict: 'round_id,exam_no' }).select('id'), chunk.length, '寫入考生資料');
+    }
+    const nNew = sel.filter(i => i.action === 'new').length, nUpd = sel.length - nNew;
+    const updDetail = sel.filter(i => i.action === 'update').map(i => `${i.rec.exam_no}（${i.changed.filter(k => i.pick[k]).map(k => APP_COL_ZH[k]).join('、')}）`).join('；');
+    await writeAuditLog('招生', '匯入考生資料', 'adm_applicants', CUR.id, CUR.code,
+      `檔案 ${IMP.file}：新增 ${nNew}、更新 ${nUpd}${updDetail ? '（' + updDetail + '）' : ''}；略過 只取號 ${IMP.take_no.length}、暫存 ${IMP.draft.length}、有問題 ${IMP.error.length}`);
+    closeModal('imp-modal');
+    showToast(`✅ 已匯入：新增 ${nNew}、更新 ${nUpd}`);
+    await loadRound(CUR.id);
+    await renderApplicantsPage();
+  } catch (e) {
+    console.error(e);
+    showToast('匯入失敗：' + (e.message || e), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '確認匯入';
+  }
+}
+
+/* ── 編輯考生 ── */
+function openApplicant(id) {
+  const a = APPS.find(x => x.id === id); if (!a) return;
+  APP_EDIT = { ...a };
+  const ro = !canWrite(), dis = ro ? 'disabled' : '';
+  const f = (k, type) => `<div class="frow"><label class="flabel">${esc(APP_COL_ZH[k] || k)}</label>
+    <input class="finput" ${type ? `type="${type}"` : ''} ${dis} value="${esc(a[k] ?? '')}" oninput="APP_EDIT['${k}']=this.value;refreshBgPreview()"></div>`;
+  document.getElementById('app-modal-title').textContent = `${a.exam_no} ${a.name}`;
+  const nScores = CUR.scoresByApplicant[a.id] || 0;
+  document.getElementById('app-del-btn').style.display = (ro || nScores) ? 'none' : '';
+  document.getElementById('app-body').innerHTML = `
+    <div class="adm-card" style="box-shadow:none"><div class="adm-card-hdr"><div class="adm-card-title">書審備註（基本背景）</div></div>
+      <div class="adm-card-body">
+        <div style="font-size:15px;font-weight:500" id="bg-preview"></div>
+        <div class="adm-hint">格式：性別(年齡)學歷 學校-科系。年齡以 ${esc(CUR.age_base_date || '報名截止日')} 計算。可以改「學校簡稱」，或直接在下方覆寫整段文字。</div>
+        <div class="frow-2" style="margin-top:10px">
+          ${f('school_short')}
+          <div class="frow"><label class="flabel">基本背景（手動覆寫，空白＝自動）</label>
+            <input class="finput" ${dis} value="${esc(a.background_override ?? '')}" oninput="APP_EDIT.background_override=this.value;refreshBgPreview()"></div>
+        </div>
+      </div></div>
+    <div class="adm-grid" style="grid-template-columns:repeat(3,1fr)">
+      ${f('name')}${f('gender')}${f('birth_date', 'date')}
+      ${f('edu_level')}${f('school_name')}${f('dept_name')}
+      <div class="frow"><label class="flabel">縣市</label><select class="fselect" ${dis} onchange="APP_EDIT.county=this.value||null;refreshBgPreview()">
+        <option value="">（未知）</option>${COUNTIES.map(n => `<option ${a.county === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+      ${f('township')}${f('research_tag')}
+      ${f('mobile')}${f('phone')}${f('email')}
+    </div>
+    <div class="frow" style="margin-top:12px">${f('mail_address').replace('<div class="frow">', '').replace(/<\/div>$/, '')}</div>
+    <div class="adm-grid" style="grid-template-columns:repeat(3,1fr)">${f('emergency_name')}${f('emergency_relation')}${f('emergency_phone')}</div>
+    <div class="frow" style="margin-top:12px"><label class="flabel">書審備註（委員或承辦人加註，例如：社區服務、幸福企業）</label>
+      <textarea class="finput" rows="2" ${dis} oninput="APP_EDIT.review_note=this.value">${esc(a.review_note || '')}</textarea></div>
+    <div class="adm-hint">報考身份別：${esc(a.applicant_identity || '—')} 報考學歷：${esc(a.edu_qualification || '—')}${a.equivalent_note ? '（' + esc(a.equivalent_note) + '）' : ''} 畢業：${esc(a.grad_year || '')}${a.grad_month ? '/' + esc(a.grad_month) : ''} 報名序號：${esc(a.reg_no || '—')}
+      ${nScores ? `<br>已有 ${nScores} 筆分數，不能刪除。` : ''}</div>`;
+  refreshBgPreview();
+  openModal('app-modal');
+}
+function refreshBgPreview() {
+  const el = document.getElementById('bg-preview'); if (el && APP_EDIT) el.textContent = backgroundOf(APP_EDIT);
+}
+async function saveApplicant() {
+  if (!APP_EDIT || !canWrite()) return;
+  const old = APPS.find(a => a.id === APP_EDIT.id);
+  const keys = ['name','gender','birth_date','edu_level','school_name','school_short','dept_name','county','township','research_tag',
+                'mobile','phone','email','mail_address','emergency_name','emergency_relation','emergency_phone','review_note','background_override'];
+  const patch = {}, changed = [];
+  keys.forEach(k => {
+    let v = APP_EDIT[k]; if (typeof v === 'string') v = v.trim(); if (v === '') v = null;
+    if ((old[k] ?? null) !== v) { patch[k] = v; changed.push(APP_COL_ZH[k] || k); }
+  });
+  if (!changed.length) { closeModal('app-modal'); return; }
+  if (!patch.name && 'name' in patch) { alert('姓名不可空白'); return; }
+  try { assertRows(await sb.from('adm_applicants').update(patch).eq('id', old.id).select('id'), 1, '儲存考生資料'); }
+  catch (e) { showToast('儲存失敗：' + (e.message || e), 'error'); return; }
+  Object.assign(old, patch);   // 同步快取
+  await writeAuditLog('招生', '修改考生資料', 'adm_applicants', old.id, `${old.exam_no} ${old.name}`, '修改：' + changed.join('、'));
+  showToast('✅ 已儲存');
+  closeModal('app-modal');
+  await loadApplicants(); drawApplicants();
+}
+async function deleteApplicant() {
+  const a = APPS.find(x => x.id === APP_EDIT?.id); if (!a || !canWrite()) return;
+  if (CUR.scoresByApplicant[a.id]) { alert('這位考生已有分數，不能刪除。'); return; }
+  if (!confirm(`確定刪除考生 ${a.exam_no} ${a.name}？`)) return;
+  try { assertRows(await sb.from('adm_applicants').delete().eq('id', a.id).select('id'), 1, '刪除考生'); }
+  catch (e) { showToast('刪除失敗：' + (e.message || e), 'error'); return; }
+  APPS = APPS.filter(x => x.id !== a.id);   // 同步快取
+  await writeAuditLog('招生', '刪除考生', 'adm_applicants', a.id, `${a.exam_no} ${a.name}`, '');
+  showToast('已刪除');
+  closeModal('app-modal');
+  await loadRound(CUR.id); await renderApplicantsPage();
+}
+
+/* ── 匯出 ── */
+async function exportApplicants() {
+  try {
+    await ensureXLSX();
+    const rows = APPS.map(a => ({
+      '考生編號': a.exam_no, '姓名': a.name, '性別': normGender(a.gender), '出生年月日': a.birth_date || '', '年齡': ageOf(a) ?? '',
+      '教育程度': a.edu_level || '', '學校名稱': a.school_name || '', '學校簡稱': a.school_short || '', '系所名稱': a.dept_name || '',
+      '報考學歷': a.edu_qualification || '', '同等學歷（力）內容': a.equivalent_note || '',
+      '書審備註（基本背景）': backgroundOf(a), '縣市': a.county || '', '鄉鎮市區': a.township || '', '遠近': placeOf(a).cls === 'near' ? '雲林附近' : placeOf(a).cls === 'far' ? '遠地' : '',
+      '研究類型': a.research_tag || '', '書審備註': a.review_note || '',
+      '手機號碼': a.mobile || '', '聯絡電話': a.phone || '', '註冊信箱': a.email || '', '通訊地址': a.mail_address || '',
+      '緊急聯絡人': a.emergency_name || '', '關係': a.emergency_relation || '', '緊急聯絡人電話': a.emergency_phone || '',
+      '報名序號': a.reg_no || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = Object.keys(rows[0] || {}).map(k => ({ wch: Math.max(8, Math.min(40, k.length * 2 + 2)) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '考生資料');
+    XLSX.writeFile(wb, `${CUR.code}_考生資料.xlsx`);
+    await writeAuditLog('招生', '匯出考生資料', 'adm_applicants', CUR.id, CUR.code, `${rows.length} 位`);
+  } catch (e) { showToast('匯出失敗：' + (e.message || e), 'error'); }
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   評分表與範本（第 4 批）：書審評分用表（列印 / 存 PDF）、委員 Excel 範本
+   ════════════════════════════════════════════════════════════════ */
+function stageCriteria(st) { return (CUR.criteria || []).filter(c => c.stage === st).sort((a, b) => a.sort_order - b.sort_order); }
+function stageReviewers(st) { return (CUR.reviewers || []).filter(v => v.stage === st).sort((a, b) => a.sort_order - b.sort_order); }
+function wPct(w) { return Number(w).toString(); }
+function formTitle() { return `${CUR.academic_year} 學年度佛法應用研究所 ${CUR.track} 第一階段書審`; }
+
+async function renderReviewFormsPage() {
+  const c = document.getElementById('content');
+  if (!CUR) { c.innerHTML = '<div class="adm-placeholder">請先在「梯次設定」建立梯次。</div>'; return; }
+  c.innerHTML = '<div class="adm-placeholder">讀取中…</div>';
+  await loadApplicants();
+  const crit = stageCriteria('review'), revs = stageReviewers('review');
+  const problems = [];
+  if (!APPS.length) problems.push('尚未匯入考生資料');
+  if (!crit.length) problems.push('尚未設定書審評分項目');
+  if (!revs.length) problems.push('尚未設定書審委員');
+  const ok = !problems.length;
+  c.innerHTML = `
+  <div class="page-hdr">
+    <div class="page-title">評分表與範本 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
+  </div>
+  ${ok ? '' : `<div class="adm-warn">無法產生：${problems.map(esc).join('、')}。</div>`}
+  <div class="adm-card">
+    <div class="adm-card-hdr"><div class="adm-card-title">書審委員</div>
+      <span class="adm-hint">考生 ${APPS.length} 位；評分項目：${crit.map(x => esc(x.name) + ' ' + wPct(x.weight) + '%').join('、') || '—'}</span></div>
+    <div class="adm-card-body adm-mini">
+      <div class="toolbar">
+        <button class="btn btn-pri" ${ok ? '' : 'disabled'} onclick="printReviewForms()">🖨 列印全部委員的評分用表</button>
+        <button class="btn btn-sec" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel()">⬇ 評分用表 Excel（全部委員）</button>
+        <button class="btn btn-gold" ${ok ? '' : 'disabled'} onclick="downloadReviewTemplate()">⬇ 下載 Excel 範本（一個檔、每位委員一個工作表）</button>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th style="width:70px">代號</th><th>委員</th><th>評分用表（空白，手寫用）</th><th>Excel 範本（電子評分用）</th></tr></thead>
+        <tbody>${revs.map(v => `<tr>
+          <td>${esc(v.code || '')}</td><td>${esc(reviewerName(v))}</td>
+          <td><button class="btn btn-sm btn-edit" ${ok ? '' : 'disabled'} onclick="printReviewForms('${v.id}')">🖨 列印 / 存 PDF</button>
+              <button class="btn btn-sm btn-sec" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel('${v.id}')">⬇ Excel</button></td>
+          <td><button class="btn btn-sm btn-copy" ${ok ? '' : 'disabled'} onclick="downloadReviewTemplate('${v.id}')">⬇ 下載</button></td>
+        </tr>`).join('') || '<tr><td colspan="4" style="color:var(--ink3)">尚未設定</td></tr>'}</tbody>
+      </table></div>
+      <div class="adm-hint" style="margin-top:8px">
+        ・評分用表：每位委員一份，表頭印委員姓名，A4 橫向；在列印視窗選「另存為 PDF」即可存檔，也可以下載 Excel（已設定 A4 橫印、一頁寬、每頁重複表頭）。<br>
+        ・Excel 範本：考生資料已填好，委員只要填各項分數、研究類型、評語；「加權後總分」與「本委員的排名」會自動計算。工作表名稱就是委員姓名，交回後在「書審評分」匯入時會依工作表名稱對應委員。<br>
+        ・考生依考生編號排序，書審備註顯示「性別(年齡)學歷 學校-科系」。
+      </div>
+    </div>
+  </div>`;
+  makeSortable(c.querySelector('.tbl-wrap table'), 'review-forms', [2, 3]);
+}
+
+/* ── 書審評分用表（空白）：列印視窗 ── */
+function printReviewForms(onlyId) {
+  const crit = stageCriteria('review');
+  const revs = stageReviewers('review').filter(v => !onlyId || v.id === onlyId);
+  const apps = [...APPS].sort((a, b) => String(a.exam_no).localeCompare(String(b.exam_no)));
+  const formula = crit.map(x => `${x.name}×${wPct(x.weight)}%`).join('＋');
+  const css = [
+    '@page{size:A4 landscape;margin:10mm 10mm}',
+    'body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#000;margin:0;font-size:11pt}',
+    '.pg{page-break-after:always}.pg:last-child{page-break-after:auto}',
+    'h1{font-size:15pt;text-align:center;margin:0 0 4px}',
+    '.meta{display:flex;justify-content:space-between;font-size:11pt;margin-bottom:6px}',
+    '.meta b{font-size:13pt}',
+    'table{width:100%;border-collapse:collapse;table-layout:fixed}',
+    'thead{display:table-header-group}tr{page-break-inside:avoid}',
+    'th,td{border:1px solid #000;padding:4px 6px;vertical-align:middle}',
+    'th{background:#eee;font-size:9.5pt;text-align:center;line-height:1.3}',
+    'td{height:' + (APPS.length > 20 ? 30 : 23) + 'px;font-size:10pt;padding:2px 6px;line-height:1.25}',
+    'td.no{font-family:monospace;white-space:nowrap}td.nm{white-space:nowrap}td.bg{font-size:9.5pt}',
+    '.foot{margin-top:10px;font-size:10.5pt;display:flex;justify-content:space-between;align-items:flex-end}',
+    '.sign{font-size:12pt}',
+  ].join('');
+  const colgroup = `<colgroup><col style="width:8.5%"><col style="width:7.5%"><col style="width:26%">${crit.map(() => '<col style="width:9.5%">').join('')}<col style="width:6.5%"><col style="width:10%"><col></colgroup>`;
+  const pages = revs.map(v => `<section class="pg">
+    <h1>${esc(formTitle())}評分表</h1>
+    <div class="meta"><span>書審委員：<b>${esc(reviewerName(v))}</b></span><span>考生共 ${apps.length} 位</span></div>
+    <table>${colgroup}
+      <thead><tr><th>考生編號</th><th>姓名</th><th>書審備註（基本背景）</th>
+        ${crit.map(x => `<th>${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}
+        <th>加權<br>總分</th><th>研究類型</th><th>評語</th></tr></thead>
+      <tbody>${apps.map(a => `<tr><td class="no">${esc(a.exam_no)}</td><td class="nm">${esc(a.name)}</td><td class="bg">${esc(backgroundOf(a))}</td>
+        ${crit.map(() => '<td></td>').join('')}<td></td><td></td><td></td></tr>`).join('')}</tbody>
+    </table>
+    <div class="foot"><div>※ 各項滿分為 100 分。加權總分＝${esc(formula)}。</div>
+      <div class="sign">委員簽名：＿＿＿＿＿＿＿＿&emsp;&emsp;日期：＿＿＿＿年＿＿月＿＿日</div></div>
+  </section>`).join('');
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>' + esc(CUR.code) + ' 書審評分用表</title><sty' + 'le>' + css + '</sty' + 'le></he' + 'ad><bo' + 'dy>'
+    + pages
+    + '<scr' + 'ipt>window.onload=()=>window.print()<\/scr' + 'ipt></bo' + 'dy></ht' + 'ml>';
+  const w = window.open('', '_blank');
+  if (!w) { showToast('瀏覽器擋住了新視窗，請允許彈出視窗後再試', 'error'); return; }
+  w.document.write(html); w.document.close();
+  writeAuditLog('招生', '列印書審評分用表', 'adm_reviewers', CUR.id, CUR.code, revs.map(reviewerName).join('、'));
+}
+
+/* ── 委員 Excel 範本（ExcelJS：可寫格線、字型、列高；版面依承辦人調整的 tpl_all_R2.xlsx） ── */
+async function ensureExcelJS() {
+  if (window.ExcelJS) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload = res; s.onerror = () => rej(new Error('Excel 元件載入失敗，請確認網路'));
+    document.head.appendChild(s);
+  });
+}
+function saveBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function safeSheetName(name, used) {
+  let n = String(name || '委員').replace(/[\[\]\*\?\/\\:]/g, '').slice(0, 31) || '委員';
+  let k = n, i = 2;
+  while (used.has(k)) { k = (n.slice(0, 28) + '_' + i++); }
+  used.add(k); return k;
+}
+const TPL_FONT = { name: '新細明體', size: 12 };
+const TPL_THIN = { style: 'thin' };
+const TPL_BORDER = { top: TPL_THIN, left: TPL_THIN, bottom: TPL_THIN, right: TPL_THIN };
+function colLetter(i) { let s = '', n = i + 1; while (n) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+
+// 估算文字在 Excel 欄寬內要幾行：中日韓全形字算 2、半形算 1（新細明體 12 號）
+function wrapLines(text, colWidth, cap) {
+  let w = 0;
+  for (const ch of String(text || '')) w += /[\u2E80-\uFFEF]/.test(ch) ? 2 : 1;
+  return Math.max(1, Math.ceil(w / (cap || Math.floor(colWidth * 0.865))));   // 實測：欄寬 42.8 一行約容納 37 單位（R2 範本比對）
+}
+function addReviewSheet(wb, sheetName, v, crit, apps) {
+  const ws = wb.addWorksheet(sheetName);
+  const nCrit = crit.length;
+  const head = ['考生編號', '姓名', ...crit.map(x => `${wPct(x.weight)}%${x.name}\n(滿分為100)`), '加權後總分', '本委員\n的排名', '研究類型', '評語', '備註（基本背景）'];
+  const nCol = head.length;
+  // 欄寬（依 R2 範本）
+  ws.columns = [11.82, 9.82, ...crit.map(() => 14.82), 10.82, 8.82, 14.82, 30.82, 42.82].map(w => ({ width: w }));
+  // 第 1、2 列：標題、委員
+  ws.getCell(1, 1).value = `${CUR.academic_year}學年佛應所 ${CUR.track} 第一階段書審成績`;
+  ws.mergeCells(1, 1, 1, nCol);
+  ws.getCell(2, 1).value = '書審委員:';
+  ws.getCell(2, 2).value = reviewerName(v);
+  // 列高不寫死：交給 Excel 依內容（含自動換行）自行決定
+  // 第 3 列：表頭
+  const hr = ws.getRow(3);
+  head.forEach((h, i) => { const c = hr.getCell(i + 1); c.value = h; c.alignment = { wrapText: true }; });
+  // 資料列
+  const first = 4, last = 3 + apps.length;
+  const cW = colLetter(2 + nCrit), cR = colLetter(3 + nCrit);
+  apps.forEach((a, k) => {
+    const r = first + k, row = ws.getRow(r);
+    row.getCell(1).value = a.exam_no;
+    row.getCell(2).value = a.name;
+    const terms = crit.map((x, i) => `${colLetter(2 + i)}${r}*${Number(x.weight) / 100}`).join('+');
+    const range = `${colLetter(2)}${r}:${colLetter(1 + nCrit)}${r}`;
+    row.getCell(3 + nCrit).value = { formula: `IF(COUNT(${range})=0,"",ROUND(${terms},2))` };
+    row.getCell(4 + nCrit).value = { formula: `IF(${cW}${r}="","",RANK(${cW}${r},$${cW}$${first}:$${cW}$${last}))` };
+    const bg = row.getCell(nCol); bg.value = backgroundOf(a); bg.alignment = { wrapText: true };
+  });
+  // 字型、格線
+  for (let r = 1; r <= Math.max(last, 3); r++) {
+    for (let c = 1; c <= nCol; c++) {
+      const cell = ws.getCell(r, c);
+      cell.font = TPL_FONT;
+      if (r >= 3) cell.border = TPL_BORDER;
+    }
+  }
+  return ws;
+}
+async function downloadReviewTemplate(onlyId) {
+  try {
+    await ensureExcelJS();
+    const crit = stageCriteria('review');
+    const revs = stageReviewers('review').filter(v => !onlyId || v.id === onlyId);
+    const apps = [...APPS].sort((a, b) => String(a.exam_no).localeCompare(String(b.exam_no)));
+    const wb = new ExcelJS.Workbook(), used = new Set();
+    revs.forEach(v => addReviewSheet(wb, safeSheetName(reviewerName(v), used), v, crit, apps));
+    const fn = onlyId ? `${CUR.code}_書審評分_${reviewerName(revs[0])}.xlsx` : `${CUR.code}_書審委員評分範本.xlsx`;
+    const buf = await wb.xlsx.writeBuffer();
+    saveBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fn);
+    writeAuditLog('招生', '下載書審評分範本', 'adm_reviewers', CUR.id, CUR.code, revs.map(reviewerName).join('、'));
+  } catch (e) { console.error(e); showToast('產生範本失敗：' + (e.message || e), 'error'); }
+}
+
+/* ── 書審評分用表（空白）Excel 版：版面同列印版，給委員手寫或自行調整後列印 ── */
+async function downloadReviewFormsExcel(onlyId) {
+  try {
+    await ensureExcelJS();
+    const crit = stageCriteria('review');
+    const revs = stageReviewers('review').filter(v => !onlyId || v.id === onlyId);
+    const apps = [...APPS].sort((a, b) => String(a.exam_no).localeCompare(String(b.exam_no)));
+    const formula = crit.map(x => `${x.name}×${wPct(x.weight)}%`).join('＋');
+    const head = ['考生編號', '姓名', '書審備註（基本背景）', ...crit.map(x => `${wPct(x.weight)}%${x.name}`), '加權\n總分', '研究類型', '評語'];
+    const nCol = head.length;
+    const wb = new ExcelJS.Workbook(), used = new Set();
+    revs.forEach(v => {
+      const ws = wb.addWorksheet(safeSheetName(reviewerName(v), used), {
+        pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: apps.length <= 25 ? 1 : 0,
+                     horizontalCentered: true, margins: { left: 0.4, right: 0.4, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 } },
+      });
+      ws.pageSetup.printTitlesRow = '3:3';
+      ws.columns = [12, 10, 40, ...crit.map(() => 14), 8, 14, 30].map(w => ({ width: w }));
+      // 標題、委員
+      ws.mergeCells(1, 1, 1, nCol);
+      const t = ws.getCell(1, 1);
+      t.value = `${formTitle()}評分表`; t.font = { ...TPL_FONT, size: 15, bold: true }; t.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(1).height = 26;
+      ws.mergeCells(2, 1, 2, 3);
+      const m = ws.getCell(2, 1); m.value = `書審委員：${reviewerName(v)}`; m.font = { ...TPL_FONT, size: 13, bold: true };
+      ws.mergeCells(2, nCol - 1, 2, nCol);
+      const n = ws.getCell(2, nCol - 1); n.value = `考生共 ${apps.length} 位`; n.font = TPL_FONT; n.alignment = { horizontal: 'right' };
+      ws.getRow(2).height = 24;   // 委員姓名 13 號粗體
+      // 表頭（項目名稱可能折兩行＋權重一行＝三行）
+      const hr = ws.getRow(3); hr.height = 66;
+      head.forEach((h, i) => {
+        const c = hr.getCell(i + 1);
+        c.value = h; c.font = { ...TPL_FONT, bold: true }; c.border = TPL_BORDER;
+        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEEEEE' } };
+      });
+      // 考生列（評分欄空白）
+      apps.forEach((a, k) => {
+        const row = ws.getRow(4 + k); row.height = wrapLines(backgroundOf(a), 40, 39) > 1 ? 42 : 27;   // 備註欄寬 40、11 號字：實測一行約 39 單位（38 不換行、40 換行）；要換行的列加高
+        const vals = [a.exam_no, a.name, backgroundOf(a), ...crit.map(() => null), null, null, null];
+        vals.forEach((val, i) => {
+          const c = row.getCell(i + 1);
+          c.value = val; c.font = i === 2 ? { ...TPL_FONT, size: 11 } : TPL_FONT; c.border = TPL_BORDER;
+          c.alignment = { vertical: 'middle', wrapText: i === 2 };
+        });
+      });
+      // 註記與簽名
+      const r1 = 4 + apps.length + 1;
+      ws.mergeCells(r1, 1, r1, nCol);
+      ws.getCell(r1, 1).value = `※ 各項滿分為 100 分。加權總分＝${formula}。`; ws.getCell(r1, 1).font = TPL_FONT;
+      const r2 = r1 + 2;
+      ws.mergeCells(r2, 1, r2, nCol);
+      const sg = ws.getCell(r2, 1);
+      sg.value = '委員簽名：＿＿＿＿＿＿＿＿＿＿' + ' '.repeat(8) + '日期：＿＿＿＿年＿＿月＿＿日';
+      sg.font = { ...TPL_FONT, size: 13 }; sg.alignment = { horizontal: 'right' };
+      ws.getRow(r2).height = 28;
+    });
+    const fn = onlyId ? `${CUR.code}_書審評分用表_${reviewerName(revs[0])}.xlsx` : `${CUR.code}_書審評分用表.xlsx`;
+    const buf = await wb.xlsx.writeBuffer();
+    saveBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fn);
+    writeAuditLog('招生', '下載書審評分用表 Excel', 'adm_reviewers', CUR.id, CUR.code, revs.map(reviewerName).join('、'));
+  } catch (e) { console.error(e); showToast('產生評分用表失敗：' + (e.message || e), 'error'); }
+}
+
+checkAuth();
+</script>
+</body>
+</html>
