@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admission v0.6 2026-11-19 評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
+<!-- BWBC Admission v0.6 2026-11-19 Excel 換行列高由系統計算（Excel 開檔不一定自動調整）；書審總表簽名欄改為各書審委員簽名；評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -2166,6 +2166,35 @@ function wrapLines(text, colWidth, cap) {
   return Math.max(1, Math.ceil(w / (cap || Math.floor(colWidth * 0.865))));   // 實測：欄寬 42.8 一行約容納 37 單位（R2 範本比對）
 }
 
+// 依自動換行的內容算列高。Excel 開檔時不一定會自己重算換行列的高度，所以由系統算好寫入
+function fitRowHeights(ws, fromRow, toRow) {
+  // 合併儲存格：用合併範圍的總欄寬
+  const mergeW = {};
+  Object.values(ws._merges || {}).forEach(m => {
+    const mm = m.model || m;
+    let w = 0; for (let c = mm.left; c <= mm.right; c++) w += ws.getColumn(c).width || 9;
+    mergeW[`${mm.top}:${mm.left}`] = { w, rows: mm.bottom - mm.top + 1 };
+  });
+  for (let r = fromRow; r <= toRow; r++) {
+    const row = ws.getRow(r); let need = 0;
+    row.eachCell({ includeEmpty: false }, (c, col) => {
+      if (!c.alignment || !c.alignment.wrapText || c.value == null || typeof c.value === 'object') return;
+      let width = ws.getColumn(col).width || 9;
+      if (c.isMerged) {
+        const m = mergeW[`${r}:${col}`];
+        if (!m || m.rows > 1) return;          // 非左上角格或跨列合併：略過
+        width = m.w;
+      }
+      const size = (c.font && c.font.size) || 12, bold = !!(c.font && c.font.bold);
+      // 依承辦人 Excel 實測：12 號字欄寬 10 約容納 7 單位、欄寬 42.8 約 37 單位（全形字 2、半形 1）
+      const cap = Math.max(2, Math.floor((width * 0.865 - 1.5) * 12 / size / (bold ? 1.06 : 1)));
+      const lines = String(c.value).split('\n').reduce((n, seg) => n + wrapLines(seg, width, cap), 0);
+      need = Math.max(need, Math.ceil(lines * size * 1.45 + 5));
+    });
+    if (need) row.height = Math.max(need, 18);
+  }
+}
+
 /* ── 書審評分用表（空白）Excel 版：版面同列印版，給委員手寫或自行調整後列印 ── */
 async function downloadReviewFormsExcel(onlyId) {
   try {
@@ -2197,8 +2226,8 @@ async function downloadReviewFormsExcel(onlyId) {
       // 說明（表頭上方）
       ws.mergeCells(3, 1, 3, nCol);
       ws.getCell(3, 1).value = `※ 各項滿分為 100 分。加權總分＝${formula}。`; ws.getCell(3, 1).font = { ...TPL_FONT, size: 13 };
-      // 表頭
-      const hr = ws.getRow(4);   // 列高不設定，交給 Excel 自動調整
+      // 表頭（列高最後由 fitRowHeights 依內容計算）
+      const hr = ws.getRow(4);
       head.forEach((h, i) => {
         const c = hr.getCell(i + 1);
         c.value = h; c.font = { ...TPL_FONT, bold: true }; c.border = TPL_BORDER;
@@ -2219,6 +2248,7 @@ async function downloadReviewFormsExcel(onlyId) {
           if (i === 2 + crit.length) c.numFmt = '0.00';
         });
       });
+      fitRowHeights(ws, 4, 4 + apps.length);
       // 簽名
       const r2 = 5 + apps.length + 3;
       ws.mergeCells(r2, 1, r2, nCol);
@@ -3000,7 +3030,7 @@ async function downloadSummaryExcel() {
     ws.getCell(2, iRevStart).font = TPL_FONT; ws.getCell(2, iRevStart).alignment = { horizontal: 'right' };
     ws.mergeCells(3, 1, 3, nCol);
     ws.getCell(3, 1).value = summaryNote(); ws.getCell(3, 1).font = { ...TPL_FONT, size: 11, color: CUR.review_locked_at ? undefined : { argb: 'FFC00000' } };
-    const hr = ws.getRow(4);   // 列高交給 Excel 自動調整
+    const hr = ws.getRow(4);   // 列高最後由 fitRowHeights 依內容計算
     head.forEach((h, i) => {
       const c = hr.getCell(i + 1);
       c.value = h; c.font = { ...TPL_FONT, bold: true }; c.border = TPL_BORDER;
@@ -3021,10 +3051,27 @@ async function downloadSummaryExcel() {
       });
       if (x.status === 'pass') [1, 2, iTotal, iStatus].forEach(col => { row.getCell(col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAF4EA' } }; });
     });
+    fitRowHeights(ws, 4, 4 + rows.length);
+    // 簽名區：「書審委員：」＋每位委員一格（姓名＿＿＿），姓名下方一行「日期：  年  月  日」
     const sr = 5 + rows.length + 2;
-    ws.mergeCells(sr, 1, sr, nCol);
-    ws.getCell(sr, 1).value = '承辦人：＿＿＿＿＿＿＿＿' + ' '.repeat(10) + '單位主管：＿＿＿＿＿＿＿＿' + ' '.repeat(10) + '日期：＿＿＿＿年＿＿月＿＿日';
-    ws.getCell(sr, 1).font = { ...TPL_FONT, size: 13 }; ws.getCell(sr, 1).alignment = { horizontal: 'right' };
+    ws.mergeCells(sr, 1, sr, 2);
+    ws.getCell(sr, 1).value = '書審委員：'; ws.getCell(sr, 1).font = { ...TPL_FONT, size: 13, bold: true }; ws.getCell(sr, 1).alignment = { horizontal: 'right' };
+    const widths = ws.columns.map(c => c.width || 9), blocks = [];
+    let col = 3;
+    revs.forEach((r, i) => {   // 依剩餘欄寬平均分給每位委員
+      const left = revs.length - i, remain = widths.slice(col - 1).reduce((a, b) => a + b, 0), target = remain / left;
+      let end = col, w = widths[col - 1];
+      while (end < nCol - (left - 1) && w + widths[end] / 2 < target) { w += widths[end]; end++; }
+      if (i === revs.length - 1) end = nCol;
+      blocks.push([col, end]); col = end + 1;
+    });
+    revs.forEach((r, i) => {
+      const [c1, c2] = blocks[i];
+      [[sr, `${reviewerName(r)}＿＿＿＿＿＿＿＿`, 13], [sr + 1, '日期：' + ' '.repeat(10) + '年' + ' '.repeat(8) + '月' + ' '.repeat(8) + '日', 11]].forEach(([rr, v, sz]) => {
+        if (c2 > c1) ws.mergeCells(rr, c1, rr, c2);
+        const cell = ws.getCell(rr, c1); cell.value = v; cell.font = { ...TPL_FONT, size: sz }; cell.alignment = { horizontal: 'left', indent: 1 };
+      });
+    });
     const buf = await wb.xlsx.writeBuffer();
     saveBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${CUR.code}_書審總表${CUR.review_locked_at ? '' : '_未鎖定'}.xlsx`);
     writeAuditLog('招生', '下載書審總表 Excel', 'adm_rounds', CUR.id, CUR.code, `考生 ${rows.length} 位、進入面試 ${pass} 位${CUR.review_locked_at ? '' : '（未鎖定）'}`);
@@ -3046,7 +3093,7 @@ function printSummary() {
     'th{background:#eee;font-size:9pt;text-align:center;line-height:1.25}',
     'td{text-align:center;white-space:nowrap}td.l{text-align:left}td.bg{text-align:left;white-space:normal;font-size:9pt}',
     'td.tot{font-weight:bold}tr.pass td.hl{background:#EAF4EA}td.fail{color:#808080}td.miss{color:#C00000}',
-    '.sign{margin-top:14px;text-align:right;font-size:11.5pt}',
+    '.sign{margin-top:16px;display:flex;align-items:flex-start;gap:18px;font-size:11.5pt;page-break-inside:avoid}.sign .sg{flex:1}.sign .dt{font-size:10pt;margin-top:8px}',
   ].join('');
   const body = `<h1>${esc(formTitle())}總表</h1>
     <div class="meta"><b>${esc(revLegend(revs))}</b><span>考生共 ${rows.length} 位，進入面試 ${pass} 位</span></div>
@@ -3056,7 +3103,7 @@ function printSummary() {
       if (typeof v === 'number' && ((i >= 2 && i <= iTotal) || (i > iStatus && i <= iStatus + revs.length))) v = v.toFixed(CUR.decimals ?? 2);
       const cls = [i <= 1 ? 'l hl' : '', i === iTotal ? 'tot hl' : '', i === iStatus ? 'hl ' + x.status : '', i === iBg ? 'bg' : '', i === iBg - 1 ? 'l' : ''].join(' ').trim();
       return `<td class="${cls}">${esc(v ?? '')}</td>`; }).join('')}</tr>`).join('')}</tbody></table>
-    <div class="sign">承辦人：＿＿＿＿＿＿&emsp;&emsp;單位主管：＿＿＿＿＿＿&emsp;&emsp;日期：＿＿＿年＿＿月＿＿日</div>`;
+    <div class="sign"><b>書審委員：</b>${revs.map(r => `<div class="sg"><div>${esc(reviewerName(r))}＿＿＿＿＿＿＿</div><div class="dt">日期：&emsp;&emsp;年&emsp;&emsp;月&emsp;&emsp;日</div></div>`).join('')}</div>`;
   const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>' + esc(CUR.code) + ' 書審總表</title><sty' + 'le>' + css + '</sty' + 'le></he' + 'ad><bo' + 'dy>'
     + body + '<scr' + 'ipt>window.onload=()=>window.print()<\/scr' + 'ipt></bo' + 'dy></ht' + 'ml>';
   const w = window.open('', '_blank');
@@ -3077,11 +3124,10 @@ async function downloadChecklist() {
       horizontalCentered: true, margins: { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } } });
     ws.pageSetup.printTitlesRow = '4:4';
     ws.headerFooter.oddFooter = `&L&"新細明體"&10製表日期：${stamp()}&R&"新細明體"&10第 &P 頁／共 &N 頁`;
-    ws.columns = [5, 12, 10, 10, 10, 10, 10, 30].map(w => ({ width: w }));
+    ws.columns = [5, 12, 10, 12.5, 12.5, 12.5, 12.5, 20].map(w => ({ width: w }));
     ws.mergeCells(1, 1, 1, 8);
     ws.getCell(1, 1).value = `${formTitle()}成績\n報名系統回填檢核清單`;
     ws.getCell(1, 1).font = { ...TPL_FONT, size: 14, bold: true }; ws.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    ws.getRow(1).height = 40;
     ws.mergeCells(2, 1, 2, 8);
     ws.getCell(2, 1).value = `梯次 ${CUR.code} 考生共 ${rows.length} 位 進入面試 ${rows.filter(x => x.status === 'pass').length} 位 門檻 ≥ ${CUR.pass_threshold}`
       + (CUR.review_locked_at ? ` （書審已鎖定 ${fmtTime(CUR.review_locked_at)}）` : ' 【書審尚未鎖定】');
@@ -3089,7 +3135,6 @@ async function downloadChecklist() {
     ws.mergeCells(3, 1, 3, 8);
     ws.getCell(3, 1).value = '※ 逐筆輸入報名系統後在「已輸入」打 ✓；再由另一位同仁對照報名系統畫面逐筆核對，在「核對無誤」打 ✓。';
     ws.getCell(3, 1).font = { ...TPL_FONT, size: 11 }; ws.getCell(3, 1).alignment = { wrapText: true, vertical: 'middle' };
-    ws.getRow(3).height = 32;
     const hr = ws.getRow(4);
     head.forEach((h, i) => {
       const c = hr.getCell(i + 1);
@@ -3107,6 +3152,7 @@ async function downloadChecklist() {
         if (i === 3 && v != null) c.numFmt = numFmt;
       });
     });
+    fitRowHeights(ws, 1, 4 + rows.length);
     const sr = 5 + rows.length + 2;
     ws.mergeCells(sr, 1, sr, 8);
     ws.getCell(sr, 1).value = '輸入人：＿＿＿＿＿＿ 日期：＿＿／＿＿  核對人：＿＿＿＿＿＿ 日期：＿＿／＿＿';
