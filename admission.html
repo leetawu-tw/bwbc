@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admission v0.4 2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
+<!-- BWBC Admission v0.6 2026-11-19 評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -439,6 +439,29 @@ tr.adm-dropover td{box-shadow:inset 0 2px 0 var(--gold)}
 .adm-drop:hover,.adm-drop.over{border-color:var(--navy2);color:var(--navy);background:var(--navy3)}
 details.adm-skip summary{cursor:pointer;font-size:12.5px;color:var(--ink3);margin:6px 0}
 tr.adm-click{cursor:pointer}
+/* 成績表格 */
+.adm-grid-tbl td{padding:3px 4px}
+.adm-cell{width:100%;min-width:56px;border:1.5px solid var(--cr2);border-radius:4px;padding:5px 6px;font-size:13px;text-align:center;background:#fff;transition:background .3s,border-color .15s}
+.adm-cell.txt{text-align:left;min-width:90px}
+.adm-cell:not(.txt){max-width:96px;margin:0 auto;display:block}
+textarea.adm-cell{display:block;resize:none;overflow:hidden;line-height:1.45;font-family:inherit;min-height:31px;white-space:pre-wrap}
+.adm-cell:focus{outline:none;border-color:var(--navy2);background:#FFFDF2}
+.adm-cell.saving{background:#FFF8E1}
+.adm-cell.saved{background:#E8F5E9}
+.adm-cell.bad{background:#FEE;border-color:var(--red)}
+.adm-cell:disabled{background:var(--cr3);color:var(--ink2);border-color:transparent}
+.adm-calc{text-align:center;font-weight:600;color:var(--navy);white-space:nowrap}
+.adm-seg{display:inline-flex;border:1px solid var(--cr2);border-radius:6px;overflow:hidden}
+.adm-seg button{border:none;background:#fff;padding:6px 12px;font-size:12.5px;color:var(--ink2)}
+.adm-seg button.on{background:var(--navy);color:#fff}
+tr.adm-avg td{background:var(--navy3);font-weight:600}
+td.adm-spread{color:var(--red);font-weight:600}
+.adm-pass{color:var(--green);font-weight:600;white-space:nowrap}
+.adm-fail{color:var(--ink3);white-space:nowrap}
+.adm-miss{color:var(--red);white-space:nowrap}
+.adm-tags{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.adm-prog{display:inline-block;width:70px;height:6px;border-radius:3px;background:var(--cr2);vertical-align:middle;margin-left:6px;overflow:hidden}
+.adm-prog i{display:block;height:100%;background:var(--green)}
 th.adm-rs{position:relative}
 .adm-rs-h{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:3}
 .adm-rs-h:hover,.adm-rs-h.on{background:rgba(212,168,75,.6)}
@@ -487,9 +510,9 @@ th.adm-rs{position:relative}
         <div class="nav-section">
           <div class="nav-label">第一階段 書審</div>
           <div class="nav-item" data-page="applicants" onclick="showPage('applicants',this)"><span class="nav-icon">🧾</span>考生資料</div>
-          <div class="nav-item" data-page="review-forms" onclick="showPage('review-forms',this)"><span class="nav-icon">🖨</span>評分表與範本</div>
-          <div class="nav-item adm-soon" data-page="review-scores" onclick="showPage('review-scores',this)"><span class="nav-icon">✍️</span>書審評分</div>
-          <div class="nav-item adm-soon" data-page="review-summary" onclick="showPage('review-summary',this)"><span class="nav-icon">📊</span>書審彙整</div>
+          <div class="nav-item" data-page="review-forms" onclick="showPage('review-forms',this)"><span class="nav-icon">🖨</span>評分表</div>
+          <div class="nav-item" data-page="review-scores" onclick="showPage('review-scores',this)"><span class="nav-icon">✍️</span>書審評分</div>
+          <div class="nav-item" data-page="review-summary" onclick="showPage('review-summary',this)"><span class="nav-icon">📊</span>書審彙整</div>
         </div>
         <div class="nav-section">
           <div class="nav-label">第二階段 面試</div>
@@ -498,7 +521,7 @@ th.adm-rs{position:relative}
           <div class="nav-item adm-soon" data-page="admission" onclick="showPage('admission',this)"><span class="nav-icon">🏅</span>錄取名單</div>
         </div>
       </div>
-      <div class="sidebar-footer">admission v0.4（第 4 批＋規範修正）</div>
+      <div class="sidebar-footer">admission v0.6（第 6 批）</div>
     </nav>
     <main class="content" id="content"></main>
   </div>
@@ -540,6 +563,19 @@ th.adm-rs{position:relative}
       <span class="adm-hint" id="imp-foot-msg" style="margin-right:auto"></span>
       <button class="btn-cancel" onclick="closeModal('imp-modal')">取消</button>
       <button class="btn-save" id="imp-btn" onclick="confirmImport()" disabled>確認匯入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 匯入委員分數 -->
+<div class="modal-bg" id="simp-modal">
+  <div class="modal adm-wide">
+    <div class="modal-hdr"><div class="modal-title" id="simp-title">匯入委員 Excel</div><button class="modal-close" onclick="closeModal('simp-modal')">×</button></div>
+    <div class="modal-body" id="simp-body"></div>
+    <div class="modal-footer">
+      <span class="adm-hint" id="simp-foot" style="margin-right:auto"></span>
+      <button class="btn-cancel" onclick="closeModal('simp-modal')">取消</button>
+      <button class="btn-save" id="simp-btn" onclick="confirmScoreImport()" disabled>確認匯入</button>
     </div>
   </div>
 </div>
@@ -796,6 +832,8 @@ function renderPage() {
   if (CUR_PAGE === 'rounds') { renderRoundsPage(); return; }
   if (CUR_PAGE === 'applicants') { renderApplicantsPage(); return; }
   if (CUR_PAGE === 'review-forms') { renderReviewFormsPage(); return; }
+  if (CUR_PAGE === 'review-scores') { renderScoresPage('review'); return; }
+  if (CUR_PAGE === 'review-summary') { renderSummaryPage(); return; }
   const title = document.querySelector(`#adm-sidebar .nav-item[data-page="${CUR_PAGE}"]`)?.textContent.trim() || '';
   c.innerHTML = `<div class="page-hdr"><div class="page-title">${esc(title)}</div></div>
     <div class="adm-placeholder">這個功能將在後續批次完成。</div>`;
@@ -1175,6 +1213,12 @@ function validateDraft() {
     const codes = revs.map(v => v.code).filter(Boolean);
     if (new Set(codes).size !== codes.length) errs.push(`${STAGE_ZH[st]}委員代號重複`);
   });
+  // 書審鎖定後：門檻與書審委員不能改（會改變進入面試名單）
+  if (CUR.review_locked_at) {
+    if (Number(d.pass_threshold) !== Number(CUR.pass_threshold)) errs.push('書審已鎖定，不能修改書審門檻（請先到「書審彙整」解鎖）');
+    const ids = r => r.filter(v => v.stage === 'review').map(v => v.id || 'new').sort().join(',');
+    if (ids(d.reviewers) !== ids(CUR.reviewers)) errs.push('書審已鎖定，不能新增或刪除書審委員（請先到「書審彙整」解鎖）');
+  }
   return errs;
 }
 
@@ -2012,7 +2056,7 @@ async function renderReviewFormsPage() {
   const ok = !problems.length;
   c.innerHTML = `
   <div class="page-hdr">
-    <div class="page-title">評分表與範本 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
+    <div class="page-title">評分表 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
   </div>
   ${ok ? '' : `<div class="adm-warn">無法產生：${problems.map(esc).join('、')}。</div>`}
   <div class="adm-card">
@@ -2020,27 +2064,26 @@ async function renderReviewFormsPage() {
       <span class="adm-hint">考生 ${APPS.length} 位；評分項目：${crit.map(x => esc(x.name) + ' ' + wPct(x.weight) + '%').join('、') || '—'}</span></div>
     <div class="adm-card-body adm-mini">
       <div class="toolbar">
-        <button class="btn btn-pri" ${ok ? '' : 'disabled'} onclick="printReviewForms()">🖨 列印全部委員的評分用表</button>
-        <button class="btn btn-sec" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel()">⬇ 評分用表 Excel（全部委員）</button>
-        <button class="btn btn-gold" ${ok ? '' : 'disabled'} onclick="downloadReviewTemplate()">⬇ 下載 Excel 範本（一個檔、每位委員一個工作表）</button>
+        <button class="btn btn-pri" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel()">⬇ 評分表 Excel（全部委員，一人一個工作表）</button>
+        <button class="btn btn-sec" ${ok ? '' : 'disabled'} onclick="printReviewForms()">🖨 列印全部委員的評分表</button>
       </div>
       <div class="tbl-wrap"><table>
-        <thead><tr><th style="width:70px">代號</th><th>委員</th><th>評分用表（空白，手寫用）</th><th>Excel 範本（電子評分用）</th></tr></thead>
+        <thead><tr><th style="width:70px">代號</th><th>委員</th><th>評分表</th></tr></thead>
         <tbody>${revs.map(v => `<tr>
           <td>${esc(v.code || '')}</td><td>${esc(reviewerName(v))}</td>
-          <td><button class="btn btn-sm btn-edit" ${ok ? '' : 'disabled'} onclick="printReviewForms('${v.id}')">🖨 列印 / 存 PDF</button>
-              <button class="btn btn-sm btn-sec" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel('${v.id}')">⬇ Excel</button></td>
-          <td><button class="btn btn-sm btn-copy" ${ok ? '' : 'disabled'} onclick="downloadReviewTemplate('${v.id}')">⬇ 下載</button></td>
-        </tr>`).join('') || '<tr><td colspan="4" style="color:var(--ink3)">尚未設定</td></tr>'}</tbody>
+          <td><button class="btn btn-sm btn-sec" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel('${v.id}')">⬇ Excel</button>
+              <button class="btn btn-sm btn-edit" ${ok ? '' : 'disabled'} onclick="printReviewForms('${v.id}')">🖨 列印 / 存 PDF</button></td>
+        </tr>`).join('') || '<tr><td colspan="3" style="color:var(--ink3)">尚未設定</td></tr>'}</tbody>
       </table></div>
       <div class="adm-hint" style="margin-top:8px">
-        ・評分用表：每位委員一份，表頭印委員姓名，A4 橫向；在列印視窗選「另存為 PDF」即可存檔，也可以下載 Excel（已設定 A4 橫印、一頁寬、每頁重複表頭）。<br>
-        ・Excel 範本：考生資料已填好，委員只要填各項分數、研究類型、評語；「加權後總分」與「本委員的排名」會自動計算。工作表名稱就是委員姓名，交回後在「書審評分」匯入時會依工作表名稱對應委員。<br>
+        ・評分表只有一份：委員可以印出來手寫，也可以直接在 Excel 填分數、研究類型、評語；「加權總分」會自動計算（各項都填了才顯示）。<br>
+        ・Excel 已設定 A4 橫印、一頁寬、每頁重複表頭；工作表名稱就是委員姓名，委員交回後直接在「書審評分」匯入，會依工作表名稱對應委員。<br>
+        ・請委員不要改工作表名稱、不要刪改「考生編號」欄；手寫交回的由承辦人在「書審評分」畫面輸入。<br>
         ・考生依考生編號排序，書審備註顯示「性別(年齡)學歷 學校-科系」。
       </div>
     </div>
   </div>`;
-  makeSortable(c.querySelector('.tbl-wrap table'), 'review-forms', [2, 3]);
+  makeSortable(c.querySelector('.tbl-wrap table'), 'review-forms', [2]);
 }
 
 /* ── 書審評分用表（空白）：列印視窗 ── */
@@ -2063,20 +2106,21 @@ function printReviewForms(onlyId) {
     'td{height:' + (APPS.length > 20 ? 30 : 23) + 'px;font-size:10pt;padding:2px 6px;line-height:1.25}',
     'td.no{font-family:monospace;white-space:nowrap}td.nm{white-space:nowrap}td.bg{font-size:9.5pt}',
     '.foot{margin-top:10px;font-size:10.5pt;display:flex;justify-content:space-between;align-items:flex-end}',
-    '.sign{font-size:12pt}',
+    '.sign{font-size:12pt}.note{font-size:10.5pt;margin-bottom:4px}',
   ].join('');
-  const colgroup = `<colgroup><col style="width:8.5%"><col style="width:7.5%"><col style="width:26%">${crit.map(() => '<col style="width:9.5%">').join('')}<col style="width:6.5%"><col style="width:10%"><col></colgroup>`;
+  const colgroup = `<colgroup><col style="width:8.5%"><col style="width:7%">${crit.map(() => '<col style="width:9.5%">').join('')}<col style="width:6%"><col style="width:7%"><col style="width:13%"><col></colgroup>`;
   const pages = revs.map(v => `<section class="pg">
     <h1>${esc(formTitle())}評分表</h1>
     <div class="meta"><span>書審委員：<b>${esc(reviewerName(v))}</b></span><span>考生共 ${apps.length} 位</span></div>
+    <div class="note">※ 各項滿分為 100 分。加權總分＝${esc(formula)}。</div>
     <table>${colgroup}
-      <thead><tr><th>考生編號</th><th>姓名</th><th>書審備註（基本背景）</th>
+      <thead><tr><th>考生編號</th><th>姓名</th>
         ${crit.map(x => `<th>${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}
-        <th>加權<br>總分</th><th>研究類型</th><th>評語</th></tr></thead>
-      <tbody>${apps.map(a => `<tr><td class="no">${esc(a.exam_no)}</td><td class="nm">${esc(a.name)}</td><td class="bg">${esc(backgroundOf(a))}</td>
-        ${crit.map(() => '<td></td>').join('')}<td></td><td></td><td></td></tr>`).join('')}</tbody>
+        <th>加權<br>總分</th><th>研究類型</th><th>評語</th><th>書審備註（基本背景）</th></tr></thead>
+      <tbody>${apps.map(a => `<tr><td class="no">${esc(a.exam_no)}</td><td class="nm">${esc(a.name)}</td>
+        ${crit.map(() => '<td></td>').join('')}<td></td><td></td><td></td><td class="bg">${esc(backgroundOf(a))}</td></tr>`).join('')}</tbody>
     </table>
-    <div class="foot"><div>※ 各項滿分為 100 分。加權總分＝${esc(formula)}。</div>
+    <div class="foot"><div></div>
       <div class="sign">委員簽名：＿＿＿＿＿＿＿＿&emsp;&emsp;日期：＿＿＿＿年＿＿月＿＿日</div></div>
   </section>`).join('');
   const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>' + esc(CUR.code) + ' 書審評分用表</title><sty' + 'le>' + css + '</sty' + 'le></he' + 'ad><bo' + 'dy>'
@@ -2121,59 +2165,6 @@ function wrapLines(text, colWidth, cap) {
   for (const ch of String(text || '')) w += /[\u2E80-\uFFEF]/.test(ch) ? 2 : 1;
   return Math.max(1, Math.ceil(w / (cap || Math.floor(colWidth * 0.865))));   // 實測：欄寬 42.8 一行約容納 37 單位（R2 範本比對）
 }
-function addReviewSheet(wb, sheetName, v, crit, apps) {
-  const ws = wb.addWorksheet(sheetName);
-  const nCrit = crit.length;
-  const head = ['考生編號', '姓名', ...crit.map(x => `${wPct(x.weight)}%${x.name}\n(滿分為100)`), '加權後總分', '本委員\n的排名', '研究類型', '評語', '備註（基本背景）'];
-  const nCol = head.length;
-  // 欄寬（依 R2 範本）
-  ws.columns = [11.82, 9.82, ...crit.map(() => 14.82), 10.82, 8.82, 14.82, 30.82, 42.82].map(w => ({ width: w }));
-  // 第 1、2 列：標題、委員
-  ws.getCell(1, 1).value = `${CUR.academic_year}學年佛應所 ${CUR.track} 第一階段書審成績`;
-  ws.mergeCells(1, 1, 1, nCol);
-  ws.getCell(2, 1).value = '書審委員:';
-  ws.getCell(2, 2).value = reviewerName(v);
-  // 列高不寫死：交給 Excel 依內容（含自動換行）自行決定
-  // 第 3 列：表頭
-  const hr = ws.getRow(3);
-  head.forEach((h, i) => { const c = hr.getCell(i + 1); c.value = h; c.alignment = { wrapText: true }; });
-  // 資料列
-  const first = 4, last = 3 + apps.length;
-  const cW = colLetter(2 + nCrit), cR = colLetter(3 + nCrit);
-  apps.forEach((a, k) => {
-    const r = first + k, row = ws.getRow(r);
-    row.getCell(1).value = a.exam_no;
-    row.getCell(2).value = a.name;
-    const terms = crit.map((x, i) => `${colLetter(2 + i)}${r}*${Number(x.weight) / 100}`).join('+');
-    const range = `${colLetter(2)}${r}:${colLetter(1 + nCrit)}${r}`;
-    row.getCell(3 + nCrit).value = { formula: `IF(COUNT(${range})=0,"",ROUND(${terms},2))` };
-    row.getCell(4 + nCrit).value = { formula: `IF(${cW}${r}="","",RANK(${cW}${r},$${cW}$${first}:$${cW}$${last}))` };
-    const bg = row.getCell(nCol); bg.value = backgroundOf(a); bg.alignment = { wrapText: true };
-  });
-  // 字型、格線
-  for (let r = 1; r <= Math.max(last, 3); r++) {
-    for (let c = 1; c <= nCol; c++) {
-      const cell = ws.getCell(r, c);
-      cell.font = TPL_FONT;
-      if (r >= 3) cell.border = TPL_BORDER;
-    }
-  }
-  return ws;
-}
-async function downloadReviewTemplate(onlyId) {
-  try {
-    await ensureExcelJS();
-    const crit = stageCriteria('review');
-    const revs = stageReviewers('review').filter(v => !onlyId || v.id === onlyId);
-    const apps = [...APPS].sort((a, b) => String(a.exam_no).localeCompare(String(b.exam_no)));
-    const wb = new ExcelJS.Workbook(), used = new Set();
-    revs.forEach(v => addReviewSheet(wb, safeSheetName(reviewerName(v), used), v, crit, apps));
-    const fn = onlyId ? `${CUR.code}_書審評分_${reviewerName(revs[0])}.xlsx` : `${CUR.code}_書審委員評分範本.xlsx`;
-    const buf = await wb.xlsx.writeBuffer();
-    saveBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fn);
-    writeAuditLog('招生', '下載書審評分範本', 'adm_reviewers', CUR.id, CUR.code, revs.map(reviewerName).join('、'));
-  } catch (e) { console.error(e); showToast('產生範本失敗：' + (e.message || e), 'error'); }
-}
 
 /* ── 書審評分用表（空白）Excel 版：版面同列印版，給委員手寫或自行調整後列印 ── */
 async function downloadReviewFormsExcel(onlyId) {
@@ -2183,7 +2174,9 @@ async function downloadReviewFormsExcel(onlyId) {
     const revs = stageReviewers('review').filter(v => !onlyId || v.id === onlyId);
     const apps = [...APPS].sort((a, b) => String(a.exam_no).localeCompare(String(b.exam_no)));
     const formula = crit.map(x => `${x.name}×${wPct(x.weight)}%`).join('＋');
-    const head = ['考生編號', '姓名', '書審備註（基本背景）', ...crit.map(x => `${wPct(x.weight)}%${x.name}`), '加權\n總分', '研究類型', '評語'];
+    // 版面依承辦人修訂的 116-1 書審評分表：說明在表頭上方、書審備註在最後一欄
+    const head = ['考生編號', '姓名', ...crit.map(x => `${wPct(x.weight)}%${x.name}`), '加權\n總分', '研究類型', '評語', '書審備註（基本背景）'];
+    const bgCol = head.length;
     const nCol = head.length;
     const wb = new ExcelJS.Workbook(), used = new Set();
     revs.forEach(v => {
@@ -2191,20 +2184,21 @@ async function downloadReviewFormsExcel(onlyId) {
         pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: apps.length <= 25 ? 1 : 0,
                      horizontalCentered: true, margins: { left: 0.4, right: 0.4, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 } },
       });
-      ws.pageSetup.printTitlesRow = '3:3';
-      ws.columns = [12, 10, 40, ...crit.map(() => 14), 8, 14, 30].map(w => ({ width: w }));
+      ws.pageSetup.printTitlesRow = '4:4';
+      ws.columns = [12, 10, ...crit.map(() => 14), 9, 8, 14, 60.4].map(w => ({ width: w }));
       // 標題、委員
       ws.mergeCells(1, 1, 1, nCol);
       const t = ws.getCell(1, 1);
       t.value = `${formTitle()}評分表`; t.font = { ...TPL_FONT, size: 15, bold: true }; t.alignment = { horizontal: 'center', vertical: 'middle' };
-      ws.getRow(1).height = 26;
       ws.mergeCells(2, 1, 2, 3);
       const m = ws.getCell(2, 1); m.value = `書審委員：${reviewerName(v)}`; m.font = { ...TPL_FONT, size: 13, bold: true };
       ws.mergeCells(2, nCol - 1, 2, nCol);
       const n = ws.getCell(2, nCol - 1); n.value = `考生共 ${apps.length} 位`; n.font = TPL_FONT; n.alignment = { horizontal: 'right' };
-      ws.getRow(2).height = 24;   // 委員姓名 13 號粗體
-      // 表頭（項目名稱可能折兩行＋權重一行＝三行）
-      const hr = ws.getRow(3); hr.height = 66;
+      // 說明（表頭上方）
+      ws.mergeCells(3, 1, 3, nCol);
+      ws.getCell(3, 1).value = `※ 各項滿分為 100 分。加權總分＝${formula}。`; ws.getCell(3, 1).font = { ...TPL_FONT, size: 13 };
+      // 表頭
+      const hr = ws.getRow(4);   // 列高不設定，交給 Excel 自動調整
       head.forEach((h, i) => {
         const c = hr.getCell(i + 1);
         c.value = h; c.font = { ...TPL_FONT, bold: true }; c.border = TPL_BORDER;
@@ -2213,30 +2207,914 @@ async function downloadReviewFormsExcel(onlyId) {
       });
       // 考生列（評分欄空白）
       apps.forEach((a, k) => {
-        const row = ws.getRow(4 + k); row.height = wrapLines(backgroundOf(a), 40, 39) > 1 ? 42 : 27;   // 備註欄寬 40、11 號字：實測一行約 39 單位（38 不換行、40 換行）；要換行的列加高
-        const vals = [a.exam_no, a.name, backgroundOf(a), ...crit.map(() => null), null, null, null];
+        const r = 5 + k, row = ws.getRow(r);
+        const c1 = colLetter(2), cN = colLetter(1 + crit.length);   // colLetter 從 0 起算：2＝C
+        const terms = crit.map((x, i) => `${colLetter(2 + i)}${r}*${Number(x.weight) / 100}`).join('+');
+        const wsum = { formula: `IF(COUNT(${c1}${r}:${cN}${r})<${crit.length},"",ROUND(${terms},2))` };   // 各項都有分數才算
+        const vals = [a.exam_no, a.name, ...crit.map(() => null), wsum, null, null, backgroundOf(a)];
         vals.forEach((val, i) => {
-          const c = row.getCell(i + 1);
-          c.value = val; c.font = i === 2 ? { ...TPL_FONT, size: 11 } : TPL_FONT; c.border = TPL_BORDER;
-          c.alignment = { vertical: 'middle', wrapText: i === 2 };
+          const c = row.getCell(i + 1), isBg = i + 1 === bgCol;
+          c.value = val; c.font = isBg ? { ...TPL_FONT, size: 11 } : TPL_FONT; c.border = TPL_BORDER;
+          c.alignment = { vertical: 'middle', wrapText: isBg, horizontal: i >= 2 && i <= 2 + crit.length ? 'center' : undefined };
+          if (i === 2 + crit.length) c.numFmt = '0.00';
         });
       });
-      // 註記與簽名
-      const r1 = 4 + apps.length + 1;
-      ws.mergeCells(r1, 1, r1, nCol);
-      ws.getCell(r1, 1).value = `※ 各項滿分為 100 分。加權總分＝${formula}。`; ws.getCell(r1, 1).font = TPL_FONT;
-      const r2 = r1 + 2;
+      // 簽名
+      const r2 = 5 + apps.length + 3;
       ws.mergeCells(r2, 1, r2, nCol);
       const sg = ws.getCell(r2, 1);
       sg.value = '委員簽名：＿＿＿＿＿＿＿＿＿＿' + ' '.repeat(8) + '日期：＿＿＿＿年＿＿月＿＿日';
       sg.font = { ...TPL_FONT, size: 13 }; sg.alignment = { horizontal: 'right' };
-      ws.getRow(r2).height = 28;
     });
-    const fn = onlyId ? `${CUR.code}_書審評分用表_${reviewerName(revs[0])}.xlsx` : `${CUR.code}_書審評分用表.xlsx`;
+    const fn = onlyId ? `${CUR.code}_書審評分表_${reviewerName(revs[0])}.xlsx` : `${CUR.code}_書審評分表.xlsx`;
     const buf = await wb.xlsx.writeBuffer();
     saveBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fn);
     writeAuditLog('招生', '下載書審評分用表 Excel', 'adm_reviewers', CUR.id, CUR.code, revs.map(reviewerName).join('、'));
   } catch (e) { console.error(e); showToast('產生評分用表失敗：' + (e.message || e), 'error'); }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   成績表格（第 5 批）：書審／面試共用；依委員或依考生；逐格自動儲存；可從 Excel 貼上
+   ════════════════════════════════════════════════════════════════ */
+const GS = { stage: 'review', view: 'reviewer', revId: null, appId: null };   // 畫面狀態
+let SC = {};      // 分數：`${appId}|${revId}|${critId}` → { id, score }
+let CM = {};      // 評語與研究類型：`${appId}|${revId}` → { id, comment, research_tag }
+const skey = (a, r, c) => `${a}|${r}|${c}`;
+const ckey = (a, r) => `${a}|${r}`;
+function stageLocked(st) { return st === 'review' ? !!CUR.review_locked_at : !!CUR.admission_locked_at; }
+function gridEditable(st) { return canWrite() && !stageLocked(st); }
+function fmtN(v) { return v == null || v === '' ? '' : Number(v).toFixed(CUR.decimals ?? 2); }
+function round2(x, d) { const p = Math.pow(10, d == null ? (CUR.decimals ?? 2) : d); return Math.round((x + Number.EPSILON) * p) / p; }
+
+async function loadStageData(st) {
+  await loadApplicants();
+  const crit = stageCriteria(st), revs = stageReviewers(st);
+  SC = {}; CM = {};
+  if (crit.length) {
+    const { data, error } = await sb.from('adm_scores').select('id,applicant_id,reviewer_id,criterion_id,score')
+      .eq('round_id', CUR.id).in('criterion_id', crit.map(c => c.id)).limit(20000);
+    if (error) { showToast('讀取分數失敗：' + error.message, 'error'); return false; }
+    (data || []).forEach(x => { SC[skey(x.applicant_id, x.reviewer_id, x.criterion_id)] = { id: x.id, score: x.score == null ? null : Number(x.score) }; });
+  }
+  if (revs.length) {
+    const { data, error } = await sb.from('adm_comments').select('id,applicant_id,reviewer_id,comment,research_tag')
+      .eq('round_id', CUR.id).in('reviewer_id', revs.map(v => v.id)).limit(20000);
+    if (error) { showToast('讀取評語失敗：' + error.message, 'error'); return false; }
+    (data || []).forEach(x => { CM[ckey(x.applicant_id, x.reviewer_id)] = { id: x.id, comment: x.comment || '', research_tag: x.research_tag || '' }; });
+  }
+  return true;
+}
+
+/* ── 計算 ── */
+// 單一委員對單一考生的加權分：所有項目都有分數才算
+function reviewerWeighted(st, appId, revId) {
+  const crit = stageCriteria(st); let sum = 0;
+  for (const c of crit) { const v = SC[skey(appId, revId, c.id)]; if (!v || v.score == null) return null; sum += v.score * Number(c.weight) / 100; }
+  return crit.length ? round2(sum) : null;
+}
+// 考生在某階段的成績：各項目先平均（只平均有給分的委員）再加權；任一項目沒有人給分 → null
+function applicantStageScore(st, appId) {
+  const crit = stageCriteria(st), revs = stageReviewers(st); let sum = 0;
+  const avgs = {};
+  for (const c of crit) {
+    const vals = revs.map(r => SC[skey(appId, r.id, c.id)]).filter(v => v && v.score != null).map(v => v.score);
+    if (!vals.length) return { total: null, avgs };
+    avgs[c.id] = vals.reduce((a, b) => a + b, 0) / vals.length;
+    sum += avgs[c.id] * Number(c.weight) / 100;
+  }
+  return { total: crit.length ? round2(sum) : null, avgs };
+}
+function reviewerSpread(st, appId) {
+  const ws = stageReviewers(st).map(r => reviewerWeighted(st, appId, r.id)).filter(x => x != null);
+  return ws.length >= 2 ? round2(Math.max(...ws) - Math.min(...ws)) : null;
+}
+function reviewerProgress(st, revId) {
+  const crit = stageCriteria(st); const need = APPS.length * crit.length;
+  let got = 0; APPS.forEach(a => crit.forEach(c => { const v = SC[skey(a.id, revId, c.id)]; if (v && v.score != null) got++; }));
+  return { got, need };
+}
+
+/* ── 頁面 ── */
+async function renderScoresPage(st) {
+  GS.stage = st;
+  const c = document.getElementById('content');
+  if (!CUR) { c.innerHTML = '<div class="adm-placeholder">請先在「梯次設定」建立梯次。</div>'; return; }
+  c.innerHTML = '<div class="adm-placeholder">讀取中…</div>';
+  if (!(await loadStageData(st))) return;
+  const revs = stageReviewers(st);
+  if (!GS.revId || !revs.some(r => r.id === GS.revId)) GS.revId = revs[0]?.id || null;
+  if (!GS.appId || !APPS.some(a => a.id === GS.appId)) GS.appId = APPS[0]?.id || null;
+  drawScoresPage();
+}
+
+function drawScoresPage() {
+  const st = GS.stage, c = document.getElementById('content');
+  const crit = stageCriteria(st), revs = stageReviewers(st);
+  const problems = [];
+  if (!APPS.length) problems.push('尚未匯入考生資料');
+  if (!crit.length) problems.push(`尚未設定${STAGE_ZH[st]}評分項目`);
+  if (!revs.length) problems.push(`尚未設定${STAGE_ZH[st]}委員`);
+  const locked = stageLocked(st), editable = gridEditable(st);
+  // 彙總
+  const done = revs.filter(r => { const p = reviewerProgress(st, r.id); return p.need && p.got === p.need; }).length;
+  const missing = APPS.filter(a => applicantStageScore(st, a.id).total == null).length;
+  const spreadN = APPS.filter(a => { const s = reviewerSpread(st, a.id); return s != null && s > Number(CUR.spread_alert || 15); }).length;
+  const passN = st === 'review' && CUR.pass_threshold != null
+    ? APPS.filter(a => { const t = applicantStageScore(st, a.id).total; return t != null && t >= Number(CUR.pass_threshold); }).length : null;
+  c.innerHTML = `
+  <div class="page-hdr">
+    <div class="page-title">${STAGE_ZH[st]}評分 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
+    ${locked ? `<span class="adm-lock on">🔒 ${STAGE_ZH[st]}已鎖定，只能檢視</span>` : ''}
+    <button class="btn btn-pri adm-write" ${problems.length || locked ? 'disabled' : ''} onclick="openScoreImport('${st}')">⬆ 匯入委員 Excel</button>
+  </div>
+  ${problems.length ? `<div class="adm-warn">無法評分：${problems.map(esc).join('、')}。</div>` : `
+  <div class="adm-stats">
+    <div class="adm-stat"><b>${done}</b>/ ${revs.length} 位委員已完成</div>
+    <div class="adm-stat"><b>${missing}</b>位考生分數未齊</div>
+    <div class="adm-stat"><b style="color:${spreadN ? 'var(--red)' : 'var(--navy)'}">${spreadN}</b>位考生的委員給分差距 > ${esc(CUR.spread_alert ?? 15)} 分</div>
+    ${passN != null ? `<div class="adm-stat"><b>${passN}</b>位目前達門檻（≥ ${esc(CUR.pass_threshold)}，分數未齊者不計）</div>` : ''}
+  </div>
+  <div class="toolbar">
+    <div class="adm-seg"><button class="${GS.view === 'reviewer' ? 'on' : ''}" onclick="GS.view='reviewer';drawScoresPage()">依委員</button><button class="${GS.view === 'applicant' ? 'on' : ''}" onclick="GS.view='applicant';drawScoresPage()">依考生</button></div>
+    ${GS.view === 'reviewer'
+      ? `<select class="fselect" style="width:auto" onchange="GS.revId=this.value;drawScoresPage()">${revs.map(r => {
+          const p = reviewerProgress(st, r.id);
+          return `<option value="${r.id}" ${r.id === GS.revId ? 'selected' : ''}>${esc((r.code ? r.code + ' ' : '') + reviewerName(r))}（${p.got}/${p.need}）</option>`; }).join('')}</select>`
+      : `<button class="btn btn-sm btn-sec" onclick="stepApplicant(-1)">◀</button>
+         <select class="fselect" style="width:auto" onchange="GS.appId=this.value;drawScoresPage()">${APPS.map(a => `<option value="${a.id}" ${a.id === GS.appId ? 'selected' : ''}>${esc(a.exam_no + ' ' + a.name)}</option>`).join('')}</select>
+         <button class="btn btn-sm btn-sec" onclick="stepApplicant(1)">▶</button>`}
+    <span class="adm-hint">${editable ? '輸入後自動儲存；Enter 往下、Tab 往右；可從 Excel 選取一塊直接貼上。' : '唯讀'}</span>
+  </div>
+  <div id="grid-box"></div>`}`;
+  if (!problems.length) (GS.view === 'reviewer' ? drawReviewerGrid : drawApplicantGrid)();
+}
+function stepApplicant(d) {
+  const i = APPS.findIndex(a => a.id === GS.appId); const j = Math.min(APPS.length - 1, Math.max(0, i + d));
+  GS.appId = APPS[j]?.id; drawScoresPage();
+}
+
+// 一個輸入格：data-a 考生、data-r 委員、data-k 欄位（crit:<id>｜tag｜comment）
+function cellHtml(appId, revId, k, val, isText) {
+  const dis = gridEditable(GS.stage) ? '' : 'disabled';
+  if (k === 'comment') return `<textarea class="adm-cell txt" rows="1" ${dis} data-a="${appId}" data-r="${revId}" data-k="${k}" data-old="${esc(val ?? '')}"
+    oninput="autoGrow(this)" onkeydown="cellKey(event)" onchange="saveCell(this)" onpaste="pasteCells(event)">${esc(val ?? '')}</textarea>`;
+  return `<input class="adm-cell ${isText ? 'txt' : ''}" ${dis} data-a="${appId}" data-r="${revId}" data-k="${k}" value="${esc(val ?? '')}" data-old="${esc(val ?? '')}"
+    ${isText ? '' : 'inputmode="decimal"'} onkeydown="cellKey(event)" onchange="saveCell(this)" onpaste="pasteCells(event)">`;
+}
+function cellVal(appId, revId, k) {
+  if (k.startsWith('crit:')) { const v = SC[skey(appId, revId, k.slice(5))]; return v && v.score != null ? v.score : ''; }
+  const m = CM[ckey(appId, revId)] || {};
+  return k === 'tag' ? (m.research_tag || '') : (m.comment || '');
+}
+function gridKeys(st) { return [...stageCriteria(st).map(c => 'crit:' + c.id), 'tag', 'comment']; }
+
+function drawReviewerGrid() {
+  const st = GS.stage, crit = stageCriteria(st), revId = GS.revId;
+  const box = document.getElementById('grid-box');
+  box.innerHTML = `<div class="tbl-wrap"><table class="adm-grid-tbl">
+    <thead><tr><th>考生編號</th><th>姓名</th>
+      ${crit.map(x => `<th style="text-align:center">${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}
+      <th style="text-align:center">加權小計</th><th style="text-align:center">本委員排名</th><th>研究類型</th><th>評語</th><th>書審備註（基本背景）</th></tr></thead>
+    <tbody>${APPS.map(a => `<tr data-row="${a.id}">
+      <td class="mono" style="white-space:nowrap">${esc(a.exam_no)}</td><td style="white-space:nowrap">${esc(a.name)}</td>
+      ${crit.map(x => `<td data-sort="${esc(cellVal(a.id, revId, 'crit:' + x.id))}">${cellHtml(a.id, revId, 'crit:' + x.id, cellVal(a.id, revId, 'crit:' + x.id))}</td>`).join('')}
+      <td class="adm-calc" data-w="${a.id}"></td><td class="adm-calc" data-rank="${a.id}"></td>
+      <td data-sort="${esc(cellVal(a.id, revId, 'tag'))}">${cellHtml(a.id, revId, 'tag', cellVal(a.id, revId, 'tag'), true)}</td>
+      <td data-sort="${esc(cellVal(a.id, revId, 'comment'))}" style="min-width:240px">${cellHtml(a.id, revId, 'comment', cellVal(a.id, revId, 'comment'), true)}</td>
+      <td style="font-size:12px">${esc(backgroundOf(a))}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+  refreshReviewerCalc();
+  const tbl = box.querySelector('table');
+  makeResizable(tbl, 'grid-rev2-' + st); makeSortable(tbl, 'grid-rev2-' + st);
+  growAll(box);
+}
+function refreshReviewerCalc() {
+  const st = GS.stage, revId = GS.revId;
+  const ws = APPS.map(a => ({ id: a.id, w: reviewerWeighted(st, a.id, revId) }));
+  const sorted = ws.filter(x => x.w != null).map(x => x.w).sort((a, b) => b - a);
+  ws.forEach(x => {
+    const tw = document.querySelector(`td[data-w="${x.id}"]`), tr = document.querySelector(`td[data-rank="${x.id}"]`);
+    if (tw) { tw.textContent = fmtN(x.w); tw.dataset.sort = x.w ?? ''; }
+    if (tr) { const rk = x.w == null ? '' : sorted.indexOf(x.w) + 1; tr.textContent = rk; tr.dataset.sort = rk; }
+  });
+}
+
+function drawApplicantGrid() {
+  const st = GS.stage, crit = stageCriteria(st), revs = stageReviewers(st), a = APPS.find(x => x.id === GS.appId);
+  const box = document.getElementById('grid-box');
+  if (!a) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="adm-hint" style="margin-bottom:6px">${esc(backgroundOf(a))}${a.review_note ? ' ｜ ' + esc(a.review_note) : ''}</div>
+  <div class="tbl-wrap"><table class="adm-grid-tbl" style="table-layout:fixed;width:100%">
+    <colgroup><col style="width:56px"><col style="width:90px">${crit.map(() => '<col style="width:150px">').join('')}<col style="width:90px"><col style="width:150px"><col></colgroup>
+    <thead><tr><th>代號</th><th>委員</th>${crit.map(x => `<th style="text-align:center;white-space:normal">${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}
+      <th style="text-align:center">加權小計</th><th>研究類型</th><th>評語</th></tr></thead>
+    <tbody>${revs.map(r => `<tr>
+      <td>${esc(r.code || '')}</td><td style="white-space:nowrap">${esc(reviewerName(r))}</td>
+      ${crit.map(x => `<td>${cellHtml(a.id, r.id, 'crit:' + x.id, cellVal(a.id, r.id, 'crit:' + x.id))}</td>`).join('')}
+      <td class="adm-calc" data-rw="${r.id}"></td>
+      <td>${cellHtml(a.id, r.id, 'tag', cellVal(a.id, r.id, 'tag'), true)}</td>
+      <td>${cellHtml(a.id, r.id, 'comment', cellVal(a.id, r.id, 'comment'), true)}</td>
+    </tr>`).join('')}
+    <tr class="adm-avg"><td colspan="2">各項平均／${STAGE_ZH[st]}成績</td>${crit.map(x => `<td class="adm-calc" data-avg="${x.id}"></td>`).join('')}
+      <td class="adm-calc" id="app-total"></td><td colspan="2" id="app-spread"></td></tr>
+    </tbody></table></div>`;
+  refreshApplicantCalc();
+  growAll(box);
+}
+function refreshApplicantCalc() {
+  const st = GS.stage, a = GS.appId;
+  stageReviewers(st).forEach(r => { const td = document.querySelector(`td[data-rw="${r.id}"]`); if (td) td.textContent = fmtN(reviewerWeighted(st, a, r.id)); });
+  const res = applicantStageScore(st, a);
+  stageCriteria(st).forEach(c => { const td = document.querySelector(`td[data-avg="${c.id}"]`); if (td) td.textContent = res.avgs[c.id] != null ? fmtN(round2(res.avgs[c.id])) : ''; });
+  const t = document.getElementById('app-total'); if (t) t.textContent = res.total == null ? '（分數未齊）' : fmtN(res.total);
+  const sp = reviewerSpread(st, a), el = document.getElementById('app-spread');
+  if (el) {
+    const over = sp != null && sp > Number(CUR.spread_alert || 15);
+    el.className = over ? 'adm-spread' : '';
+    el.textContent = sp == null ? '' : `委員加權分最高與最低差 ${fmtN(sp)} 分${over ? '，超過提示門檻' : ''}`;
+    if (st === 'review' && res.total != null && CUR.pass_threshold != null)
+      el.textContent += ` ${res.total >= Number(CUR.pass_threshold) ? '✓ 達門檻' : '✗ 未達門檻'}`;
+  }
+}
+
+// 評語依內容自動長高（像 Excel 自動列高）
+function autoGrow(t) { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
+function growAll(root) { (root || document).querySelectorAll('textarea.adm-cell').forEach(autoGrow); }
+
+/* ── 鍵盤 ── */
+function cellKey(e) {
+  if (e.key !== 'Enter') return;
+  if (e.altKey && e.target.tagName === 'TEXTAREA') {   // Alt+Enter：評語內換行（同 Excel）
+    e.preventDefault();
+    const t = e.target, a = t.selectionStart, b = t.selectionEnd;
+    t.value = t.value.slice(0, a) + '\n' + t.value.slice(b); t.selectionStart = t.selectionEnd = a + 1; autoGrow(t); return;
+  }
+  e.preventDefault();
+  const inp = e.target, td = inp.closest('td'), tr = td.closest('tr');
+  const col = [...tr.children].indexOf(td);
+  let row = e.shiftKey ? tr.previousElementSibling : tr.nextElementSibling;
+  while (row && !row.children[col]?.querySelector('.adm-cell')) row = e.shiftKey ? row.previousElementSibling : row.nextElementSibling;
+  const nx = row?.children[col]?.querySelector('.adm-cell');
+  inp.dispatchEvent(new Event('change'));
+  if (nx) { nx.focus(); nx.select(); }
+}
+
+/* ── 儲存一格 ── */
+const SAVE_Q = {};   // 同一格串行儲存，避免連續輸入時順序錯亂
+function saveCell(inp) {
+  const k = `${inp.dataset.a}|${inp.dataset.r}|${inp.dataset.k}`;
+  SAVE_Q[k] = (SAVE_Q[k] || Promise.resolve()).then(() => doSaveCell(inp));
+  return SAVE_Q[k];
+}
+async function doSaveCell(inp) {
+  if (!gridEditable(GS.stage)) return;
+  const appId = inp.dataset.a, revId = inp.dataset.r, k = inp.dataset.k;
+  const raw = inp.value.trim(), old = inp.dataset.old;
+  if (raw === old) return;
+  inp.classList.remove('bad', 'saved'); inp.title = '';
+  const app = APPS.find(x => x.id === appId), rev = (CUR.reviewers || []).find(x => x.id === revId);
+  const who = `${app?.exam_no || ''} ${app?.name || ''}／${rev ? reviewerName(rev) : ''}`;
+  try {
+    if (k.startsWith('crit:')) {
+      const critId = k.slice(5), crit = (CUR.criteria || []).find(c => c.id === critId);
+      let val = null;
+      if (raw !== '') {
+        val = Number(raw);
+        if (!Number.isFinite(val) || val < 0 || val > 100) { inp.classList.add('bad'); inp.title = '分數必須是 0～100'; return; }
+      }
+      inp.classList.add('saving');
+      const key = skey(appId, revId, critId), cur = SC[key];
+      if (val == null) {
+        if (cur) { assertRows(await sb.from('adm_scores').delete().eq('id', cur.id).select('id'), 1, '清除分數'); delete SC[key]; }
+      } else {
+        const res = await sb.from('adm_scores').upsert({ round_id: CUR.id, applicant_id: appId, reviewer_id: revId, criterion_id: critId, score: val, source: 'manual' },
+          { onConflict: 'applicant_id,reviewer_id,criterion_id' }).select('id,score');
+        assertRows(res, 1, '儲存分數');
+        SC[key] = { id: res.data[0].id, score: Number(res.data[0].score) };
+      }
+      writeAuditLog('招生', `修改${STAGE_ZH[GS.stage]}分數`, 'adm_scores', appId, who, `${crit?.name || ''}：${old || '（空白）'} → ${raw || '（空白）'}`);
+    } else {
+      inp.classList.add('saving');
+      const key = ckey(appId, revId), cur = CM[key] || {};
+      const row = { round_id: CUR.id, applicant_id: appId, reviewer_id: revId,
+        comment: k === 'comment' ? (raw || null) : (cur.comment || null),
+        research_tag: k === 'tag' ? (raw || null) : (cur.research_tag || null) };
+      const res = await sb.from('adm_comments').upsert(row, { onConflict: 'applicant_id,reviewer_id' }).select('id,comment,research_tag');
+      assertRows(res, 1, '儲存' + (k === 'tag' ? '研究類型' : '評語'));
+      CM[key] = { id: res.data[0].id, comment: res.data[0].comment || '', research_tag: res.data[0].research_tag || '' };
+      writeAuditLog('招生', `修改${STAGE_ZH[GS.stage]}${k === 'tag' ? '研究類型' : '評語'}`, 'adm_comments', appId, who, `${old || '（空白）'} → ${raw || '（空白）'}`);
+    }
+    inp.dataset.old = raw;
+    const td = inp.closest('td'); if (td && td.dataset.sort != null) td.dataset.sort = raw;
+    inp.classList.remove('saving'); inp.classList.add('saved');
+    setTimeout(() => inp.classList.remove('saved'), 900);
+    if (GS.view === 'reviewer') refreshReviewerCalc(); else refreshApplicantCalc();
+  } catch (e) {
+    console.error(e);
+    inp.classList.remove('saving'); inp.classList.add('bad'); inp.title = '儲存失敗：' + (e.message || e);
+    showToast('儲存失敗：' + (e.message || e), 'error');
+  }
+}
+
+/* ── 從 Excel 貼上一整塊 ── */
+function pasteCells(e) {
+  const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+  if (!/[\t\n]/.test(text.replace(/\n$/, ''))) return;        // 單格照一般貼上
+  e.preventDefault();
+  if (!gridEditable(GS.stage)) return;
+  const rows = text.replace(/\r/g, '').replace(/\n$/, '').split('\n').map(r => r.split('\t'));
+  const start = e.target, td = start.closest('td'), tr = td.closest('tr');
+  const tds = [...tr.children], col0 = tds.indexOf(td);
+  let row = tr, n = 0;
+  const jobs = [];
+  rows.forEach(vals => {
+    if (!row) return;
+    let ci = col0;
+    vals.forEach(v => {
+      // 跳過計算欄（沒有輸入格的欄）
+      while (row.children[ci] && !row.children[ci].querySelector('.adm-cell')) ci++;
+      const inp = row.children[ci]?.querySelector('.adm-cell');
+      if (inp && !inp.disabled) { inp.value = v.trim(); jobs.push(inp); n++; }
+      ci++;
+    });
+    do { row = row.nextElementSibling; } while (row && !row.querySelector('.adm-cell'));
+  });
+  (async () => { for (const inp of jobs) await saveCell(inp); showToast(`已貼上 ${n} 格`); })();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   匯入委員 Excel（第 5 批）
+   一個檔案多個工作表（工作表名稱＝委員姓名）或每位委員一個檔案都可以；
+   欄位對應由系統猜、承辦人確認，確認後記在 adm_criteria.import_label；
+   匯入前逐格比對新舊（規則 40），預設用新值、可逐格改成保留舊值。
+   ════════════════════════════════════════════════════════════════ */
+let SIMP = null;
+const normTxt = t => normHdr(t).replace(/\(滿分為?100\)/g, '').replace(/[\d.]+%/g, '').replace(/[:：]/g, '');
+
+function openScoreImport(st) {
+  if (!gridEditable(st)) return;
+  SIMP = { st, sheets: [], files: [] };
+  document.getElementById('simp-title').textContent = `匯入委員 Excel（${STAGE_ZH[st]}）`;
+  document.getElementById('simp-btn').disabled = true;
+  document.getElementById('simp-foot').textContent = '';
+  document.getElementById('simp-body').innerHTML = `
+    <div class="adm-drop" id="simp-drop" onclick="document.getElementById('simp-file').click()">
+      <div style="font-size:28px">📊</div>
+      <div style="margin-top:6px">點這裡選擇檔案，或把委員交回的 Excel 拖進來（可一次多個檔案）</div>
+      <div class="adm-hint">工作表名稱＝委員姓名時自動對應；需要有「考生編號」欄。空白格不會清掉系統裡已有的分數。</div>
+    </div>
+    <input type="file" id="simp-file" accept=".xlsx,.xls" multiple style="display:none" onchange="if(this.files.length)parseScoreFiles([...this.files])">
+    <div id="simp-preview"></div>`;
+  const drop = document.getElementById('simp-drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files.length) parseScoreFiles([...e.dataTransfer.files]); });
+  openModal('simp-modal');
+}
+
+function guessReviewer(st, sheetName, fileName, singleSheet) {
+  const revs = stageReviewers(st), sn = normHdr(sheetName), fn = normHdr(fileName);
+  return revs.find(r => normHdr(reviewerName(r)) === sn)
+      || revs.find(r => sn.includes(normHdr(reviewerName(r))))
+      || (singleSheet ? revs.find(r => fn.includes(normHdr(reviewerName(r)))) : null)
+      || null;
+}
+// 欄位猜測：已記住的 import_label → 標題含項目名稱 → 「附表N」對第 N 個項目
+function guessMapping(st, headers) {
+  const crit = stageCriteria(st), map = {};
+  const hs = headers.map((h, i) => ({ i, raw: h, n: normHdr(h), t: normTxt(h) })).filter(h => h.n);
+  crit.forEach((c, idx) => {
+    const lbl = c.import_label ? normHdr(c.import_label) : null;
+    let hit = (lbl && hs.find(h => h.n === lbl)) || hs.find(h => h.t.includes(normTxt(c.name)));
+    if (!hit) { const re = new RegExp('附表' + (idx + 1) + '(?!\\d)'); hit = hs.find(h => re.test(h.n)); }
+    map['crit:' + c.id] = hit ? hit.raw : '';
+  });
+  map.tag = (hs.find(h => h.n.includes('研究類型')) || {}).raw || '';
+  map.comment = (hs.find(h => h.n.includes('評語')) || {}).raw || '';
+  return map;
+}
+
+async function parseScoreFiles(files) {
+  const box = document.getElementById('simp-preview');
+  box.innerHTML = '<div class="adm-hint" style="margin-top:12px">讀取中…</div>';
+  try {
+    await ensureXLSX();
+    const st = SIMP.st, sheets = [];
+    for (const f of files) {
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+      const usable = wb.SheetNames.map(sn => ({ sn, rows: XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: '' }) }))
+        .filter(x => findHeaderRow(x.rows) >= 0);
+      usable.forEach(x => {
+        const hi = findHeaderRow(x.rows);
+        const rev = guessReviewer(st, x.sn, f.name, usable.length === 1);
+        sheets.push({ file: f.name, sheet: x.sn, rows: x.rows, hi, headers: x.rows[hi].map(h => String(h ?? '')), revId: rev?.id || '' });
+      });
+    }
+    if (!sheets.length) { box.innerHTML = '<div class="adm-warn" style="margin-top:12px">檔案裡找不到含「考生編號」欄的工作表。</div>'; return; }
+    // 欄位對應：以第一個工作表猜，其他工作表依「標題文字」套用
+    const allHeaders = [...new Set(sheets.flatMap(x => x.headers.filter(h => normHdr(h))))];
+    SIMP.sheets = sheets; SIMP.allHeaders = allHeaders; SIMP.map = guessMapping(st, sheets[0].headers);
+    await loadStageData(st);
+    buildScoreDiff();
+    drawScoreImport();
+  } catch (e) { console.error(e); box.innerHTML = `<div class="adm-warn" style="margin-top:12px">讀取失敗：${esc(e.message || e)}</div>`; }
+}
+
+function colIndex(headers, raw) { if (!raw) return -1; const n = normHdr(raw); return headers.findIndex(h => normHdr(h) === n); }
+
+// 依目前的委員與欄位對應，算出每個工作表的變更
+function buildScoreDiff() {
+  const st = SIMP.st, crit = stageCriteria(st), byNo = Object.fromEntries(APPS.map(a => [a.exam_no, a]));
+  const usedRev = {};
+  SIMP.sheets.forEach(sh => {
+    sh.items = []; sh.errors = []; sh.same = 0; sh.blank = 0;
+    if (!sh.revId) return;
+    usedRev[sh.revId] = (usedRev[sh.revId] || 0) + 1;
+    const iNo = sh.headers.findIndex(h => normHdr(h) === '考生編號');
+    const cols = gridKeys(st).map(k => ({ k, i: colIndex(sh.headers, SIMP.map[k]) }));
+    const seen = {};
+    for (let r = sh.hi + 1; r < sh.rows.length; r++) {
+      const row = sh.rows[r] || [];
+      const no = cellStr(row[iNo]).toUpperCase();
+      if (!no) continue;
+      const app = byNo[no];
+      if (!app) {
+        // 簽名列、說明列等沒有任何分數／評語的列直接略過，不列為問題
+        if (cols.some(({ i }) => i >= 0 && cellStr(row[i]) !== '')) sh.errors.push(`第 ${r + 1} 列：考生編號 ${no} 不在本梯次考生名單`);
+        continue;
+      }
+      if (seen[no]) { sh.errors.push(`第 ${r + 1} 列：考生編號 ${no} 與第 ${seen[no]} 列重複，略過`); continue; }
+      seen[no] = r + 1;
+      cols.forEach(({ k, i }) => {
+        if (i < 0) return;
+        const v = row[i];
+        const txt = cellStr(v);
+        if (txt === '') { sh.blank++; return; }                        // 空白不清除既有資料
+        let nv = txt;
+        if (k.startsWith('crit:')) {
+          nv = typeof v === 'number' ? v : Number(txt);
+          if (!Number.isFinite(nv) || nv < 0 || nv > 100) { sh.errors.push(`第 ${r + 1} 列 ${no}：「${txt}」不是 0～100 的分數`); return; }
+          nv = round2(nv, 2);
+        }
+        const ov = cellVal(app.id, sh.revId, k);
+        if (String(ov) === String(nv)) { sh.same++; return; }
+        sh.items.push({ app, k, from: ov, to: nv, use: true });
+      });
+    }
+  });
+  SIMP.dupRev = Object.keys(usedRev).filter(id => usedRev[id] > 1);
+}
+
+function keyLabel(k) {
+  if (k === 'tag') return '研究類型'; if (k === 'comment') return '評語';
+  const c = (CUR.criteria || []).find(x => x.id === k.slice(5)); return c ? c.name : k;
+}
+
+function drawScoreImport() {
+  const st = SIMP.st, revs = stageReviewers(st), box = document.getElementById('simp-preview');
+  const hdrOpts = cur => `<option value="">（不匯入）</option>` + SIMP.allHeaders.map(h => `<option value="${esc(h)}" ${h === cur ? 'selected' : ''}>${esc(h.replace(/\n/g, ' '))}</option>`).join('');
+  const missCrit = stageCriteria(st).filter(c => !SIMP.map['crit:' + c.id]);
+  box.innerHTML = `
+    <div class="adm-card" style="margin-top:12px;box-shadow:none"><div class="adm-card-hdr"><div class="adm-card-title">① 欄位對應</div>
+      <span class="adm-hint">系統先猜好，請確認；確認匯入後會記住，下次自動套用</span></div>
+      <div class="adm-card-body adm-grid" style="grid-template-columns:repeat(2,1fr)">
+        ${gridKeys(st).map(k => `<div class="frow"><label class="flabel">${esc(keyLabel(k))}</label>
+          <select class="fselect" onchange="SIMP.map['${k}']=this.value;buildScoreDiff();drawScoreImport()">${hdrOpts(SIMP.map[k])}</select></div>`).join('')}
+      </div>
+      ${missCrit.length ? `<div class="adm-warn" style="margin:0 18px 14px">「${missCrit.map(c => esc(c.name)).join('、')}」沒有對應欄位，這些分數不會匯入。</div>` : ''}
+    </div>
+    <div class="adm-card" style="box-shadow:none"><div class="adm-card-hdr"><div class="adm-card-title">② 工作表與委員</div></div>
+      <div class="adm-card-body">
+        ${SIMP.dupRev.length ? '<div class="adm-warn">有兩個以上的工作表對應到同一位委員，請確認。</div>' : ''}
+        ${SIMP.sheets.map((sh, si) => {
+          const chg = sh.items.filter(x => x.from !== ''), add = sh.items.filter(x => x.from === '');
+          return `<div style="border:1px solid var(--cr2);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <b>${esc(sh.sheet)}</b><span class="adm-hint">${esc(sh.file)}</span>
+              <span style="margin-left:auto">對應委員：</span>
+              <select class="fselect" style="width:auto" onchange="SIMP.sheets[${si}].revId=this.value;buildScoreDiff();drawScoreImport()">
+                <option value="">（不匯入這個工作表）</option>${revs.map(r => `<option value="${r.id}" ${r.id === sh.revId ? 'selected' : ''}>${esc((r.code ? r.code + ' ' : '') + reviewerName(r))}</option>`).join('')}</select>
+            </div>
+            ${!sh.revId ? '<div class="adm-hint">未對應委員，不匯入。</div>' : `
+            <div class="adm-imp-sum"><span>新增 <b>${add.length}</b></span><span>修改 <b>${chg.length}</b></span><span>無變更 <b>${sh.same}</b></span><span>空白略過 <b>${sh.blank}</b></span>
+              ${sh.errors.length ? `<span style="background:#FEE;border-color:#FCC">有問題 <b style="color:var(--red)">${sh.errors.length}</b></span>` : ''}</div>
+            ${chg.length ? `<div class="adm-warn" style="margin-bottom:6px">已有資料、內容不同的 ${chg.length} 格：預設用新值，取消勾選就保留舊值。</div>
+              <div class="tbl-wrap adm-mini" style="max-height:30vh"><table><thead><tr><th style="width:36px"></th><th>考生編號</th><th>姓名</th><th>欄位</th><th>舊值</th><th>新值</th></tr></thead><tbody>
+              ${sh.items.map((x, ii) => x.from === '' ? '' : `<tr><td><input type="checkbox" ${x.use ? 'checked' : ''} onchange="SIMP.sheets[${si}].items[${ii}].use=this.checked;updateScoreImportFoot()"></td>
+                <td class="mono">${esc(x.app.exam_no)}</td><td>${esc(x.app.name)}</td><td>${esc(keyLabel(x.k))}</td><td><s>${esc(x.from)}</s></td><td><b>${esc(x.to)}</b></td></tr>`).join('')}
+              </tbody></table></div>` : ''}
+            ${sh.errors.length ? `<details class="adm-skip"><summary>有問題、不會匯入（${sh.errors.length}）</summary><div class="adm-hint">${sh.errors.map(esc).join('<br>')}</div></details>` : ''}`}
+          </div>`; }).join('')}
+      </div></div>`;
+  box.querySelectorAll('.tbl-wrap table').forEach((t, i) => makeSortable(t, 'simp-' + i, [0]));
+  updateScoreImportFoot();
+}
+function scoreImportSelection() { return SIMP ? SIMP.sheets.filter(sh => sh.revId).flatMap(sh => sh.items.filter(x => x.use).map(x => ({ ...x, revId: sh.revId }))) : []; }
+function updateScoreImportFoot() {
+  const sel = scoreImportSelection(), btn = document.getElementById('simp-btn');
+  btn.disabled = !sel.length || SIMP.dupRev.length > 0;
+  document.getElementById('simp-foot').textContent = SIMP.dupRev.length ? '同一位委員對應到多個工作表，無法匯入'
+    : sel.length ? `將寫入 ${sel.length} 格（分數 ${sel.filter(x => x.k.startsWith('crit:')).length}、研究類型／評語 ${sel.filter(x => !x.k.startsWith('crit:')).length}）` : '沒有需要寫入的資料';
+}
+
+async function confirmScoreImport() {
+  const sel = scoreImportSelection(), st = SIMP.st;
+  if (!sel.length || !gridEditable(st)) return;
+  const btn = document.getElementById('simp-btn');
+  btn.disabled = true; btn.textContent = '匯入中…';
+  try {
+    // 1. 分數
+    const scoreRows = sel.filter(x => x.k.startsWith('crit:')).map(x => ({
+      round_id: CUR.id, applicant_id: x.app.id, reviewer_id: x.revId, criterion_id: x.k.slice(5), score: x.to, source: 'import' }));
+    for (let i = 0; i < scoreRows.length; i += 300) {
+      const chunk = scoreRows.slice(i, i + 300);
+      assertRows(await sb.from('adm_scores').upsert(chunk, { onConflict: 'applicant_id,reviewer_id,criterion_id' }).select('id'), chunk.length, '寫入分數');
+    }
+    // 2. 研究類型／評語（同一位考生×委員合併成一筆，沒選的欄位保留原值）
+    const cmMap = {};
+    sel.filter(x => !x.k.startsWith('crit:')).forEach(x => {
+      const key = ckey(x.app.id, x.revId), cur = CM[key] || {};
+      cmMap[key] = cmMap[key] || { round_id: CUR.id, applicant_id: x.app.id, reviewer_id: x.revId, comment: cur.comment || null, research_tag: cur.research_tag || null };
+      if (x.k === 'tag') cmMap[key].research_tag = String(x.to); else cmMap[key].comment = String(x.to);
+    });
+    const cmRows = Object.values(cmMap);
+    for (let i = 0; i < cmRows.length; i += 300) {
+      const chunk = cmRows.slice(i, i + 300);
+      assertRows(await sb.from('adm_comments').upsert(chunk, { onConflict: 'applicant_id,reviewer_id' }).select('id'), chunk.length, '寫入研究類型／評語');
+    }
+    // 3. 記住欄位對應（評分項目的 import_label）
+    for (const c of stageCriteria(st)) {
+      const lbl = SIMP.map['crit:' + c.id] ? normHdr(SIMP.map['crit:' + c.id]) : null;
+      if (lbl && lbl !== c.import_label) {
+        assertRows(await sb.from('adm_criteria').update({ import_label: lbl }).eq('id', c.id).select('id'), 1, '記住欄位對應');
+        c.import_label = lbl;
+      }
+    }
+    // 4. 操作記錄：每位委員一筆
+    for (const sh of SIMP.sheets.filter(x => x.revId)) {
+      const mine = sel.filter(x => x.revId === sh.revId);
+      if (!mine.length) continue;
+      const rev = stageReviewers(st).find(r => r.id === sh.revId);
+      await writeAuditLog('招生', `匯入${STAGE_ZH[st]}分數`, 'adm_scores', CUR.id, `${CUR.code} ${rev ? reviewerName(rev) : ''}`,
+        `檔案 ${sh.file}／工作表 ${sh.sheet}：寫入 ${mine.length} 格（新增 ${mine.filter(x => x.from === '').length}、修改 ${mine.filter(x => x.from !== '').length}）；保留舊值 ${sh.items.filter(x => !x.use).length}；有問題 ${sh.errors.length}`);
+    }
+    closeModal('simp-modal');
+    showToast(`✅ 已匯入 ${sel.length} 格`);
+    await loadRound(CUR.id);
+    await renderScoresPage(st);
+  } catch (e) {
+    console.error(e);
+    showToast('匯入失敗：' + (e.message || e), 'error');
+  } finally { btn.disabled = false; btn.textContent = '確認匯入'; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   書審彙整（第 6 批）：書審成績、總排名、門檻判定、研究類型定案、鎖定、書審總表、回填檢核清單
+   書審成績＝各項目「有給分委員」的平均 × 權重後加總，四捨五入到梯次設定的小數位數
+   ════════════════════════════════════════════════════════════════ */
+// 競賽排名（同分同名次：1,2,2,4）
+function rankMap(pairs) {
+  const vals = pairs.filter(p => p.v != null).map(p => p.v).sort((a, b) => b - a), m = {};
+  pairs.forEach(p => { m[p.id] = p.v == null ? null : vals.indexOf(p.v) + 1; });
+  return m;
+}
+function reviewStatus(total) {
+  if (total == null) return 'miss';
+  if (CUR.pass_threshold == null) return 'pass';
+  return total >= Number(CUR.pass_threshold) ? 'pass' : 'fail';
+}
+const REVIEW_STATUS_ZH = { pass: '進入面試', fail: '未達門檻', miss: '分數未齊' };
+// 委員填的研究類型：多數決；平手或沒人填 → ''
+function majorityTag(appId) {
+  const cnt = {};
+  stageReviewers('review').forEach(r => { const t = (CM[ckey(appId, r.id)] || {}).research_tag; if (t) cnt[t] = (cnt[t] || 0) + 1; });
+  const arr = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
+  if (!arr.length || (arr[1] && arr[1][1] === arr[0][1])) return '';
+  return arr[0][0];
+}
+function reviewerTags(appId) {
+  return stageReviewers('review').map(r => ({ r, t: (CM[ckey(appId, r.id)] || {}).research_tag || '' }));
+}
+// 整理每位考生的彙整資料（畫面、Excel、列印、檢核清單共用）
+function buildSummary() {
+  const st = 'review', revs = stageReviewers(st), crit = stageCriteria(st);
+  const rows = [...APPS].sort((a, b) => String(a.exam_no).localeCompare(String(b.exam_no))).map(a => {
+    const res = applicantStageScore(st, a.id);
+    return { a, total: res.total, avgs: crit.map(c => res.avgs[c.id] != null ? round2(res.avgs[c.id]) : null),
+             ws: revs.map(r => reviewerWeighted(st, a.id, r.id)), spread: reviewerSpread(st, a.id), status: reviewStatus(res.total) };
+  });
+  const tr = rankMap(rows.map(x => ({ id: x.a.id, v: x.total })));
+  const rr = revs.map((r, i) => rankMap(rows.map(x => ({ id: x.a.id, v: x.ws[i] }))));
+  rows.forEach(x => {
+    x.rank = tr[x.a.id];
+    x.revRanks = rr.map(m => m[x.a.id]);
+    x.revRankStr = x.revRanks.map(v => v ?? '－').join('-');
+    // 委員缺分（有分數未齊的委員）
+    x.missCells = revs.reduce((n, r) => n + crit.filter(c => { const v = SC[skey(x.a.id, r.id, c.id)]; return !v || v.score == null; }).length, 0);
+  });
+  return { revs, crit, rows };
+}
+function revCode(r, i) { return r.code || String.fromCharCode(65 + i); }
+
+async function renderSummaryPage() {
+  const c = document.getElementById('content');
+  if (!CUR) { c.innerHTML = '<div class="adm-placeholder">請先在「梯次設定」建立梯次。</div>'; return; }
+  c.innerHTML = '<div class="adm-placeholder">讀取中…</div>';
+  if (!(await loadStageData('review'))) return;
+  drawSummaryPage();
+}
+
+function drawSummaryPage() {
+  const c = document.getElementById('content');
+  const { revs, crit, rows } = buildSummary();
+  const locked = !!CUR.review_locked_at, w = canWrite();
+  const problems = [];
+  if (!APPS.length) problems.push('尚未匯入考生資料');
+  if (!crit.length) problems.push('尚未設定書審評分項目');
+  if (!revs.length) problems.push('尚未設定書審委員');
+  const n = k => rows.filter(x => x.status === k).length;
+  const spreadN = rows.filter(x => x.spread != null && x.spread > Number(CUR.spread_alert || 15)).length;
+  const missCellN = rows.reduce((t, x) => t + x.missCells, 0);
+  const noTag = rows.filter(x => x.status === 'pass' && !x.a.research_tag).length;
+  c.innerHTML = `
+  <div class="page-hdr">
+    <div class="page-title">書審彙整 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
+    <span class="adm-lock ${locked ? 'on' : ''}">${locked ? '🔒 書審已鎖定 ' + esc(fmtTime(CUR.review_locked_at)) : '書審未鎖定'}</span>
+  </div>
+  ${problems.length ? `<div class="adm-warn">無法彙整：${problems.map(esc).join('、')}。</div>` : `
+  <div class="adm-stats">
+    <div class="adm-stat"><b>${n('pass')}</b>位進入面試（門檻 ≥ ${esc(CUR.pass_threshold ?? '未設')}）</div>
+    <div class="adm-stat"><b>${n('fail')}</b>位未達門檻</div>
+    <div class="adm-stat"><b style="color:${n('miss') ? 'var(--red)' : 'var(--navy)'}">${n('miss')}</b>位分數未齊</div>
+    <div class="adm-stat"><b style="color:${missCellN ? 'var(--red)' : 'var(--navy)'}">${missCellN}</b>格委員分數空白</div>
+    <div class="adm-stat"><b style="color:${spreadN ? 'var(--red)' : 'var(--navy)'}">${spreadN}</b>位委員給分差距 > ${esc(CUR.spread_alert ?? 15)} 分</div>
+    <div class="adm-stat"><b>${noTag}</b>位進入面試者研究類型未定</div>
+  </div>
+  <div class="toolbar">
+    ${locked
+      ? `<button class="btn btn-sec adm-write" onclick="unlockReview()">🔓 解除鎖定</button>`
+      : `<button class="btn btn-pri adm-write" onclick="lockReview()">🔒 鎖定書審成績</button>`}
+    <button class="btn btn-sec adm-write" onclick="fillMajorityTags()">帶入多數研究類型</button>
+    <button class="btn btn-sec" onclick="downloadSummaryExcel()">⬇ 書審總表 Excel</button>
+    <button class="btn btn-sec" onclick="printSummary()">🖨 列印書審總表</button>
+    <button class="btn btn-sec" onclick="downloadChecklist()">⬇ 回填檢核清單</button>
+  </div>
+  <div class="adm-hint" style="margin-bottom:6px">書審成績＝各項目「有給分委員」的平均 × 權重後加總，四捨五入到小數 ${esc(CUR.decimals ?? 2)} 位。${revs.map((r, i) => `${esc(revCode(r, i))}＝${esc(reviewerName(r))}`).join('、')}。研究類型可直接輸入或從委員填的類型挑選，會用在面試分組。</div>
+  <datalist id="tag-list">${[...new Set(Object.values(CM).map(m => m.research_tag).concat(APPS.map(a => a.research_tag)).filter(Boolean))].sort().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
+  <div class="tbl-wrap"><table id="sum-tbl">
+    <thead><tr><th>考生編號</th><th>姓名</th>
+      ${crit.map(x => `<th style="text-align:center">${wPct(x.weight)}%${esc(x.name)}<br><span style="font-weight:400;font-size:11px">委員平均</span></th>`).join('')}
+      <th style="text-align:center">書審成績</th><th style="text-align:center">總排名</th><th>結果</th>
+      ${revs.map((r, i) => `<th style="text-align:center" title="${esc(reviewerName(r))}">${esc(revCode(r, i))}</th>`).join('')}
+      <th style="text-align:center">各委員排名</th><th style="text-align:center">差距</th>
+      <th>研究類型（定案）</th><th>委員填的研究類型</th><th>書審備註（基本背景）</th></tr></thead>
+    <tbody>${rows.map(x => {
+      const over = x.spread != null && x.spread > Number(CUR.spread_alert || 15);
+      const tags = reviewerTags(x.a.id).filter(t => t.t);
+      const diff = new Set(tags.map(t => t.t)).size > 1;
+      return `<tr>
+      <td class="mono" style="white-space:nowrap">${esc(x.a.exam_no)}</td><td style="white-space:nowrap">${esc(x.a.name)}</td>
+      ${x.avgs.map(v => `<td class="adm-calc" data-sort="${v ?? ''}">${fmtN(v)}</td>`).join('')}
+      <td class="adm-calc" data-sort="${x.total ?? ''}" style="font-size:14px">${fmtN(x.total)}</td>
+      <td class="adm-calc" data-sort="${x.rank ?? ''}">${x.rank ?? ''}</td>
+      <td class="adm-${x.status}" data-sort="${{ pass: 1, fail: 2, miss: 3 }[x.status]}">${x.status === 'pass' ? '✓ ' : ''}${REVIEW_STATUS_ZH[x.status]}${x.missCells && x.status !== 'miss' ? `<span class="adm-tags">（缺 ${x.missCells} 格）</span>` : ''}</td>
+      ${x.ws.map(v => `<td style="text-align:center" data-sort="${v ?? ''}">${v == null ? '<span class="adm-miss">－</span>' : fmtN(v)}</td>`).join('')}
+      <td style="text-align:center;white-space:nowrap">${esc(x.revRankStr)}</td>
+      <td class="${over ? 'adm-spread' : ''}" style="text-align:center" data-sort="${x.spread ?? ''}">${fmtN(x.spread)}</td>
+      <td data-sort="${esc(x.a.research_tag || '')}"><input class="adm-cell txt" list="tag-list" ${w ? '' : 'disabled'} data-app="${x.a.id}" value="${esc(x.a.research_tag || '')}" data-old="${esc(x.a.research_tag || '')}"
+        placeholder="${esc(majorityTag(x.a.id))}" onchange="saveResearchTag(this)" onkeydown="cellKey(event)"></td>
+      <td class="adm-tags" ${diff ? 'style="color:var(--gold,#B8860B)"' : ''}>${tags.map(t => esc(revCode(t.r, stageReviewers('review').indexOf(t.r)) + ' ' + t.t)).join('／')}</td>
+      <td style="font-size:12px">${esc(backgroundOf(x.a))}</td></tr>`; }).join('')}</tbody></table></div>`}`;
+  const tbl = document.getElementById('sum-tbl');
+  if (tbl) { makeResizable(tbl, 'sum-review'); makeSortable(tbl, 'sum-review'); }
+}
+
+async function saveResearchTag(inp) {
+  if (!canWrite()) return;
+  const v = inp.value.trim(), old = inp.dataset.old, id = inp.dataset.app;
+  if (v === old) return;
+  inp.classList.remove('bad'); inp.classList.add('saving');
+  try {
+    assertRows(await sb.from('adm_applicants').update({ research_tag: v || null }).eq('id', id).select('id'), 1, '儲存研究類型');
+    const a = APPS.find(x => x.id === id); if (a) a.research_tag = v || null;
+    inp.dataset.old = v; inp.closest('td').dataset.sort = v;
+    inp.classList.remove('saving'); inp.classList.add('saved'); setTimeout(() => inp.classList.remove('saved'), 900);
+    writeAuditLog('招生', '設定研究類型', 'adm_applicants', id, `${a?.exam_no || ''} ${a?.name || ''}`, `${old || '（空白）'} → ${v || '（空白）'}`);
+  } catch (e) {
+    console.error(e); inp.classList.remove('saving'); inp.classList.add('bad');
+    showToast('儲存失敗：' + (e.message || e), 'error');
+  }
+}
+
+async function fillMajorityTags() {
+  if (!canWrite()) return;
+  const todo = APPS.filter(a => !a.research_tag).map(a => ({ a, t: majorityTag(a.id) })).filter(x => x.t);
+  const tie = APPS.filter(a => !a.research_tag && !majorityTag(a.id) && reviewerTags(a.id).some(t => t.t)).length;
+  if (!todo.length) { alert('沒有可帶入的考生。\n\n只會帶入「研究類型（定案）」還空白、而且委員填的類型有多數的考生' + (tie ? `；有 ${tie} 位委員意見平手，請手動選。` : '。')); return; }
+  if (!confirm(`將 ${todo.length} 位考生的研究類型（定案）帶入委員填的多數類型。\n已經定案的不會變動${tie ? `；委員意見平手的 ${tie} 位請手動選` : ''}。\n\n確定嗎？`)) return;
+  try {
+    for (const x of todo) {
+      assertRows(await sb.from('adm_applicants').update({ research_tag: x.t }).eq('id', x.a.id).select('id'), 1, '帶入研究類型');
+      x.a.research_tag = x.t;
+    }
+    await writeAuditLog('招生', '帶入多數研究類型', 'adm_applicants', CUR.id, CUR.code, todo.map(x => `${x.a.exam_no}：${x.t}`).join('、'));
+    showToast(`✅ 已帶入 ${todo.length} 位`);
+  } catch (e) { console.error(e); showToast('帶入失敗：' + (e.message || e), 'error'); }
+  drawSummaryPage();
+}
+
+async function lockReview() {
+  if (!canWrite() || CUR.review_locked_at) return;
+  const { rows } = buildSummary();
+  const miss = rows.filter(x => x.status === 'miss');
+  if (miss.length) { alert(`還有 ${miss.length} 位考生分數未齊，不能鎖定：\n\n${miss.map(x => x.a.exam_no + ' ' + x.a.name).join('\n')}`); return; }
+  if (CUR.pass_threshold == null) { alert('尚未設定書審門檻，請先到「梯次設定」設定。'); return; }
+  const warn = [];
+  const cells = rows.reduce((t, x) => t + x.missCells, 0);
+  if (cells) warn.push(`・有 ${cells} 格委員分數空白（這些考生只平均有給分的委員）`);
+  const sp = rows.filter(x => x.spread != null && x.spread > Number(CUR.spread_alert || 15));
+  if (sp.length) warn.push(`・有 ${sp.length} 位考生委員給分差距超過 ${CUR.spread_alert ?? 15} 分：${sp.map(x => x.a.exam_no).join('、')}`);
+  const pass = rows.filter(x => x.status === 'pass').length;
+  if (!confirm(`鎖定 ${CUR.code} 書審成績？\n\n進入面試 ${pass} 位、未達門檻 ${rows.length - pass} 位（門檻 ≥ ${CUR.pass_threshold}）。\n${warn.length ? '\n請注意：\n' + warn.join('\n') + '\n' : ''}\n鎖定後書審分數、門檻、書審委員都不能修改；要修改需先解除鎖定。`)) return;
+  try {
+    const ts = new Date().toISOString();
+    assertRows(await sb.from('adm_rounds').update({ review_locked_at: ts }).eq('id', CUR.id).is('review_locked_at', null).select('id'), 1, '鎖定書審');
+    CUR.review_locked_at = ts; const r = ROUNDS.find(x => x.id === CUR.id); if (r) r.review_locked_at = ts;
+    await writeAuditLog('招生', '鎖定書審成績', 'adm_rounds', CUR.id, CUR.code, `進入面試 ${pass} 位、未達門檻 ${rows.length - pass} 位、門檻 ${CUR.pass_threshold}`);
+    showToast('🔒 書審成績已鎖定');
+  } catch (e) { console.error(e); showToast('鎖定失敗：' + (e.message || e), 'error'); }
+  drawSummaryPage();
+}
+
+async function unlockReview() {
+  if (!canWrite() || !CUR.review_locked_at) return;
+  if (CUR.admission_locked_at) { alert('錄取名單已鎖定，不能解除書審鎖定。'); return; }
+  const reason = prompt('解除書審鎖定後，分數、門檻、書審委員都可以再修改，進入面試名單可能改變。\n\n請輸入解除原因（會記在操作記錄）：');
+  if (reason == null) return;
+  if (!reason.trim()) { alert('請輸入解除原因。'); return; }
+  try {
+    assertRows(await sb.from('adm_rounds').update({ review_locked_at: null }).eq('id', CUR.id).select('id'), 1, '解除書審鎖定');
+    CUR.review_locked_at = null; const r = ROUNDS.find(x => x.id === CUR.id); if (r) r.review_locked_at = null;
+    await writeAuditLog('招生', '解除書審鎖定', 'adm_rounds', CUR.id, CUR.code, '原因：' + reason.trim());
+    showToast('🔓 已解除書審鎖定');
+  } catch (e) { console.error(e); showToast('解除失敗：' + (e.message || e), 'error'); }
+  drawSummaryPage();
+}
+
+/* ── 書審總表（Excel／列印）── */
+function summaryHead(revs, crit) {
+  return ['考生編號', '姓名', ...crit.map(x => `${wPct(x.weight)}%${x.name}\n(委員平均)`), '書審\n成績', '總\n排名', '結果',
+          ...revs.map((r, i) => `委員\n${revCode(r, i)}`), '各委員\n排名', '研究類型', '書審備註（基本背景）'];
+}
+function summaryVals(x) {
+  return [x.a.exam_no, x.a.name, ...x.avgs, x.total, x.rank, REVIEW_STATUS_ZH[x.status], ...x.ws, x.revRankStr, x.a.research_tag || '', backgroundOf(x.a)];
+}
+function summaryNote() {
+  return `※ 書審成績＝各項目委員平均（只平均有給分的委員）× 權重後加總，四捨五入至小數 ${CUR.decimals ?? 2} 位；書審成績 ≥ ${CUR.pass_threshold} 分進入面試。`
+    + (CUR.review_locked_at ? '' : ' 【書審尚未鎖定，本表僅供參考】');
+}
+function revLegend(revs) { return '書審委員：' + revs.map((r, i) => `${revCode(r, i)} ${reviewerName(r)}`).join('、'); }
+function stamp() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+
+async function downloadSummaryExcel() {
+  try {
+    await ensureExcelJS();
+    const { revs, crit, rows } = buildSummary();
+    const head = summaryHead(revs, crit), nCol = head.length;
+    const nCrit = crit.length, nRev = revs.length;
+    const iTotal = 3 + nCrit, iStatus = iTotal + 2, iRevStart = iStatus + 1, iBg = nCol;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('書審總表', { pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+      horizontalCentered: true, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } } });
+    ws.pageSetup.printTitlesRow = '4:4';
+    ws.headerFooter.oddFooter = `&L&"新細明體"&10製表日期：${stamp()}&R&"新細明體"&10第 &P 頁／共 &N 頁`;
+    ws.columns = [11, 9, ...crit.map(() => 15), 9, 6, 10, ...revs.map(() => 7.5), 12, 11, 46].map(w => ({ width: w }));
+    ws.mergeCells(1, 1, 1, nCol);
+    Object.assign(ws.getCell(1, 1), { value: `${formTitle()}總表` });
+    ws.getCell(1, 1).font = { ...TPL_FONT, size: 15, bold: true }; ws.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.mergeCells(2, 1, 2, iStatus);
+    ws.getCell(2, 1).value = revLegend(revs); ws.getCell(2, 1).font = { ...TPL_FONT, bold: true };
+    ws.mergeCells(2, iRevStart, 2, nCol);
+    const pass = rows.filter(x => x.status === 'pass').length;
+    ws.getCell(2, iRevStart).value = `考生共 ${rows.length} 位，進入面試 ${pass} 位`;
+    ws.getCell(2, iRevStart).font = TPL_FONT; ws.getCell(2, iRevStart).alignment = { horizontal: 'right' };
+    ws.mergeCells(3, 1, 3, nCol);
+    ws.getCell(3, 1).value = summaryNote(); ws.getCell(3, 1).font = { ...TPL_FONT, size: 11, color: CUR.review_locked_at ? undefined : { argb: 'FFC00000' } };
+    const hr = ws.getRow(4);   // 列高交給 Excel 自動調整
+    head.forEach((h, i) => {
+      const c = hr.getCell(i + 1);
+      c.value = h; c.font = { ...TPL_FONT, bold: true }; c.border = TPL_BORDER;
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEEEEE' } };
+    });
+    const dec = CUR.decimals ?? 2, numFmt = dec ? '0.' + '0'.repeat(dec) : '0';
+    rows.forEach((x, k) => {
+      const row = ws.getRow(5 + k);
+      summaryVals(x).forEach((v, i) => {
+        const col = i + 1, c = row.getCell(col);
+        c.value = v ?? null; c.border = TPL_BORDER;
+        c.font = col === iBg ? { ...TPL_FONT, size: 11 } : col === iTotal ? { ...TPL_FONT, bold: true } : TPL_FONT;
+        const isNum = (col >= 3 && col <= iTotal) || (col >= iRevStart && col < iRevStart + nRev);
+        if (isNum && v != null) c.numFmt = numFmt;
+        c.alignment = { vertical: 'middle', horizontal: col <= 2 || col >= nCol - 1 ? 'left' : 'center', wrapText: col === iBg };
+        if (col === iStatus && x.status !== 'pass') c.font = { ...TPL_FONT, color: { argb: x.status === 'miss' ? 'FFC00000' : 'FF808080' } };
+      });
+      if (x.status === 'pass') [1, 2, iTotal, iStatus].forEach(col => { row.getCell(col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAF4EA' } }; });
+    });
+    const sr = 5 + rows.length + 2;
+    ws.mergeCells(sr, 1, sr, nCol);
+    ws.getCell(sr, 1).value = '承辦人：＿＿＿＿＿＿＿＿' + ' '.repeat(10) + '單位主管：＿＿＿＿＿＿＿＿' + ' '.repeat(10) + '日期：＿＿＿＿年＿＿月＿＿日';
+    ws.getCell(sr, 1).font = { ...TPL_FONT, size: 13 }; ws.getCell(sr, 1).alignment = { horizontal: 'right' };
+    const buf = await wb.xlsx.writeBuffer();
+    saveBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${CUR.code}_書審總表${CUR.review_locked_at ? '' : '_未鎖定'}.xlsx`);
+    writeAuditLog('招生', '下載書審總表 Excel', 'adm_rounds', CUR.id, CUR.code, `考生 ${rows.length} 位、進入面試 ${pass} 位${CUR.review_locked_at ? '' : '（未鎖定）'}`);
+  } catch (e) { console.error(e); showToast('產生書審總表失敗：' + (e.message || e), 'error'); }
+}
+
+function printSummary() {
+  const { revs, crit, rows } = buildSummary();
+  const head = summaryHead(revs, crit), pass = rows.filter(x => x.status === 'pass').length;
+  const iTotal = 2 + crit.length, iStatus = iTotal + 2, iBg = head.length - 1;
+  const css = [
+    '@page{size:A4 landscape;margin:10mm}',
+    'body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#000;margin:0;font-size:10pt}',
+    'h1{font-size:15pt;text-align:center;margin:0 0 4px}',
+    '.meta{display:flex;justify-content:space-between;margin-bottom:2px;font-size:10.5pt}',
+    '.note{font-size:9.5pt;margin-bottom:5px}.note.draft{color:#C00000}',
+    'table{width:100%;border-collapse:collapse}thead{display:table-header-group}tr{page-break-inside:avoid}',
+    'th,td{border:1px solid #000;padding:3px 4px;vertical-align:middle}',
+    'th{background:#eee;font-size:9pt;text-align:center;line-height:1.25}',
+    'td{text-align:center;white-space:nowrap}td.l{text-align:left}td.bg{text-align:left;white-space:normal;font-size:9pt}',
+    'td.tot{font-weight:bold}tr.pass td.hl{background:#EAF4EA}td.fail{color:#808080}td.miss{color:#C00000}',
+    '.sign{margin-top:14px;text-align:right;font-size:11.5pt}',
+  ].join('');
+  const body = `<h1>${esc(formTitle())}總表</h1>
+    <div class="meta"><b>${esc(revLegend(revs))}</b><span>考生共 ${rows.length} 位，進入面試 ${pass} 位</span></div>
+    <div class="note ${CUR.review_locked_at ? '' : 'draft'}">${esc(summaryNote())}</div>
+    <table><thead><tr>${head.map(h => `<th>${esc(h).replace(/\n/g, '<br>')}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(x => `<tr class="${x.status}">${summaryVals(x).map((v, i) => {
+      if (typeof v === 'number' && ((i >= 2 && i <= iTotal) || (i > iStatus && i <= iStatus + revs.length))) v = v.toFixed(CUR.decimals ?? 2);
+      const cls = [i <= 1 ? 'l hl' : '', i === iTotal ? 'tot hl' : '', i === iStatus ? 'hl ' + x.status : '', i === iBg ? 'bg' : '', i === iBg - 1 ? 'l' : ''].join(' ').trim();
+      return `<td class="${cls}">${esc(v ?? '')}</td>`; }).join('')}</tr>`).join('')}</tbody></table>
+    <div class="sign">承辦人：＿＿＿＿＿＿&emsp;&emsp;單位主管：＿＿＿＿＿＿&emsp;&emsp;日期：＿＿＿年＿＿月＿＿日</div>`;
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>' + esc(CUR.code) + ' 書審總表</title><sty' + 'le>' + css + '</sty' + 'le></he' + 'ad><bo' + 'dy>'
+    + body + '<scr' + 'ipt>window.onload=()=>window.print()<\/scr' + 'ipt></bo' + 'dy></ht' + 'ml>';
+  const w = window.open('', '_blank');
+  if (!w) { showToast('瀏覽器擋住了新視窗，請允許彈出視窗後再試', 'error'); return; }
+  w.document.write(html); w.document.close();
+  writeAuditLog('招生', '列印書審總表', 'adm_rounds', CUR.id, CUR.code, `考生 ${rows.length} 位、進入面試 ${pass} 位${CUR.review_locked_at ? '' : '（未鎖定）'}`);
+}
+
+/* ── 報名系統回填檢核清單：報名系統不能批次匯入，承辦人逐筆輸入後打勾、再由第二人核對 ── */
+async function downloadChecklist() {
+  try {
+    if (!CUR.review_locked_at && !confirm('書審成績尚未鎖定，清單上的成績可能還會變動。\n\n仍要產生嗎？（表頭會註明「未鎖定」）')) return;
+    await ensureExcelJS();
+    const { rows } = buildSummary();
+    const head = ['序', '考生編號', '姓名', '書審成績', '書審結果', '已輸入\n報名系統', '核對\n無誤', '備註'];
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('回填檢核（書審）', { pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+      horizontalCentered: true, margins: { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } } });
+    ws.pageSetup.printTitlesRow = '4:4';
+    ws.headerFooter.oddFooter = `&L&"新細明體"&10製表日期：${stamp()}&R&"新細明體"&10第 &P 頁／共 &N 頁`;
+    ws.columns = [5, 12, 10, 10, 10, 10, 10, 30].map(w => ({ width: w }));
+    ws.mergeCells(1, 1, 1, 8);
+    ws.getCell(1, 1).value = `${formTitle()}成績\n報名系統回填檢核清單`;
+    ws.getCell(1, 1).font = { ...TPL_FONT, size: 14, bold: true }; ws.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    ws.getRow(1).height = 40;
+    ws.mergeCells(2, 1, 2, 8);
+    ws.getCell(2, 1).value = `梯次 ${CUR.code} 考生共 ${rows.length} 位 進入面試 ${rows.filter(x => x.status === 'pass').length} 位 門檻 ≥ ${CUR.pass_threshold}`
+      + (CUR.review_locked_at ? ` （書審已鎖定 ${fmtTime(CUR.review_locked_at)}）` : ' 【書審尚未鎖定】');
+    ws.getCell(2, 1).font = { ...TPL_FONT, size: 11, color: CUR.review_locked_at ? undefined : { argb: 'FFC00000' } };
+    ws.mergeCells(3, 1, 3, 8);
+    ws.getCell(3, 1).value = '※ 逐筆輸入報名系統後在「已輸入」打 ✓；再由另一位同仁對照報名系統畫面逐筆核對，在「核對無誤」打 ✓。';
+    ws.getCell(3, 1).font = { ...TPL_FONT, size: 11 }; ws.getCell(3, 1).alignment = { wrapText: true, vertical: 'middle' };
+    ws.getRow(3).height = 32;
+    const hr = ws.getRow(4);
+    head.forEach((h, i) => {
+      const c = hr.getCell(i + 1);
+      c.value = h; c.font = { ...TPL_FONT, bold: true }; c.border = TPL_BORDER;
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEEEEE' } };
+    });
+    const dec = CUR.decimals ?? 2, numFmt = dec ? '0.' + '0'.repeat(dec) : '0';
+    rows.forEach((x, k) => {
+      const row = ws.getRow(5 + k);
+      [k + 1, x.a.exam_no, x.a.name, x.total, x.status === 'pass' ? '通過' : x.status === 'fail' ? '未通過' : '分數未齊', '□', '□', ''].forEach((v, i) => {
+        const c = row.getCell(i + 1);
+        c.value = v ?? null; c.border = TPL_BORDER; c.font = i === 5 || i === 6 ? { ...TPL_FONT, size: 14 } : TPL_FONT;
+        c.alignment = { vertical: 'middle', horizontal: i === 1 || i === 2 || i === 7 ? 'left' : 'center' };
+        if (i === 3 && v != null) c.numFmt = numFmt;
+      });
+    });
+    const sr = 5 + rows.length + 2;
+    ws.mergeCells(sr, 1, sr, 8);
+    ws.getCell(sr, 1).value = '輸入人：＿＿＿＿＿＿ 日期：＿＿／＿＿  核對人：＿＿＿＿＿＿ 日期：＿＿／＿＿';
+    ws.getCell(sr, 1).font = { ...TPL_FONT, size: 12 }; ws.getCell(sr, 1).alignment = { horizontal: 'right' };
+    const buf = await wb.xlsx.writeBuffer();
+    saveBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${CUR.code}_報名系統回填檢核清單_書審${CUR.review_locked_at ? '' : '_未鎖定'}.xlsx`);
+    writeAuditLog('招生', '下載回填檢核清單（書審）', 'adm_rounds', CUR.id, CUR.code, `考生 ${rows.length} 位${CUR.review_locked_at ? '' : '（未鎖定）'}`);
+  } catch (e) { console.error(e); showToast('產生檢核清單失敗：' + (e.message || e), 'error'); }
 }
 
 checkAuth();
