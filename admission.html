@@ -2186,12 +2186,14 @@ function fitRowHeights(ws, fromRow, toRow) {
         width = m.w;
       }
       const size = (c.font && c.font.size) || 12, bold = !!(c.font && c.font.bold);
-      // 依承辦人 Excel 實測：12 號字欄寬 10 約容納 7 單位、欄寬 42.8 約 37 單位（全形字 2、半形 1）
-      const cap = Math.max(2, Math.floor((width * 0.865 - 1.5) * 12 / size / (bold ? 1.06 : 1)));
+      // 依承辦人 Excel 截圖實測（全形字 2、半形 1）：
+      //   一般 11 號：欄寬 46 放 42、欄寬 60.4 放 56；粗體 12 號：欄寬 10 放 6、12.5 放 8、14 放 9、15 放 10
+      const cap = Math.max(2, Math.floor(width * 0.93 * 11 / size * (bold ? 0.8 : 1)));
       const lines = String(c.value).split('\n').reduce((n, seg) => n + wrapLines(seg, width, cap), 0);
-      need = Math.max(need, Math.ceil(lines * size * 1.45 + 5));
+      // 新細明體在 Excel 行距大，一行約字級×1.7；只有一行的列不設定，交給 Excel 預設
+      if (lines > 1) need = Math.max(need, Math.ceil(lines * size * 1.7 + 4));
     });
-    if (need) row.height = Math.max(need, 18);
+    if (need) row.height = need;
   }
 }
 
