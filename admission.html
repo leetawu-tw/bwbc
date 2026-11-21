@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admission v0.7 2026-11-21 面試分組：面試設定（日期、試場、時間規則）、考生時間要求／特殊需求／委員迴避、建議分組、拖曳調整與即時提醒、組號、分組鎖定；v0.6：2026-11-19 Excel 換行列高由系統計算（Excel 開檔不一定自動調整）；書審總表簽名欄改為各書審委員簽名；評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
+<!-- BWBC Admission v0.7 2026-11-21 面試時間簡化為只排主考場（開始～結束，可直接改）、距離分近中遠（縣市逐一選、排組提醒可勾選）；面試分組：面試設定（日期、試場、時間規則）、考生時間要求／特殊需求／委員迴避、建議分組、拖曳調整與即時提醒、組號、分組鎖定；v0.6：2026-11-19 Excel 換行列高由系統計算（Excel 開檔不一定自動調整）；書審總表簽名欄改為各書審委員簽名；評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -430,6 +430,7 @@ tr.adm-dropover td{box-shadow:inset 0 2px 0 var(--gold)}
 .adm-tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;border:1px solid var(--cr2);color:var(--ink3);background:var(--cr3);white-space:nowrap}
 .adm-tag.near{background:#E8F5E9;color:var(--green);border-color:#90D090}
 .adm-tag.far{background:#FFF3E0;color:var(--orange);border-color:#F0C080}
+.adm-tag.mid{background:#FFFDE7;color:#8D6E00;border-color:#E6D36A}
 .adm-tag.new{background:#E3F2FD;color:#1565C0;border-color:#90CAF9}
 .adm-tag.err{background:#FEE;color:var(--red);border-color:#FCC}
 .adm-imp-sum{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
@@ -480,6 +481,8 @@ td.adm-spread{color:var(--red);font-weight:600}
 .sb-meta{color:var(--ink3);font-size:11.5px}
 .sb-flag{font-size:11px;padding:0 5px;border-radius:8px;background:#FEE;color:var(--red);border:1px solid #FCC;white-space:nowrap}
 .sb-flag.info{background:#E3F2FD;color:#1565C0;border-color:#90CAF9}
+.sb-dist{display:grid;grid-template-columns:repeat(4,1fr);gap:4px 14px;font-size:12.5px}
+.sb-dist label{margin-right:6px;white-space:nowrap}
 .adm-prog{display:inline-block;width:70px;height:6px;border-radius:3px;background:var(--cr2);vertical-align:middle;margin-left:6px;overflow:hidden}
 .adm-prog i{display:block;height:100%;background:var(--green)}
 th.adm-rs{position:relative}
@@ -1028,7 +1031,7 @@ function renderRoundsPage() {
   </div>
 
   <div class="adm-card">
-    <div class="adm-card-hdr"><div class="adm-card-title">「雲林附近」縣市</div><span class="adm-hint">勾選的縣市算雲林附近，其餘為遠地；面試分組時使用</span></div>
+    <div class="adm-card-hdr"><div class="adm-card-title">近距離縣市</div><span class="adm-hint">勾選的縣市算「近」；「中」與排組規則在「面試分組 → 面試設定」設定，其餘為「遠」</span></div>
     <div class="adm-card-body"><div class="adm-counties">
       ${COUNTIES.map(n => `<label><input type="checkbox" ${dis} ${d.near_counties.includes(n)?'checked':''} onchange="toggleCounty('${n}',this.checked)"> ${esc(n)}</label>`).join('')}
     </div></div>
@@ -1593,8 +1596,12 @@ function placeOf(app) {
   if (!app.county) return { cls: '', text: '未知' };
   const gukeng = app.county === '雲林縣' && app.township === '古坑鄉';
   if ((CUR.near_counties || []).includes(app.county)) return { cls: 'near', text: app.county + (gukeng ? '（古坑）' : '') };
+  if (midCounties().includes(app.county)) return { cls: 'mid', text: app.county + (gukeng ? '（古坑）' : '') };
   return { cls: 'far', text: app.county + (gukeng ? '（古坑）' : '') };
 }
+// 中距離縣市：存在面試設定；沒設定過用預設（臺中市、臺南市）
+function midCounties() { const m = (CUR.interview_settings || {}).mid_counties; return Array.isArray(m) ? m : ['臺中市', '臺南市']; }
+const DIST_ZH = { near: '近', mid: '中', far: '遠' };
 function isEquivalent(app) { return /同等/.test(app.edu_qualification || ''); }
 
 /* ── 欄位排序（通用）：點表頭排序，再點一次反向；數字依大小、文字依中文筆順／編號自然排序 ──
@@ -1701,7 +1708,7 @@ function drawApplicants() {
   const n = APPS.length;
   const cnt = (f) => APPS.filter(f).length;
   const edu = {}; APPS.forEach(a => { const k = a.edu_level || '未填'; edu[k] = (edu[k] || 0) + 1; });
-  const near = cnt(a => placeOf(a).cls === 'near'), far = cnt(a => placeOf(a).cls === 'far');
+  const near = cnt(a => placeOf(a).cls === 'near'), mid = cnt(a => placeOf(a).cls === 'mid'), far = cnt(a => placeOf(a).cls === 'far');
   c.innerHTML = `
   <div class="page-hdr">
     <div class="page-title">考生資料 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
@@ -1712,7 +1719,7 @@ function drawApplicants() {
     <div class="adm-stat"><b>${n}</b>位考生</div>
     <div class="adm-stat"><b>${cnt(a => normGender(a.gender) === '男')}</b>男 <b>${cnt(a => normGender(a.gender) === '女')}</b>女</div>
     <div class="adm-stat">${Object.entries(edu).map(([k, v]) => `<b>${v}</b>${esc(k)}`).join(' ') || '—'}</div>
-    <div class="adm-stat"><b>${near}</b>雲林附近 <b>${far}</b>遠地${n - near - far ? ` <b>${n - near - far}</b>未知` : ''}</div>
+    <div class="adm-stat"><b>${near}</b>近 <b>${mid}</b>中 <b>${far}</b>遠${n - near - mid - far ? ` <b>${n - near - mid - far}</b>未知` : ''}</div>
     <div class="adm-stat"><b>${cnt(isEquivalent)}</b>同等學力</div>
   </div>
   <div class="toolbar">
@@ -2073,7 +2080,7 @@ async function exportApplicants() {
       '考生編號': a.exam_no, '姓名': a.name, '性別': normGender(a.gender), '出生年月日': a.birth_date || '', '年齡': ageOf(a) ?? '',
       '教育程度': a.edu_level || '', '學校名稱': a.school_name || '', '學校簡稱': a.school_short || '', '系所名稱': a.dept_name || '',
       '報考學歷': a.edu_qualification || '', '同等學歷（力）內容': a.equivalent_note || '',
-      '書審備註（基本背景）': backgroundOf(a), '縣市': a.county || '', '鄉鎮市區': a.township || '', '遠近': placeOf(a).cls === 'near' ? '雲林附近' : placeOf(a).cls === 'far' ? '遠地' : '',
+      '書審備註（基本背景）': backgroundOf(a), '縣市': a.county || '', '鄉鎮市區': a.township || '', '遠近': DIST_ZH[placeOf(a).cls] || '',
       '研究類型': a.research_tag || '', '書審備註': a.review_note || '',
       '手機號碼': a.mobile || '', '聯絡電話': a.phone || '', '註冊信箱': a.email || '', '通訊地址': a.mail_address || '',
       '緊急聯絡人': a.emergency_name || '', '關係': a.emergency_relation || '', '緊急聯絡人電話': a.emergency_phone || '',
@@ -3230,11 +3237,11 @@ async function downloadChecklist() {
 const GCODE = '123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const IS_DEFAULT = {
   date: '', venue: '福智佛教學院 宗德樓1樓', main_room: 'A107會議室', sub_room: 'A111會議室', rest_room: 'A113大教室',
-  first_report: '09:00', interval: 60, intro_offset: 15, intro_len: 10, start_offset: 30,
-  base_min: 10, per_person: 10, min_break: 10, lunch_after: 3, pm_report: '13:00', group_max: 5,
+  first_start: '09:00', base_min: 10, per_person: 10, min_break: 10, lunch_after: 3, pm_start: '13:00', group_max: 5,
   closing_min: 20, closing_text: '工作人員結行', consensus_text: '16:00-17:00 共識面試成績&錄取順序',
   show_exam_no: true, show_masked_name: true,
   region_abbr: '臺北市=北,台北市=北,新北市=北,臺中市=中,台中市=中',
+  dist_rules: { mid: { first: true, last: false }, far: { first: true, last: true } },   // 排組提醒：避開第一組／最後一組
 };
 function IS() { return { ...IS_DEFAULT, ...(CUR.interview_settings || {}) }; }
 const tmin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
@@ -3247,24 +3254,21 @@ let SB_DB = [];         // 資料庫裡的 adm_sessions
 let RECUSE = {};        // `${reviewerId}|${appId}` → { id, reason }
 let SB_DRAG = null;     // 拖曳中 { type:'app'|'group', id|idx }
 
-// 依規則算各組時間（手改過的組保留手改時間）
+// 依規則算各組面試時間（只看主考場）：第 1 組、午休後第 1 組從設定的開始時間起；其他組＝前一組結束＋休息
+// 手改過的組保留手改時間，後面自動計算的組會跟著它算
+function interviewLen(n) { const st = IS(); return Number(st.base_min) + Number(st.per_person) * n; }
 function computeTimes(groups) {
-  const st = IS(); let prevReport = null;
+  const st = IS(); let prevEnd = null;
   return groups.map((g, i) => {
     const k = i + 1, n = g.apps.length;
-    let report;
-    if (k === 1) report = tmin(st.first_report);
-    else if (st.lunch_after > 0 && k === Number(st.lunch_after) + 1) report = tmin(st.pm_report);
-    else report = prevReport + Number(st.interval);
-    prevReport = report;
-    const auto = {
-      report_time: tstr(report), intro_start: tstr(report + Number(st.intro_offset)),
-      intro_end: tstr(report + Number(st.intro_offset) + Number(st.intro_len)),
-      start_time: tstr(report + Number(st.start_offset)),
-      end_time: tstr(report + Number(st.start_offset) + Number(st.base_min) + Number(st.per_person) * n),
-    };
-    if (g.manual && g.times) { prevReport = tmin(g.times.report_time) ?? prevReport; return { ...g.times }; }
-    return auto;
+    let start;
+    if (k === 1) start = tmin(st.first_start);
+    else if (st.lunch_after > 0 && k === Number(st.lunch_after) + 1) start = tmin(st.pm_start);
+    else start = prevEnd + Number(st.min_break);
+    let t = { start_time: tstr(start), end_time: tstr(start + interviewLen(n)) };
+    if (g.manual && g.times && tmin(g.times.start_time) != null && tmin(g.times.end_time) != null) t = { start_time: g.times.start_time, end_time: g.times.end_time };
+    prevEnd = tmin(t.end_time);
+    return t;
   });
 }
 function isMorning(times, k) {
@@ -3278,7 +3282,7 @@ function timeViolations(app, k, times) {
     if (r.kind === 'am' && !isMorning(times, k)) out.push('只能上午');
     if (r.kind === 'pm' && isMorning(times, k)) out.push('只能下午');
     if (r.kind === 'session' && Number(r.seq) !== k) out.push(`指定第 ${r.seq} 組`);
-    if (r.kind === 'after' && tmin(times.report_time) < tmin(r.time)) out.push(`${r.time} 以後`);
+    if (r.kind === 'after' && tmin(times.start_time) < tmin(r.time)) out.push(`${r.time} 以後`);
     if (r.kind === 'before' && tmin(times.end_time) > tmin(r.time)) out.push(`${r.time} 前結束`);
   });
   return out;
@@ -3316,7 +3320,7 @@ function buildDraftFromDb() {
   const passIds = new Set(buildSummary().rows.filter(x => x.status === 'pass').map(x => x.a.id));
   const groups = SB_DB.map(s => ({
     id: s.id, note: s.note || '', manual: !!s.times_manual,
-    times: { report_time: s.report_time, intro_start: s.intro_start, intro_end: s.intro_end, start_time: s.start_time, end_time: s.end_time },
+    times: { start_time: s.start_time, end_time: s.end_time },
     apps: APPS.filter(a => a.session_id === s.id).map(a => a.id),
   }));
   const assigned = new Set(groups.flatMap(g => g.apps));
@@ -3343,12 +3347,15 @@ function sbIssues() {
     const k = i + 1, t = times[i];
     if (g.apps.length > 9) perGroup[i].push(`${g.apps.length} 人，超過 9 人（組號第 2 碼只有 1～9）`);
     if (!g.apps.length) perGroup[i].push('沒有考生（儲存時會刪除這一組）');
-    if (i > 0 && tmin(t.start_time) < tmin(times[i - 1].end_time) + Number(st.min_break))
-      perGroup[i].push(`面試開始 ${t.start_time} 與第 ${i} 組結束 ${times[i - 1].end_time} 間隔不足 ${st.min_break} 分`);
+    if (i > 0) {
+      const gap = tmin(t.start_time) - tmin(times[i - 1].end_time);
+      if (gap < 0) perGroup[i].push(`與第 ${i} 組面試重疊 ${-gap} 分（第 ${i} 組 ${times[i - 1].end_time} 才結束）`);
+      else if (gap < Number(st.min_break)) perGroup[i].push(`委員休息只有 ${gap} 分（設定至少 ${st.min_break} 分）`);
+    }
     g.apps.forEach(id => {
       const a = APPS.find(x => x.id === id); if (!a) return;
       timeViolations(a, k, t).forEach(v => add(id, '時間要求：' + v));
-      if ((k === 1 || k === SB.groups.length) && SB.groups.length > 2 && placeOf(a).cls === 'far') add(id, `遠地考生排在${k === 1 ? '第一' : '最後一'}組`);
+      const dv = distViolation(a, i, SB.groups.length); if (dv) add(id, dv);
       if (!SB.passIds.has(id)) add(id, '不是「進入面試」的考生');
     });
   });
@@ -3356,6 +3363,14 @@ function sbIssues() {
   return { times, issues, perApp, perGroup };
 }
 
+// 距離規則（只提醒）：中／遠距離考生是否應避開第一組、最後一組
+function distViolation(a, i, G) {
+  const cls = placeOf(a).cls, r = (IS().dist_rules || {})[cls];
+  if (!r || G < 2) return '';
+  if (i === 0 && r.first) return `${DIST_ZH[cls]}距離考生排在第一組`;
+  if (i === G - 1 && r.last) return `${DIST_ZH[cls]}距離考生排在最後一組`;
+  return '';
+}
 function chipHtml(a, no, warns) {
   const pl = placeOf(a), age = ageOf(a);
   const sc = applicantStageScore('review', a.id).total;
@@ -3407,7 +3422,7 @@ function drawSessionsPage() {
              : `<button class="btn btn-gold adm-write" onclick="lockSessions()">🔒 鎖定分組</button>`}
     <span class="adm-dirty" id="sb-dirty">${DIRTY ? '分組有尚未儲存的修改' : ''}</span>
   </div>
-  <div class="adm-hint" style="margin-bottom:8px">拖曳 ⠿ 把考生移到別組；拖曳組別標題的 ⠿ 調整組別先後。組內序號依考生編號自動編（第 1 碼組別、第 2 碼序號）。點考生可設定時間要求、特殊需求、委員迴避；點組別時間可手改。</div>
+  <div class="adm-hint" style="margin-bottom:8px">拖曳 ⠿ 把考生移到別組；拖曳組別標題的 ⠿ 調整組別先後。組內序號依考生編號自動編（第 1 碼組別、第 2 碼序號）。點考生可設定時間要求、特殊需求、委員迴避；點組別的面試時間可直接修改。距離與時間的提醒只供參考，最後由你決定。</div>
   ${issues.length ? `<div class="adm-warn">${issues.map(esc).join('<br>')}</div>` : ''}
   <div class="sb-board" id="sb-board">
     <div class="sb-grp pool" data-g="pool">
@@ -3417,11 +3432,11 @@ function drawSessionsPage() {
     </div>
     ${SB.groups.map((g, i) => {
       const t = times[i], apps = groupAppsSorted(g);
-      const near = apps.filter(a => placeOf(a).cls === 'near').length;
+      const dc = k => apps.filter(a => placeOf(a).cls === k).length;
       return `<div class="sb-grp" data-g="${i}">
         <div class="sb-ghdr">
-          <div class="sb-gtitle">${w ? '<span class="adm-drag" data-gh="1">⠿</span>' : ''}第 ${i + 1} 組（${groupCode(i + 1)}）<span class="sb-meta" style="margin-left:auto">${apps.length} 人${apps.length ? `｜近 ${near}・遠 ${apps.length - near}` : ''}</span></div>
-          <div class="sb-gtimes" onclick="openGroupTimes(${i})" title="點一下可手改時間">報到 ${esc(t.report_time)}｜自介 ${esc(t.intro_start)}～${esc(t.intro_end)}<br>面試 ${esc(t.start_time)}～${esc(t.end_time)}${g.manual ? '（手改）' : ''}${isMorning(t, i + 1) ? '・上午' : '・下午'}</div>
+          <div class="sb-gtitle">${w ? '<span class="adm-drag" data-gh="1">⠿</span>' : ''}第 ${i + 1} 組（${groupCode(i + 1)}）<span class="sb-meta" style="margin-left:auto">${apps.length} 人${apps.length ? `｜近 ${dc('near')}・中 ${dc('mid')}・遠 ${dc('far')}` : ''}</span></div>
+          <div class="sb-gtimes" onclick="openGroupTimes(${i})" title="點一下可直接改這一組的面試時間">面試 ${esc(t.start_time)}～${esc(t.end_time)}（${tmin(t.end_time) - tmin(t.start_time)} 分）${g.manual ? '・手改' : ''}・${isMorning(t, i + 1) ? '上午' : '下午'}</div>
         </div>
         <div class="sb-gbody">${apps.map(a => chipHtml(a, nums[a.id], perApp[a.id])).join('') || '<span class="adm-hint">把考生拖到這裡</span>'}</div>
         ${perGroup[i].length ? `<div class="sb-gwarn">⚠ ${perGroup[i].map(esc).join('<br>⚠ ')}</div>` : ''}
@@ -3470,14 +3485,14 @@ function addGroup() {
 
 /* ── 場次時間（手改） ── */
 let ST_IDX = null;
-const TIME_FIELDS = [['report_time', '報到'], ['intro_start', '小組互動（自介）開始'], ['intro_end', '小組互動結束'], ['start_time', '團體面試開始'], ['end_time', '團體面試結束']];
+const TIME_FIELDS = [['start_time', '面試開始'], ['end_time', '面試結束']];
 function openGroupTimes(i) {
   if (sessionsLocked() || !canWrite()) return;
   ST_IDX = i; const t = computeTimes(SB.groups)[i];
   document.getElementById('st-title').textContent = `第 ${i + 1} 組 場次時間`;
   document.getElementById('st-body').innerHTML = `<div class="adm-grid" style="grid-template-columns:repeat(2,1fr)">${TIME_FIELDS.map(([k, l]) =>
     `<div class="frow"><label class="flabel">${l}</label><input class="finput" type="time" id="st-${k}" value="${esc(t[k])}"></div>`).join('')}</div>
-    <div class="adm-hint">手改後這一組不再自動計算；其他組照規則計算。按「改回自動計算」可取消手改。</div>`;
+    <div class="adm-hint">手改後這一組固定用這個時間；後面自動計算的組會從這一組結束時間＋休息時間接著排。按「改回自動計算」可取消手改。</div>`;
   openModal('st-modal');
 }
 function applyGroupTimes() {
@@ -3489,10 +3504,9 @@ function resetGroupTimes() { Object.assign(SB.groups[ST_IDX], { manual: false })
 
 /* ── 面試設定 ── */
 const IS_FIELDS = [
-  ['date', '面試日期', 'date'], ['venue', '地點', 'text'], ['main_room', '面試主考場', 'text'], ['sub_room', '副考場（備考區）', 'text'], ['rest_room', '休息區', 'text'],
-  ['first_report', '第 1 組報到', 'time'], ['interval', '各組報到間隔（分）', 'number'], ['lunch_after', '第幾組後午休（0＝不午休）', 'number'], ['pm_report', '午休後第 1 組報到', 'time'],
-  ['intro_offset', '報到後幾分開始自介', 'number'], ['intro_len', '自介長度（分）', 'number'], ['start_offset', '報到後幾分開始面試', 'number'],
-  ['base_min', '面試基本時間（分）', 'number'], ['per_person', '每位考生加（分）', 'number'], ['min_break', '兩組面試間至少休息（分）', 'number'], ['group_max', '每組建議人數上限', 'number'],
+  ['date', '面試日期', 'date'], ['venue', '地點', 'text'], ['main_room', '面試主考場', 'text'], ['sub_room', '副考場（備考區）', 'text'],
+  ['rest_room', '休息區', 'text'], ['first_start', '第 1 組面試開始', 'time'], ['lunch_after', '第幾組後午休（0＝不午休）', 'number'], ['pm_start', '午休後第 1 組面試開始', 'time'],
+  ['base_min', '面試基本時間（分）', 'number'], ['per_person', '每位考生加（分）', 'number'], ['min_break', '兩組之間委員休息（分）', 'number'], ['group_max', '每組建議人數上限', 'number'],
   ['closing_min', '最後一組結束後結行（分）', 'number'], ['closing_text', '結行文字', 'text'], ['consensus_text', '共識會議（時間＋文字）', 'text'],
 ];
 function openInterviewSettings() {
@@ -3500,7 +3514,15 @@ function openInterviewSettings() {
   document.getElementById('is-body').innerHTML = `
     <div class="adm-grid">${IS_FIELDS.map(([k, l, t]) => `<div class="frow"><label class="flabel">${l}</label>
       <input class="finput" id="is-${k}" type="${t}" value="${esc(st[k] ?? '')}" ${ro ? 'disabled' : ''}></div>`).join('')}</div>
-    <div class="adm-hint">面試長度＝基本時間＋每位考生 × 人數（預設 4 人 50 分、5 人 60 分）。改了時間規則，已手改時間的組不會變動。</div>
+    <div class="adm-hint">只排主考場：每組面試長度＝基本時間＋每位考生 × 人數（預設 3 人 40 分、4 人 50 分、5 人 60 分）；下一組＝前一組結束＋委員休息。各組時間也可以在分組畫面直接改。</div>
+    <div class="adm-card" style="box-shadow:none;margin-top:12px"><div class="adm-card-hdr"><div class="adm-card-title">距離分類</div><span class="adm-hint">分組卡片以綠、黃、橘標示近、中、遠；古坑併入雲林縣</span></div>
+      <div class="adm-card-body"><div class="sb-dist">${COUNTIES.map(n => { const v = (CUR.near_counties || []).includes(n) ? 'near' : midCounties().includes(n) ? 'mid' : 'far';
+        return `<div><b>${esc(n)}</b><br>${['near', 'mid', 'far'].map(k => `<label><input type="radio" name="is-dist-${n}" value="${k}" ${v === k ? 'checked' : ''} ${ro ? 'disabled' : ''}> ${DIST_ZH[k]}</label>`).join('')}</div>`; }).join('')}</div>
+        <div style="margin-top:12px"><b>排組提醒</b>（只提醒，不限制）
+          ${['mid', 'far'].map(k => `<div style="margin-top:4px">${DIST_ZH[k]}距離：
+            <label style="margin-left:8px"><input type="checkbox" id="is-rule-${k}-first" ${(st.dist_rules?.[k] || {}).first ? 'checked' : ''} ${ro ? 'disabled' : ''}> 避開第一組</label>
+            <label style="margin-left:8px"><input type="checkbox" id="is-rule-${k}-last" ${(st.dist_rules?.[k] || {}).last ? 'checked' : ''} ${ro ? 'disabled' : ''}> 避開最後一組</label></div>`).join('')}
+          <div class="adm-hint">近距離不限制，建議分組時會優先排第一組和最後一組。</div></div></div></div>
     <div class="frow" style="margin-top:12px"><label class="flabel">地區簡稱（公告「備註」用；格式：縣市=簡稱，以逗號分隔；沒列的用縣市名第一個字；古坑一律標「古坑」）</label>
       <input class="finput" id="is-region_abbr" value="${esc(st.region_abbr)}" ${ro ? 'disabled' : ''}></div>
     <div class="frow"><label class="flabel">公告版顯示（12/1 公告「面試場次時間及試場安排」）</label>
@@ -3523,11 +3545,17 @@ async function saveInterviewSettings() {
   v.show_exam_no = document.getElementById('is-show_exam_no').checked;
   v.show_masked_name = document.getElementById('is-show_masked_name').checked;
   if (!v.show_exam_no && !v.show_masked_name) { alert('公告版至少要勾一種顯示方式'); return; }
+  const near = [], mid = [];
+  COUNTIES.forEach(n => { const x = document.querySelector(`input[name="is-dist-${n}"]:checked`)?.value; if (x === 'near') near.push(n); if (x === 'mid') mid.push(n); });
+  v.mid_counties = mid;
+  v.dist_rules = Object.fromEntries(['mid', 'far'].map(k => [k, { first: document.getElementById(`is-rule-${k}-first`).checked, last: document.getElementById(`is-rule-${k}-last`).checked }]));
   const merged = { ...(CUR.interview_settings || {}), ...v };
   try {
-    assertRows(await sb.from('adm_rounds').update({ interview_settings: merged }).eq('id', CUR.id).select('id'), 1, '儲存面試設定');
-    CUR.interview_settings = merged; const r = ROUNDS.find(x => x.id === CUR.id); if (r) r.interview_settings = merged;
-    await writeAuditLog('招生', '修改面試設定', 'adm_rounds', CUR.id, CUR.code, Object.entries(v).map(([k, x]) => `${k}=${x}`).join('；'));
+    assertRows(await sb.from('adm_rounds').update({ interview_settings: merged, near_counties: near }).eq('id', CUR.id).select('id'), 1, '儲存面試設定');
+    CUR.interview_settings = merged; CUR.near_counties = near;
+    const r = ROUNDS.find(x => x.id === CUR.id); if (r) { r.interview_settings = merged; r.near_counties = near; }
+    await writeAuditLog('招生', '修改面試設定', 'adm_rounds', CUR.id, CUR.code,
+      Object.entries(v).map(([k, x]) => `${k}=${typeof x === 'object' ? JSON.stringify(x) : x}`).join('；') + `；近=${near.join('、')}`);
     closeModal('is-modal'); showToast('✅ 面試設定已儲存'); drawSessionsPage();
   } catch (e) { console.error(e); showToast('儲存失敗：' + (e.message || e), 'error'); }
 }
@@ -3549,7 +3577,7 @@ function openInterviewApplicant(id) {
         <label><input type="radio" name="ia-ampm" value="pm" ${has('pm') ? 'checked' : ''} ${dis}> 只能下午</label>
         <div class="adm-grid" style="grid-template-columns:repeat(3,1fr);margin-top:10px">
           <div class="frow"><label class="flabel">指定第幾組（空白＝不指定）</label><input class="finput" id="ia-seq" type="number" min="1" max="35" value="${esc(has('session')?.seq ?? '')}" ${dis}></div>
-          <div class="frow"><label class="flabel">幾點以後才能報到</label><input class="finput" id="ia-after" type="time" value="${esc(has('after')?.time ?? '')}" ${dis}></div>
+          <div class="frow"><label class="flabel">幾點以後才能開始面試</label><input class="finput" id="ia-after" type="time" value="${esc(has('after')?.time ?? '')}" ${dis}></div>
           <div class="frow"><label class="flabel">幾點前要結束</label><input class="finput" id="ia-before" type="time" value="${esc(has('before')?.time ?? '')}" ${dis}></div>
         </div>
         <div class="frow"><label class="flabel">其他說明（只顯示提醒，由承辦人判斷）</label><input class="finput" id="ia-text" value="${esc(tr.text || '')}" ${dis}></div>
@@ -3602,7 +3630,7 @@ async function saveInterviewApplicant() {
 }
 
 /* ── 建議分組 ── */
-function balancedSizes(n, g) { const base = Math.floor(n / g), extra = n % g; return Array.from({ length: g }, (_, i) => base + (i >= g - extra ? 1 : 0)); }   // 人數多的組排後面（5 人組面試較久）
+function balancedSizes(n, g) { const base = Math.floor(n / g), extra = n % g; return Array.from({ length: g }, (_, i) => base + (i >= g - extra ? 1 : 0)); }   // 人數多的組排後面
 function openSuggestGroups() {
   const n = SB.groups.reduce((t, g) => t + g.apps.length, 0) + SB.pool.length, max = Number(IS().group_max) || 5;
   if (!n) { alert('沒有進入面試的考生。'); return; }
@@ -3612,8 +3640,8 @@ function openSuggestGroups() {
       <input class="finput" id="sg-count" type="number" min="1" max="35" value="${g}" style="width:120px" oninput="drawSuggestSizes(${n})"></div>
     <div class="frow"><label class="flabel">各組人數（系統先平均分，人數多的組排後面；可自行修改）</label><div id="sg-sizes"></div></div>
     <div class="adm-hint" id="sg-sum"></div>
-    <div class="adm-warn" style="margin-top:8px">產生建議會重新排列全部考生（目前的分組會被取代，但要按「儲存分組」才會寫入）。手改過的場次時間會保留在同順序的組。<br>
-      排法：先排有時間要求的考生 → 遠地考生避開第一組和最後一組 → 研究類型相近的排同組。只是建議，請再拖曳調整。</div>`;
+    <div class="adm-warn" style="margin-top:8px">產生建議會重新排列全部考生（目前的分組會被取代，但要按「儲存分組」才會寫入）。手改過的面試時間會保留在同順序的組。<br>
+      排法：先排有時間要求的考生 → 近的考生優先排第一組和最後一組，中／遠距離依「面試設定」的規則 → 研究類型相近的排同組。只是建議，請再拖曳調整。</div>`;
   drawSuggestSizes(n); openModal('sg-modal');
 }
 function drawSuggestSizes(n) {
@@ -3638,7 +3666,7 @@ function runSuggestGroups() {
   const times = computeTimes(shell), G = groups.length;
   const apps = all.map(id => APPS.find(a => a.id === id)).filter(Boolean);
   const allowed = a => groups.map((_, i) => i).filter(i => !timeViolations(a, i + 1, times[i]).length);
-  const farBad = (a, i) => G > 2 && placeOf(a).cls === 'far' && (i === 0 || i === G - 1);
+  const farBad = (a, i) => !!distViolation(a, i, G);
   const isNear = a => placeOf(a).cls === 'near';
   // 排序：可排組別越少越先排 → 近的考生先排（先佔第一組、最後一組的位子）→ 研究類型 → 考生編號
   apps.sort((x, y) => allowed(x).length - allowed(y).length || (isNear(y) - isNear(x)) || String(x.research_tag || '~').localeCompare(String(y.research_tag || '~')) || String(x.exam_no).localeCompare(String(y.exam_no)));
@@ -3648,7 +3676,7 @@ function runSuggestGroups() {
     const score = i => {
       let sc = 0;
       if (!ok.includes(i)) sc -= 100;                                  // 時間要求（優先）
-      if (farBad(a, i)) sc -= 20;                                      // 遠地避開首末組
+      if (farBad(a, i)) sc -= 20;                                      // 中／遠距離依規則避開首末組
       if (G > 2 && isNear(a) && (i === 0 || i === G - 1)) sc += 15;    // 近的考生優先排首末組，把中間留給遠地
       const mates = groups[i].apps.map(id => APPS.find(x => x.id === id));
       if (a.research_tag) sc += 5 * mates.filter(m => m.research_tag === a.research_tag).length;   // 研究類型相近
@@ -3674,7 +3702,7 @@ async function saveSessions() {
     const times = computeTimes(groups), nums = numberOf(groups), keep = new Set();
     // 1. 新增／更新組別
     for (let i = 0; i < groups.length; i++) {
-      const g = groups[i], row = { round_id: CUR.id, seq: i + 1, ...times[i], times_manual: !!g.manual, note: g.note || null };
+      const g = groups[i], row = { round_id: CUR.id, seq: i + 1, report_time: null, intro_start: null, intro_end: null, ...times[i], times_manual: !!g.manual, note: g.note || null };
       if (g.id && SB_DB.some(x => x.id === g.id)) {
         assertRows(await sb.from('adm_sessions').update(row).eq('id', g.id).select('id'), 1, '更新組別');
       } else {
@@ -3716,7 +3744,7 @@ async function lockSessions() {
   if (!SB.groups.length) { alert('還沒有分組。'); return; }
   if (!IS().date) { alert('請先在「面試設定」填面試日期。'); return; }
   const warn = Object.values(perApp).flat().length + perGroup.flat().length;
-  if (!confirm(`鎖定 ${CUR.code} 面試分組？\n\n共 ${SB.groups.length} 組。${warn ? `\n目前還有 ${warn} 個提醒（時間要求、遠地、間隔），請確認可以接受。` : ''}\n\n鎖定後組別、組號、場次時間都不能修改；公告與試務文件請在鎖定後產生。`)) return;
+  if (!confirm(`鎖定 ${CUR.code} 面試分組？\n\n共 ${SB.groups.length} 組。${warn ? `\n目前還有 ${warn} 個提醒（時間要求、距離、時間重疊或休息），請確認可以接受。` : ''}\n\n鎖定後組別、組號、場次時間都不能修改；公告與試務文件請在鎖定後產生。`)) return;
   try {
     const ts = new Date().toISOString();
     assertRows(await sb.from('adm_rounds').update({ sessions_locked_at: ts }).eq('id', CUR.id).is('sessions_locked_at', null).select('id'), 1, '鎖定分組');
