@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admission v0.8 2026-11-21 面試評分：沿用成績表格（只列面試考生、依組號排序、缺考、委員迴避）、面試評分表（每組一頁，Excel／列印，填回可匯入）；v0.7：面試時間簡化為只排主考場（開始～結束，可直接改）、距離分近中遠（縣市逐一選、排組提醒可勾選）；面試分組：面試設定（日期、試場、時間規則）、考生時間要求／特殊需求／委員迴避、建議分組、拖曳調整與即時提醒、組號、分組鎖定；v0.6：2026-11-19 Excel 換行列高由系統計算（Excel 開檔不一定自動調整）；書審總表簽名欄改為各書審委員簽名；評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
+<!-- BWBC Admission v0.8 2026-11-21 面試當天臨時改場（組號不變、記實際場次與原因）、評分表每組空白列；匯出改用 ⬆、匯入改用 ⬇；面試評分：沿用成績表格（只列面試考生、依組號排序、缺考、委員迴避）、面試評分表（每組一頁，Excel／列印，填回可匯入）；v0.7：面試時間簡化為只排主考場（開始～結束，可直接改）、距離分近中遠（縣市逐一選、排組提醒可勾選）；面試分組：面試設定（日期、試場、時間規則）、考生時間要求／特殊需求／委員迴避、建議分組、拖曳調整與即時提醒、組號、分組鎖定；v0.6：2026-11-19 Excel 換行列高由系統計算（Excel 開檔不一定自動調整）；書審總表簽名欄改為各書審委員簽名；評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -617,6 +617,14 @@ th.adm-rs{position:relative}
     <div class="modal-hdr"><div class="modal-title" id="ia-title">考生面試資料</div><button class="modal-close" onclick="closeModal('ia-modal')">×</button></div>
     <div class="modal-body" id="ia-body"></div>
     <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('ia-modal')">取消</button><button class="btn-save adm-write" id="ia-save-btn" onclick="saveInterviewApplicant()">儲存</button></div>
+  </div>
+</div>
+<!-- 臨時改場 -->
+<div class="modal-bg" id="cs-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hdr"><div class="modal-title" id="cs-title">臨時改場</div><button class="modal-close" onclick="closeModal('cs-modal')">×</button></div>
+    <div class="modal-body" id="cs-body"></div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('cs-modal')">取消</button><button class="btn-save" onclick="saveChangeSession()">儲存</button></div>
   </div>
 </div>
 <!-- 建議分組 -->
@@ -1713,8 +1721,8 @@ function drawApplicants() {
   c.innerHTML = `
   <div class="page-hdr">
     <div class="page-title">考生資料 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
-    <button class="btn btn-pri adm-write" onclick="openImport()">⬆ 匯入報名系統 Excel</button>
-    <button class="btn btn-sec" onclick="exportApplicants()" ${n ? '' : 'disabled'}>⬇ 匯出 Excel</button>
+    <button class="btn btn-pri adm-write" onclick="openImport()">⬇ 匯入報名系統 Excel</button>
+    <button class="btn btn-sec" onclick="exportApplicants()" ${n ? '' : 'disabled'}>⬆ 匯出 Excel</button>
   </div>
   <div class="adm-stats">
     <div class="adm-stat"><b>${n}</b>位考生</div>
@@ -2126,14 +2134,14 @@ async function renderReviewFormsPage() {
       <span class="adm-hint">考生 ${APPS.length} 位；評分項目：${crit.map(x => esc(x.name) + ' ' + wPct(x.weight) + '%').join('、') || '—'}</span></div>
     <div class="adm-card-body adm-mini">
       <div class="toolbar">
-        <button class="btn btn-pri" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel()">⬇ 評分表 Excel（全部委員，一人一個工作表）</button>
+        <button class="btn btn-pri" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel()">⬆ 評分表 Excel（全部委員，一人一個工作表）</button>
         <button class="btn btn-sec" ${ok ? '' : 'disabled'} onclick="printReviewForms()">🖨 列印全部委員的評分表</button>
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr><th style="width:70px">代號</th><th>委員</th><th>評分表</th></tr></thead>
         <tbody>${revs.map(v => `<tr>
           <td>${esc(v.code || '')}</td><td>${esc(reviewerName(v))}</td>
-          <td><button class="btn btn-sm btn-sec" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel('${v.id}')">⬇ Excel</button>
+          <td><button class="btn btn-sm btn-sec" ${ok ? '' : 'disabled'} onclick="downloadReviewFormsExcel('${v.id}')">⬆ Excel</button>
               <button class="btn btn-sm btn-edit" ${ok ? '' : 'disabled'} onclick="printReviewForms('${v.id}')">🖨 列印 / 存 PDF</button></td>
         </tr>`).join('') || '<tr><td colspan="3" style="color:var(--ink3)">尚未設定</td></tr>'}</tbody>
       </table></div>
@@ -2331,6 +2339,7 @@ async function downloadReviewFormsExcel(onlyId) {
    成績表格（第 5 批）：書審／面試共用；依委員或依考生；逐格自動儲存；可從 Excel 貼上
    ════════════════════════════════════════════════════════════════ */
 const GS = { stage: 'review', view: 'reviewer', revId: null, appId: null };   // 畫面狀態
+let IV_SESS = [];  // 面試組別（面試評分頁用）
 let SC = {};      // 分數：`${appId}|${revId}|${critId}` → { id, score }
 let CM = {};      // 評語與研究類型：`${appId}|${revId}` → { id, comment, research_tag }
 const skey = (a, r, c) => `${a}|${r}|${c}`;
@@ -2341,7 +2350,15 @@ function fmtN(v) { return v == null || v === '' ? '' : Number(v).toFixed(CUR.dec
 function isRecused(revId, appId) { return !!RECUSE[`${revId}|${appId}`]; }
 function ivOrder(a) { const no = a.interview_no || ''; return (GCODE.indexOf(no[0]) + 1) * 10 + Number(no[1] || 0); }
 // 這個階段要評分的考生：書審＝全部考生；面試＝已分組的考生，依組號排序
-function stageApps(st) { return st === 'interview' ? APPS.filter(a => a.interview_no).sort((x, y) => ivOrder(x) - ivOrder(y)) : APPS; }
+function sessSeq(id) { const x = IV_SESS.find(s => s.id === id); return x ? x.seq : null; }
+function effSessionId(a) { return a.actual_session_id || a.session_id; }
+// 面試考生依「當天實際面試的組」排，同組再依組號（臨時加入的排最後）
+function stageApps(st) {
+  if (st !== 'interview') return APPS;
+  const moved = a => a.actual_session_id && a.actual_session_id !== a.session_id ? 1 : 0;   // 臨時加入的排在該組原本的考生之後
+  return APPS.filter(a => a.interview_no).sort((x, y) => ((sessSeq(effSessionId(x)) ?? 99) - (sessSeq(effSessionId(y)) ?? 99)) || moved(x) - moved(y) || ivOrder(x) - ivOrder(y));
+}
+function movedTag(a) { const k = a.actual_session_id && a.actual_session_id !== a.session_id ? sessSeq(a.actual_session_id) : null; return k ? `<span class="sb-flag info" title="${esc(a.session_change_note || '')}">→第${k}組</span>` : ''; }
 function isAbsent(st, a) { return st === 'interview' && !!a && a.attendance === 'absent'; }
 function activeApps(st) { return stageApps(st).filter(a => !isAbsent(st, a)); }
 function round2(x, d) { const p = Math.pow(10, d == null ? (CUR.decimals ?? 2) : d); return Math.round((x + Number.EPSILON) * p) / p; }
@@ -2361,6 +2378,11 @@ async function loadStageData(st) {
       .eq('round_id', CUR.id).in('reviewer_id', revs.map(v => v.id)).limit(20000);
     if (error) { showToast('讀取評語失敗：' + error.message, 'error'); return false; }
     (data || []).forEach(x => { CM[ckey(x.applicant_id, x.reviewer_id)] = { id: x.id, comment: x.comment || '', research_tag: x.research_tag || '' }; });
+  }
+  if (st === 'interview') {
+    const ss = await sb.from('adm_sessions').select('id,seq,start_time,end_time').eq('round_id', CUR.id).order('seq');
+    if (ss.error) { showToast('讀取面試分組失敗：' + ss.error.message, 'error'); return false; }
+    IV_SESS = ss.data || [];
   }
   const rc = await sb.from('adm_recusals').select('id,reviewer_id,applicant_id,reason').eq('round_id', CUR.id);
   if (rc.error) { showToast('讀取委員迴避失敗：' + rc.error.message, 'error'); return false; }
@@ -2432,9 +2454,9 @@ function drawScoresPage() {
   <div class="page-hdr">
     <div class="page-title">${STAGE_ZH[st]}評分 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
     ${locked ? `<span class="adm-lock on">🔒 ${STAGE_ZH[st]}已鎖定，只能檢視</span>` : ''}
-    ${st === 'interview' ? `<button class="btn btn-sec" ${problems.length ? 'disabled' : ''} onclick="downloadInterviewForms()">⬇ 面試評分表 Excel</button>
+    ${st === 'interview' ? `<button class="btn btn-sec" ${problems.length ? 'disabled' : ''} onclick="downloadInterviewForms()">⬆ 面試評分表 Excel</button>
       <button class="btn btn-sec" ${problems.length ? 'disabled' : ''} onclick="printInterviewForms()">🖨 列印面試評分表</button>` : ''}
-    <button class="btn btn-pri adm-write" ${problems.length || locked ? 'disabled' : ''} onclick="openScoreImport('${st}')">⬆ 匯入委員 Excel</button>
+    <button class="btn btn-pri adm-write" ${problems.length || locked ? 'disabled' : ''} onclick="openScoreImport('${st}')">⬇ 匯入委員 Excel</button>
   </div>
   ${problems.length ? `<div class="adm-warn">無法評分：${problems.map(esc).join('、')}。</div>` : `
   <div class="adm-stats">
@@ -2488,7 +2510,7 @@ function drawReviewerGrid() {
       ${crit.map(x => `<th style="text-align:center">${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}
       <th style="text-align:center">加權小計</th><th style="text-align:center">本委員排名</th><th>研究類型</th><th>評語</th><th>書審備註（基本背景）</th></tr></thead>
     <tbody>${stageApps(st).map(a => `<tr data-row="${a.id}" ${isAbsent(st, a) ? 'style="opacity:.55"' : ''}>
-      ${iv ? `<td data-sort="${ivOrder(a)}"><b>${esc(a.interview_no)}</b></td>
+      ${iv ? `<td data-sort="${ivOrder(a)}" style="white-space:nowrap"><b>${esc(a.interview_no)}</b> ${movedTag(a)}${gridEditable(st) ? ` <a href="javascript:void 0" style="font-size:11px" onclick="openChangeSession('${a.id}')">改場</a>` : ''}</td>
         <td style="text-align:center" data-sort="${isAbsent(st, a) ? 1 : 0}"><input type="checkbox" ${isAbsent(st, a) ? 'checked' : ''} ${gridEditable(st) ? '' : 'disabled'} onchange="setAbsent('${a.id}',this.checked,this)"></td>` : ''}
       <td class="mono" style="white-space:nowrap">${esc(a.exam_no)}</td><td style="white-space:nowrap">${esc(a.name)}</td>
       ${crit.map(x => `<td data-sort="${esc(cellVal(a.id, revId, 'crit:' + x.id))}">${cellHtml(a.id, revId, 'crit:' + x.id, cellVal(a.id, revId, 'crit:' + x.id))}</td>`).join('')}
@@ -2517,7 +2539,7 @@ function drawApplicantGrid() {
   const st = GS.stage, crit = stageCriteria(st), revs = stageReviewers(st), a = APPS.find(x => x.id === GS.appId);
   const box = document.getElementById('grid-box');
   if (!a) { box.innerHTML = ''; return; }
-  box.innerHTML = `<div class="adm-hint" style="margin-bottom:6px">${st === 'interview' ? `<b>組號 ${esc(a.interview_no || '')}</b> ｜ <label><input type="checkbox" ${isAbsent(st, a) ? 'checked' : ''} ${gridEditable(st) ? '' : 'disabled'} onchange="setAbsent('${a.id}',this.checked,this)"> 缺考</label> ｜ ` : ''}${esc(backgroundOf(a))}${a.review_note ? ' ｜ ' + esc(a.review_note) : ''}</div>
+  box.innerHTML = `<div class="adm-hint" style="margin-bottom:6px">${st === 'interview' ? `<b>組號 ${esc(a.interview_no || '')}</b> ${movedTag(a)}${gridEditable(st) ? ` <a href="javascript:void 0" onclick="openChangeSession('${a.id}')">改場</a>` : ''} ｜ <label><input type="checkbox" ${isAbsent(st, a) ? 'checked' : ''} ${gridEditable(st) ? '' : 'disabled'} onchange="setAbsent('${a.id}',this.checked,this)"> 缺考</label> ｜ ` : ''}${esc(backgroundOf(a))}${a.review_note ? ' ｜ ' + esc(a.review_note) : ''}</div>
   <div class="tbl-wrap"><table class="adm-grid-tbl" style="table-layout:fixed;width:100%">
     <colgroup><col style="width:56px"><col style="width:90px">${crit.map(() => '<col style="width:150px">').join('')}<col style="width:90px"><col style="width:150px"><col></colgroup>
     <thead><tr><th>代號</th><th>委員</th>${crit.map(x => `<th style="text-align:center;white-space:normal">${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}
@@ -2567,6 +2589,37 @@ async function setAbsent(appId, absent, el) {
     showToast(absent ? `${a.name} 已標為缺考` : `${a.name} 已取消缺考`);
   } catch (e) { console.error(e); el.checked = !absent; showToast('儲存失敗：' + (e.message || e), 'error'); return; }
   drawScoresPage();
+}
+
+/* ── 面試當天臨時改場：組號不變，記錄實際面試的組與原因 ── */
+let CS_ID = null;
+function openChangeSession(appId) {
+  const a = APPS.find(x => x.id === appId); if (!a || !gridEditable('interview')) return;
+  CS_ID = appId;
+  const orig = sessSeq(a.session_id), cur = a.actual_session_id && a.actual_session_id !== a.session_id ? a.actual_session_id : '';
+  const cnt = id => APPS.filter(x => x.interview_no && effSessionId(x) === id).length;
+  document.getElementById('cs-title').textContent = `${a.interview_no} ${a.exam_no} ${a.name} 臨時改場`.replace(/\u3000/g, ' ');
+  document.getElementById('cs-body').innerHTML = `
+    <div class="adm-hint" style="margin:0 0 10px">組號維持 ${esc(a.interview_no)}（已公告、已印在文件上），另外記錄當天實際在哪一組面試。分組鎖定後也可以登記。</div>
+    <div class="frow"><label class="flabel">實際面試的組</label><select class="fselect" id="cs-sess">
+      <option value="">照原組（第 ${orig ?? '?'} 組）</option>
+      ${IV_SESS.filter(x => x.id !== a.session_id).map(x => `<option value="${x.id}" ${x.id === cur ? 'selected' : ''}>第 ${x.seq} 組 ${esc(x.start_time || '')}～${esc(x.end_time || '')}（目前 ${cnt(x.id)} 人）</option>`).join('')}</select></div>
+    <div class="frow"><label class="flabel">原因</label><input class="finput" id="cs-note" placeholder="例：塞車，改至後面場次" value="${esc(a.session_change_note || '')}"></div>`.replace(/\u3000/g, ' ');
+  openModal('cs-modal');
+}
+async function saveChangeSession() {
+  const a = APPS.find(x => x.id === CS_ID); if (!a) return;
+  const sid = document.getElementById('cs-sess').value || null, note = document.getElementById('cs-note').value.trim();
+  if (sid && !note) { alert('請填改場原因。'); return; }
+  try {
+    assertRows(await sb.from('adm_applicants').update({ actual_session_id: sid, session_change_note: sid ? note : null }).eq('id', a.id).select('id'), 1, '儲存改場');
+    const before = a.actual_session_id ? sessSeq(a.actual_session_id) : sessSeq(a.session_id);
+    a.actual_session_id = sid; a.session_change_note = sid ? note : null;
+    const after = sessSeq(sid || a.session_id);
+    await writeAuditLog('招生', sid ? '面試臨時改場' : '取消面試改場', 'adm_applicants', a.id, `${a.interview_no} ${a.exam_no} ${a.name}`,
+      sid ? `第 ${before} 組 → 第 ${after} 組；原因：${note}` : `回原組第 ${after} 組`);
+    closeModal('cs-modal'); showToast(sid ? `${a.name} 改至第 ${after} 組` : `${a.name} 回原組`); drawScoresPage();
+  } catch (e) { console.error(e); showToast('儲存失敗：' + (e.message || e), 'error'); }
 }
 
 /* ── 鍵盤 ── */
@@ -2986,9 +3039,9 @@ function drawSummaryPage() {
       ? `<button class="btn btn-sec adm-write" onclick="unlockReview()">🔓 解除鎖定</button>`
       : `<button class="btn btn-pri adm-write" onclick="lockReview()">🔒 鎖定書審成績</button>`}
     <button class="btn btn-sec adm-write" onclick="fillMajorityTags()">帶入多數研究類型</button>
-    <button class="btn btn-sec" onclick="downloadSummaryExcel()">⬇ 書審總表 Excel</button>
+    <button class="btn btn-sec" onclick="downloadSummaryExcel()">⬆ 書審總表 Excel</button>
     <button class="btn btn-sec" onclick="printSummary()">🖨 列印書審總表</button>
-    <button class="btn btn-sec" onclick="downloadChecklist()">⬇ 回填檢核清單</button>
+    <button class="btn btn-sec" onclick="downloadChecklist()">⬆ 回填檢核清單</button>
   </div>
   <div class="adm-hint" style="margin-bottom:6px">書審成績＝各項目「有給分委員」的平均 × 權重後加總，四捨五入到小數 ${esc(CUR.decimals ?? 2)} 位。${revs.map((r, i) => `${esc(revCode(r, i))}＝${esc(reviewerName(r))}`).join('、')}。研究類型可直接輸入或從委員填的類型挑選，會用在面試分組。</div>
   <datalist id="tag-list">${[...new Set(Object.values(CM).map(m => m.research_tag).concat(APPS.map(a => a.research_tag)).filter(Boolean))].sort().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
@@ -3280,6 +3333,7 @@ const IS_DEFAULT = {
   show_exam_no: true, show_masked_name: true,
   region_abbr: '臺北市=北,台北市=北,新北市=北,臺中市=中,台中市=中',
   dist_rules: { mid: { first: true, last: false }, far: { first: true, last: true } },   // 排組提醒：避開第一組／最後一組
+  spare_rows: 1,                                                                         // 評分表每組多印幾列空白列（臨時加入的考生手寫）
 };
 function IS() { return { ...IS_DEFAULT, ...(CUR.interview_settings || {}) }; }
 const tmin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
@@ -3424,7 +3478,8 @@ function chipHtml(a, no, warns) {
       <div><span class="adm-tag ${pl.cls}">${esc(pl.text)}</span> ${a.research_tag ? `<span class="adm-tag">${esc(a.research_tag)}</span>` : ''}
         ${trt ? `<span class="sb-flag info" title="${esc(trt)}">⏰ ${esc(trt.length > 10 ? trt.slice(0, 10) + '…' : trt)}</span>` : ''}
         ${a.special_needs ? `<span class="sb-flag" title="${esc(a.special_needs)}">特殊需求</span>` : ''}
-        ${rec ? `<span class="sb-flag info">迴避 ${rec}</span>` : ''}</div>
+        ${rec ? `<span class="sb-flag info">迴避 ${rec}</span>` : ''}
+        ${a.actual_session_id && a.actual_session_id !== a.session_id ? `<span class="sb-flag info" title="${esc(a.session_change_note || '')}">當天改至第 ${(SB_DB.find(x => x.id === a.actual_session_id) || {}).seq ?? '?'} 組</span>` : ''}</div>
       ${warns && warns.length ? `<div style="color:var(--red);font-size:11.5px">⚠ ${esc(warns.join('；'))}</div>` : ''}
     </div></div>`;
 }
@@ -3477,6 +3532,8 @@ function drawSessionsPage() {
           <div class="sb-gtimes" onclick="openGroupTimes(${i})" title="點一下可直接改這一組的面試時間">面試 ${esc(t.start_time)}～${esc(t.end_time)}（${tmin(t.end_time) - tmin(t.start_time)} 分）${g.manual ? '・手改' : ''}・${isMorning(t, i + 1) ? '上午' : '下午'}</div>
         </div>
         <div class="sb-gbody">${apps.map(a => chipHtml(a, nums[a.id], perApp[a.id])).join('') || '<span class="adm-hint">把考生拖到這裡</span>'}</div>
+        ${(() => { const extra = g.id ? APPS.filter(a => a.actual_session_id === g.id && a.session_id !== g.id) : [];
+          return extra.length ? `<div class="sb-gwarn" style="color:#1565C0">＋${extra.length} 人當天臨時加入（${extra.map(a => esc(a.interview_no + ' ' + a.name)).join('、')}），實際面試約多 ${extra.length * Number(IS().per_person)} 分</div>` : ''; })()}
         ${perGroup[i].length ? `<div class="sb-gwarn">⚠ ${perGroup[i].map(esc).join('<br>⚠ ')}</div>` : ''}
       </div>`; }).join('')}
   </div>`;
@@ -3546,6 +3603,7 @@ const IS_FIELDS = [
   ['rest_room', '休息區', 'text'], ['first_start', '第 1 組面試開始', 'time'], ['lunch_after', '第幾組後午休（0＝不午休）', 'number'], ['pm_start', '午休後第 1 組面試開始', 'time'],
   ['base_min', '面試基本時間（分）', 'number'], ['per_person', '每位考生加（分）', 'number'], ['min_break', '兩組之間委員休息（分）', 'number'], ['group_max', '每組建議人數上限', 'number'],
   ['closing_min', '最後一組結束後結行（分）', 'number'], ['closing_text', '結行文字', 'text'], ['consensus_text', '共識會議（時間＋文字）', 'text'],
+  ['spare_rows', '評分表每組空白列', 'number'],
 ];
 function openInterviewSettings() {
   const st = IS(), ro = !canWrite();
@@ -3815,7 +3873,8 @@ function rocDate(d) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); retur
 async function interviewGroups() {
   const { data, error } = await sb.from('adm_sessions').select('*').eq('round_id', CUR.id).order('seq');
   if (error) throw new Error('讀取面試分組失敗：' + error.message);
-  return (data || []).map(s => ({ ...s, apps: stageApps('interview').filter(a => a.session_id === s.id) })).filter(g => g.apps.length);
+  IV_SESS = (data || []).map(s => ({ id: s.id, seq: s.seq, start_time: s.start_time, end_time: s.end_time }));
+  return (data || []).map(s => ({ ...s, apps: stageApps('interview').filter(a => effSessionId(a) === s.id) })).filter(g => g.apps.length);
 }
 
 async function downloadInterviewForms(onlyId) {
@@ -3852,14 +3911,22 @@ async function downloadInterviewForms(onlyId) {
           const terms = crit.map((x, i) => `${colLetter(c1 - 1 + i)}${r}*${Number(x.weight) / 100}`).join('+');
           const vals = [a.interview_no, a.exam_no, a.name, ...crit.map(() => rec ? '迴避' : null),
             rec ? '迴避' : { formula: `IF(COUNT(${colLetter(c1 - 1)}${r}:${colLetter(cN - 1)}${r})<${crit.length},"",ROUND(${terms},2))` }, null];
+          if (a.actual_session_id && a.actual_session_id !== a.session_id) vals[0] = `${a.interview_no}＊`;
           vals.forEach((val, i) => { const c = row.getCell(i + 1); c.value = val; c.font = TPL_FONT; c.border = TPL_BORDER;
             c.alignment = { vertical: 'middle', horizontal: i === 0 || (i >= c1 - 1 && i <= cTot - 1) ? 'center' : undefined, wrapText: i === nCol - 1 };
             if (i === cTot - 1) c.numFmt = '0.00'; });
           row.height = 30;   // 留手寫空間
           r++;
         });
+        for (let k = 0; k < Number(st.spare_rows || 0); k++) {   // 空白列：臨時加入的考生手寫（填考生編號即可匯入）
+          const row = ws.getRow(r), terms = crit.map((x, i) => `${colLetter(c1 - 1 + i)}${r}*${Number(x.weight) / 100}`).join('+');
+          head.forEach((_, i) => { const c = row.getCell(i + 1); c.border = TPL_BORDER; c.font = TPL_FONT;
+            if (i === cTot - 1) { c.value = { formula: `IF(COUNT(${colLetter(c1 - 1)}${r}:${colLetter(cN - 1)}${r})<${crit.length},"",ROUND(${terms},2))` }; c.numFmt = '0.00'; c.alignment = { horizontal: 'center', vertical: 'middle' }; } });
+          row.height = 30; r++;
+        }
         fitRowHeights(ws, hRow, hRow);
-        ws.mergeCells(r, 1, r, nCol); ws.getCell(r, 1).value = `※ 各項滿分為 100 分。總成績＝${formula}。`; ws.getCell(r, 1).font = { ...TPL_FONT, size: 11 };
+        const moved = g.apps.some(a => a.actual_session_id && a.actual_session_id !== a.session_id);
+        ws.mergeCells(r, 1, r, nCol); ws.getCell(r, 1).value = `※ 各項滿分為 100 分。總成績＝${formula}。${moved ? '＊為當天臨時改至本組的考生。' : ''}`; ws.getCell(r, 1).font = { ...TPL_FONT, size: 11 };
         r += 2;
         ws.mergeCells(r, 1, r, nCol);
         ws.getCell(r, 1).value = '委員簽名：＿＿＿＿＿＿＿＿＿＿' + ' '.repeat(10) + `日期：${rocDate(st.date) || '＿＿＿／＿＿／＿＿'}`;
@@ -3899,9 +3966,10 @@ async function printInterviewForms(onlyId) {
     <table><colgroup><col style="width:7%"><col style="width:12%"><col style="width:11%">${crit.map(() => '<col style="width:13%">').join('')}<col style="width:10%"><col></colgroup>
       <thead><tr><th>組號</th><th>考生編號</th><th>姓名</th>${crit.map(x => `<th>${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}<th>總成績</th><th>評語</th></tr></thead>
       <tbody>${g.apps.map(a => { const rec = isRecused(v.id, a.id);
-        return `<tr><td class="c">${esc(a.interview_no)}</td><td class="c">${esc(a.exam_no)}</td><td class="c">${esc(a.name)}</td>
-          ${crit.map(() => `<td class="${rec ? 'rec' : ''}">${rec ? '迴避' : ''}</td>`).join('')}<td class="${rec ? 'rec' : ''}">${rec ? '迴避' : ''}</td><td></td></tr>`; }).join('')}</tbody></table>
-    <div class="note">※ 各項滿分為 100 分。總成績＝${esc(formula)}。</div>
+        return `<tr><td class="c">${esc(a.interview_no)}${a.actual_session_id && a.actual_session_id !== a.session_id ? '＊' : ''}</td><td class="c">${esc(a.exam_no)}</td><td class="c">${esc(a.name)}</td>
+          ${crit.map(() => `<td class="${rec ? 'rec' : ''}">${rec ? '迴避' : ''}</td>`).join('')}<td class="${rec ? 'rec' : ''}">${rec ? '迴避' : ''}</td><td></td></tr>`; }).join('')}
+        ${Array.from({ length: Number(st.spare_rows || 0) }, () => `<tr>${'<td></td>'.repeat(5 + crit.length)}</tr>`).join('')}</tbody></table>
+    <div class="note">※ 各項滿分為 100 分。總成績＝${esc(formula)}。${g.apps.some(a => a.actual_session_id && a.actual_session_id !== a.session_id) ? '＊為當天臨時改至本組的考生。' : ''}</div>
     <div class="sign">委員簽名：＿＿＿＿＿＿＿＿＿＿&emsp;&emsp;日期：${esc(rocDate(st.date) || '＿＿＿／＿＿／＿＿')}</div>
   </section>`));
   const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>' + esc(CUR.code) + ' 面試評分表</title><sty' + 'le>' + css + '</sty' + 'le></he' + 'ad><bo' + 'dy>'
