@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admission v0.9 2026-11-21 錄取名單：總成績＝書審 a%＋面試 b%、同分比序、正取／備取（名額、備取上限、最低分）、同分無法區分提示、鎖定錄取名單；面試總表（Excel／列印，可勾選加欄）；面試評分不顯示研究類型；v0.8：面試當天臨時改場（組號不變、記實際場次與原因）、評分表每組空白列；匯出改用 ⬆、匯入改用 ⬇；面試評分：沿用成績表格（只列面試考生、依組號排序、缺考、委員迴避）、面試評分表（每組一頁，Excel／列印，填回可匯入）；v0.7：面試時間簡化為只排主考場（開始～結束，可直接改）、距離分近中遠（縣市逐一選、排組提醒可勾選）；面試分組：面試設定（日期、試場、時間規則）、考生時間要求／特殊需求／委員迴避、建議分組、拖曳調整與即時提醒、組號、分組鎖定；v0.6：2026-11-19 Excel 換行列高由系統計算（Excel 開檔不一定自動調整）；書審總表簽名欄改為各書審委員簽名；評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
+<!-- BWBC Admission v0.9 2026-11-21 正取最低分數與處理規則（兩者都要符合／名額優先／分數優先，每梯次自選）；評分頁彙總標籤可點開明細（給分差距、分數未齊、未達門檻，可列印供委員討論）；錄取名單：總成績＝書審 a%＋面試 b%、同分比序、正取／備取（名額、備取上限、最低分）、同分無法區分提示、鎖定錄取名單；面試總表（Excel／列印，可勾選加欄）；面試評分不顯示研究類型；v0.8：面試當天臨時改場（組號不變、記實際場次與原因）、評分表每組空白列；匯出改用 ⬆、匯入改用 ⬇；面試評分：沿用成績表格（只列面試考生、依組號排序、缺考、委員迴避）、面試評分表（每組一頁，Excel／列印，填回可匯入）；v0.7：面試時間簡化為只排主考場（開始～結束，可直接改）、距離分近中遠（縣市逐一選、排組提醒可勾選）；面試分組：面試設定（日期、試場、時間規則）、考生時間要求／特殊需求／委員迴避、建議分組、拖曳調整與即時提醒、組號、分組鎖定；v0.6：2026-11-19 Excel 換行列高由系統計算（Excel 開檔不一定自動調整）；書審總表簽名欄改為各書審委員簽名；評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -484,6 +484,9 @@ td.adm-spread{color:var(--red);font-weight:600}
 .sb-dist{display:grid;grid-template-columns:repeat(4,1fr);gap:4px 14px;font-size:12.5px}
 .sb-dist label{margin-right:6px;white-space:nowrap}
 tr.adm-tie td{background:#FFF6F5}
+.adm-click-stat{cursor:pointer}.adm-click-stat:hover{border-color:var(--navy2);box-shadow:var(--sh)}
+td.sp-hi{background:#E8F5E9;font-weight:600}
+.sl-compact th,.sl-compact td{padding:5px 7px;font-size:12px}td.sp-lo{background:#FEE;font-weight:600}
 .res-admitted{color:var(--green);font-weight:600;white-space:nowrap}.res-waitlisted{color:#1565C0;font-weight:600;white-space:nowrap}
 .res-rejected{color:var(--ink3);white-space:nowrap}.res-absent,.res-missing{color:var(--red);white-space:nowrap}
 .adm-prog{display:inline-block;width:70px;height:6px;border-radius:3px;background:var(--cr2);vertical-align:middle;margin-left:6px;overflow:hidden}
@@ -628,6 +631,14 @@ th.adm-rs{position:relative}
     <div class="modal-hdr"><div class="modal-title" id="cs-title">臨時改場</div><button class="modal-close" onclick="closeModal('cs-modal')">×</button></div>
     <div class="modal-body" id="cs-body"></div>
     <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('cs-modal')">取消</button><button class="btn-save" onclick="saveChangeSession()">儲存</button></div>
+  </div>
+</div>
+<!-- 彙總標籤明細 -->
+<div class="modal-bg" id="sl-modal">
+  <div class="modal adm-wide" style="max-width:1100px">
+    <div class="modal-hdr"><div class="modal-title" id="sl-title">明細</div><button class="modal-close" onclick="closeModal('sl-modal')">×</button></div>
+    <div class="modal-body" id="sl-body"></div>
+    <div class="modal-footer"><span class="adm-hint" style="margin-right:auto">點考生可切到「依考生」修改分數</span><button class="btn btn-sec" onclick="printStatList()">🖨 列印</button><button class="btn-cancel" onclick="closeModal('sl-modal')">關閉</button></div>
   </div>
 </div>
 <!-- 面試總表選項 -->
@@ -937,6 +948,7 @@ function makeDraft() {
     id: r.id, code: r.code, academic_year: r.academic_year, term: r.term, track: r.track, name: r.name,
     pass_threshold: r.pass_threshold, weight_review: r.weight_review, weight_interview: r.weight_interview,
     admit_quota: r.admit_quota, waitlist_max: r.waitlist_max, waitlist_min_score: r.waitlist_min_score,
+    admit_min_score: r.admit_min_score ?? null, admit_rule: r.admit_rule || 'both',
     decimals: r.decimals, age_base_date: r.age_base_date || '', spread_alert: r.spread_alert,
     roster_mask_mode: r.roster_mask_mode, near_counties: [...(r.near_counties || [])],
     key_dates: normalizeKeyDates(r.key_dates),
@@ -1032,6 +1044,12 @@ function renderRoundsPage() {
         <div class="frow"><label class="flabel">總成績：面試 b%</label><input class="finput" type="number" step="0.01" min="0" max="100" ${dis} value="${esc(d.weight_interview)}" oninput="setWeight('interview',this.value)"><div class="adm-hint" id="w-sum"></div></div>
         <div class="frow"><label class="flabel">小數位數</label><input class="finput" type="number" min="0" max="4" ${dis} value="${esc(d.decimals)}" oninput="setD('decimals',numOrNull(this.value))"></div>
         <div class="frow"><label class="flabel">正取名額</label><input class="finput" type="number" min="0" ${dis} value="${esc(d.admit_quota)}" oninput="setD('admit_quota',numOrNull(this.value))"></div>
+        <div class="frow"><label class="flabel">正取最低分數</label><input class="finput" type="number" step="0.01" ${dis} value="${esc(d.admit_min_score ?? '')}" oninput="setD('admit_min_score',numOrNull(this.value))"><div class="adm-hint">空白＝不設</div></div>
+        <div class="frow"><label class="flabel">名額與最低分數都填時</label><select class="fselect" ${dis} onchange="setD('admit_rule',this.value)">
+          <option value="both" ${d.admit_rule === 'both' ? 'selected' : ''}>兩者都要符合（可不足額錄取）</option>
+          <option value="quota" ${d.admit_rule === 'quota' ? 'selected' : ''}>名額優先（錄滿名額，分數只提醒）</option>
+          <option value="score" ${d.admit_rule === 'score' ? 'selected' : ''}>分數優先（達分數全錄取，名額只提醒）</option></select>
+          <div class="adm-hint">只填其中一個時，就依那一個</div></div>
         <div class="frow"><label class="flabel">備取名額上限</label><input class="finput" type="number" min="0" ${dis} value="${esc(d.waitlist_max ?? '')}" oninput="setD('waitlist_max',numOrNull(this.value))"><div class="adm-hint">空白＝不限</div></div>
         <div class="frow"><label class="flabel">備取最低分數</label><input class="finput" type="number" step="0.01" ${dis} value="${esc(d.waitlist_min_score ?? '')}" oninput="setD('waitlist_min_score',numOrNull(this.value))"><div class="adm-hint">空白＝不限</div></div>
         <div class="frow"><label class="flabel">委員給分差距提示（分）</label><input class="finput" type="number" step="0.01" min="0" ${dis} value="${esc(d.spread_alert)}" oninput="setD('spread_alert',numOrNull(this.value))"></div>
@@ -1275,6 +1293,7 @@ function validateDraft() {
   if (Number(d.weight_review || 0) + Number(d.weight_interview || 0) !== 100) errs.push('總成績 a＋b 必須是 100%');
   if (d.pass_threshold != null && (d.pass_threshold < 0 || d.pass_threshold > 100)) errs.push('門檻必須在 0～100');
   if (d.admit_quota == null || d.admit_quota < 0) errs.push('正取名額必須是 0 以上的整數');
+  if (d.admit_min_score != null && (d.admit_min_score < 0 || d.admit_min_score > 100)) errs.push('正取最低分數必須在 0～100');
   if (d.decimals == null || d.decimals < 0 || d.decimals > 4) errs.push('小數位數必須在 0～4');
   ['review','interview'].forEach(st => {
     const list = d.criteria.filter(c => c.stage === st);
@@ -1312,6 +1331,7 @@ async function saveRound() {
     const roundRow = {
       name: d.name.trim(), pass_threshold: d.pass_threshold, weight_review: d.weight_review, weight_interview: d.weight_interview,
       admit_quota: d.admit_quota, waitlist_max: d.waitlist_max, waitlist_min_score: d.waitlist_min_score,
+      admit_min_score: d.admit_min_score, admit_rule: d.admit_rule || 'both',
       decimals: d.decimals, age_base_date: d.age_base_date || null, spread_alert: d.spread_alert ?? 15,
       roster_mask_mode: d.roster_mask_mode, near_counties: d.near_counties,
       key_dates: Object.fromEntries(Object.entries(d.key_dates).filter(([, v]) => v)),
@@ -1423,6 +1443,7 @@ async function createRound() {
     if (src) Object.assign(row, {
       pass_threshold: src.pass_threshold, weight_review: src.weight_review, weight_interview: src.weight_interview,
       admit_quota: src.admit_quota, waitlist_max: src.waitlist_max, waitlist_min_score: src.waitlist_min_score,
+      admit_min_score: src.admit_min_score ?? null, admit_rule: src.admit_rule || 'both',
       decimals: src.decimals, spread_alert: src.spread_alert, near_counties: src.near_counties,
       interview_settings: src.interview_settings, roster_mask_mode: src.roster_mask_mode,
     });
@@ -2473,9 +2494,9 @@ function drawScoresPage() {
   ${problems.length ? `<div class="adm-warn">無法評分：${problems.map(esc).join('、')}。</div>` : `
   <div class="adm-stats">
     <div class="adm-stat"><b>${done}</b>/ ${revs.length} 位委員已完成</div>
-    <div class="adm-stat"><b>${missing}</b>位考生分數未齊</div>
-    <div class="adm-stat"><b style="color:${spreadN ? 'var(--red)' : 'var(--navy)'}">${spreadN}</b>位考生的委員給分差距 > ${esc(CUR.spread_alert ?? 15)} 分</div>
-    ${passN != null ? `<div class="adm-stat"><b>${passN}</b>位目前達門檻（≥ ${esc(CUR.pass_threshold)}，分數未齊者不計）</div>` : ''}
+    <div class="adm-stat adm-click-stat" onclick="openStatList('missing')" title="點一下列出缺分明細"><b>${missing}</b>位考生分數未齊 ›</div>
+    <div class="adm-stat adm-click-stat" onclick="openStatList('spread')" title="點一下列出委員給分明細"><b style="color:${spreadN ? 'var(--red)' : 'var(--navy)'}">${spreadN}</b>位考生的委員給分差距 > ${esc(CUR.spread_alert ?? 15)} 分 ›</div>
+    ${passN != null ? `<div class="adm-stat adm-click-stat" onclick="openStatList('fail')" title="點一下列出未達門檻的考生"><b>${passN}</b>位目前達門檻（≥ ${esc(CUR.pass_threshold)}，分數未齊者不計） ›</div>` : ''}
     ${st === 'interview' ? `<div class="adm-stat"><b>${SA.length}</b>位面試考生${absentN ? `，<b style="color:var(--red)">${absentN}</b>位缺考` : ''}</div>` : ''}
   </div>
   <div class="toolbar">
@@ -4045,9 +4066,18 @@ function buildAdmission() {
   // 正取、備取
   const Q = Number(CUR.admit_quota || 0), wmax = CUR.waitlist_max == null || CUR.waitlist_max === '' ? null : Number(CUR.waitlist_max);
   const wmin = CUR.waitlist_min_score == null || CUR.waitlist_min_score === '' ? null : Number(CUR.waitlist_min_score);
+  const amin = CUR.admit_min_score == null || CUR.admit_min_score === '' ? null : Number(CUR.admit_min_score);
+  const rule = amin == null ? 'quota' : (CUR.admit_rule || 'both');
+  const meets = x => amin == null || x.total >= amin;
+  // 正取人數：兩者都要符合＝前 Q 名中達最低分數者；名額優先＝前 Q 名；分數優先＝所有達最低分數者
+  const nAdmit = rule === 'score' ? ranked.filter(meets).length : rule === 'both' ? Math.min(Q, ranked.filter(meets).length) : Math.min(Q, ranked.length);
+  const notes = [];
+  if (amin != null && rule === 'both' && nAdmit < Q && ranked.length >= Q) notes.push(`達正取最低分數 ${amin} 的只有 ${nAdmit} 人，正取不足額（名額 ${Q}）`);
+  if (amin != null && rule === 'quota') { const k = ranked.slice(0, nAdmit).filter(x => !meets(x)).length; if (k) notes.push(`名額優先：有 ${k} 位正取未達正取最低分數 ${amin}`); }
+  if (amin != null && rule === 'score' && nAdmit > Q) notes.push(`分數優先：達 ${amin} 分的有 ${nAdmit} 人，超過正取名額 ${Q}`);
   ranked.forEach((x, i) => {
-    if (i < Q) { x.result = 'admitted'; x.order = i + 1; return; }
-    const wi2 = ranked.slice(Q, i + 1).filter(y => wmin == null || y.total >= wmin).length;
+    if (i < nAdmit) { x.result = 'admitted'; x.order = i + 1; return; }
+    const wi2 = ranked.slice(nAdmit, i + 1).filter(y => wmin == null || y.total >= wmin).length;
     if ((wmin == null || x.total >= wmin) && (wmax == null || wi2 <= wmax)) { x.result = 'waitlisted'; x.order = wi2; }
     else x.result = 'rejected';
   });
@@ -4062,7 +4092,7 @@ function buildAdmission() {
   }
   rows.forEach(x => { if (x.absent) x.result = 'absent'; else if (x.total == null) x.result = 'missing'; });
   const out = [...ranked, ...rows.filter(x => x.total == null && !x.absent), ...rows.filter(x => x.absent)];
-  return { rows: out, ranked, issues, keys, crit, revs, wr, wi, Q, wmax, wmin };
+  return { rows: out, ranked, issues, keys, crit, revs, wr, wi, Q, wmax, wmin, amin, rule, nAdmit, notes };
 }
 
 async function renderAdmissionPage() {
@@ -4088,7 +4118,7 @@ function drawAdmissionPage() {
     <span class="adm-lock ${locked ? 'on' : ''}">${locked ? '🔒 錄取名單已鎖定 ' + esc(fmtTime(CUR.admission_locked_at)) : '錄取名單未鎖定'}</span>
   </div>
   <div class="adm-stats">
-    <div class="adm-stat"><b style="color:var(--green)">${n('admitted')}</b>/ ${A.Q} 位正取</div>
+    <div class="adm-stat"><b style="color:var(--green)">${n('admitted')}</b>/ ${A.Q} 位正取${A.amin == null ? '' : `（≥ ${A.amin}）`}</div>
     <div class="adm-stat"><b style="color:#1565C0">${n('waitlisted')}</b>位備取</div>
     <div class="adm-stat"><b>${n('rejected')}</b>位未錄取</div>
     <div class="adm-stat"><b style="color:${n('absent') ? 'var(--red)' : 'var(--navy)'}">${n('absent')}</b>位缺考</div>
@@ -4101,7 +4131,8 @@ function drawAdmissionPage() {
     <button class="btn btn-sec" onclick="openIvSummary('excel')">⬆ 面試總表 Excel</button>
     <button class="btn btn-sec" onclick="openIvSummary('print')">🖨 列印面試總表</button>
   </div>
-  <div class="adm-hint" style="margin-bottom:6px">總成績＝書審 ${A.wr}%＋面試 ${A.wi}%；正取 ${A.Q} 名；備取${A.wmax == null ? '不限人數' : `最多 ${A.wmax} 名`}${A.wmin == null ? '' : `、總成績 ≥ ${A.wmin}`}；同分比序：${A.keys.map(tieKeyLabel).map(esc).join(' → ') || '未設定'}（在「梯次設定」修改）。比序後仍同分而影響錄取時，請委員調整分數，不提供手動改正取／備取。</div>
+  <div class="adm-hint" style="margin-bottom:6px">總成績＝書審 ${A.wr}%＋面試 ${A.wi}%；正取 ${A.Q} 名${A.amin == null ? '' : `、正取最低分數 ${A.amin}（${{ both: '兩者都要符合', quota: '名額優先', score: '分數優先' }[A.rule]}）`}；備取${A.wmax == null ? '不限人數' : `最多 ${A.wmax} 名`}${A.wmin == null ? '' : `、總成績 ≥ ${A.wmin}`}；同分比序：${A.keys.map(tieKeyLabel).map(esc).join(' → ') || '未設定'}（在「梯次設定」修改）。比序後仍同分而影響錄取時，請委員調整分數，不提供手動改正取／備取。</div>
+  ${A.notes.length ? `<div class="adm-warn" style="background:#E3F2FD;border-color:#90CAF9;color:#1565C0">${A.notes.map(esc).join('<br>')}</div>` : ''}
   ${A.issues.length ? `<div class="adm-warn">${A.issues.map(g => `${g.rows.map(x => esc(x.a.exam_no + ' ' + x.a.name)).join('、')}：總成績 ${fmtN(g.rows[0].total)}，比序後仍同分，影響${g.why}，請委員調整分數。`).join('<br>')}</div>` : ''}
   <div class="tbl-wrap"><table id="adm-tbl">
     <thead><tr><th style="text-align:center">總排名</th><th>結果</th><th style="text-align:center">順序</th><th>組號</th><th>考生編號</th><th>姓名</th>
@@ -4138,7 +4169,7 @@ async function lockAdmission() {
   if (miss.length) { alert(`還有 ${miss.length} 位考生面試分數未齊，不能鎖定：\n\n${miss.map(x => x.a.exam_no + ' ' + x.a.name).join('\n')}\n\n缺考的考生請到「面試評分」勾選缺考。`); return; }
   if (A.issues.length) { alert('還有比序後仍同分、影響錄取的考生，請委員調整分數後再鎖定：\n\n' + A.issues.map(g => g.rows.map(x => x.a.exam_no).join('、') + `（影響${g.why}）`).join('\n')); return; }
   const n = k => A.rows.filter(x => x.result === k).length;
-  if (!confirm(`鎖定 ${CUR.code} 錄取名單？\n\n正取 ${n('admitted')} 名、備取 ${n('waitlisted')} 名、未錄取 ${n('rejected')} 名、缺考 ${n('absent')} 名。\n\n鎖定後面試分數不能再修改（書審也不能解鎖）；要修改需先解除鎖定。`)) return;
+  if (!confirm(`鎖定 ${CUR.code} 錄取名單？\n\n${A.notes.length ? A.notes.join('\n') + '\n\n' : ''}正取 ${n('admitted')} 名、備取 ${n('waitlisted')} 名、未錄取 ${n('rejected')} 名、缺考 ${n('absent')} 名。\n\n鎖定後面試分數不能再修改（書審也不能解鎖）；要修改需先解除鎖定。`)) return;
   try {
     for (const x of A.rows) {
       const result = x.result === 'admitted' ? 'admitted' : x.result === 'waitlisted' ? 'waitlisted' : 'rejected';
@@ -4232,7 +4263,7 @@ async function downloadIvSummaryExcel(opts) {
     ws.mergeCells(2, 1, 2, nCol); ws.getCell(2, 1).value = '面試委員：' + A.revs.map((r, i) => `${revCode(r, i)} ${reviewerName(r)}`).join('、');
     ws.getCell(2, 1).font = { ...TPL_FONT, bold: true };
     ws.mergeCells(3, 1, 3, nCol);
-    ws.getCell(3, 1).value = `※ 總成績＝書審 ${A.wr}%＋面試 ${A.wi}%；正取 ${A.Q} 名；同分比序：${A.keys.map(tieKeyLabel).join(' → ')}。` + (CUR.admission_locked_at ? '' : ' 【錄取名單尚未鎖定，本表僅供參考】').replace(' ', ' ');
+    ws.getCell(3, 1).value = `※ 總成績＝書審 ${A.wr}%＋面試 ${A.wi}%；正取 ${A.Q} 名${A.amin == null ? '' : `、正取最低分數 ${A.amin}`}；同分比序：${A.keys.map(tieKeyLabel).join(' → ')}。` + (CUR.admission_locked_at ? '' : ' 【錄取名單尚未鎖定，本表僅供參考】').replace(' ', ' ');
     ws.getCell(3, 1).font = { ...TPL_FONT, size: 11, color: CUR.admission_locked_at ? undefined : { argb: 'FFC00000' } };
     const hr = ws.getRow(4);
     head.forEach((h, i) => { const c = hr.getCell(i + 1); c.value = h; c.font = { ...TPL_FONT, size: 11, bold: true }; c.border = TPL_BORDER;
@@ -4278,6 +4309,55 @@ function printIvSummary(opts) {
   if (!w) { showToast('瀏覽器擋住了新視窗，請允許彈出視窗後再試', 'error'); return; }
   w.document.write(html); w.document.close();
   writeAuditLog('招生', '列印面試總表', 'adm_rounds', CUR.id, CUR.code, '');
+}
+
+/* ── 彙總標籤明細：給分差距、分數未齊、未達門檻（供委員討論） ── */
+let SL_HTML = '';
+function openStatList(kind) {
+  const st = GS.stage, crit = stageCriteria(st), revs = stageReviewers(st), AA = activeApps(st), iv = st === 'interview';
+  const alertN = Number(CUR.spread_alert || 15);
+  let list, title, note = '';
+  if (kind === 'spread') {
+    list = AA.map(a => ({ a, sp: reviewerSpread(st, a.id) })).filter(x => x.sp != null && x.sp > alertN).sort((x, y) => y.sp - x.sp).map(x => x.a);
+    title = `委員給分差距 > ${alertN} 分（${list.length} 位）`;
+    note = '綠底＝給分最高的委員、紅底＝給分最低的委員；差距＝委員加權分最高減最低。';
+  } else if (kind === 'missing') {
+    list = AA.filter(a => revs.some(r => !isRecused(r.id, a.id) && crit.some(c => (SC[skey(a.id, r.id, c.id)] || {}).score == null)));
+    title = `分數未齊（${list.length} 位）`;
+    note = '「缺」＝這位委員還沒給分；「迴避」不算缺。';
+  } else {
+    list = AA.filter(a => { const t = applicantStageScore(st, a.id).total; return t != null && t < Number(CUR.pass_threshold); })
+      .sort((x, y) => applicantStageScore(st, y.id).total - applicantStageScore(st, x.id).total);
+    title = `未達門檻 ${CUR.pass_threshold} 分（${list.length} 位）`;
+  }
+  const head = `<tr><th>${iv ? '組號' : ''}</th><th>考生編號</th><th>姓名</th><th style="text-align:center">${STAGE_ZH[st]}成績</th><th style="text-align:center">差距</th>${revs.map((r, i) => `<th style="text-align:center" colspan="${crit.length + 1}">${esc(revCode(r, i))} ${esc(reviewerName(r))}</th>`).join('')}</tr>
+    <tr><th></th><th></th><th></th><th></th><th></th>${revs.map(() => crit.map(c => `<th style="text-align:center;font-weight:400">${esc(c.name)}</th>`).join('') + '<th style="text-align:center">加權</th>').join('')}</tr>`;
+  const rows = list.map(a => {
+    const ws = revs.map(r => isRecused(r.id, a.id) ? null : reviewerWeighted(st, a.id, r.id)), vals = ws.filter(x => x != null);
+    const hi = vals.length > 1 ? Math.max(...vals) : null, lo = vals.length > 1 ? Math.min(...vals) : null;
+    const sp = reviewerSpread(st, a.id);
+    return `<tr class="adm-click" onclick="jumpToApplicant('${a.id}')">
+      <td><b>${esc(iv ? a.interview_no || '' : '')}</b></td><td class="mono">${esc(a.exam_no)}</td><td style="white-space:nowrap">${esc(a.name)}</td>
+      <td class="adm-calc">${fmtN(applicantStageScore(st, a.id).total)}</td><td style="text-align:center" class="${sp != null && sp > alertN ? 'adm-spread' : ''}">${fmtN(sp)}</td>
+      ${revs.map((r, j) => isRecused(r.id, a.id) ? `<td colspan="${crit.length + 1}" style="text-align:center"><span class="adm-tag">迴避</span></td>`
+        : crit.map(c => { const v = (SC[skey(a.id, r.id, c.id)] || {}).score; return `<td style="text-align:center">${v == null ? '<span class="adm-miss">缺</span>' : esc(v)}</td>`; }).join('')
+          + `<td style="text-align:center" class="${kind === 'spread' && ws[j] != null && ws[j] === hi ? 'sp-hi' : kind === 'spread' && ws[j] != null && ws[j] === lo ? 'sp-lo' : ''}"><b>${fmtN(ws[j])}</b></td>`).join('')}</tr>`;
+  }).join('');
+  SL_HTML = `<h3 style="margin:0 0 6px">${esc(CUR.code)} ${esc(STAGE_ZH[st])}評分－${esc(title)}</h3>${note ? `<div style="font-size:12px;margin-bottom:6px">${esc(note)}</div>` : ''}
+    <table class="sl-tbl"><thead>${head}</thead><tbody>${rows || `<tr><td colspan="${5 + revs.length * (crit.length + 1)}">（無）</td></tr>`}</tbody></table>`;
+  document.getElementById('sl-title').textContent = `${STAGE_ZH[st]}評分－${title}`;
+  document.getElementById('sl-body').innerHTML = `${note ? `<div class="adm-hint" style="margin:0 0 8px">${esc(note)}</div>` : ''}<div class="tbl-wrap"><table class="sl-compact">
+    <thead>${head}</thead><tbody>${rows || '<tr><td colspan="99" style="color:var(--ink3)">（無）</td></tr>'}</tbody></table></div>`;
+  openModal('sl-modal');
+}
+function jumpToApplicant(id) { closeModal('sl-modal'); GS.view = 'applicant'; GS.appId = id; drawScoresPage(); }
+function printStatList() {
+  const css = '@page{size:A4 landscape;margin:10mm}body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;font-size:10pt;color:#000}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:3px 5px;white-space:nowrap}th{background:#eee}td.sp-hi{background:#E8F5E9;font-weight:bold}td.sp-lo{background:#FEE;font-weight:bold}.adm-miss,.adm-spread{color:#C00000}.adm-tag{color:#555}';
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>評分明細</title><sty' + 'le>' + css + '</sty' + 'le></he' + 'ad><bo' + 'dy>' + SL_HTML
+    + '<scr' + 'ipt>window.onload=()=>window.print()<\/scr' + 'ipt></bo' + 'dy></ht' + 'ml>';
+  const w = window.open('', '_blank');
+  if (!w) { showToast('瀏覽器擋住了新視窗，請允許彈出視窗後再試', 'error'); return; }
+  w.document.write(html); w.document.close();
 }
 
 checkAuth();
