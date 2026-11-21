@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BWBC Admission v0.7 2026-11-21 面試時間簡化為只排主考場（開始～結束，可直接改）、距離分近中遠（縣市逐一選、排組提醒可勾選）；面試分組：面試設定（日期、試場、時間規則）、考生時間要求／特殊需求／委員迴避、建議分組、拖曳調整與即時提醒、組號、分組鎖定；v0.6：2026-11-19 Excel 換行列高由系統計算（Excel 開檔不一定自動調整）；書審總表簽名欄改為各書審委員簽名；評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
+<!-- BWBC Admission v0.8 2026-11-21 面試評分：沿用成績表格（只列面試考生、依組號排序、缺考、委員迴避）、面試評分表（每組一頁，Excel／列印，填回可匯入）；v0.7：面試時間簡化為只排主考場（開始～結束，可直接改）、距離分近中遠（縣市逐一選、排組提醒可勾選）；面試分組：面試設定（日期、試場、時間規則）、考生時間要求／特殊需求／委員迴避、建議分組、拖曳調整與即時提醒、組號、分組鎖定；v0.6：2026-11-19 Excel 換行列高由系統計算（Excel 開檔不一定自動調整）；書審總表簽名欄改為各書審委員簽名；評分畫面：評語自動換行長高、分數欄縮窄、計算值固定小數位；評分表與委員範本合併為一份（加權總分自動計算）、Excel 列高交給 Excel 自動調整；書審彙整：書審成績與排名、門檻判定、研究類型定案、鎖定／解鎖、書審總表（Excel／列印）、報名系統回填檢核清單；v0.5：書審備註移到最後一欄（評分表 Excel／列印／評分畫面，Excel 版面依承辦人修訂版）；書審評分：成績表格（依委員／依考生、逐格自動儲存、Excel 貼上）、匯入委員 Excel（欄位對應、新舊逐格比對）；v0.4：2026-11-19 套用開發規範：權限 key、Magic Link 導回、刪改驗證筆數、梯次依日期預設、拖曳限把手、匯入逐欄選擇；v0.3：2026-11-19 評分用表與委員 Excel 範本 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -540,11 +540,11 @@ th.adm-rs{position:relative}
         <div class="nav-section">
           <div class="nav-label">第二階段 面試</div>
           <div class="nav-item" data-page="sessions" onclick="showPage('sessions',this)"><span class="nav-icon">🗓</span>面試分組</div>
-          <div class="nav-item adm-soon" data-page="interview-scores" onclick="showPage('interview-scores',this)"><span class="nav-icon">🎤</span>面試評分</div>
+          <div class="nav-item" data-page="interview-scores" onclick="showPage('interview-scores',this)"><span class="nav-icon">🎤</span>面試評分</div>
           <div class="nav-item adm-soon" data-page="admission" onclick="showPage('admission',this)"><span class="nav-icon">🏅</span>錄取名單</div>
         </div>
       </div>
-      <div class="sidebar-footer">admission v0.7（第 7 批）</div>
+      <div class="sidebar-footer">admission v0.8（第 8 批）</div>
     </nav>
     <main class="content" id="content"></main>
   </div>
@@ -891,6 +891,7 @@ function renderPage() {
   if (CUR_PAGE === 'review-scores') { renderScoresPage('review'); return; }
   if (CUR_PAGE === 'review-summary') { renderSummaryPage(); return; }
   if (CUR_PAGE === 'sessions') { renderSessionsPage(); return; }
+  if (CUR_PAGE === 'interview-scores') { renderScoresPage('interview'); return; }
   const title = document.querySelector(`#adm-sidebar .nav-item[data-page="${CUR_PAGE}"]`)?.textContent.trim() || '';
   c.innerHTML = `<div class="page-hdr"><div class="page-title">${esc(title)}</div></div>
     <div class="adm-placeholder">這個功能將在後續批次完成。</div>`;
@@ -2337,6 +2338,12 @@ const ckey = (a, r) => `${a}|${r}`;
 function stageLocked(st) { return st === 'review' ? !!CUR.review_locked_at : !!CUR.admission_locked_at; }
 function gridEditable(st) { return canWrite() && !stageLocked(st); }
 function fmtN(v) { return v == null || v === '' ? '' : Number(v).toFixed(CUR.decimals ?? 2); }
+function isRecused(revId, appId) { return !!RECUSE[`${revId}|${appId}`]; }
+function ivOrder(a) { const no = a.interview_no || ''; return (GCODE.indexOf(no[0]) + 1) * 10 + Number(no[1] || 0); }
+// 這個階段要評分的考生：書審＝全部考生；面試＝已分組的考生，依組號排序
+function stageApps(st) { return st === 'interview' ? APPS.filter(a => a.interview_no).sort((x, y) => ivOrder(x) - ivOrder(y)) : APPS; }
+function isAbsent(st, a) { return st === 'interview' && !!a && a.attendance === 'absent'; }
+function activeApps(st) { return stageApps(st).filter(a => !isAbsent(st, a)); }
 function round2(x, d) { const p = Math.pow(10, d == null ? (CUR.decimals ?? 2) : d); return Math.round((x + Number.EPSILON) * p) / p; }
 
 async function loadStageData(st) {
@@ -2355,6 +2362,9 @@ async function loadStageData(st) {
     if (error) { showToast('讀取評語失敗：' + error.message, 'error'); return false; }
     (data || []).forEach(x => { CM[ckey(x.applicant_id, x.reviewer_id)] = { id: x.id, comment: x.comment || '', research_tag: x.research_tag || '' }; });
   }
+  const rc = await sb.from('adm_recusals').select('id,reviewer_id,applicant_id,reason').eq('round_id', CUR.id);
+  if (rc.error) { showToast('讀取委員迴避失敗：' + rc.error.message, 'error'); return false; }
+  RECUSE = {}; (rc.data || []).forEach(x => { RECUSE[`${x.reviewer_id}|${x.applicant_id}`] = { id: x.id, reason: x.reason || '' }; });
   return true;
 }
 
@@ -2370,7 +2380,7 @@ function applicantStageScore(st, appId) {
   const crit = stageCriteria(st), revs = stageReviewers(st); let sum = 0;
   const avgs = {};
   for (const c of crit) {
-    const vals = revs.map(r => SC[skey(appId, r.id, c.id)]).filter(v => v && v.score != null).map(v => v.score);
+    const vals = revs.filter(r => !isRecused(r.id, appId)).map(r => SC[skey(appId, r.id, c.id)]).filter(v => v && v.score != null).map(v => v.score);
     if (!vals.length) return { total: null, avgs };
     avgs[c.id] = vals.reduce((a, b) => a + b, 0) / vals.length;
     sum += avgs[c.id] * Number(c.weight) / 100;
@@ -2378,12 +2388,13 @@ function applicantStageScore(st, appId) {
   return { total: crit.length ? round2(sum) : null, avgs };
 }
 function reviewerSpread(st, appId) {
-  const ws = stageReviewers(st).map(r => reviewerWeighted(st, appId, r.id)).filter(x => x != null);
+  const ws = stageReviewers(st).filter(r => !isRecused(r.id, appId)).map(r => reviewerWeighted(st, appId, r.id)).filter(x => x != null);
   return ws.length >= 2 ? round2(Math.max(...ws) - Math.min(...ws)) : null;
 }
 function reviewerProgress(st, revId) {
-  const crit = stageCriteria(st); const need = APPS.length * crit.length;
-  let got = 0; APPS.forEach(a => crit.forEach(c => { const v = SC[skey(a.id, revId, c.id)]; if (v && v.score != null) got++; }));
+  const crit = stageCriteria(st), list = activeApps(st).filter(a => !isRecused(revId, a.id));   // 缺考、迴避不算
+  const need = list.length * crit.length;
+  let got = 0; list.forEach(a => crit.forEach(c => { const v = SC[skey(a.id, revId, c.id)]; if (v && v.score != null) got++; }));
   return { got, need };
 }
 
@@ -2396,28 +2407,33 @@ async function renderScoresPage(st) {
   if (!(await loadStageData(st))) return;
   const revs = stageReviewers(st);
   if (!GS.revId || !revs.some(r => r.id === GS.revId)) GS.revId = revs[0]?.id || null;
-  if (!GS.appId || !APPS.some(a => a.id === GS.appId)) GS.appId = APPS[0]?.id || null;
+  const SA = stageApps(st);
+  if (!GS.appId || !SA.some(a => a.id === GS.appId)) GS.appId = SA[0]?.id || null;
   drawScoresPage();
 }
 
 function drawScoresPage() {
   const st = GS.stage, c = document.getElementById('content');
   const crit = stageCriteria(st), revs = stageReviewers(st);
-  const problems = [];
+  const problems = [], SA = stageApps(st), AA = activeApps(st);
   if (!APPS.length) problems.push('尚未匯入考生資料');
+  else if (st === 'interview' && !SA.length) problems.push('尚未完成面試分組（請先到「面試分組」儲存分組）');
   if (!crit.length) problems.push(`尚未設定${STAGE_ZH[st]}評分項目`);
   if (!revs.length) problems.push(`尚未設定${STAGE_ZH[st]}委員`);
   const locked = stageLocked(st), editable = gridEditable(st);
   // 彙總
   const done = revs.filter(r => { const p = reviewerProgress(st, r.id); return p.need && p.got === p.need; }).length;
-  const missing = APPS.filter(a => applicantStageScore(st, a.id).total == null).length;
-  const spreadN = APPS.filter(a => { const s = reviewerSpread(st, a.id); return s != null && s > Number(CUR.spread_alert || 15); }).length;
+  const missing = AA.filter(a => applicantStageScore(st, a.id).total == null).length;
+  const spreadN = AA.filter(a => { const s = reviewerSpread(st, a.id); return s != null && s > Number(CUR.spread_alert || 15); }).length;
   const passN = st === 'review' && CUR.pass_threshold != null
-    ? APPS.filter(a => { const t = applicantStageScore(st, a.id).total; return t != null && t >= Number(CUR.pass_threshold); }).length : null;
+    ? AA.filter(a => { const t = applicantStageScore(st, a.id).total; return t != null && t >= Number(CUR.pass_threshold); }).length : null;
+  const absentN = SA.length - AA.length;
   c.innerHTML = `
   <div class="page-hdr">
     <div class="page-title">${STAGE_ZH[st]}評分 <span style="font-size:14px;color:var(--ink3)">${esc(CUR.code)} · ${esc(CUR.name)}</span></div>
     ${locked ? `<span class="adm-lock on">🔒 ${STAGE_ZH[st]}已鎖定，只能檢視</span>` : ''}
+    ${st === 'interview' ? `<button class="btn btn-sec" ${problems.length ? 'disabled' : ''} onclick="downloadInterviewForms()">⬇ 面試評分表 Excel</button>
+      <button class="btn btn-sec" ${problems.length ? 'disabled' : ''} onclick="printInterviewForms()">🖨 列印面試評分表</button>` : ''}
     <button class="btn btn-pri adm-write" ${problems.length || locked ? 'disabled' : ''} onclick="openScoreImport('${st}')">⬆ 匯入委員 Excel</button>
   </div>
   ${problems.length ? `<div class="adm-warn">無法評分：${problems.map(esc).join('、')}。</div>` : `
@@ -2426,6 +2442,7 @@ function drawScoresPage() {
     <div class="adm-stat"><b>${missing}</b>位考生分數未齊</div>
     <div class="adm-stat"><b style="color:${spreadN ? 'var(--red)' : 'var(--navy)'}">${spreadN}</b>位考生的委員給分差距 > ${esc(CUR.spread_alert ?? 15)} 分</div>
     ${passN != null ? `<div class="adm-stat"><b>${passN}</b>位目前達門檻（≥ ${esc(CUR.pass_threshold)}，分數未齊者不計）</div>` : ''}
+    ${st === 'interview' ? `<div class="adm-stat"><b>${SA.length}</b>位面試考生${absentN ? `，<b style="color:var(--red)">${absentN}</b>位缺考` : ''}</div>` : ''}
   </div>
   <div class="toolbar">
     <div class="adm-seg"><button class="${GS.view === 'reviewer' ? 'on' : ''}" onclick="GS.view='reviewer';drawScoresPage()">依委員</button><button class="${GS.view === 'applicant' ? 'on' : ''}" onclick="GS.view='applicant';drawScoresPage()">依考生</button></div>
@@ -2434,7 +2451,7 @@ function drawScoresPage() {
           const p = reviewerProgress(st, r.id);
           return `<option value="${r.id}" ${r.id === GS.revId ? 'selected' : ''}>${esc((r.code ? r.code + ' ' : '') + reviewerName(r))}（${p.got}/${p.need}）</option>`; }).join('')}</select>`
       : `<button class="btn btn-sm btn-sec" onclick="stepApplicant(-1)">◀</button>
-         <select class="fselect" style="width:auto" onchange="GS.appId=this.value;drawScoresPage()">${APPS.map(a => `<option value="${a.id}" ${a.id === GS.appId ? 'selected' : ''}>${esc(a.exam_no + ' ' + a.name)}</option>`).join('')}</select>
+         <select class="fselect" style="width:auto" onchange="GS.appId=this.value;drawScoresPage()">${SA.map(a => `<option value="${a.id}" ${a.id === GS.appId ? 'selected' : ''}>${esc((a.interview_no && st === 'interview' ? a.interview_no + ' ' : '') + a.exam_no + ' ' + a.name)}${isAbsent(st, a) ? '（缺考）' : ''}</option>`).join('')}</select>
          <button class="btn btn-sm btn-sec" onclick="stepApplicant(1)">▶</button>`}
     <span class="adm-hint">${editable ? '輸入後自動儲存；Enter 往下、Tab 往右；可從 Excel 選取一塊直接貼上。' : '唯讀'}</span>
   </div>
@@ -2442,13 +2459,14 @@ function drawScoresPage() {
   if (!problems.length) (GS.view === 'reviewer' ? drawReviewerGrid : drawApplicantGrid)();
 }
 function stepApplicant(d) {
-  const i = APPS.findIndex(a => a.id === GS.appId); const j = Math.min(APPS.length - 1, Math.max(0, i + d));
-  GS.appId = APPS[j]?.id; drawScoresPage();
+  const SA = stageApps(GS.stage), i = SA.findIndex(a => a.id === GS.appId), j = Math.min(SA.length - 1, Math.max(0, i + d));
+  GS.appId = SA[j]?.id; drawScoresPage();
 }
 
 // 一個輸入格：data-a 考生、data-r 委員、data-k 欄位（crit:<id>｜tag｜comment）
 function cellHtml(appId, revId, k, val, isText) {
-  const dis = gridEditable(GS.stage) ? '' : 'disabled';
+  if (k.startsWith('crit:') && isRecused(revId, appId)) return `<span class="adm-tag" title="${esc(RECUSE[`${revId}|${appId}`].reason || '委員迴避')}">迴避</span>`;
+  const dis = gridEditable(GS.stage) && !isAbsent(GS.stage, APPS.find(a => a.id === appId)) ? '' : 'disabled';
   if (k === 'comment') return `<textarea class="adm-cell txt" rows="1" ${dis} data-a="${appId}" data-r="${revId}" data-k="${k}" data-old="${esc(val ?? '')}"
     oninput="autoGrow(this)" onkeydown="cellKey(event)" onchange="saveCell(this)" onpaste="pasteCells(event)">${esc(val ?? '')}</textarea>`;
   return `<input class="adm-cell ${isText ? 'txt' : ''}" ${dis} data-a="${appId}" data-r="${revId}" data-k="${k}" value="${esc(val ?? '')}" data-old="${esc(val ?? '')}"
@@ -2464,11 +2482,14 @@ function gridKeys(st) { return [...stageCriteria(st).map(c => 'crit:' + c.id), '
 function drawReviewerGrid() {
   const st = GS.stage, crit = stageCriteria(st), revId = GS.revId;
   const box = document.getElementById('grid-box');
+  const iv = st === 'interview';
   box.innerHTML = `<div class="tbl-wrap"><table class="adm-grid-tbl">
-    <thead><tr><th>考生編號</th><th>姓名</th>
+    <thead><tr>${iv ? '<th>組號</th><th style="text-align:center">缺考</th>' : ''}<th>考生編號</th><th>姓名</th>
       ${crit.map(x => `<th style="text-align:center">${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}
       <th style="text-align:center">加權小計</th><th style="text-align:center">本委員排名</th><th>研究類型</th><th>評語</th><th>書審備註（基本背景）</th></tr></thead>
-    <tbody>${APPS.map(a => `<tr data-row="${a.id}">
+    <tbody>${stageApps(st).map(a => `<tr data-row="${a.id}" ${isAbsent(st, a) ? 'style="opacity:.55"' : ''}>
+      ${iv ? `<td data-sort="${ivOrder(a)}"><b>${esc(a.interview_no)}</b></td>
+        <td style="text-align:center" data-sort="${isAbsent(st, a) ? 1 : 0}"><input type="checkbox" ${isAbsent(st, a) ? 'checked' : ''} ${gridEditable(st) ? '' : 'disabled'} onchange="setAbsent('${a.id}',this.checked,this)"></td>` : ''}
       <td class="mono" style="white-space:nowrap">${esc(a.exam_no)}</td><td style="white-space:nowrap">${esc(a.name)}</td>
       ${crit.map(x => `<td data-sort="${esc(cellVal(a.id, revId, 'crit:' + x.id))}">${cellHtml(a.id, revId, 'crit:' + x.id, cellVal(a.id, revId, 'crit:' + x.id))}</td>`).join('')}
       <td class="adm-calc" data-w="${a.id}"></td><td class="adm-calc" data-rank="${a.id}"></td>
@@ -2483,7 +2504,7 @@ function drawReviewerGrid() {
 }
 function refreshReviewerCalc() {
   const st = GS.stage, revId = GS.revId;
-  const ws = APPS.map(a => ({ id: a.id, w: reviewerWeighted(st, a.id, revId) }));
+  const ws = activeApps(st).filter(a => !isRecused(revId, a.id)).map(a => ({ id: a.id, w: reviewerWeighted(st, a.id, revId) }));
   const sorted = ws.filter(x => x.w != null).map(x => x.w).sort((a, b) => b - a);
   ws.forEach(x => {
     const tw = document.querySelector(`td[data-w="${x.id}"]`), tr = document.querySelector(`td[data-rank="${x.id}"]`);
@@ -2496,7 +2517,7 @@ function drawApplicantGrid() {
   const st = GS.stage, crit = stageCriteria(st), revs = stageReviewers(st), a = APPS.find(x => x.id === GS.appId);
   const box = document.getElementById('grid-box');
   if (!a) { box.innerHTML = ''; return; }
-  box.innerHTML = `<div class="adm-hint" style="margin-bottom:6px">${esc(backgroundOf(a))}${a.review_note ? ' ｜ ' + esc(a.review_note) : ''}</div>
+  box.innerHTML = `<div class="adm-hint" style="margin-bottom:6px">${st === 'interview' ? `<b>組號 ${esc(a.interview_no || '')}</b> ｜ <label><input type="checkbox" ${isAbsent(st, a) ? 'checked' : ''} ${gridEditable(st) ? '' : 'disabled'} onchange="setAbsent('${a.id}',this.checked,this)"> 缺考</label> ｜ ` : ''}${esc(backgroundOf(a))}${a.review_note ? ' ｜ ' + esc(a.review_note) : ''}</div>
   <div class="tbl-wrap"><table class="adm-grid-tbl" style="table-layout:fixed;width:100%">
     <colgroup><col style="width:56px"><col style="width:90px">${crit.map(() => '<col style="width:150px">').join('')}<col style="width:90px"><col style="width:150px"><col></colgroup>
     <thead><tr><th>代號</th><th>委員</th>${crit.map(x => `<th style="text-align:center;white-space:normal">${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}
@@ -2533,6 +2554,20 @@ function refreshApplicantCalc() {
 // 評語依內容自動長高（像 Excel 自動列高）
 function autoGrow(t) { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
 function growAll(root) { (root || document).querySelectorAll('textarea.adm-cell').forEach(autoGrow); }
+
+/* ── 缺考（面試） ── */
+async function setAbsent(appId, absent, el) {
+  const a = APPS.find(x => x.id === appId); if (!a || !gridEditable('interview')) return;
+  const has = stageCriteria('interview').some(c => stageReviewers('interview').some(r => (SC[skey(appId, r.id, c.id)] || {}).score != null));
+  if (absent && has && !confirm(`${a.exam_no} ${a.name} 已有面試分數。標為缺考後這些分數不列入計算（不會刪除）。\n\n確定嗎？`)) { el.checked = false; return; }
+  try {
+    assertRows(await sb.from('adm_applicants').update({ attendance: absent ? 'absent' : 'present' }).eq('id', appId).select('id'), 1, '設定缺考');
+    a.attendance = absent ? 'absent' : 'present';
+    await writeAuditLog('招生', absent ? '標記面試缺考' : '取消面試缺考', 'adm_applicants', appId, `${a.interview_no || ''} ${a.exam_no} ${a.name}`, '');
+    showToast(absent ? `${a.name} 已標為缺考` : `${a.name} 已取消缺考`);
+  } catch (e) { console.error(e); el.checked = !absent; showToast('儲存失敗：' + (e.message || e), 'error'); return; }
+  drawScoresPage();
+}
 
 /* ── 鍵盤 ── */
 function cellKey(e) {
@@ -2717,7 +2752,7 @@ function colIndex(headers, raw) { if (!raw) return -1; const n = normHdr(raw); r
 
 // 依目前的委員與欄位對應，算出每個工作表的變更
 function buildScoreDiff() {
-  const st = SIMP.st, crit = stageCriteria(st), byNo = Object.fromEntries(APPS.map(a => [a.exam_no, a]));
+  const st = SIMP.st, crit = stageCriteria(st), byNo = Object.fromEntries(stageApps(st).map(a => [a.exam_no, a]));
   const usedRev = {};
   SIMP.sheets.forEach(sh => {
     sh.items = []; sh.errors = []; sh.same = 0; sh.blank = 0;
@@ -2729,7 +2764,7 @@ function buildScoreDiff() {
     for (let r = sh.hi + 1; r < sh.rows.length; r++) {
       const row = sh.rows[r] || [];
       const no = cellStr(row[iNo]).toUpperCase();
-      if (!no) continue;
+      if (!no || normHdr(no) === '考生編號') continue;                  // 空白列、每組重複的表頭列
       const app = byNo[no];
       if (!app) {
         // 簽名列、說明列等沒有任何分數／評語的列直接略過，不列為問題
@@ -2738,6 +2773,9 @@ function buildScoreDiff() {
       }
       if (seen[no]) { sh.errors.push(`第 ${r + 1} 列：考生編號 ${no} 與第 ${seen[no]} 列重複，略過`); continue; }
       seen[no] = r + 1;
+      const hasVal = cols.some(({ k, i }) => i >= 0 && k.startsWith('crit:') && cellStr(row[i]) !== '');
+      if (isRecused(sh.revId, app.id)) { if (hasVal) sh.errors.push(`第 ${r + 1} 列 ${no}：此委員迴避這位考生，分數不匯入`); continue; }
+      if (isAbsent(st, app)) { if (hasVal) sh.errors.push(`第 ${r + 1} 列 ${no}：這位考生標為缺考，分數不匯入`); continue; }
       cols.forEach(({ k, i }) => {
         if (i < 0) return;
         const v = row[i];
@@ -3767,6 +3805,111 @@ async function unlockSessions() {
     showToast('🔓 已解除分組鎖定');
   } catch (e) { console.error(e); showToast('解除失敗：' + (e.message || e), 'error'); }
   drawSessionsPage();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   面試評分表（第 8 批）：每位委員、每組一頁；Excel 填回可直接匯入（含考生編號欄）
+   ════════════════════════════════════════════════════════════════ */
+function ivTitle() { return `${CUR.academic_year} 學年度佛法應用研究所碩士班${CUR.track} 面試評分表`; }
+function rocDate(d) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? `${Number(m[1]) - 1911}/${m[2]}/${m[3]}` : ''; }
+async function interviewGroups() {
+  const { data, error } = await sb.from('adm_sessions').select('*').eq('round_id', CUR.id).order('seq');
+  if (error) throw new Error('讀取面試分組失敗：' + error.message);
+  return (data || []).map(s => ({ ...s, apps: stageApps('interview').filter(a => a.session_id === s.id) })).filter(g => g.apps.length);
+}
+
+async function downloadInterviewForms(onlyId) {
+  try {
+    await ensureExcelJS();
+    const crit = stageCriteria('interview'), revs = stageReviewers('interview').filter(v => !onlyId || v.id === onlyId);
+    const groups = await interviewGroups(), st = IS();
+    if (!groups.length) { alert('尚未完成面試分組。'); return; }
+    const head = ['組號', '考生編號', '姓名', ...crit.map(x => `${wPct(x.weight)}%${x.name}`), '總成績', '評語'];
+    const nCol = head.length, c1 = 4, cN = 3 + crit.length, cTot = cN + 1;
+    const formula = crit.map(x => `${x.name}×${wPct(x.weight)}%`).join('＋');
+    const wb = new ExcelJS.Workbook(), used = new Set();
+    revs.forEach(v => {
+      const ws = wb.addWorksheet(safeSheetName(reviewerName(v), used), {
+        pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, horizontalCentered: true,
+                     margins: { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } } });
+      ws.columns = [7, 12, 11, ...crit.map(() => 15), 10, 42].map(w => ({ width: w }));
+      let r = 1;
+      groups.forEach((g, gi) => {
+        ws.mergeCells(r, 1, r, nCol);
+        Object.assign(ws.getCell(r, 1), { value: `${ivTitle()}－${gi + 1}/${groups.length}` });
+        ws.getCell(r, 1).font = { ...TPL_FONT, size: 15, bold: true }; ws.getCell(r, 1).alignment = { horizontal: 'center' };
+        r++;
+        ws.mergeCells(r, 1, r, 3); ws.getCell(r, 1).value = `面試委員：${reviewerName(v)}`; ws.getCell(r, 1).font = { ...TPL_FONT, size: 13, bold: true };
+        ws.mergeCells(r, 4, r, nCol); ws.getCell(r, 4).value = `第 ${gi + 1} 組  面試時間 ${g.start_time || ''}～${g.end_time || ''}  ${st.main_room || ''}`;
+        ws.getCell(r, 4).font = { ...TPL_FONT, bold: true }; ws.getCell(r, 4).alignment = { horizontal: 'right' };
+        r++;
+        const hr = ws.getRow(r);
+        head.forEach((h, i) => { const c = hr.getCell(i + 1); c.value = h; c.font = { ...TPL_FONT, bold: true }; c.border = TPL_BORDER;
+          c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEEEEE' } }; });
+        const hRow = r; r++;
+        g.apps.forEach(a => {
+          const row = ws.getRow(r), rec = isRecused(v.id, a.id);
+          const terms = crit.map((x, i) => `${colLetter(c1 - 1 + i)}${r}*${Number(x.weight) / 100}`).join('+');
+          const vals = [a.interview_no, a.exam_no, a.name, ...crit.map(() => rec ? '迴避' : null),
+            rec ? '迴避' : { formula: `IF(COUNT(${colLetter(c1 - 1)}${r}:${colLetter(cN - 1)}${r})<${crit.length},"",ROUND(${terms},2))` }, null];
+          vals.forEach((val, i) => { const c = row.getCell(i + 1); c.value = val; c.font = TPL_FONT; c.border = TPL_BORDER;
+            c.alignment = { vertical: 'middle', horizontal: i === 0 || (i >= c1 - 1 && i <= cTot - 1) ? 'center' : undefined, wrapText: i === nCol - 1 };
+            if (i === cTot - 1) c.numFmt = '0.00'; });
+          row.height = 30;   // 留手寫空間
+          r++;
+        });
+        fitRowHeights(ws, hRow, hRow);
+        ws.mergeCells(r, 1, r, nCol); ws.getCell(r, 1).value = `※ 各項滿分為 100 分。總成績＝${formula}。`; ws.getCell(r, 1).font = { ...TPL_FONT, size: 11 };
+        r += 2;
+        ws.mergeCells(r, 1, r, nCol);
+        ws.getCell(r, 1).value = '委員簽名：＿＿＿＿＿＿＿＿＿＿' + ' '.repeat(10) + `日期：${rocDate(st.date) || '＿＿＿／＿＿／＿＿'}`;
+        ws.getCell(r, 1).font = { ...TPL_FONT, size: 13 }; ws.getCell(r, 1).alignment = { horizontal: 'right' };
+        if (gi < groups.length - 1) ws.getRow(r).addPageBreak();
+        r += 2;
+      });
+    });
+    const fn = onlyId ? `${CUR.code}_面試評分表_${reviewerName(revs[0])}.xlsx` : `${CUR.code}_面試評分表.xlsx`;
+    const buf = await wb.xlsx.writeBuffer();
+    saveBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fn);
+    writeAuditLog('招生', '下載面試評分表 Excel', 'adm_reviewers', CUR.id, CUR.code, revs.map(reviewerName).join('、'));
+  } catch (e) { console.error(e); showToast('產生面試評分表失敗：' + (e.message || e), 'error'); }
+}
+
+async function printInterviewForms(onlyId) {
+  let groups;
+  try { groups = await interviewGroups(); } catch (e) { showToast(e.message, 'error'); return; }
+  if (!groups.length) { alert('尚未完成面試分組。'); return; }
+  const crit = stageCriteria('interview'), revs = stageReviewers('interview').filter(v => !onlyId || v.id === onlyId), st = IS();
+  const formula = crit.map(x => `${x.name}×${wPct(x.weight)}%`).join('＋');
+  const css = [
+    '@page{size:A4 landscape;margin:12mm}',
+    'body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#000;margin:0;font-size:11pt}',
+    '.pg{page-break-after:always}.pg:last-child{page-break-after:auto}',
+    'h1{font-size:15pt;text-align:center;margin:0 0 8px}',
+    '.meta{display:flex;justify-content:space-between;margin-bottom:6px}.meta b{font-size:13pt}',
+    'table{width:100%;border-collapse:collapse;table-layout:fixed}',
+    'th,td{border:1px solid #000;padding:4px 6px;vertical-align:middle}',
+    'th{background:#eee;font-size:10.5pt;text-align:center}',
+    'td{height:44px;font-size:11pt}td.c{text-align:center}td.rec{text-align:center;color:#555}',
+    '.note{margin-top:8px;font-size:10.5pt}.sign{margin-top:22px;text-align:right;font-size:12pt}',
+  ].join('');
+  const pages = revs.flatMap(v => groups.map((g, gi) => `<section class="pg">
+    <h1>${esc(ivTitle())}－${gi + 1}/${groups.length}</h1>
+    <div class="meta"><span>面試委員：<b>${esc(reviewerName(v))}</b></span><span><b>第 ${gi + 1} 組</b>&emsp;面試時間 ${esc(g.start_time || '')}～${esc(g.end_time || '')}&emsp;${esc(st.main_room || '')}</span></div>
+    <table><colgroup><col style="width:7%"><col style="width:12%"><col style="width:11%">${crit.map(() => '<col style="width:13%">').join('')}<col style="width:10%"><col></colgroup>
+      <thead><tr><th>組號</th><th>考生編號</th><th>姓名</th>${crit.map(x => `<th>${wPct(x.weight)}%${esc(x.name)}</th>`).join('')}<th>總成績</th><th>評語</th></tr></thead>
+      <tbody>${g.apps.map(a => { const rec = isRecused(v.id, a.id);
+        return `<tr><td class="c">${esc(a.interview_no)}</td><td class="c">${esc(a.exam_no)}</td><td class="c">${esc(a.name)}</td>
+          ${crit.map(() => `<td class="${rec ? 'rec' : ''}">${rec ? '迴避' : ''}</td>`).join('')}<td class="${rec ? 'rec' : ''}">${rec ? '迴避' : ''}</td><td></td></tr>`; }).join('')}</tbody></table>
+    <div class="note">※ 各項滿分為 100 分。總成績＝${esc(formula)}。</div>
+    <div class="sign">委員簽名：＿＿＿＿＿＿＿＿＿＿&emsp;&emsp;日期：${esc(rocDate(st.date) || '＿＿＿／＿＿／＿＿')}</div>
+  </section>`));
+  const html = '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>' + esc(CUR.code) + ' 面試評分表</title><sty' + 'le>' + css + '</sty' + 'le></he' + 'ad><bo' + 'dy>'
+    + pages.join('') + '<scr' + 'ipt>window.onload=()=>window.print()<\/scr' + 'ipt></bo' + 'dy></ht' + 'ml>';
+  const w = window.open('', '_blank');
+  if (!w) { showToast('瀏覽器擋住了新視窗，請允許彈出視窗後再試', 'error'); return; }
+  w.document.write(html); w.document.close();
+  writeAuditLog('招生', '列印面試評分表', 'adm_reviewers', CUR.id, CUR.code, revs.map(reviewerName).join('、'));
 }
 
 checkAuth();
